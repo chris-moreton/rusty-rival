@@ -54,49 +54,57 @@ struct Position {
     move_number: Int,
 }
 
+impl PartialEq for Position {
+    fn eq(&self, other: &Self) -> bool {
+        self.whitePawnBitboard == other.whitePawnBitboard &&
+        self.whiteKnightBitboard == other.whiteKnightBitboard &&
+        self.whiteBishopBitboard == other.whiteBishopBitboard &&
+        self.whiteQueenBitboard == other.whiteQueenBitboard &&
+        self.whiteKingBitboard == other.whiteKingBitboard &&
+        self.whiteRookBitboard == other.whiteRookBitboard &&
+        self.blackPawnBitboard == other.blackPawnBitboard &&
+        self.blackKnightBitboard == other.blackKnightBitboard &&
+        self.blackBishopBitboard == other.blackBishopBitboard &&
+        self.blackQueenBitboard == other.blackQueenBitboard &&
+        self.blackKingBitboard == other.blackKingBitboard &&
+        self.blackPiecesBitboard == other.blackPiecesBitboard &&
+        self.enPassantSquare == other.enPassantSquare &&
+        self.whiteKingCastleAvailable == other.whiteKingCastleAvailable &&
+        self.whiteQueenCastleAvailable == other.whiteQueenCastleAvailable &&
+        self.blackKingCastleAvailable == other.blackKingCastleAvailable &&
+        self.blackQueenCastleAvailable == other.blackQueenCastleAvailable &&
+        self.mover == other.mover
+    }
+}
 
-instance Eq Position where
-a == b = whitePawnBitboard a == whitePawnBitboard b &&
-whiteKnightBitboard a == whiteKnightBitboard b &&
-whiteBishopBitboard a == whiteBishopBitboard b &&
-whiteQueenBitboard a == whiteQueenBitboard b &&
-whiteKingBitboard a == whiteKingBitboard b &&
-whiteRookBitboard a == whiteRookBitboard b &&
-blackPawnBitboard a == blackPawnBitboard b &&
-blackKnightBitboard a == blackKnightBitboard b &&
-blackBishopBitboard a == blackBishopBitboard b &&
-blackQueenBitboard a == blackQueenBitboard b &&
-blackKingBitboard a == blackKingBitboard b &&
-blackPiecesBitboard a == blackPiecesBitboard b &&
-enPassantSquare a == enPassantSquare b &&
-whiteKingCastleAvailable a == whiteKingCastleAvailable b &&
-whiteQueenCastleAvailable a == whiteQueenCastleAvailable b &&
-blackKingCastleAvailable a == blackKingCastleAvailable b &&
-blackQueenCastleAvailable a == blackQueenCastleAvailable b &&
-mover a == mover b
+impl Eq for Position { }
 
-{-# INLINE bitboardForMover #-}
-bitboardForMover :: Position -> Piece -> Bitboard
-bitboardForMover !position = bitboardForColour position (mover position)
+fn bitboard_for_mover(&position: Position, &piece: Piece) {
+    bitboardForColour(position, position.mover, piece)
+}
 
-{-# INLINE bitboardForColour #-}
-bitboardForColour :: Position -> Mover -> Piece -> Bitboard
-bitboardForColour !pieceBitboards White King = whiteKingBitboard pieceBitboards
-bitboardForColour !pieceBitboards White Queen = whiteQueenBitboard pieceBitboards
-bitboardForColour !pieceBitboards White Rook = whiteRookBitboard pieceBitboards
-bitboardForColour !pieceBitboards White Knight = whiteKnightBitboard pieceBitboards
-bitboardForColour !pieceBitboards White Bishop = whiteBishopBitboard pieceBitboards
-bitboardForColour !pieceBitboards White Pawn = whitePawnBitboard pieceBitboards
-bitboardForColour !pieceBitboards Black King = blackKingBitboard pieceBitboards
-bitboardForColour !pieceBitboards Black Queen = blackQueenBitboard pieceBitboards
-bitboardForColour !pieceBitboards Black Rook = blackRookBitboard pieceBitboards
-bitboardForColour !pieceBitboards Black Knight = blackKnightBitboard pieceBitboards
-bitboardForColour !pieceBitboards Black Bishop = blackBishopBitboard pieceBitboards
-bitboardForColour !pieceBitboards Black Pawn = blackPawnBitboard pieceBitboards
+fn bitboard_for_colour(&position: Position, &mover: Mover, &piece: Piece) {
+    match (mover, piece) {
+        (Mover::White, Piece::King) => position.white_king_bitboard,
+        (Mover::White, Piece::Queen) => position.white_queen_bitboard,
+        (Mover::White, Piece::Rook) => position.white_rook_bitboard,
+        (Mover::White, Piece::Knight) => position.white_knight_bitboard,
+        (Mover::White, Piece::Bishop) => position.white_bishop_bitboard,
+        (Mover::White, Piece::Pawn) => position.white_pawn_bitboard,
+        (Mover::Black, Piece::King) => position.black_king_bitboard,
+        (Mover::Black, Piece::Queen) => position.black_queen_bitboard,
+        (Mover::Black, Piece::Rook) => position.black_rook_bitboard,
+        (Mover::Black, Piece::Knight) => position.black_knight_bitboard,
+        (Mover::Black, Piece::Bishop) => position.black_bishop_bitboard,
+        (Mover::Black, Piece::Pawn) => position.black_pawn_bitboard,
+    }
+}
 
-{-# INLINE sliderBitboardForColour #-}
-sliderBitboardForColour :: Position -> Mover -> Piece -> Bitboard
-sliderBitboardForColour !pieceBitboards White Rook = whiteRookBitboard pieceBitboards .|. whiteQueenBitboard pieceBitboards
-sliderBitboardForColour !pieceBitboards White Bishop = whiteBishopBitboard pieceBitboards .|. whiteQueenBitboard pieceBitboards
-sliderBitboardForColour !pieceBitboards Black Rook = blackRookBitboard pieceBitboards .|. blackQueenBitboard pieceBitboards
-sliderBitboardForColour !pieceBitboards Black Bishop = blackBishopBitboard pieceBitboards .|. blackQueenBitboard pieceBitboards
+fn slider_bitboard_for_colour(&position: Position, &mover: Mover, &piece: Piece) {
+    match (mover, piece) {
+        (Mover::White, Piece::Rook) => position.white_rook_bitboard | position.white_queen_bitboard,
+        (Mover::White, Piece::Bishop) => position.white_bishop_bitboard | position.white_queen_bitboard,
+        (Mover::Black, Piece::Rook) => position.black_rook_bitboard | position.black_queen_bitboard,
+        (Mover::Black, Piece::Bishop) => position.black_bishop_bitboard | position.black_queen_bitboard,
+    }
+}
