@@ -1,4 +1,6 @@
-use types;
+pub use types::bitboard_for_mover;
+pub use types::Position;
+pub use types::Piece;
 
 #[test]
 fn it_returns_the_correct_bitboard_for_mover() {
