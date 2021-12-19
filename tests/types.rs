@@ -1,4 +1,6 @@
 use rusty_rival::types::*;
+use rusty_rival::types::funcs::bitboard_for_mover;
+use rusty_rival::types::types::{Mover, Piece, Position};
 
 #[test]
 fn it_returns_the_correct_bitboard_for_mover() {
