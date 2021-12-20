@@ -2,16 +2,17 @@ pub mod bitboards {
     use crate::types::types::Bitboard;
 
     pub fn bit_list(bb: Bitboard) -> Vec<u32> {
-        if bb == 0 {
-            return Vec::new()
+        return bit_list(bb, Vec::new());
+
+        fn bit_list(bb: Bitboard, mut r: Vec<u32>) -> Vec<u32> {
+            if bb == 0 {
+                return r
+            }
+            let b = bb.trailing_zeros();
+            let new_bb = bb & !(1 << b);
+            r.push(b);
+            return bit_list(new_bb, r);
         }
-        let b = bb.trailing_zeros();
-        let new_bb = bb & !(1 << b);
-        let mut v = Vec::new();
-        v.push(b);
-        let mut tail = bit_list(new_bb);
-        tail.extend(v);
-        return tail;
     }
 
     pub fn bit_string(bb: Bitboard) -> String {
