@@ -91,38 +91,3 @@ pub mod types {
 
     impl Eq for Position {}
 }
-
-pub mod funcs {
-    use crate::types::types::{Bitboard, Mover, Piece, Position};
-
-    pub fn bitboard_for_mover(position: &Position, piece: &Piece) -> Bitboard {
-        bitboard_for_colour(position, &position.mover, piece)
-    }
-
-    fn bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
-        match (mover, piece) {
-            (Mover::White, Piece::King) => position.white_king_bitboard,
-            (Mover::White, Piece::Queen) => position.white_queen_bitboard,
-            (Mover::White, Piece::Rook) => position.white_rook_bitboard,
-            (Mover::White, Piece::Knight) => position.white_knight_bitboard,
-            (Mover::White, Piece::Bishop) => position.white_bishop_bitboard,
-            (Mover::White, Piece::Pawn) => position.white_pawn_bitboard,
-            (Mover::Black, Piece::King) => position.black_king_bitboard,
-            (Mover::Black, Piece::Queen) => position.black_queen_bitboard,
-            (Mover::Black, Piece::Rook) => position.black_rook_bitboard,
-            (Mover::Black, Piece::Knight) => position.black_knight_bitboard,
-            (Mover::Black, Piece::Bishop) => position.black_bishop_bitboard,
-            (Mover::Black, Piece::Pawn) => position.black_pawn_bitboard,
-        }
-    }
-
-    fn slider_bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
-        match (mover, piece) {
-            (Mover::White, Piece::Rook) => position.white_rook_bitboard | position.white_queen_bitboard,
-            (Mover::White, Piece::Bishop) => position.white_bishop_bitboard | position.white_queen_bitboard,
-            (Mover::Black, Piece::Rook) => position.black_rook_bitboard | position.black_queen_bitboard,
-            (Mover::Black, Piece::Bishop) => position.black_bishop_bitboard | position.black_queen_bitboard,
-            _ => panic!("Can't handle piece")
-        }
-    }
-}

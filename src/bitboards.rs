@@ -1,5 +1,7 @@
+
 pub mod bitboards {
-    use crate::types::types::Bitboard;
+    use crate::types::types::{Bitboard, Mover, Piece, Position};
+    use crate::types::types::Mover::White;
 
     pub fn bit_list(bb: Bitboard) -> Vec<u32> {
         return bit_list(bb, Vec::new());
@@ -27,23 +29,45 @@ pub mod bitboards {
             return bit_string(bb ^ bit_mask, square - 1, s + append_char);
         }
     }
+
+    pub fn bitboard_for_mover(position: &Position, piece: &Piece) -> Bitboard {
+        bitboard_for_colour(position, &position.mover, piece)
+    }
+
+    fn bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
+        match (mover, piece) {
+            (Mover::White, Piece::King) => position.white_king_bitboard,
+            (Mover::White, Piece::Queen) => position.white_queen_bitboard,
+            (Mover::White, Piece::Rook) => position.white_rook_bitboard,
+            (Mover::White, Piece::Knight) => position.white_knight_bitboard,
+            (Mover::White, Piece::Bishop) => position.white_bishop_bitboard,
+            (Mover::White, Piece::Pawn) => position.white_pawn_bitboard,
+            (Mover::Black, Piece::King) => position.black_king_bitboard,
+            (Mover::Black, Piece::Queen) => position.black_queen_bitboard,
+            (Mover::Black, Piece::Rook) => position.black_rook_bitboard,
+            (Mover::Black, Piece::Knight) => position.black_knight_bitboard,
+            (Mover::Black, Piece::Bishop) => position.black_bishop_bitboard,
+            (Mover::Black, Piece::Pawn) => position.black_pawn_bitboard,
+        }
+    }
+
+    pub fn slider_bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
+        match (mover, piece) {
+            (Mover::White, Piece::Rook) => position.white_rook_bitboard | position.white_queen_bitboard,
+            (Mover::White, Piece::Bishop) => position.white_bishop_bitboard | position.white_queen_bitboard,
+            (Mover::Black, Piece::Rook) => position.black_rook_bitboard | position.black_queen_bitboard,
+            (Mover::Black, Piece::Bishop) => position.black_bishop_bitboard | position.black_queen_bitboard,
+            _ => panic!("Can't handle piece")
+        }
+    }
+
+    pub fn enemy_bitboard(position: &Position) -> Bitboard {
+        return if position.mover == White { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
+    }
+
+
 }
 
-// bitString :: Bitboard -> String
-// bitString bitboard = go bitboard 63 ""
-// where
-// go :: Bitboard -> Int -> String -> String
-// go _ (-1) result = result
-// go bitboard square result = do
-// let bitMask = bit square
-// go (xor bitboard bitMask) (square - 1) (result ++ if bitMask == (.&.) bitMask bitboard then "1" else "0")
-//
-// enemyBitboard :: Position -> Bitboard
-// {-# INLINE enemyBitboard #-}
-// enemyBitboard !position
-// | mover position == White = blackPiecesBitboard position
-// | otherwise = whitePiecesBitboard position
-//
 // promotionSquares :: Bitboard
 // promotionSquares = 0b1111111100000000000000000000000000000000000000000000000011111111
 //
