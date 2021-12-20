@@ -1,5 +1,4 @@
 pub mod bitboards {
-    use std::collections::LinkedList;
     use crate::types::types::Bitboard;
 
     pub fn bit_list(bb: Bitboard) -> Vec<u32> {
@@ -13,6 +12,19 @@ pub mod bitboards {
         let mut tail = bit_list(new_bb);
         tail.extend(v);
         return tail;
+    }
+
+    pub fn bit_string(bb: Bitboard) -> String {
+        return bit_string(bb, 63, String::new());
+
+        fn bit_string(bb: Bitboard, square: i8, s: String) -> String {
+            if square == -1 {
+                return s;
+            }
+            let bit_mask: u64 = 1 << square;
+            let append_char = if bit_mask == bit_mask & bb { "1" } else { "0" };
+            return bit_string(bb ^ bit_mask, square - 1, s + append_char);
+        }
     }
 }
 

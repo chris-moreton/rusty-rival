@@ -1,5 +1,5 @@
 use rusty_rival::bitboards::*;
-use rusty_rival::bitboards::bitboards::bit_list;
+use rusty_rival::bitboards::bitboards::{bit_list, bit_string};
 
 #[test]
 fn it_gets_bit_lists() {
@@ -7,4 +7,9 @@ fn it_gets_bit_lists() {
     assert_eq!(vec![55], bit_list(0b0000000010000000000000000000000000000000000000000000000000000000));
     assert_eq!(vec![55,0], bit_list(0b0000000010000000000000000000000000000000000000000000000000000001));
     assert_eq!(vec![63,55,0], bit_list(0b1000000010000000000000000000000000000000000000000000000000000001));
+}
+
+#[test]
+fn it_gets_a_bit_string() {
+    assert_eq!("0000000000000000000000000000000000000000000000000000000000001111", bit_string(15))
 }
