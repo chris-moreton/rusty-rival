@@ -3,7 +3,83 @@ pub mod fen {
         todo!()
         // bitArrayToDecimal :: [Int] -> Int
         // bitArrayToDecimal bits = recurBitArrayToDecimal bits 63 0
+        // recurBitArrayToDecimal :: [Int] -> Int -> Int -> Int
+        // recurBitArrayToDecimal _ (-1) result = result
+        // recurBitArrayToDecimal bits bitnum result = do
+        // let thisResult = if head bits == 1 then shiftL 1 bitnum else 0
+        // recurBitArrayToDecimal (tail bits) (bitnum - 1) (result + thisResult)
     }
+
+    pub fn board_bits(fen_ranks: Vec<String>, piece_char: char) -> String {
+        // fn board_bits(fen_ranks: Vec<String>, piece_char: char, result: String) {
+        //
+        // }
+        todo!()
+        // recurBoardBits :: [String] -> Char -> [Int] -> [Int]
+        // recurBoardBits [] _ result = result
+        // recurBoardBits fenRanks pieceChar result = do
+        // let thisResult = rankBits (head fenRanks) pieceChar
+        // recurBoardBits (tail fenRanks) pieceChar (result ++ thisResult)
+    }
+
+    pub fn rank_bits(rank: String, piece: char) -> Vec<u8> {
+        fn rank_bits(rank: String, piece: char, result: Vec<u8>) -> Vec<u8> {
+            if (rank.chars().count == 0) {
+                return result;
+            }
+
+        }
+
+        rank_bits(rank, piece, Vec::new());
+    }
+
+    let c = head fenRankChars
+    let thisResult
+    | isFileNumber c = replicate (ord c - 48) 0
+    | pieceChar == c = [1]
+    | otherwise = [0]
+    recurRankBits (tail fenRankChars) pieceChar (result ++ thisResult)
+
+    // algebraicSquareRefFromBitRef :: Int -> String
+    // algebraicSquareRefFromBitRef bitRef = do
+    // let rank = quot bitRef 8 + 1
+    // let file = 8 - mod bitRef 8
+    // let rankChar = chr (rank + 48)
+    // let fileChar = chr (file + 96)
+    // [fileChar,rankChar]
+    //
+    // bitRefFromAlgebraicSquareRef :: String -> Int
+    // bitRefFromAlgebraicSquareRef algebraic = do
+    // let fileNum = ord (head algebraic) - 97
+    // let rankNum = ord (head (tail algebraic)) - 49
+    // (rankNum * 8) + (7 - fileNum)
+    //
+    // promotionPart :: Move -> String
+    // promotionPart move
+    // | (.&.) promotionFullMoveMask move == promotionQueenMoveMask = "q"
+    // | (.&.) promotionFullMoveMask move == promotionRookMoveMask = "r"
+    // | (.&.) promotionFullMoveMask move == promotionBishopMoveMask = "b"
+    // | (.&.) promotionFullMoveMask move == promotionKnightMoveMask = "n"
+    // | otherwise = ""
+    //
+    // promotionMask :: Char -> Int
+    // promotionMask pieceChar
+    // | pieceChar == 'q' = promotionQueenMoveMask
+    // | pieceChar == 'b' = promotionBishopMoveMask
+    // | pieceChar == 'r' = promotionRookMoveMask
+    // | pieceChar == 'n' = promotionKnightMoveMask
+    // | otherwise = 0
+    //
+    // algebraicMoveFromMove :: Move -> String
+    // algebraicMoveFromMove move = do
+    // let fromSquare = shiftR move 16
+    // let toSquare = (.&.) 63 move
+    // algebraicSquareRefFromBitRef fromSquare ++ algebraicSquareRefFromBitRef toSquare ++ promotionPart move
+    //
+    // moveFromAlgebraicMove :: String -> Move
+    // moveFromAlgebraicMove moveString =
+    // fromSquareMask (bitRefFromAlgebraicSquareRef (substring moveString 0 2)) + bitRefFromAlgebraicSquareRef (substring moveString 2 4) + promotionMask (last moveString)
+
 
     pub fn get_fen_ranks(fen: String) -> Vec<String> {
         todo!()
@@ -24,7 +100,7 @@ pub mod fen {
         return if m == "w" { White } else { Black }
     }
 
-    pub fn piece_bitboard(fen: char) -> Mover {
+    pub fn piece_bitboard(fen_ranks: Vec<String>, piece: char) -> Mover {
         todo!()
         // pieceBitboard :: [String] -> Char -> Bitboard
         // pieceBitboard fenRanks pieceChar = fromIntegral(bitArrayToDecimal (boardBits fenRanks pieceChar)) :: Bitboard
