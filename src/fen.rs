@@ -14,16 +14,12 @@ pub mod fen {
         return total;
     }
 
-    pub fn board_bits(fen_ranks: Vec<String>, piece_char: char) -> String {
-        // fn board_bits(fen_ranks: Vec<String>, piece_char: char, result: String) {
-        //
-        // }
-        todo!()
-        // recurBoardBits :: [String] -> Char -> [Int] -> [Int]
-        // recurBoardBits [] _ result = result
-        // recurBoardBits fenRanks pieceChar result = do
-        // let thisResult = rankBits (head fenRanks) pieceChar
-        // recurBoardBits (tail fenRanks) pieceChar (result ++ thisResult)
+    pub fn board_bits(fen_ranks: Vec<String>, piece_char: char) -> Vec<u8> {
+        let mut result: Vec<u8> = Vec::new();
+        fen_ranks.iter().for_each(|item| {
+            result.append(&mut rank_bits(item, piece_char))
+        });
+        return result;
     }
 
     fn is_file_number(c: char) -> bool {
@@ -34,15 +30,16 @@ pub mod fen {
         return c as u8 - 48;
     }
 
-    pub fn rank_bits(rank: String, piece: char) -> Vec<u8> {
+    pub fn rank_bits(rank: &String, piece: char) -> Vec<u8> {
         return rank_bits(rank, piece, Vec::new());
 
-        fn rank_bits(mut rank: String, piece: char, mut result: Vec<u8>) -> Vec<u8> {
+        fn rank_bits(rank: &String, piece: char, mut result: Vec<u8>) -> Vec<u8> {
             if rank.chars().count() == 0 {
                 return result;
             }
             let c = rank.chars().nth(0).unwrap();
-            rank.remove(0);
+            let mut new_rank = rank.clone();
+            new_rank.remove(0);
             if is_file_number(c) {
                 for x in 0..char_as_num(c) {
                     result.push(0)
@@ -53,7 +50,7 @@ pub mod fen {
                 result.push(0);
             };
 
-            return rank_bits(rank, piece, result)
+            return rank_bits(&new_rank, piece, result)
         }
     }
 
