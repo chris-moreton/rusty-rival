@@ -1,5 +1,5 @@
 use rusty_rival::fen::*;
-use rusty_rival::fen::fen::{algebraic_squareref_from_bitref, bit_array_to_decimal, board_bits, char_as_num, fen_board_part, get_fen_ranks, rank_bits};
+use rusty_rival::fen::fen::{algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, rank_bits};
 
 #[test]
 fn it_gets_a_char_as_a_number() {
@@ -65,6 +65,13 @@ fn it_converts_a_bitref_to_an_algebraic_square() {
     assert_eq!("a8", algebraic_squareref_from_bitref(63));
     assert_eq!("h1", algebraic_squareref_from_bitref(0));
     assert_eq!("a1", algebraic_squareref_from_bitref(7));
+}
+
+#[test]
+fn it_converts_an_algebraic_square_to_a_bitref() {
+    assert_eq!(63, bitref_from_algebraic_squareref("a8".to_string()));
+    assert_eq!(0, bitref_from_algebraic_squareref("h1".to_string()));
+    assert_eq!(1, bitref_from_algebraic_squareref("g1".to_string()));
 }
 
 //

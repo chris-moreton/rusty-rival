@@ -61,19 +61,12 @@ pub mod fen {
         let file_char = (file + 96) as char;
         return file_char.to_string() + &*(rank_char.to_string());
     }
-    // algebraicSquareRefFromBitRef :: Int -> String
-    // algebraicSquareRefFromBitRef bitRef = do
-    // let rank = quot bitRef 8 + 1
-    // let file = 8 - mod bitRef 8
-    // let rankChar = chr (rank + 48)
-    // let fileChar = chr (file + 96)
-    // [fileChar,rankChar]
-    //
-    // bitRefFromAlgebraicSquareRef :: String -> Int
-    // bitRefFromAlgebraicSquareRef algebraic = do
-    // let fileNum = ord (head algebraic) - 97
-    // let rankNum = ord (head (tail algebraic)) - 49
-    // (rankNum * 8) + (7 - fileNum)
+
+    pub fn bitref_from_algebraic_squareref(algebraic: String) -> u8 {
+        let file_num = algebraic.chars().nth(0).unwrap() as u8 - 97;
+        let rank_num = algebraic.chars().nth(1).unwrap() as u8 - 49;
+        return rank_num * 8 + (7 - file_num);
+    }
     //
     // promotionPart :: Move -> String
     // promotionPart move
