@@ -5,14 +5,13 @@ pub mod fen {
     const EN_PASSANT_UNAVAILABLE: i8 = -1;
 
     pub fn bit_array_to_decimal(is: Vec<u8>) -> u64 {
-        todo!()
-        // bitArrayToDecimal :: [Int] -> Int
-        // bitArrayToDecimal bits = recurBitArrayToDecimal bits 63 0
-        // recurBitArrayToDecimal :: [Int] -> Int -> Int -> Int
-        // recurBitArrayToDecimal _ (-1) result = result
-        // recurBitArrayToDecimal bits bitnum result = do
-        // let thisResult = if head bits == 1 then shiftL 1 bitnum else 0
-        // recurBitArrayToDecimal (tail bits) (bitnum - 1) (result + thisResult)
+        let mut total: u64 = 0;
+        for x in 0..64 {
+            if is[x] == 1 {
+                total += 1 << (63-x);
+            }
+        }
+        return total;
     }
 
     pub fn board_bits(fen_ranks: Vec<String>, piece_char: char) -> String {
@@ -100,10 +99,8 @@ pub mod fen {
     // fromSquareMask (bitRefFromAlgebraicSquareRef (substring moveString 0 2)) + bitRefFromAlgebraicSquareRef (substring moveString 2 4) + promotionMask (last moveString)
 
 
-    pub fn get_fen_ranks(fen: String) -> Vec<String> {
-        todo!()
-        // getFenRanks :: String -> [String]
-        // getFenRanks = splitOn "/"
+    pub fn get_fen_ranks(fenBoardPart: String) -> Vec<String> {
+        return fenBoardPart.split("/").map(|s| s.to_string()).collect();
     }
 
     pub fn fen_part(fen: &String, i: u8) -> String {
