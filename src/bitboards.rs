@@ -4,7 +4,9 @@ pub mod bitboards {
     use crate::types::types::Mover::White;
 
     pub fn bit_list(bb: Bitboard) -> Vec<u32> {
-        return bit_list(bb, Vec::new());
+        let mut bl = bit_list(bb, Vec::new());
+        bl.reverse();
+        return bl;
 
         fn bit_list(bb: Bitboard, mut r: Vec<u32>) -> Vec<u32> {
             if bb == 0 {

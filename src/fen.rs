@@ -1,4 +1,9 @@
 pub mod fen {
+    use std::iter;
+    use crate::types::types::{Bitboard, Mover, Position, Square};
+    use crate::types::types::Mover::{Black, White};
+    const EN_PASSANT_UNAVAILABLE: i8 = -1;
+
     pub fn bit_array_to_decimal(is: Vec<u8>) -> u64 {
         todo!()
         // bitArrayToDecimal :: [Int] -> Int
@@ -22,23 +27,37 @@ pub mod fen {
         // recurBoardBits (tail fenRanks) pieceChar (result ++ thisResult)
     }
 
-    pub fn rank_bits(rank: String, piece: char) -> Vec<u8> {
-        fn rank_bits(rank: String, piece: char, result: Vec<u8>) -> Vec<u8> {
-            if (rank.chars().count == 0) {
-                return result;
-            }
-
-        }
-
-        rank_bits(rank, piece, Vec::new());
+    fn is_file_number(c: char) -> bool {
+        return c >= '0' && c <= '9';
     }
 
-    let c = head fenRankChars
-    let thisResult
-    | isFileNumber c = replicate (ord c - 48) 0
-    | pieceChar == c = [1]
-    | otherwise = [0]
-    recurRankBits (tail fenRankChars) pieceChar (result ++ thisResult)
+    fn char_as_num(c: char) -> u8 {
+        return c as u8 - 32;
+    }
+
+    pub fn rank_bits(rank: String, piece: char) -> Vec<u8> {
+        return rank_bits(rank, piece, Vec::new());
+
+        fn rank_bits(mut rank: String, piece: char, mut result: Vec<u8>) -> Vec<u8> {
+            if rank.chars().count() == 0 {
+                return result;
+            }
+            let c = rank.chars().nth(0).unwrap();
+            if is_file_number(c) {
+                for x in 1..char_as_num(c) {
+                    result.push(0)
+                }
+            } else if piece == c {
+                result.push(1);
+            } else {
+                result.push(0);
+            };
+            rank.remove(0);
+
+            return rank_bits(rank, piece, result)
+        }
+    }
+
 
     // algebraicSquareRefFromBitRef :: Int -> String
     // algebraicSquareRefFromBitRef bitRef = do
@@ -87,38 +106,60 @@ pub mod fen {
         // getFenRanks = splitOn "/"
     }
 
-    pub fn fen_part(fen: String, i: u8) -> String {
-        return fen.split(" ").collect()[i]
+    pub fn fen_part(fen: &String, i: u8) -> String {
+        let parts: Vec<&str> = fen.split(" ").collect();
+        return String::from(parts[i as usize])
     }
 
-    pub fn fen_board_part(fen: String) -> String {
+    pub fn fen_board_part(fen: &String) -> String {
         return fen_part(fen, 0)
     }
 
-    pub fn get_mover(fen: String) -> Mover {
+    pub fn get_mover(fen: &String) -> Mover {
         let m = fen_part(fen, 1);
         return if m == "w" { White } else { Black }
     }
 
-    pub fn piece_bitboard(fen_ranks: Vec<String>, piece: char) -> Mover {
+    pub fn piece_bitboard(fen_ranks: &Vec<String>, piece: char) -> Bitboard {
         todo!()
         // pieceBitboard :: [String] -> Char -> Bitboard
         // pieceBitboard fenRanks pieceChar = fromIntegral(bitArrayToDecimal (boardBits fenRanks pieceChar)) :: Bitboard
     }
 
-    pub fn get_position(fen: String) -> Position {
+    fn en_passant_fen_part(fen: &String) -> String {
+        return fen_part(fen, 3);
+    }
+
+    fn bit_ref_from_algebraic_square_ref(algebraic: &String) -> i8 {
+        todo!()
+        // let fileNum = ord (head algebraic) - 97
+        // let rankNum = ord (head (tail algebraic)) - 49
+        //     (rankNum * 8) + (7 - fileNum)
+    }
+
+    fn en_passant_bit_ref(en_passant_fen_part: &String) -> i8 {
+        return if en_passant_fen_part == "-" {
+            EN_PASSANT_UNAVAILABLE
+        } else {
+            bit_ref_from_algebraic_square_ref(en_passant_fen_part)
+        }
+    }
+
+    pub fn get_position(fen: &String) -> Position {
         let fen_ranks = get_fen_ranks(fen_board_part(fen));
         let mover = get_mover(fen);
-        let wp = piece_bitboard(fen_ranks, 'P');
-        let bp = piece_bitboard(fen_ranks, 'p');
-        let wn = piece_bitboard(fen_ranks, 'N');
-        let bn = piece_bitboard(fen_ranks, 'n');
-        let wb = piece_bitboard(fen_ranks, 'B');
-        let bb = piece_bitboard(fen_ranks, 'b');
-        let wr = piece_bitboard(fen_ranks, 'R');
-        let br = piece_bitboard(fen_ranks, 'r');
-        let wq = piece_bitboard(fen_ranks, 'Q');
-        let bq = piece_bitboard(fen_ranks, 'q');
+        let wp = piece_bitboard(&fen_ranks, 'P');
+        let bp = piece_bitboard(&fen_ranks, 'p');
+        let wk = piece_bitboard(&fen_ranks, 'K');
+        let bk = piece_bitboard(&fen_ranks, 'k');
+        let wn = piece_bitboard(&fen_ranks, 'N');
+        let bn = piece_bitboard(&fen_ranks, 'n');
+        let wb = piece_bitboard(&fen_ranks, 'B');
+        let bb = piece_bitboard(&fen_ranks, 'b');
+        let wr = piece_bitboard(&fen_ranks, 'R');
+        let br = piece_bitboard(&fen_ranks, 'r');
+        let wq = piece_bitboard(&fen_ranks, 'Q');
+        let bq = piece_bitboard(&fen_ranks, 'q');
         let castle_part = fen_part(fen, 2);
         return Position {
             white_pawn_bitboard: wp,
@@ -131,11 +172,13 @@ pub mod fen {
             black_rook_bitboard: br,
             white_queen_bitboard: wq,
             black_queen_bitboard: bq,
+            white_king_bitboard: wk,
+            black_king_bitboard: bk,
             all_pieces_bitboard: wp | bp | wn | bn | wb | bb | wr | br | wq | bq | wk | bk,
             white_pieces_bitboard: wp | wn | wb | wr | wq | wk,
             black_pieces_bitboard: bp | bn | bb | br | bq | bk,
             mover: get_mover(fen),
-            en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)),
+            en_passant_square: en_passant_bit_ref(&en_passant_fen_part(fen)) as Square,
             white_king_castle_available: castle_part.contains("K"),
             white_queen_castle_available: castle_part.contains("Q"),
             black_king_castle_available: castle_part.contains("k"),
