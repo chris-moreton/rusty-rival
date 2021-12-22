@@ -1,5 +1,5 @@
 use rusty_rival::fen::*;
-use rusty_rival::fen::fen::{algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, rank_bits};
+use rusty_rival::fen::fen::{algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, piece_bitboard, rank_bits};
 
 #[test]
 fn it_gets_a_char_as_a_number() {
@@ -56,7 +56,7 @@ fn it_gets_the_board_bits() {
 
     assert_eq!(
         vec![0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        board_bits(get_fen_ranks(fen_board_part(&fen)), 'p')
+        board_bits(&get_fen_ranks(fen_board_part(&fen)), 'p')
     )
 }
 
@@ -74,14 +74,13 @@ fn it_converts_an_algebraic_square_to_a_bitref() {
     assert_eq!(1, bitref_from_algebraic_squareref("g1".to_string()));
 }
 
-//
-// #[test]
-// fn it_gets_a_piece_bitboard() {
-//     let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b Q g3 5 56";
-//
-//     assert_eq!(
-//         634693087133696,
-//         piece_bitboard(get_fen_ranks(fen_board_part(fen)), 'p')
-//     )
-// }
+#[test]
+fn it_gets_a_piece_bitboard() {
+    let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b Q g3 5 56".to_string();
+
+    assert_eq!(
+        634693087133696,
+        piece_bitboard(&get_fen_ranks(fen_board_part(&fen)), 'p')
+    )
+}
 

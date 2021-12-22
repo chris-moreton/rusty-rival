@@ -14,7 +14,7 @@ pub mod fen {
         return total;
     }
 
-    pub fn board_bits(fen_ranks: Vec<String>, piece_char: char) -> Vec<u8> {
+    pub fn board_bits(fen_ranks: &Vec<String>, piece_char: char) -> Vec<u8> {
         let mut result: Vec<u8> = Vec::new();
         fen_ranks.iter().for_each(|item| {
             result.append(&mut rank_bits(item, piece_char))
@@ -114,9 +114,7 @@ pub mod fen {
     }
 
     pub fn piece_bitboard(fen_ranks: &Vec<String>, piece: char) -> Bitboard {
-        todo!()
-        // pieceBitboard :: [String] -> Char -> Bitboard
-        // pieceBitboard fenRanks pieceChar = fromIntegral(bitArrayToDecimal (boardBits fenRanks pieceChar)) :: Bitboard
+        return bit_array_to_decimal((board_bits(&fen_ranks, piece)));
     }
 
     fn en_passant_fen_part(fen: &String) -> String {
