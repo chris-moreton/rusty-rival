@@ -54,7 +54,13 @@ pub mod fen {
         }
     }
 
-
+    pub fn algebraic_squareref_from_bitref(bitref: u8) -> String {
+        let rank = (bitref / 8) + 1;
+        let file = 8 - (bitref % 8);
+        let rank_char = (rank + 48) as char;
+        let file_char = (file + 96) as char;
+        return file_char.to_string() + &*(rank_char.to_string());
+    }
     // algebraicSquareRefFromBitRef :: Int -> String
     // algebraicSquareRefFromBitRef bitRef = do
     // let rank = quot bitRef 8 + 1
