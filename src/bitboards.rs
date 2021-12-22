@@ -67,6 +67,19 @@ pub mod bitboards {
         return if position.mover == White { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
     }
 
+    pub fn south_fill(bb: Bitboard) -> Bitboard {
+        let a = bb | (bb >> 8);
+        let b = a | (a >> 16);
+        let c = b | (b >> 32);
+        return c;
+    }
+
+    pub fn north_fill(bb: Bitboard) -> Bitboard {
+        let a = bb | (bb << 8);
+        let b = a | (a << 16);
+        let c = b | (b << 32);
+        return c;
+    }
 
 }
 
@@ -77,17 +90,7 @@ pub mod bitboards {
 // emptySquaresBitboard :: Position -> Bitboard
 // emptySquaresBitboard !position = complement (allPiecesBitboard position)
 //
-// orWithURightShiftedSelf :: Bitboard -> Int -> Bitboard
-// orWithURightShiftedSelf !x !y = (.|.) x (shiftR x y)
-//
-// orWithULeftShiftedSelf :: Bitboard -> Int -> Bitboard
-// orWithULeftShiftedSelf !x !y = (.|.) x (shiftL x y)
-//
-// southFill :: Bitboard -> Bitboard
-// southFill x = orWithURightShiftedSelf (orWithURightShiftedSelf (orWithURightShiftedSelf x 8) 16) 32
-//
-// northFill :: Bitboard -> Bitboard
-// northFill x = orWithULeftShiftedSelf (orWithULeftShiftedSelf (orWithULeftShiftedSelf x 8) 16) 32
+
 //
 // everyEighthBitFrom :: Int -> Bitboard
 // everyEighthBitFrom x = if x < 8 then shiftL 1 x else (.|.) (shiftL 1 x) (everyEighthBitFrom ((-) x 8))

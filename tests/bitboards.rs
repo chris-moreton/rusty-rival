@@ -1,5 +1,6 @@
 use rusty_rival::bitboards::*;
-use rusty_rival::bitboards::bitboards::{bit_list, bit_string, enemy_bitboard};
+use rusty_rival::bitboards::bitboards::{bit_list, bit_string, enemy_bitboard, north_fill, south_fill};
+use rusty_rival::fen::fen::rank_bits;
 
 #[test]
 fn it_gets_bit_lists() {
@@ -14,6 +15,24 @@ fn it_gets_a_bit_string() {
     assert_eq!("0000000000000000000000000000000000000000000000000000000000001111", bit_string(15))
 }
 
+#[test]
+fn it_north_fills() {
+    assert_eq!(0b0000000100000000000000000000000000000000000000000000000000000000,
+               north_fill(0b0000000100000000000000000000000000000000000000000000000000000000));
+
+    assert_eq!(0b1111111111111111111111111111111111111111111010111010101010101010,
+               north_fill(0b0100000000000000111001000000000001010101110000110000000010101010));
+}
+
+#[test]
+fn it_south_fills() {
+    assert_eq!(0b0000000100000001000000010000000100000001000000010000000100000001,
+               south_fill(0b0000000100000000000000000000000000000000000000000000000000000000));
+
+    assert_eq!(0b0100000001000000111001001110010011110101111101111111011111111111,
+               south_fill(0b0100000000000000111001000000000001010101110000110000000010101010));
+}
+
 // #[test]
 // fn it_gets_the_enemy_bitboard() {
 //     assert_eq!(
@@ -24,13 +43,13 @@ fn it_gets_a_bit_string() {
 
 #[test]
 fn it_gets_the_rank_bits_for_a_piece() {
-    assert_eq!([0,0,0,0,0,0,0,0], rank_bits("8", 'Q'));
-    assert_eq!([0,0,0,0,0,0,1,0], rank_bits("6k1", 'k'));
-    assert_eq!([0,0,0,0,0,0,0,0], rank_bits("6k1", 'q'));
-    assert_eq!([0,0,0,0,0,0,1,0], rank_bits("6p1", 'p'));
-    assert_eq!([0,0,0,0,0,0,1,1], rank_bits("6pp", 'p'));
-    assert_eq!([1,0,0,0,0,0,0,0], rank_bits("P7", 'P'));
-    assert_eq!([0,1,0,0,0,0,0,1], rank_bits("1p2q2p", 'p'));
+    assert_eq!(vec![0,0,0,0,0,0,0,0], rank_bits(&"8".to_string(), 'Q'));
+    assert_eq!(vec![0,0,0,0,0,0,1,0], rank_bits(&"6k1".to_string(), 'k'));
+    assert_eq!(vec![0,0,0,0,0,0,0,0], rank_bits(&"6k1".to_string(), 'q'));
+    assert_eq!(vec![0,0,0,0,0,0,1,0], rank_bits(&"6p1".to_string(), 'p'));
+    assert_eq!(vec![0,0,0,0,0,0,1,1], rank_bits(&"6pp".to_string(), 'p'));
+    assert_eq!(vec![1,0,0,0,0,0,0,0], rank_bits(&"P7".to_string(), 'P'));
+    assert_eq!(vec![0,1,0,0,0,0,0,1], rank_bits(&"1p2q2p".to_string(), 'p'));
 }
 
 // #[test]
