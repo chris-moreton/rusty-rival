@@ -1,5 +1,11 @@
 use rusty_rival::fen::*;
-use rusty_rival::fen::fen::rank_bits;
+use rusty_rival::fen::fen::{char_as_num, rank_bits};
+
+#[test]
+fn it_gets_a_char_as_a_number() {
+    assert_eq!(0, char_as_num('0'));
+    assert_eq!(4, char_as_num('4'));
+}
 
 #[test]
 fn it_gets_the_rank_bits_for_a_piece() {

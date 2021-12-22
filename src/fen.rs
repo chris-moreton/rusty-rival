@@ -31,8 +31,8 @@ pub mod fen {
         return c >= '0' && c <= '9';
     }
 
-    fn char_as_num(c: char) -> u8 {
-        return c as u8 - 32;
+    pub fn char_as_num(c: char) -> u8 {
+        return c as u8 - 48;
     }
 
     pub fn rank_bits(rank: String, piece: char) -> Vec<u8> {
@@ -43,8 +43,9 @@ pub mod fen {
                 return result;
             }
             let c = rank.chars().nth(0).unwrap();
+            rank.remove(0);
             if is_file_number(c) {
-                for x in 1..char_as_num(c) {
+                for x in 0..char_as_num(c) {
                     result.push(0)
                 }
             } else if piece == c {
@@ -52,7 +53,6 @@ pub mod fen {
             } else {
                 result.push(0);
             };
-            rank.remove(0);
 
             return rank_bits(rank, piece, result)
         }
