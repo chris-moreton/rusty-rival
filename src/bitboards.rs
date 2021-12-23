@@ -188,120 +188,39 @@ pub mod bitboards {
         });
         return x;
     }
+
+    pub const fn two_bits(bit1: u8, bit2: u8) -> Bitboard {
+        let mut x: Bitboard = 0;
+        x = x | 1 << bit1;
+        x = x | 1 << bit2;
+        return x;
+    }
+
+    const ALL_64_BITS_SET: Bitboard = 18446744073709551615;
     
+    const RANK_1_BITS: Bitboard = 0b0000000000000000000000000000000000000000000000000000000011111111;
+    const RANK_2_BITS: Bitboard = RANK_1_BITS << 8;
+    const RANK_3_BITS: Bitboard = RANK_2_BITS << 8;
+    const RANK_4_BITS: Bitboard = RANK_3_BITS << 8;
+    const RANK_5_BITS: Bitboard = RANK_4_BITS << 8;
+    const RANK_6_BITS: Bitboard = RANK_5_BITS << 8;
+    const RANK_7_BITS: Bitboard = RANK_6_BITS << 8;
+    const RANK_8_BITS: Bitboard = RANK_7_BITS << 8;
+    
+    const F1G1_BITS: Bitboard = two_bits(F1_BIT, G1_BIT);
+    const G1H1_BITS: Bitboard = two_bits(G1_BIT, H1_BIT);
+    const A1B1_BITS: Bitboard = two_bits(A1_BIT, B1_BIT);
+    const B1C1_BITS: Bitboard = two_bits(B1_BIT, C1_BIT);
+    const F8G8_BITS: Bitboard = two_bits(F8_BIT, G8_BIT);
+    const G8H8_BITS: Bitboard = two_bits(G8_BIT, H8_BIT);
+    const A8B8_BITS: Bitboard = two_bits(A8_BIT, B8_BIT);
+    const B8C8_BITS: Bitboard = two_bits(B8_BIT, C8_BIT);
+
 }
 
-//
-// all64BitsSet :: Word
-// all64BitsSet = 18446744073709551615
-//
-// rank1Bits :: Bitboard
-// rank1Bits = setBits [0,1,2,3,4,5,6,7]
-// rank2Bits :: Bitboard
-// rank2Bits = shiftL rank1Bits 8
-// rank3Bits :: Bitboard
-// rank3Bits = shiftL rank2Bits 8
-// rank4Bits :: Bitboard
-// rank4Bits = shiftL rank3Bits 8
-// rank5Bits :: Bitboard
-// rank5Bits = shiftL rank4Bits 8
-// rank6Bits :: Bitboard
-// rank6Bits = shiftL rank5Bits 8
-// rank7Bits :: Bitboard
-// rank7Bits = shiftL rank6Bits 8
-// rank8Bits :: Bitboard
-// rank8Bits = shiftL rank7Bits 8
-//
-// fileABits = everyEighthBitFrom a8Bit
-// fileBBits = everyEighthBitFrom b8Bit
-// fileCBits = everyEighthBitFrom c8Bit
-// fileDBits = everyEighthBitFrom d8Bit
-// fileEBits = everyEighthBitFrom e8Bit
-// fileFBits = everyEighthBitFrom f8Bit
-// fileGBits = everyEighthBitFrom g8Bit
-// fileHBits = everyEighthBitFrom h8Bit
-//
-// f1G1Bits = setBits [f1Bit,g1Bit]
-// g1H1Bits = setBits [g1Bit,h1Bit]
-// a1B1Bits = setBits [a1Bit,b1Bit]
-// b1C1Bits = setBits [b1Bit,c1Bit]
-// f8G8Bits = setBits [f8Bit,g8Bit]
-// g8H8Bits = setBits [g8Bit,h8Bit]
-// a8B8Bits = setBits [a8Bit,b8Bit]
-// b8C8Bits = setBits [b8Bit,c8Bit]
-//
-// a1Bit = 7 :: Int
-// b1Bit = 6 :: Int
-// c1Bit = 5 :: Int
-// d1Bit = 4 :: Int
-// e1Bit = 3 :: Int
-// f1Bit = 2 :: Int
-// g1Bit = 1 :: Int
-// h1Bit = 0 :: Int
-//
-// a2Bit = (+) a1Bit 8
-// b2Bit = (+) b1Bit 8
-// c2Bit = (+) c1Bit 8
-// d2Bit = (+) d1Bit 8
-// e2Bit = (+) e1Bit 8
-// f2Bit = (+) f1Bit 8
-// g2Bit = (+) g1Bit 8
-// h2Bit = (+) h1Bit 8
-//
-// a3Bit = (+) a2Bit 8
-// b3Bit = (+) b2Bit 8
-// c3Bit = (+) c2Bit 8
-// d3Bit = (+) d2Bit 8
-// e3Bit = (+) e2Bit 8
-// f3Bit = (+) f2Bit 8
-// g3Bit = (+) g2Bit 8
-// h3Bit = (+) h2Bit 8
-//
-// a4Bit = (+) a3Bit 8
-// b4Bit = (+) b3Bit 8
-// c4Bit = (+) c3Bit 8
-// d4Bit = (+) d3Bit 8
-// e4Bit = (+) e3Bit 8
-// f4Bit = (+) f3Bit 8
-// g4Bit = (+) g3Bit 8
-// h4Bit = (+) h3Bit 8
-//
-// a5Bit = (+) a4Bit 8
-// b5Bit = (+) b4Bit 8
-// c5Bit = (+) c4Bit 8
-// d5Bit = (+) d4Bit 8
-// e5Bit = (+) e4Bit 8
-// f5Bit = (+) f4Bit 8
-// g5Bit = (+) g4Bit 8
-// h5Bit = (+) h4Bit 8
-//
-// a6Bit = (+) a5Bit 8
-// b6Bit = (+) b5Bit 8
-// c6Bit = (+) c5Bit 8
-// d6Bit = (+) d5Bit 8
-// e6Bit = (+) e5Bit 8
-// f6Bit = (+) f5Bit 8
-// g6Bit = (+) g5Bit 8
-// h6Bit = (+) h5Bit 8
-//
-// a7Bit = (+) a6Bit 8
-// b7Bit = (+) b6Bit 8
-// c7Bit = (+) c6Bit 8
-// d7Bit = (+) d6Bit 8
-// e7Bit = (+) e6Bit 8
-// f7Bit = (+) f6Bit 8
-// g7Bit = (+) g6Bit 8
-// h7Bit = (+) h6Bit 8
-//
-// a8Bit = (+) a7Bit 8
-// b8Bit = (+) b7Bit 8
-// c8Bit = (+) c7Bit 8
-// d8Bit = (+) d7Bit 8
-// e8Bit = (+) e7Bit 8
-// f8Bit = (+) f7Bit 8
-// g8Bit = (+) g7Bit 8
-// h8Bit = (+) h7Bit 8
-//
+
+
+
 // middleFiles8Bit = setBits [d1Bit,e1Bit]
 // nonMidFiles8Bit = setBits [a1Bit,b1Bit,c1Bit,f1Bit,g1Bit,h1Bit]
 //
