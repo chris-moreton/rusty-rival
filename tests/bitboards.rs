@@ -1,5 +1,5 @@
 use rusty_rival::bitboards::*;
-use rusty_rival::bitboards::bitboards::{bit_list, bit_string, enemy_bitboard, north_fill, south_fill};
+use rusty_rival::bitboards::bitboards::{bit_list, bit_string, enemy_bitboard, exactly_one_bit_set, north_fill, south_fill};
 use rusty_rival::fen::fen::rank_bits;
 
 #[test]
@@ -35,24 +35,34 @@ fn it_south_fills() {
 
 #[test]
 fn it_passes_sanity_checks_for_values_expressed_as_functions() {
-    assert_eq!(rank8Bits, -72057594037927936);
-    assert_eq!(file_a_bits, -9187201950435737472);
-    assert_eq!(fileHBits, 72340172838076673);
-    assert_eq!(middleFiles8Bit, 24);
-    assert_eq!(nonMidFiles8Bit, 231);
-    assert_eq!(f1G1Bits, 6);
-    assert_eq!(g1H1Bits, 3);
-    assert_eq!(a1B1Bits, 192);
-    assert_eq!(b1C1Bits, 96);
-    assert_eq!(f8G8Bits, 432345564227567616);
-    assert_eq!(g8H8Bits, 216172782113783808);
-    assert_eq!(a8B8Bits, -4611686018427387904);
-    assert_eq!(b8C8Bits, 6917529027641081856);
-    assert_eq!(lightSquaresBits, -6172840429334713771);
-    assert_eq!(darkSquaresBits, 6172840429334713770);
-    assert_eq!(low32Bits, 4294967295);
+    // assert_eq!(RANK_8_BITS, -72057594037927936);
+    // assert_eq!(FILE_8_BITS, -9187201950435737472);
+    // assert_eq!(FILE_H_BITS, 72340172838076673);
+    // assert_eq!(MIDDLE_FILES_8_BIT, 24);
+    // assert_eq!(NONMID_FILES_8_BIT, 231);
+    // assert_eq!(F1G1_BITS, 6);
+    // assert_eq!(G1H1_BITS, 3);
+    // assert_eq!(A1B1_BITS, 192);
+    // assert_eq!(B1C1_BITS, 96);
+    // assert_eq!(F8G8_BITS, 432345564227567616);
+    // assert_eq!(G8H8_BITS, 216172782113783808);
+    // assert_eq!(A8B8_BITS, -4611686018427387904);
+    // assert_eq!(B8C8_BITS, 6917529027641081856);
+    // assert_eq!(LIGHT_SQUARES_BITS, -6172840429334713771);
+    // assert_eq!(DARK_SQUARES_BITS, 6172840429334713770);
+    // assert_eq!(LOW_32_BITS, 4294967295);
 }
 
+#[test]
+fn it_knows_when_exactly_one_bit_is_set() {
+    assert_eq!(exactly_one_bit_set(0b0000000010000000000000000000000000000000000000000000000000000000), true);
+    assert_eq!(exactly_one_bit_set(0b0000000010000000000001000000000000000000000000000000000000000000), false);
+    assert_eq!(exactly_one_bit_set(0b0000000000000000000000000000000000000000000000000000000000000000), false);
+    assert_eq!(exactly_one_bit_set(0b1000000000000000000000000000000000000000000000000000000000000000), true);
+    assert_eq!(exactly_one_bit_set(0b0000000000000000000000000000000000000000000000000000000000000001), true);
+    assert_eq!(exactly_one_bit_set(0b1000000000000000000000000000000000000000000000000000000000000001), false);
+    assert_eq!(exactly_one_bit_set(0b1111111111111111111111111111111111111111111111111111111111111111), false);
+}
 
 // #[test]
 // fn it_gets_the_enemy_bitboard() {

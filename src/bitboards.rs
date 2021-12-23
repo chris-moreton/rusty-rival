@@ -88,15 +88,15 @@ pub mod bitboards {
         return !position.all_pieces_bitboard;
     }
 
-    fn every_eighth_bit_from(i: u8) -> Bitboard {
+    const fn every_eighth_bit_from(i: u8) -> Bitboard {
         return if i < 8 {
             1 << i
         } else {
-            (1 << i) | every_eighth_bit_from(i - 8);
+            (1 << i) | every_eighth_bit_from(i - 8)
         }
     }
 
-    const A1_BIT: u8 = 7:
+    const A1_BIT: u8 = 7;
     const B1_BIT: u8 = 6;
     const C1_BIT: u8 = 5;
     const D1_BIT: u8 = 4;
@@ -167,24 +167,27 @@ pub mod bitboards {
     const F8_BIT: u8 = F7_BIT + 8;
     const G8_BIT: u8 = G7_BIT + 8;
     const H8_BIT: u8 = H7_BIT + 8;
-    
-    const FILE_A_BITS: BitBoArD = every_eighth_bit_from(A8_BIT);
-    const FILE_B_BITS: BitBoArD = every_eighth_bit_from(B8_BIT);
-    const FILE_C_BITS: BitBoArD = every_eighth_bit_from(C8_BIT);
-    const FILE_D_BITS: BitBoArD = every_eighth_bit_from(D8_BIT);
-    const FILE_E_BITS: BitBoArD = every_eighth_bit_from(E8_BIT);
-    const FILE_F_BITS: BitBoArD = every_eighth_bit_from(F8_BIT);
-    const FILE_G_BITS: BitBoArD = every_eighth_bit_from(G8_BIT);
-    const FILE_H_BITS: BitBoArD = every_eighth_bit_from(H8_BIT);
+
+    pub fn exactly_one_bit_set(bb: Bitboard) -> bool {
+        return bb != 0 && bb & (bb - 1) == 0;
+    }
+
+    const FILE_A_BITS: Bitboard = every_eighth_bit_from(A8_BIT);
+    const FILE_B_BITS: Bitboard = every_eighth_bit_from(B8_BIT);
+    const FILE_C_BITS: Bitboard = every_eighth_bit_from(C8_BIT);
+    const FILE_D_BITS: Bitboard = every_eighth_bit_from(D8_BIT);
+    const FILE_E_BITS: Bitboard = every_eighth_bit_from(E8_BIT);
+    const FILE_F_BITS: Bitboard = every_eighth_bit_from(F8_BIT);
+    const FILE_G_BITS: Bitboard = every_eighth_bit_from(G8_BIT);
+    const FILE_H_BITS: Bitboard = every_eighth_bit_from(H8_BIT);
+
+
     
 }
 
 
 
-//
-// everyEighthBitFrom :: Int -> Bitboard
-// everyEighthBitFrom x = if x < 8 then shiftL 1 x else (.|.) (shiftL 1 x) (everyEighthBitFrom ((-) x 8))
-//
+
 // exactlyOneBitSet :: Bitboard -> Bool
 // exactlyOneBitSet bb = bb .&. (bb - 1) == 0 && bb /= 0
 //
