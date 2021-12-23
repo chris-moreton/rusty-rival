@@ -1,5 +1,5 @@
 use rusty_rival::bitboards::*;
-use rusty_rival::bitboards::bitboards::{bit_list, bit_string, enemy_bitboard, exactly_one_bit_set, north_fill, south_fill};
+use rusty_rival::bitboards::bitboards::{bit_list, bit_string, enemy_bitboard, exactly_one_bit_set, north_fill, set_bits, south_fill};
 use rusty_rival::fen::fen::rank_bits;
 
 #[test]
@@ -8,6 +8,13 @@ fn it_gets_bit_lists() {
     assert_eq!(vec![55], bit_list(0b0000000010000000000000000000000000000000000000000000000000000000));
     assert_eq!(vec![55,0], bit_list(0b0000000010000000000000000000000000000000000000000000000000000001));
     assert_eq!(vec![63,55,0], bit_list(0b1000000010000000000000000000000000000000000000000000000000000001));
+}
+
+#[test]
+fn it_sets_bits() {
+    assert_eq!(set_bits(vec![55]), 0b0000000010000000000000000000000000000000000000000000000000000000);
+    assert_eq!(set_bits(vec![55,0]), 0b0000000010000000000000000000000000000000000000000000000000000001);
+    assert_eq!(set_bits(vec![63,55,0]), 0b1000000010000000000000000000000000000000000000000000000000000001);
 }
 
 #[test]

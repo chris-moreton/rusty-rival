@@ -181,20 +181,16 @@ pub mod bitboards {
     const FILE_G_BITS: Bitboard = every_eighth_bit_from(G8_BIT);
     const FILE_H_BITS: Bitboard = every_eighth_bit_from(H8_BIT);
 
-
+    pub fn set_bits(is: Vec<u8>) -> Bitboard {
+        let mut x: Bitboard = 0;
+        is.iter().for_each(|i| {
+            x = x | 1 << i;
+        });
+        return x;
+    }
     
 }
 
-
-
-
-// exactlyOneBitSet :: Bitboard -> Bool
-// exactlyOneBitSet bb = bb .&. (bb - 1) == 0 && bb /= 0
-//
-// setBits :: [Int] -> Bitboard
-// setBits [] = 0
-// setBits [x] = shiftL 1 x
-// setBits xs = (.|.) (shiftL 1 (head xs)) (setBits (tail xs))
 //
 // all64BitsSet :: Word
 // all64BitsSet = 18446744073709551615
