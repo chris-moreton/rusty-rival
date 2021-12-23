@@ -1,3 +1,4 @@
+use crate::types::types::{Bitboard, Position};
 
 pub mod bitboards {
     use crate::types::types::{Bitboard, Mover, Piece, Position};
@@ -81,15 +82,104 @@ pub mod bitboards {
         return c;
     }
 
+    const PROMOTION_SQUARES: Bitboard = 0b1111111100000000000000000000000000000000000000000000000011111111;
+
+    fn empty_squares_bitboard(position: &Position) -> Bitboard {
+        return !position.all_pieces_bitboard;
+    }
+
+    fn every_eighth_bit_from(i: u8) -> Bitboard {
+        return if i < 8 {
+            1 << i
+        } else {
+            (1 << i) | every_eighth_bit_from(i - 8);
+        }
+    }
+
+    const A1_BIT: u8 = 7:
+    const B1_BIT: u8 = 6;
+    const C1_BIT: u8 = 5;
+    const D1_BIT: u8 = 4;
+    const E1_BIT: u8 = 3;
+    const F1_BIT: u8 = 2;
+    const G1_BIT: u8 = 1;
+    const H1_BIT: u8 = 0;
+
+    const A2_BIT: u8 = A1_BIT + 8;
+    const B2_BIT: u8 = B1_BIT + 8;
+    const C2_BIT: u8 = C1_BIT + 8;
+    const D2_BIT: u8 = D1_BIT + 8;
+    const E2_BIT: u8 = E1_BIT + 8;
+    const F2_BIT: u8 = F1_BIT + 8;
+    const G2_BIT: u8 = G1_BIT + 8;
+    const H2_BIT: u8 = H1_BIT + 8;
+
+    const A3_BIT: u8 = A2_BIT + 8;
+    const B3_BIT: u8 = B2_BIT + 8;
+    const C3_BIT: u8 = C2_BIT + 8;
+    const D3_BIT: u8 = D2_BIT + 8;
+    const E3_BIT: u8 = E2_BIT + 8;
+    const F3_BIT: u8 = F2_BIT + 8;
+    const G3_BIT: u8 = G2_BIT + 8;
+    const H3_BIT: u8 = H2_BIT + 8;
+
+    const A4_BIT: u8 = A3_BIT + 8;
+    const B4_BIT: u8 = B3_BIT + 8;
+    const C4_BIT: u8 = C3_BIT + 8;
+    const D4_BIT: u8 = D3_BIT + 8;
+    const E4_BIT: u8 = E3_BIT + 8;
+    const F4_BIT: u8 = F3_BIT + 8;
+    const G4_BIT: u8 = G3_BIT + 8;
+    const H4_BIT: u8 = H3_BIT + 8;
+
+    const A5_BIT: u8 = A4_BIT + 8;
+    const B5_BIT: u8 = B4_BIT + 8;
+    const C5_BIT: u8 = C4_BIT + 8;
+    const D5_BIT: u8 = D4_BIT + 8;
+    const E5_BIT: u8 = E4_BIT + 8;
+    const F5_BIT: u8 = F4_BIT + 8;
+    const G5_BIT: u8 = G4_BIT + 8;
+    const H5_BIT: u8 = H4_BIT + 8;
+
+    const A6_BIT: u8 = A5_BIT + 8;
+    const B6_BIT: u8 = B5_BIT + 8;
+    const C6_BIT: u8 = C5_BIT + 8;
+    const D6_BIT: u8 = D5_BIT + 8;
+    const E6_BIT: u8 = E5_BIT + 8;
+    const F6_BIT: u8 = F5_BIT + 8;
+    const G6_BIT: u8 = G5_BIT + 8;
+    const H6_BIT: u8 = H5_BIT + 8;
+
+    const A7_BIT: u8 = A6_BIT + 8;
+    const B7_BIT: u8 = B6_BIT + 8;
+    const C7_BIT: u8 = C6_BIT + 8;
+    const D7_BIT: u8 = D6_BIT + 8;
+    const E7_BIT: u8 = E6_BIT + 8;
+    const F7_BIT: u8 = F6_BIT + 8;
+    const G7_BIT: u8 = G6_BIT + 8;
+    const H7_BIT: u8 = H6_BIT + 8;
+
+    const A8_BIT: u8 = A7_BIT + 8;
+    const B8_BIT: u8 = B7_BIT + 8;
+    const C8_BIT: u8 = C7_BIT + 8;
+    const D8_BIT: u8 = D7_BIT + 8;
+    const E8_BIT: u8 = E7_BIT + 8;
+    const F8_BIT: u8 = F7_BIT + 8;
+    const G8_BIT: u8 = G7_BIT + 8;
+    const H8_BIT: u8 = H7_BIT + 8;
+    
+    const FILE_A_BITS: BitBoArD = every_eighth_bit_from(A8_BIT);
+    const FILE_B_BITS: BitBoArD = every_eighth_bit_from(B8_BIT);
+    const FILE_C_BITS: BitBoArD = every_eighth_bit_from(C8_BIT);
+    const FILE_D_BITS: BitBoArD = every_eighth_bit_from(D8_BIT);
+    const FILE_E_BITS: BitBoArD = every_eighth_bit_from(E8_BIT);
+    const FILE_F_BITS: BitBoArD = every_eighth_bit_from(F8_BIT);
+    const FILE_G_BITS: BitBoArD = every_eighth_bit_from(G8_BIT);
+    const FILE_H_BITS: BitBoArD = every_eighth_bit_from(H8_BIT);
+    
 }
 
-// promotionSquares :: Bitboard
-// promotionSquares = 0b1111111100000000000000000000000000000000000000000000000011111111
-//
-// {-# INLINE emptySquaresBitboard #-}
-// emptySquaresBitboard :: Position -> Bitboard
-// emptySquaresBitboard !position = complement (allPiecesBitboard position)
-//
+
 
 //
 // everyEighthBitFrom :: Int -> Bitboard

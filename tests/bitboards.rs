@@ -33,6 +33,27 @@ fn it_south_fills() {
                south_fill(0b0100000000000000111001000000000001010101110000110000000010101010));
 }
 
+#[test]
+fn it_passes_sanity_checks_for_values_expressed_as_functions() {
+    assert_eq!(rank8Bits, -72057594037927936);
+    assert_eq!(file_a_bits, -9187201950435737472);
+    assert_eq!(fileHBits, 72340172838076673);
+    assert_eq!(middleFiles8Bit, 24);
+    assert_eq!(nonMidFiles8Bit, 231);
+    assert_eq!(f1G1Bits, 6);
+    assert_eq!(g1H1Bits, 3);
+    assert_eq!(a1B1Bits, 192);
+    assert_eq!(b1C1Bits, 96);
+    assert_eq!(f8G8Bits, 432345564227567616);
+    assert_eq!(g8H8Bits, 216172782113783808);
+    assert_eq!(a8B8Bits, -4611686018427387904);
+    assert_eq!(b8C8Bits, 6917529027641081856);
+    assert_eq!(lightSquaresBits, -6172840429334713771);
+    assert_eq!(darkSquaresBits, 6172840429334713770);
+    assert_eq!(low32Bits, 4294967295);
+}
+
+
 // #[test]
 // fn it_gets_the_enemy_bitboard() {
 //     assert_eq!(
