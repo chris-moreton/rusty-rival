@@ -1,5 +1,5 @@
 use rusty_rival::bitboards::*;
-use rusty_rival::bitboards::bitboards::{bit_list, bit_string, enemy_bitboard, exactly_one_bit_set, north_fill, set_bits, south_fill};
+use rusty_rival::bitboards::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit_list, bit_string, DARK_SQUARES_BITS, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, set_bits, south_fill};
 use rusty_rival::fen::fen::rank_bits;
 
 #[test]
@@ -42,22 +42,22 @@ fn it_south_fills() {
 
 #[test]
 fn it_passes_sanity_checks_for_values_expressed_as_functions() {
-    // assert_eq!(RANK_8_BITS, -72057594037927936);
-    // assert_eq!(FILE_8_BITS, -9187201950435737472);
-    // assert_eq!(FILE_H_BITS, 72340172838076673);
-    // assert_eq!(MIDDLE_FILES_8_BIT, 24);
-    // assert_eq!(NONMID_FILES_8_BIT, 231);
-    // assert_eq!(F1G1_BITS, 6);
-    // assert_eq!(G1H1_BITS, 3);
-    // assert_eq!(A1B1_BITS, 192);
-    // assert_eq!(B1C1_BITS, 96);
-    // assert_eq!(F8G8_BITS, 432345564227567616);
-    // assert_eq!(G8H8_BITS, 216172782113783808);
-    // assert_eq!(A8B8_BITS, -4611686018427387904);
-    // assert_eq!(B8C8_BITS, 6917529027641081856);
-    // assert_eq!(LIGHT_SQUARES_BITS, -6172840429334713771);
-    // assert_eq!(DARK_SQUARES_BITS, 6172840429334713770);
-    // assert_eq!(LOW_32_BITS, 4294967295);
+    assert_eq!(RANK_8_BITS as i64, -72057594037927936);
+    assert_eq!(FILE_A_BITS as i64, -9187201950435737472);
+    assert_eq!(FILE_H_BITS, 72340172838076673);
+    assert_eq!(MIDDLE_FILES_8_BIT, 24);
+    assert_eq!(NONMID_FILES_8_BIT, 231);
+    assert_eq!(F1G1_BITS, 6);
+    assert_eq!(G1H1_BITS, 3);
+    assert_eq!(A1B1_BITS, 192);
+    assert_eq!(B1C1_BITS, 96);
+    assert_eq!(F8G8_BITS, 432345564227567616);
+    assert_eq!(G8H8_BITS, 216172782113783808);
+    assert_eq!(A8B8_BITS as i64, -4611686018427387904);
+    assert_eq!(B8C8_BITS, 6917529027641081856);
+    assert_eq!(DARK_SQUARES_BITS, 6172840429334713770);
+    assert_eq!(LIGHT_SQUARES_BITS as i64, -6172840429334713771);
+    assert_eq!(LOW_32_BITS, 4294967295);
 }
 
 #[test]

@@ -96,90 +96,90 @@ pub mod bitboards {
         }
     }
 
-    const A1_BIT: u8 = 7;
-    const B1_BIT: u8 = 6;
-    const C1_BIT: u8 = 5;
-    const D1_BIT: u8 = 4;
-    const E1_BIT: u8 = 3;
-    const F1_BIT: u8 = 2;
-    const G1_BIT: u8 = 1;
-    const H1_BIT: u8 = 0;
+    pub const A1_BIT: u8 = 7;
+    pub const B1_BIT: u8 = 6;
+    pub const C1_BIT: u8 = 5;
+    pub const D1_BIT: u8 = 4;
+    pub const E1_BIT: u8 = 3;
+    pub const F1_BIT: u8 = 2;
+    pub const G1_BIT: u8 = 1;
+    pub const H1_BIT: u8 = 0;
 
-    const A2_BIT: u8 = A1_BIT + 8;
-    const B2_BIT: u8 = B1_BIT + 8;
-    const C2_BIT: u8 = C1_BIT + 8;
-    const D2_BIT: u8 = D1_BIT + 8;
-    const E2_BIT: u8 = E1_BIT + 8;
-    const F2_BIT: u8 = F1_BIT + 8;
-    const G2_BIT: u8 = G1_BIT + 8;
-    const H2_BIT: u8 = H1_BIT + 8;
+    pub const A2_BIT: u8 = A1_BIT + 8;
+    pub const B2_BIT: u8 = B1_BIT + 8;
+    pub const C2_BIT: u8 = C1_BIT + 8;
+    pub const D2_BIT: u8 = D1_BIT + 8;
+    pub const E2_BIT: u8 = E1_BIT + 8;
+    pub const F2_BIT: u8 = F1_BIT + 8;
+    pub const G2_BIT: u8 = G1_BIT + 8;
+    pub const H2_BIT: u8 = H1_BIT + 8;
 
-    const A3_BIT: u8 = A2_BIT + 8;
-    const B3_BIT: u8 = B2_BIT + 8;
-    const C3_BIT: u8 = C2_BIT + 8;
-    const D3_BIT: u8 = D2_BIT + 8;
-    const E3_BIT: u8 = E2_BIT + 8;
-    const F3_BIT: u8 = F2_BIT + 8;
-    const G3_BIT: u8 = G2_BIT + 8;
-    const H3_BIT: u8 = H2_BIT + 8;
+    pub const A3_BIT: u8 = A2_BIT + 8;
+    pub const B3_BIT: u8 = B2_BIT + 8;
+    pub const C3_BIT: u8 = C2_BIT + 8;
+    pub const D3_BIT: u8 = D2_BIT + 8;
+    pub const E3_BIT: u8 = E2_BIT + 8;
+    pub const F3_BIT: u8 = F2_BIT + 8;
+    pub const G3_BIT: u8 = G2_BIT + 8;
+    pub const H3_BIT: u8 = H2_BIT + 8;
 
-    const A4_BIT: u8 = A3_BIT + 8;
-    const B4_BIT: u8 = B3_BIT + 8;
-    const C4_BIT: u8 = C3_BIT + 8;
-    const D4_BIT: u8 = D3_BIT + 8;
-    const E4_BIT: u8 = E3_BIT + 8;
-    const F4_BIT: u8 = F3_BIT + 8;
-    const G4_BIT: u8 = G3_BIT + 8;
-    const H4_BIT: u8 = H3_BIT + 8;
+    pub const A4_BIT: u8 = A3_BIT + 8;
+    pub const B4_BIT: u8 = B3_BIT + 8;
+    pub const C4_BIT: u8 = C3_BIT + 8;
+    pub const D4_BIT: u8 = D3_BIT + 8;
+    pub const E4_BIT: u8 = E3_BIT + 8;
+    pub const F4_BIT: u8 = F3_BIT + 8;
+    pub const G4_BIT: u8 = G3_BIT + 8;
+    pub const H4_BIT: u8 = H3_BIT + 8;
 
-    const A5_BIT: u8 = A4_BIT + 8;
-    const B5_BIT: u8 = B4_BIT + 8;
-    const C5_BIT: u8 = C4_BIT + 8;
-    const D5_BIT: u8 = D4_BIT + 8;
-    const E5_BIT: u8 = E4_BIT + 8;
-    const F5_BIT: u8 = F4_BIT + 8;
-    const G5_BIT: u8 = G4_BIT + 8;
-    const H5_BIT: u8 = H4_BIT + 8;
+    pub const A5_BIT: u8 = A4_BIT + 8;
+    pub const B5_BIT: u8 = B4_BIT + 8;
+    pub const C5_BIT: u8 = C4_BIT + 8;
+    pub const D5_BIT: u8 = D4_BIT + 8;
+    pub const E5_BIT: u8 = E4_BIT + 8;
+    pub const F5_BIT: u8 = F4_BIT + 8;
+    pub const G5_BIT: u8 = G4_BIT + 8;
+    pub const H5_BIT: u8 = H4_BIT + 8;
 
-    const A6_BIT: u8 = A5_BIT + 8;
-    const B6_BIT: u8 = B5_BIT + 8;
-    const C6_BIT: u8 = C5_BIT + 8;
-    const D6_BIT: u8 = D5_BIT + 8;
-    const E6_BIT: u8 = E5_BIT + 8;
-    const F6_BIT: u8 = F5_BIT + 8;
-    const G6_BIT: u8 = G5_BIT + 8;
-    const H6_BIT: u8 = H5_BIT + 8;
+    pub const A6_BIT: u8 = A5_BIT + 8;
+    pub const B6_BIT: u8 = B5_BIT + 8;
+    pub const C6_BIT: u8 = C5_BIT + 8;
+    pub const D6_BIT: u8 = D5_BIT + 8;
+    pub const E6_BIT: u8 = E5_BIT + 8;
+    pub const F6_BIT: u8 = F5_BIT + 8;
+    pub const G6_BIT: u8 = G5_BIT + 8;
+    pub const H6_BIT: u8 = H5_BIT + 8;
 
-    const A7_BIT: u8 = A6_BIT + 8;
-    const B7_BIT: u8 = B6_BIT + 8;
-    const C7_BIT: u8 = C6_BIT + 8;
-    const D7_BIT: u8 = D6_BIT + 8;
-    const E7_BIT: u8 = E6_BIT + 8;
-    const F7_BIT: u8 = F6_BIT + 8;
-    const G7_BIT: u8 = G6_BIT + 8;
-    const H7_BIT: u8 = H6_BIT + 8;
+    pub const A7_BIT: u8 = A6_BIT + 8;
+    pub const B7_BIT: u8 = B6_BIT + 8;
+    pub const C7_BIT: u8 = C6_BIT + 8;
+    pub const D7_BIT: u8 = D6_BIT + 8;
+    pub const E7_BIT: u8 = E6_BIT + 8;
+    pub const F7_BIT: u8 = F6_BIT + 8;
+    pub const G7_BIT: u8 = G6_BIT + 8;
+    pub const H7_BIT: u8 = H6_BIT + 8;
 
-    const A8_BIT: u8 = A7_BIT + 8;
-    const B8_BIT: u8 = B7_BIT + 8;
-    const C8_BIT: u8 = C7_BIT + 8;
-    const D8_BIT: u8 = D7_BIT + 8;
-    const E8_BIT: u8 = E7_BIT + 8;
-    const F8_BIT: u8 = F7_BIT + 8;
-    const G8_BIT: u8 = G7_BIT + 8;
-    const H8_BIT: u8 = H7_BIT + 8;
+    pub const A8_BIT: u8 = A7_BIT + 8;
+    pub const B8_BIT: u8 = B7_BIT + 8;
+    pub const C8_BIT: u8 = C7_BIT + 8;
+    pub const D8_BIT: u8 = D7_BIT + 8;
+    pub const E8_BIT: u8 = E7_BIT + 8;
+    pub const F8_BIT: u8 = F7_BIT + 8;
+    pub const G8_BIT: u8 = G7_BIT + 8;
+    pub const H8_BIT: u8 = H7_BIT + 8;
 
     pub fn exactly_one_bit_set(bb: Bitboard) -> bool {
         return bb != 0 && bb & (bb - 1) == 0;
     }
 
-    const FILE_A_BITS: Bitboard = every_eighth_bit_from(A8_BIT);
-    const FILE_B_BITS: Bitboard = every_eighth_bit_from(B8_BIT);
-    const FILE_C_BITS: Bitboard = every_eighth_bit_from(C8_BIT);
-    const FILE_D_BITS: Bitboard = every_eighth_bit_from(D8_BIT);
-    const FILE_E_BITS: Bitboard = every_eighth_bit_from(E8_BIT);
-    const FILE_F_BITS: Bitboard = every_eighth_bit_from(F8_BIT);
-    const FILE_G_BITS: Bitboard = every_eighth_bit_from(G8_BIT);
-    const FILE_H_BITS: Bitboard = every_eighth_bit_from(H8_BIT);
+    pub const FILE_A_BITS: Bitboard = every_eighth_bit_from(A8_BIT);
+    pub const FILE_B_BITS: Bitboard = every_eighth_bit_from(B8_BIT);
+    pub const FILE_C_BITS: Bitboard = every_eighth_bit_from(C8_BIT);
+    pub const FILE_D_BITS: Bitboard = every_eighth_bit_from(D8_BIT);
+    pub const FILE_E_BITS: Bitboard = every_eighth_bit_from(E8_BIT);
+    pub const FILE_F_BITS: Bitboard = every_eighth_bit_from(F8_BIT);
+    pub const FILE_G_BITS: Bitboard = every_eighth_bit_from(G8_BIT);
+    pub const FILE_H_BITS: Bitboard = every_eighth_bit_from(H8_BIT);
 
     pub fn set_bits(is: Vec<u8>) -> Bitboard {
         let mut x: Bitboard = 0;
@@ -196,40 +196,35 @@ pub mod bitboards {
         return x;
     }
 
-    const ALL_64_BITS_SET: Bitboard = 18446744073709551615;
-    
-    const RANK_1_BITS: Bitboard = 0b0000000000000000000000000000000000000000000000000000000011111111;
-    const RANK_2_BITS: Bitboard = RANK_1_BITS << 8;
-    const RANK_3_BITS: Bitboard = RANK_2_BITS << 8;
-    const RANK_4_BITS: Bitboard = RANK_3_BITS << 8;
-    const RANK_5_BITS: Bitboard = RANK_4_BITS << 8;
-    const RANK_6_BITS: Bitboard = RANK_5_BITS << 8;
-    const RANK_7_BITS: Bitboard = RANK_6_BITS << 8;
-    const RANK_8_BITS: Bitboard = RANK_7_BITS << 8;
-    
-    const F1G1_BITS: Bitboard = two_bits(F1_BIT, G1_BIT);
-    const G1H1_BITS: Bitboard = two_bits(G1_BIT, H1_BIT);
-    const A1B1_BITS: Bitboard = two_bits(A1_BIT, B1_BIT);
-    const B1C1_BITS: Bitboard = two_bits(B1_BIT, C1_BIT);
-    const F8G8_BITS: Bitboard = two_bits(F8_BIT, G8_BIT);
-    const G8H8_BITS: Bitboard = two_bits(G8_BIT, H8_BIT);
-    const A8B8_BITS: Bitboard = two_bits(A8_BIT, B8_BIT);
-    const B8C8_BITS: Bitboard = two_bits(B8_BIT, C8_BIT);
+    pub const ALL_64_BITS_SET: Bitboard = 18446744073709551615;
 
+    pub const RANK_1_BITS: Bitboard = 0b0000000000000000000000000000000000000000000000000000000011111111;
+    pub const RANK_2_BITS: Bitboard = RANK_1_BITS << 8;
+    pub const RANK_3_BITS: Bitboard = RANK_2_BITS << 8;
+    pub const RANK_4_BITS: Bitboard = RANK_3_BITS << 8;
+    pub const RANK_5_BITS: Bitboard = RANK_4_BITS << 8;
+    pub const RANK_6_BITS: Bitboard = RANK_5_BITS << 8;
+    pub const RANK_7_BITS: Bitboard = RANK_6_BITS << 8;
+    pub const RANK_8_BITS: Bitboard = RANK_7_BITS << 8;
+
+    pub const F1G1_BITS: Bitboard = two_bits(F1_BIT, G1_BIT);
+    pub const G1H1_BITS: Bitboard = two_bits(G1_BIT, H1_BIT);
+    pub const A1B1_BITS: Bitboard = two_bits(A1_BIT, B1_BIT);
+    pub const B1C1_BITS: Bitboard = two_bits(B1_BIT, C1_BIT);
+    pub const F8G8_BITS: Bitboard = two_bits(F8_BIT, G8_BIT);
+    pub const G8H8_BITS: Bitboard = two_bits(G8_BIT, H8_BIT);
+    pub const A8B8_BITS: Bitboard = two_bits(A8_BIT, B8_BIT);
+    pub const B8C8_BITS: Bitboard = two_bits(B8_BIT, C8_BIT);
+
+    pub const MIDDLE_FILES_8_BIT: Bitboard = 0b0000000000000000000000000000000000000000000000000000000000011000;
+    pub const NONMID_FILES_8_BIT: Bitboard = 0b0000000000000000000000000000000000000000000000000000000011100111;
+    
+    pub const LOW_32_BITS: Bitboard = RANK_1_BITS | RANK_2_BITS | RANK_3_BITS | RANK_4_BITS;
+    
+    pub const DARK_SQUARES_BITS: Bitboard = 0b0101010110101010010101011010101001010101101010100101010110101010;
+    pub const LIGHT_SQUARES_BITS: Bitboard = !DARK_SQUARES_BITS;
 }
 
-
-
-
-// middleFiles8Bit = setBits [d1Bit,e1Bit]
-// nonMidFiles8Bit = setBits [a1Bit,b1Bit,c1Bit,f1Bit,g1Bit,h1Bit]
-//
-// low32Bits = (.|.) rank1Bits ((.|.) rank2Bits ((.|.) rank3Bits rank4Bits))
-//
-// darkSquaresBits :: Bitboard
-// darkSquaresBits = setBits [a1Bit,a3Bit,a5Bit,a7Bit,b2Bit,b4Bit,b6Bit,b8Bit,c1Bit,c3Bit,c5Bit,c7Bit,d2Bit,d4Bit,d6Bit,d8Bit,e1Bit,e3Bit,e5Bit,e7Bit,f2Bit,f4Bit,f6Bit,f8Bit,g1Bit,g3Bit,g5Bit,g7Bit,h2Bit,h4Bit,h6Bit,h8Bit] :: Bitboard
-// lightSquaresBits :: Bitboard
-// lightSquaresBits = setBits [a2Bit,a4Bit,a6Bit,a8Bit,b1Bit,b3Bit,b5Bit,b7Bit,c2Bit,c4Bit,c6Bit,c8Bit,d1Bit,d3Bit,d5Bit,d7Bit,e2Bit,e4Bit,e6Bit,e8Bit,f1Bit,f3Bit,f5Bit,f7Bit,g2Bit,g4Bit,g6Bit,g8Bit,h1Bit,h3Bit,h5Bit,h7Bit] :: Bitboard
 //
 // knightMovesBitboards :: Int -> Bitboard
 // knightMovesBitboards 0 = 0x20400
