@@ -1,6 +1,7 @@
 pub mod fen {
     use std::iter;
-    use crate::types::types::{Bitboard, Mover, Position, Square};
+    use crate::move_constants::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
+    use crate::types::types::{Bitboard, Move, Mover, Position, Square};
     use crate::types::types::Mover::{Black, White};
     const EN_PASSANT_UNAVAILABLE: i8 = -1;
 
@@ -67,28 +68,46 @@ pub mod fen {
         let rank_num = algebraic.chars().nth(1).unwrap() as u8 - 49;
         return rank_num * 8 + (7 - file_num);
     }
+
+    pub fn algebraic_move_from_move(m: Move) -> String {
+        let from_square = (m >> 16) as u8;
+        let to_square = (m & 63) as u8;
+        return algebraic_squareref_from_bitref(from_square) + &*algebraic_squareref_from_bitref(to_square) + &*promotion_part(m);
+    }
+
+    pub fn promotion_part(m: Move) -> String {
+        if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_QUEEN_MOVE_MASK {
+            return "q".to_string();
+        }
+        if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_ROOK_MOVE_MASK {
+            return "r".to_string();
+        }
+        if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_BISHOP_MOVE_MASK {
+            return "b".to_string();
+        }
+        if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_KNIGHT_MOVE_MASK {
+            return "n".to_string();
+        }
+        return "".to_string();
+    }
+
+
     //
     // promotionPart :: Move -> String
     // promotionPart move
-    // | (.&.) promotionFullMoveMask move == promotionQueenMoveMask = "q"
-    // | (.&.) promotionFullMoveMask move == promotionRookMoveMask = "r"
-    // | (.&.) promotionFullMoveMask move == promotionBishopMoveMask = "b"
-    // | (.&.) promotionFullMoveMask move == promotionKnightMoveMask = "n"
+    // | (.&.) PROMOTION_FULL_MOVE_MASK move == promotionQueenMoveMask = "q"
+    // | (.&.) PROMOTION_FULL_MOVE_MASK move == PROMOTION_ROOK_MOVE_MASK = "r"
+    // | (.&.) PROMOTION_FULL_MOVE_MASK move == PROMOTION_BISHOP_MOVE_MASK = "b"
+    // | (.&.) PROMOTION_FULL_MOVE_MASK move == PROMOTION_KNIGHT_MOVE_MASK = "n"
     // | otherwise = ""
     //
     // promotionMask :: Char -> Int
     // promotionMask pieceChar
     // | pieceChar == 'q' = promotionQueenMoveMask
-    // | pieceChar == 'b' = promotionBishopMoveMask
-    // | pieceChar == 'r' = promotionRookMoveMask
-    // | pieceChar == 'n' = promotionKnightMoveMask
+    // | pieceChar == 'b' = PROMOTION_BISHOP_MOVE_MASK
+    // | pieceChar == 'r' = PROMOTION_ROOK_MOVE_MASK
+    // | pieceChar == 'n' = PROMOTION_KNIGHT_MOVE_MASK
     // | otherwise = 0
-    //
-    // algebraicMoveFromMove :: Move -> String
-    // algebraicMoveFromMove move = do
-    // let fromSquare = shiftR move 16
-    // let toSquare = (.&.) 63 move
-    // algebraicSquareRefFromBitRef fromSquare ++ algebraicSquareRefFromBitRef toSquare ++ promotionPart move
     //
     // moveFromAlgebraicMove :: String -> Move
     // moveFromAlgebraicMove moveString =

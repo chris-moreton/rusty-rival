@@ -1,5 +1,5 @@
 use rusty_rival::fen::*;
-use rusty_rival::fen::fen::{algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, piece_bitboard, rank_bits};
+use rusty_rival::fen::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, piece_bitboard, rank_bits};
 
 #[test]
 fn it_gets_the_board_part_from_the_fen() {
@@ -89,6 +89,14 @@ fn it_gets_a_piece_bitboard() {
     )
 }
 
+#[test]
+fn it_converts_a_compact_move_to_an_algebraic_move() {
+    assert_eq!(algebraic_move_from_move(458808), "a1h8");
+    assert_eq!(algebraic_move_from_move(458872), "a1h8r");
+
+}
+
+
 // describe "boardFromFen" $ do
 // it "Converts from FEN to board type (Test 1)" $ do
 // let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b q g3 5 56"
@@ -113,7 +121,7 @@ fn it_gets_a_piece_bitboard() {
 // let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQ - 5 56"
 // let position = getPosition fen
 // let castlePrivs = position
-// enPassantSquare position `shouldBe` enPassantNotAvailable
+// enPassantSquare position `shouldBe` EN_PASSANT_NOT_AVAILABLE
 // halfMoves position `shouldBe` 5
 // mover position `shouldBe` White
 // whiteKingCastleAvailable castlePrivs `shouldBe` False
