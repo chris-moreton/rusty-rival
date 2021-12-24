@@ -140,11 +140,10 @@ pub mod fen {
         return fen_part(fen, 3);
     }
 
-    fn bit_ref_from_algebraic_square_ref(algebraic: &String) -> i8 {
-        todo!()
-        // let fileNum = ord (head algebraic) - 97
-        // let rankNum = ord (head (tail algebraic)) - 49
-        //     (rankNum * 8) + (7 - fileNum)
+    fn bit_ref_from_algebraic_square_ref(algebraic: &String) -> Square {
+        let fileNum = algebraic.chars().nth(0).unwrap() as Square - 97;
+        let rankNum = algebraic.chars().nth(1).unwrap() as Square - 49;
+        return (rankNum * 8) + (7 - fileNum);
     }
 
     fn en_passant_bit_ref(en_passant_fen_part: &String) -> i8 {

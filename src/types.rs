@@ -8,10 +8,13 @@ pub mod types {
     pub type Path = LinkedList<Move>;
     pub type MagicFunc = fn(Square, u64) -> Bitboard;
 
+    #[derive(Debug, PartialEq)]
     pub enum Mover { White, Black }
 
+    #[derive(Debug, PartialEq)]
     pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook }
 
+    #[derive(Debug, PartialEq)]
     pub enum Bound { Exact, Lower, Upper }
 
     pub struct HashEntry {
@@ -57,37 +60,4 @@ pub mod types {
         pub move_number: u16,
     }
 
-    impl PartialEq for Mover {
-        fn eq(&self, other: &Self) -> bool {
-            self == other
-        }
-    }
-
-    impl PartialEq for Position {
-        fn eq(&self, other: &Self) -> bool {
-            self.white_pawn_bitboard == other.white_pawn_bitboard &&
-                self.white_knight_bitboard == other.white_knight_bitboard &&
-                self.white_bishop_bitboard == other.white_bishop_bitboard &&
-                self.white_queen_bitboard == other.white_queen_bitboard &&
-                self.white_king_bitboard == other.white_king_bitboard &&
-                self.white_rook_bitboard == other.white_rook_bitboard &&
-
-                self.black_pawn_bitboard == other.black_pawn_bitboard &&
-                self.black_knight_bitboard == other.black_knight_bitboard &&
-                self.black_bishop_bitboard == other.black_bishop_bitboard &&
-                self.black_queen_bitboard == other.black_queen_bitboard &&
-                self.black_pawn_bitboard == other.black_pawn_bitboard &&
-                self.black_king_bitboard == other.black_king_bitboard &&
-
-                self.black_pieces_bitboard == other.black_pieces_bitboard &&
-                self.en_passant_square == other.en_passant_square &&
-                self.white_king_castle_available == other.white_king_castle_available &&
-                self.white_queen_castle_available == other.white_queen_castle_available &&
-                self.black_king_castle_available == other.black_king_castle_available &&
-                self.black_queen_castle_available == other.black_queen_castle_available &&
-                self.mover == other.mover
-        }
-    }
-
-    impl Eq for Position {}
 }

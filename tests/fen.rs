@@ -102,6 +102,7 @@ fn it_converts_a_compact_move_to_an_algebraic_move() {
 fn it_creates_a_position_from_a_fen() {
     let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b q g3 5 56";
     let position = get_position(&fen.to_string());
+    assert_eq!(position.mover, Mover::Black);
     assert_eq!(position.white_pawn_bitboard, 5404360704);
     assert_eq!(position.white_knight_bitboard, 2048);
     assert_eq!(position.white_king_bitboard, 1048576);
@@ -114,7 +115,6 @@ fn it_creates_a_position_from_a_fen() {
     assert_eq!(position.black_bishop_bitboard, 0);
     assert_eq!(position.black_queen_bitboard, 8796093022208);
     assert_eq!(position.black_rook_bitboard, 16384);
-    assert!(position.mover == Mover::Black);
     assert_eq!(position.en_passant_square, 17);
 }
 
@@ -123,7 +123,7 @@ fn it_creates_a_position_from_a_fen_2() {
     let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQ - 5 56";
     let position = get_position(&fen.to_string());
     assert_eq!(position.en_passant_square, EN_PASSANT_NOT_AVAILABLE);
-    assert!(position.mover == Mover::White);
+    assert_eq!(position.mover, Mover::White);
     assert_eq!(position.white_king_castle_available, false);
     assert_eq!(position.white_queen_castle_available, true);
     assert_eq!(position.black_king_castle_available, true);
