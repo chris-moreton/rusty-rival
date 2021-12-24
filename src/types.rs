@@ -1,7 +1,7 @@
 pub mod types {
     use std::collections::{HashMap, LinkedList};
 
-    pub type Square = u64;
+    pub type Square = i8;
     pub type Bitboard = u64;
     pub type Move = u64;
     pub type MoveList = LinkedList<Move>;

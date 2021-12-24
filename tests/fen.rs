@@ -1,5 +1,7 @@
 use rusty_rival::fen::*;
-use rusty_rival::fen::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, piece_bitboard, rank_bits};
+use rusty_rival::fen::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, get_position, piece_bitboard, rank_bits};
+use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
+use rusty_rival::types::types::Mover;
 
 #[test]
 fn it_gets_the_board_part_from_the_fen() {
@@ -96,36 +98,36 @@ fn it_converts_a_compact_move_to_an_algebraic_move() {
 
 }
 
+#[test]
+fn it_creates_a_position_from_a_fen() {
+    let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b q g3 5 56";
+    let position = get_position(&fen.to_string());
+    assert_eq!(position.white_pawn_bitboard, 5404360704);
+    assert_eq!(position.white_knight_bitboard, 2048);
+    assert_eq!(position.white_king_bitboard, 1048576);
+    assert_eq!(position.white_bishop_bitboard, 262144);
+    assert_eq!(position.white_queen_bitboard, 0);
+    assert_eq!(position.white_rook_bitboard, 67108864);
+    assert_eq!(position.black_pawn_bitboard, 634693087133696);
+    assert_eq!(position.black_knight_bitboard, 0);
+    assert_eq!(position.black_king_bitboard, 144115188075855872);
+    assert_eq!(position.black_bishop_bitboard, 0);
+    assert_eq!(position.black_queen_bitboard, 8796093022208);
+    assert_eq!(position.black_rook_bitboard, 16384);
+    assert!(position.mover == Mover::Black);
+    assert_eq!(position.en_passant_square, 17);
+}
 
-// describe "boardFromFen" $ do
-// it "Converts from FEN to board type (Test 1)" $ do
-// let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b q g3 5 56"
-// let position = getPosition fen
-// let bitboards = position
-// whitePawnBitboard bitboards `shouldBe` 5404360704
-// whiteKnightBitboard bitboards `shouldBe` 2048
-// whiteKingBitboard bitboards `shouldBe` 1048576
-// whiteBishopBitboard bitboards `shouldBe` 262144
-// whiteQueenBitboard bitboards `shouldBe` 0
-// whiteRookBitboard bitboards `shouldBe` 67108864
-// blackPawnBitboard bitboards `shouldBe` 634693087133696
-// blackKnightBitboard bitboards `shouldBe` 0
-// blackKingBitboard bitboards `shouldBe` 144115188075855872
-// blackBishopBitboard bitboards `shouldBe` 0
-// blackQueenBitboard bitboards `shouldBe` 8796093022208
-// blackRookBitboard bitboards `shouldBe` 16384
-// mover position `shouldBe` Black
-// enPassantSquare position `shouldBe` 17
-//
-// it "Converts from FEN to board type (Test 2)" $ do
-// let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQ - 5 56"
-// let position = getPosition fen
-// let castlePrivs = position
-// enPassantSquare position `shouldBe` EN_PASSANT_NOT_AVAILABLE
-// halfMoves position `shouldBe` 5
-// mover position `shouldBe` White
-// whiteKingCastleAvailable castlePrivs `shouldBe` False
-// whiteQueenCastleAvailable castlePrivs `shouldBe` True
-// blackKingCastleAvailable castlePrivs `shouldBe` True
-// blackQueenCastleAvailable castlePrivs `shouldBe` False
+#[test]
+fn it_creates_a_position_from_a_fen_2() {
+    let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQ - 5 56";
+    let position = get_position(&fen.to_string());
+    assert_eq!(position.en_passant_square, EN_PASSANT_NOT_AVAILABLE);
+    assert!(position.mover == Mover::White);
+    assert_eq!(position.white_king_castle_available, false);
+    assert_eq!(position.white_queen_castle_available, true);
+    assert_eq!(position.black_king_castle_available, true);
+    assert_eq!(position.black_queen_castle_available, false);
+}
+
 
