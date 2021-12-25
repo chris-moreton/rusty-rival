@@ -84,7 +84,7 @@ pub mod bitboards {
 
     const PROMOTION_SQUARES: Bitboard = 0b1111111100000000000000000000000000000000000000000000000011111111;
 
-    fn empty_squares_bitboard(position: &Position) -> Bitboard {
+    pub fn empty_squares_bitboard(position: &Position) -> Bitboard {
         return !position.all_pieces_bitboard;
     }
 
