@@ -37,7 +37,7 @@ pub mod bitboards {
         bitboard_for_colour(position, &position.mover, piece)
     }
 
-    fn bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
+    pub fn bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
         match (mover, piece) {
             (Mover::White, Piece::King) => position.white_king_bitboard,
             (Mover::White, Piece::Queen) => position.white_queen_bitboard,
