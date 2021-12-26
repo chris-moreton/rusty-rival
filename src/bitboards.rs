@@ -1,4 +1,3 @@
-use crate::types::types::{Bitboard, Position};
 
 pub mod bitboards {
     use crate::types::types::{Bitboard, Mover, Piece, Position, Square};

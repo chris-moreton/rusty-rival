@@ -1,5 +1,5 @@
 pub mod types {
-    use std::collections::{HashMap, LinkedList};
+    use std::collections::{HashMap};
 
     pub type Square = i8;
     pub type Bitboard = u64;

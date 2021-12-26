@@ -1,5 +1,4 @@
 pub mod fen {
-    use std::iter;
     use crate::move_constants::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
     use crate::types::types::{Bitboard, Move, Mover, Position, Square};
     use crate::types::types::Mover::{Black, White};
@@ -114,8 +113,8 @@ pub mod fen {
     // fromSquareMask (bitRefFromAlgebraicSquareRef (substring moveString 0 2)) + bitRefFromAlgebraicSquareRef (substring moveString 2 4) + promotionMask (last moveString)
 
 
-    pub fn get_fen_ranks(fenBoardPart: String) -> Vec<String> {
-        return fenBoardPart.split("/").map(|s| s.to_string()).collect();
+    pub fn get_fen_ranks(fen_board_part: String) -> Vec<String> {
+        return fen_board_part.split("/").map(|s| s.to_string()).collect();
     }
 
     pub fn fen_part(fen: &String, i: u8) -> String {
@@ -133,7 +132,7 @@ pub mod fen {
     }
 
     pub fn piece_bitboard(fen_ranks: &Vec<String>, piece: char) -> Bitboard {
-        return bit_array_to_decimal((board_bits(&fen_ranks, piece)));
+        return bit_array_to_decimal(board_bits(&fen_ranks, piece));
     }
 
     fn en_passant_fen_part(fen: &String) -> String {
@@ -141,9 +140,9 @@ pub mod fen {
     }
 
     fn bit_ref_from_algebraic_square_ref(algebraic: &String) -> Square {
-        let fileNum = algebraic.chars().nth(0).unwrap() as Square - 97;
-        let rankNum = algebraic.chars().nth(1).unwrap() as Square - 49;
-        return (rankNum * 8) + (7 - fileNum);
+        let file_num = algebraic.chars().nth(0).unwrap() as Square - 97;
+        let rank_num = algebraic.chars().nth(1).unwrap() as Square - 49;
+        return (rank_num * 8) + (7 - file_num);
     }
 
     fn en_passant_bit_ref(en_passant_fen_part: &String) -> i8 {

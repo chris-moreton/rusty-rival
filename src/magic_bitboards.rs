@@ -3,7 +3,7 @@ pub mod magic_bitboards {
     use crate::magic_moves_rook::magic_moves_rook::MAGIC_MOVES_ROOK;
     use crate::types::types::{Bitboard, MagicVars, Square};
 
-    pub fn magic(magic_vars: MagicVars, square: Square, to_squares_magic_index: u64) -> Bitboard {
+    pub fn magic(magic_vars: &MagicVars, square: Square, to_squares_magic_index: u64) -> Bitboard {
         return *magic_vars.magic_moves.iter().nth(square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
     }
 
