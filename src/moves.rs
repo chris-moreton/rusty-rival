@@ -1,8 +1,8 @@
 pub mod moves {
-    use crate::bitboards::bitboards::{bit_list, bitboard_for_mover, KNIGHT_MOVES_BITBOARDS};
+    use crate::bitboards::bitboards::{bit_list, bitboard_for_mover, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS};
     use crate::types::types::{Bitboard, MoveList, Position, Square};
     use crate::types::types::Mover::White;
-    use crate::types::types::Piece::Knight;
+    use crate::types::types::Piece::{King, Knight};
     use crate::utils::utils::from_square_mask;
 
     pub fn all_bits_except_friendly_pieces(position: &Position) -> Bitboard {
@@ -33,4 +33,14 @@ pub mod moves {
         return move_list;
     }
 
+    pub fn generate_king_moves(position: &Position) -> MoveList {
+        let valid_destinations = all_bits_except_friendly_pieces(position);
+        let from_square = bitboard_for_mover(position, &King).trailing_zeros();
+        let mut move_list = Vec::new();
+        let to_squares = bit_list(KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
+        to_squares.iter().for_each(|to_square| {
+            move_list.push(from_square_mask(from_square as i8) | *to_square as u32);
+        });
+        return move_list;
+    }
 }
