@@ -2,6 +2,7 @@ use rusty_rival::bitboards::bitboards::bit;
 use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
 use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, moves_from_to_squares_bitboard};
 use rusty_rival::types::types::MoveList;
+use rusty_rival::types::types::Piece::Bishop;
 
 #[test]
 fn it_gets_all_bits_except_friendly_pieces() {
@@ -50,4 +51,19 @@ fn it_generates_king_moves_from_a_given_fen_ignoring_checks() {
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["d3c2","d3c4","d3d2","d3d4","d3e3","d3e4"]);
+}
+
+#[test]
+fn it_generates_bishop_moves_including_diagonal_queen_moves_from_a_given_fen_ignoring_checks() {
+    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/7R w kQKq g3 5 56".to_string());
+    let move_list = generate_slider_moves(&position, Bishop);
+    let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
+    algebraic.sort();
+    assert_eq!(algebraic, vec!["f3a8","f3b7","f3c6","f3d5","f3e4","f3g2"]);
+
+    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
+    let move_list = generate_slider_moves(&position, Bishop);
+    let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
+    algebraic.sort();
+    assert_eq!(algebraic, vec!["e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g4"]);
 }

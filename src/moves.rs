@@ -1,8 +1,9 @@
 pub mod moves {
-    use crate::bitboards::bitboards::{bit_list, bitboard_for_mover, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS};
-    use crate::types::types::{Bitboard, MoveList, Position, Square};
+    use crate::bitboards::bitboards::{bit_list, bitboard_for_mover, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, slider_bitboard_for_colour};
+    use crate::magic_bitboards::magic_bitboards::magic;
+    use crate::types::types::{Bitboard, MoveList, Piece, Position, Square};
     use crate::types::types::Mover::White;
-    use crate::types::types::Piece::{King, Knight};
+    use crate::types::types::Piece::{Bishop, King, Knight};
     use crate::utils::utils::from_square_mask;
 
     pub fn all_bits_except_friendly_pieces(position: &Position) -> Bitboard {
@@ -43,4 +44,28 @@ pub mod moves {
         });
         return move_list;
     }
+
+    pub fn generate_slider_moves(position: &Position, piece: Piece) -> MoveList {
+        return generate_slider_moves_with_targets(position, piece, all_bits_except_friendly_pieces(position));
+    }
+
+    pub fn generate_slider_moves_with_targets(position: &Position, piece: Piece, valid_destinations: Bitboard) -> MoveList {
+        let magic_vars = if piece == Bishop { MAGIC_BISHOP_VARS } else { MAGIC_ROOK_VARS };
+        let from_squares = bit_list(slider_bitboard_for_colour(position, &position.mover, &piece));
+        let mut move_list = Vec::new();
+        from_squares.iter().for_each(|from_square| {
+            let number_magic = magic_vars.magic_number[from_square];
+            let shift_magic = magic_vars.magic_number_shift[from_square];
+            let mask_magic = magic_vars.occupancy_mask[from_square];
+            let occupancy = position.all_pieces_bitboard & mask_magic;
+            let raw_index = occupancy * number_magic;
+            let to_squares_magic_index = raw_index >> shift_magic;
+            let to_squares = bit_list(magic(magic_vars, from_square as Square, to_squares_magic_index) & valid_destinations);
+            to_squares.iter().for_each(|to_square| {
+                move_list.push(from_square_mask(*from_square as i8) | *to_square as u32);
+            });
+        });
+        return move_list;
+    }
+
 }

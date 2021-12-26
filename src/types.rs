@@ -17,6 +17,13 @@ pub mod types {
     #[derive(Debug, PartialEq)]
     pub enum Bound { Exact, Lower, Upper }
 
+    pub struct MagicVars {
+        pub(crate) occupancy_mask: Vec<Bitboard>,
+        pub(crate) magic_number: Vec<Bitboard>,
+        pub(crate) magic_number_shifts: Vec<Int>,
+        pub(crate) magic_moves: Vec<Vec<Bitboard>>
+    }
+
     pub struct HashEntry {
         score: u16,
         he_path: Path,
