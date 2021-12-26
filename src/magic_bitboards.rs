@@ -1,8 +1,10 @@
 pub mod magic_bitboards {
+    use crate::magic_moves_bishop::magic_moves_bishop::MAGIC_MOVES_BISHOP;
+    use crate::magic_moves_rook::magic_moves_rook::MAGIC_MOVES_ROOK;
     use crate::types::types::{Bitboard, MagicVars, Square};
 
-    pub fn magic(magic_vars: MagicVars, square: Square, to_squares_magic_index: u64) -> &Bitboard {
-        return magic_vars.magic_moves.iter().nth(square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
+    pub fn magic(magic_vars: MagicVars, square: Square, to_squares_magic_index: u64) -> Bitboard {
+        return *magic_vars.magic_moves.iter().nth(square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
     }
 
     pub const MAGIC_ROOK_VARS: MagicVars = MagicVars {
@@ -19,7 +21,7 @@ pub mod magic_bitboards {
         magic_number_shifts: MAGIC_NUMBER_SHIFTS_BISHOP
     };
 
-    pub const MAGIC_NUMBER_ROOK: Vec<Bitboard> = vec![
+    pub const MAGIC_NUMBER_ROOK: [Bitboard; 64] = [
         -0x5e7ffddf7fbffdd0 as i64 as u64,
         0x40100040022000,
         0x80088020001002,
@@ -86,7 +88,7 @@ pub mod magic_bitboards {
         0x1000200608243
     ];
     
-    pub const MAGIC_NUMBER_BISHOP: Vec<Bitboard> = vec![
+    pub const MAGIC_NUMBER_BISHOP: [Bitboard; 64] = [
         0x2910054208004104,
         0x2100630a7020180,
         0x5822022042000000,
@@ -128,7 +130,7 @@ pub mod magic_bitboards {
         0x23010400020600,
         0x41040020110302,
         0x412101004020818,
-        -0x7fddf7f5f6bfbdf8,
+        -0x7fddf7f5f6bfbdf8 as i64 as u64,
         0x1401210240484800,
         0x22244208010080,
         0x1105040104000210,
@@ -153,7 +155,7 @@ pub mod magic_bitboards {
         0x138200122002900,
     ];
     
-    pub const OCCUPANCY_MASK_BISHOP: Vec<Bitboard> = vec![
+    pub const OCCUPANCY_MASK_BISHOP: [Bitboard; 64] = [
         0x40201008040200,
         0x402010080400,
         0x4020100a00,
@@ -220,7 +222,7 @@ pub mod magic_bitboards {
         0x40201008040200
     ];
 
-    pub const OCCUPANCY_MASK_ROOK: Vec<Bitboard> = vec![
+    pub const OCCUPANCY_MASK_ROOK: [Bitboard; 64] = [
             0x101010101017e,
             0x202020202027c,
             0x404040404047a,
@@ -287,12 +289,12 @@ pub mod magic_bitboards {
             0x7e80808080808000
       ];
     
-    pub const MAGIC_NUMBER_SHIFTS_ROOK: Vec<u8> = vec![
+    pub const MAGIC_NUMBER_SHIFTS_ROOK: [u8; 64] = [
         52, 53, 53, 53, 53, 53, 53, 52, 53, 54, 54, 54, 54, 54, 54, 53, 53, 54, 54, 54, 54, 54, 54, 53, 53, 54, 54, 54, 54, 54, 54, 53,
         53, 54, 54, 54, 54, 54, 54, 53, 53, 54, 54, 54, 54, 54, 54, 53, 53, 54, 54, 54, 54, 54, 54, 53, 52, 53, 53, 53, 53, 53, 53, 52
     ];
 
-    pub const MAGIC_NUMBER_SHIFTS_BISHOP: Vec<u8> = vec![
+    pub const MAGIC_NUMBER_SHIFTS_BISHOP: [u8; 64] = [
         58, 59, 59, 59, 59, 59, 59, 58, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 57, 57, 57, 57, 59, 59, 59, 59, 57, 55, 55, 57, 59, 59,
         59, 59, 57, 55, 55, 57, 59, 59, 59, 59, 57, 57, 57, 57, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 58, 59, 59, 59, 59, 59, 59, 58
     ];

@@ -50,17 +50,17 @@ pub mod moves {
     }
 
     pub fn generate_slider_moves_with_targets(position: &Position, piece: Piece, valid_destinations: Bitboard) -> MoveList {
-        let magic_vars = if piece == Bishop { MAGIC_BISHOP_VARS } else { MAGIC_ROOK_VARS };
         let from_squares = bit_list(slider_bitboard_for_colour(position, &position.mover, &piece));
         let mut move_list = Vec::new();
         from_squares.iter().for_each(|from_square| {
-            let number_magic = magic_vars.magic_number[from_square];
-            let shift_magic = magic_vars.magic_number_shift[from_square];
-            let mask_magic = magic_vars.occupancy_mask[from_square];
+            let magic_vars = if piece == Bishop { MAGIC_BISHOP_VARS } else { MAGIC_ROOK_VARS };
+            let number_magic = magic_vars.magic_number.iter().nth(*from_square as usize).unwrap();
+            let shift_magic = magic_vars.magic_number_shifts.iter().nth(*from_square as usize).unwrap();
+            let mask_magic = magic_vars.occupancy_mask.iter().nth(*from_square as usize).unwrap();
             let occupancy = position.all_pieces_bitboard & mask_magic;
             let raw_index = occupancy * number_magic;
             let to_squares_magic_index = raw_index >> shift_magic;
-            let to_squares = bit_list(magic(magic_vars, from_square as Square, to_squares_magic_index) & valid_destinations);
+            let to_squares = bit_list(magic(magic_vars, *from_square as Square, to_squares_magic_index) & valid_destinations);
             to_squares.iter().for_each(|to_square| {
                 move_list.push(from_square_mask(*from_square as i8) | *to_square as u32);
             });

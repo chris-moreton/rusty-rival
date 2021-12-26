@@ -1,6 +1,6 @@
 use rusty_rival::bitboards::bitboards::bit;
 use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, moves_from_to_squares_bitboard};
+use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_slider_moves, moves_from_to_squares_bitboard};
 use rusty_rival::types::types::MoveList;
 use rusty_rival::types::types::Piece::Bishop;
 

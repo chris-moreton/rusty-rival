@@ -7,6 +7,7 @@ pub mod types {
     pub type MoveList = Vec<Move>;
     pub type Path = Vec<Move>;
     pub type MagicFunc = fn(Square, u64) -> Bitboard;
+    pub type MagicMovesArray = [[Bitboard; 4096]; 64];
 
     #[derive(Debug, PartialEq)]
     pub enum Mover { White, Black }
@@ -18,10 +19,10 @@ pub mod types {
     pub enum Bound { Exact, Lower, Upper }
 
     pub struct MagicVars {
-        pub(crate) occupancy_mask: Vec<Bitboard>,
-        pub(crate) magic_number: Vec<Bitboard>,
-        pub(crate) magic_number_shifts: Vec<Int>,
-        pub(crate) magic_moves: Vec<Vec<Bitboard>>
+        pub(crate) occupancy_mask: [Bitboard; 64],
+        pub(crate) magic_number: [Bitboard; 64],
+        pub(crate) magic_number_shifts: [u8; 64],
+        pub(crate) magic_moves: [[Bitboard; 4096]; 64]
     }
 
     pub struct HashEntry {
