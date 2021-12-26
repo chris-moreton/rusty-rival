@@ -34,13 +34,3 @@ pub mod moves {
     }
 
 }
-
-// {-# INLINE generateKnightMoves #-}
-// generateKnightMoves :: Position -> MoveList
-// generateKnightMoves !position = generateKnightMovesWithTargets position (allBitsExceptFriendlyPieces position)
-//
-// {-# INLINE generateKnightMovesWithTargets #-}
-// generateKnightMovesWithTargets :: Position -> Bitboard -> MoveList
-// generateKnightMovesWithTargets !position validLandingSquares =
-// [fromSquareMask fromSquare .|. toSquare | fromSquare <- bitList $ bitboardForMover position Knight,
-// toSquare   <- bitList $ knightMovesBitboards fromSquare .&. validLandingSquares]
