@@ -1,6 +1,7 @@
 use rusty_rival::bitboards::bitboards::bit;
-use rusty_rival::fen::fen::get_position;
-use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, moves_from_to_squares_bitboard};
+use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
+use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_knight_moves, moves_from_to_squares_bitboard};
+use rusty_rival::types::types::MoveList;
 
 #[test]
 fn it_gets_all_bits_except_friendly_pieces() {
@@ -21,11 +22,18 @@ fn it_creates_a_list_of_moves_from_a_from_square_and_a_list_of_to_squares() {
     assert_eq!(moves, vec![720918,720929,720940]);
 }
 
-// #[test]
-// fn it_generates_knight_moves_from_a_given_fen_ignoring_checks() {
-//     sort (map algebraicMoveFromMove (generateKnightMoves (getPosition "n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56")))
-//     `shouldBe` ["a8c7","b6a4","b6c4","b6c8","b6d5","b6d7","g7e8","g7f5","g7h5"]
-//     sort (map algebraicMoveFromMove (generateKnightMoves (getPosition "n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQKq g3 5 56")))
-//     `shouldBe` ["e2c1","e2d4","e2g1","e2g3"]
-// }
-//
+#[test]
+fn it_generates_knight_moves_from_a_given_fen_ignoring_checks() {
+    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
+    let move_list = generate_knight_moves(&position);
+    let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
+    algebraic.sort();
+    assert_eq!(algebraic, vec!["a8c7","b6a4","b6c4","b6c8","b6d5","b6d7","g7e8","g7f5","g7h5"]);
+
+    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQKq g3 5 56".to_string());
+    let move_list = generate_knight_moves(&position);
+    let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
+    algebraic.sort();
+    assert_eq!(algebraic, vec!["e2c1","e2d4","e2g1","e2g3"]);
+}
+

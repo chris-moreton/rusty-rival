@@ -8,16 +8,16 @@ pub mod bitboards {
         return 1 << i;
     }
 
-    pub fn bit_list(bb: Bitboard) -> Vec<u32> {
+    pub fn bit_list(bb: Bitboard) -> Vec<u8> {
         let mut bl = bit_list(bb, Vec::new());
         bl.reverse();
         return bl;
 
-        fn bit_list(bb: Bitboard, mut r: Vec<u32>) -> Vec<u32> {
+        fn bit_list(bb: Bitboard, mut r: Vec<u8>) -> Vec<u8> {
             if bb == 0 {
                 return r
             }
-            let b = bb.trailing_zeros();
+            let b = bb.trailing_zeros() as u8;
             let new_bb = bb & !(1 << b);
             r.push(b);
             return bit_list(new_bb, r);
@@ -222,79 +222,31 @@ pub mod bitboards {
 
     pub const MIDDLE_FILES_8_BIT: Bitboard = 0b0000000000000000000000000000000000000000000000000000000000011000;
     pub const NONMID_FILES_8_BIT: Bitboard = 0b0000000000000000000000000000000000000000000000000000000011100111;
-    
+
     pub const LOW_32_BITS: Bitboard = RANK_1_BITS | RANK_2_BITS | RANK_3_BITS | RANK_4_BITS;
-    
+
     pub const DARK_SQUARES_BITS: Bitboard = 0b0101010110101010010101011010101001010101101010100101010110101010;
     pub const LIGHT_SQUARES_BITS: Bitboard = !DARK_SQUARES_BITS;
+
+    pub static KNIGHT_MOVES_BITBOARDS: &'static [Bitboard] = &[
+        0x20400, 0x50800, 0xa1100, 0x142200, 0x284400, 0x508800, 0xa01000, 0x402000,
+        0x2040004, 0x5080008, 0xa110011, 0x14220022, 0x28440044, 0x50880088, 0xa0100010, 0x40200020,
+        0x204000402, 0x508000805, 0xa1100110a, 0x1422002214, 0x2844004428, 0x5088008850, 0xa0100010a0, 0x4020002040,
+        0x20400040200, 0x50800080500, 0xa1100110a00, 0x142200221400, 0x284400442800, 0x508800885000, 0xa0100010a000, 0x402000204000,
+        0x2040004020000, 0x5080008050000, 0xa1100110a0000, 0x14220022140000, 0x28440044280000, 0x50880088500000, 0xa0100010a00000, 0x40200020400000,
+        0x204000402000000, 0x508000805000000, 0xa1100110a000000,
+        0b0001010000100010000000000010001000010100000000000000000000000000,
+        0b0010100001000100000000000100010000101000000000000000000000000000,
+        0b0101000010001000000000001000100001010000000000000000000000000000,
+        0b1010000000010000000000000001000010100000000000000000000000000000,
+        0b0100000000100000000000000010000001000000000000000000000000000000,
+        0x400040200000000, 0x800080500000000, 0x1100110a00000000, 0x2200221400000000, 0x4400442800000000,
+        0b1000100000000000100010000101000000000000000000000000000000000000,
+        0x100010a000000000, 0x2000204000000000,
+        0x4020000000000, 0x8050000000000, 0x110a0000000000, 0x22140000000000, 0x44280000000000, 0x88500000000000, 0x10a00000000000, 0x20400000000000
+    ];
 }
 
-//
-// knightMovesBitboards :: Int -> Bitboard
-// knightMovesBitboards 0 = 0x20400
-// knightMovesBitboards 1 = 0x50800
-// knightMovesBitboards 2 = 0xa1100
-// knightMovesBitboards 3 = 0x142200
-// knightMovesBitboards 4 = 0x284400
-// knightMovesBitboards 5 = 0x508800
-// knightMovesBitboards 6 = 0xa01000
-// knightMovesBitboards 7 = 0x402000
-// knightMovesBitboards 8 = 0x2040004
-// knightMovesBitboards 9 = 0x5080008
-// knightMovesBitboards 10 = 0xa110011
-// knightMovesBitboards 11 = 0x14220022
-// knightMovesBitboards 12 = 0x28440044
-// knightMovesBitboards 13 = 0x50880088
-// knightMovesBitboards 14 = 0xa0100010
-// knightMovesBitboards 15 = 0x40200020
-// knightMovesBitboards 16 = 0x204000402
-// knightMovesBitboards 17 = 0x508000805
-// knightMovesBitboards 18 = 0xa1100110a
-// knightMovesBitboards 19 = 0x1422002214
-// knightMovesBitboards 20 = 0x2844004428
-// knightMovesBitboards 21 = 0x5088008850
-// knightMovesBitboards 22 = 0xa0100010a0
-// knightMovesBitboards 23 = 0x4020002040
-// knightMovesBitboards 24 = 0x20400040200
-// knightMovesBitboards 25 = 0x50800080500
-// knightMovesBitboards 26 = 0xa1100110a00
-// knightMovesBitboards 27 = 0x142200221400
-// knightMovesBitboards 28 = 0x284400442800
-// knightMovesBitboards 29 = 0x508800885000
-// knightMovesBitboards 30 = 0xa0100010a000
-// knightMovesBitboards 31 = 0x402000204000
-// knightMovesBitboards 32 = 0x2040004020000
-// knightMovesBitboards 33 = 0x5080008050000
-// knightMovesBitboards 34 = 0xa1100110a0000
-// knightMovesBitboards 35 = 0x14220022140000
-// knightMovesBitboards 36 = 0x28440044280000
-// knightMovesBitboards 37 = 0x50880088500000
-// knightMovesBitboards 38 = 0xa0100010a00000
-// knightMovesBitboards 39 = 0x40200020400000
-// knightMovesBitboards 40 = 0x204000402000000
-// knightMovesBitboards 41 = 0x508000805000000
-// knightMovesBitboards 42 = 0xa1100110a000000
-// knightMovesBitboards 43 = 0x1422002214000000
-// knightMovesBitboards 44 = 0x2844004428000000
-// knightMovesBitboards 45 = 0x5088008850000000
-// knightMovesBitboards 46 = -0x5fefffef60000000
-// knightMovesBitboards 47 = 0x4020002040000000
-// knightMovesBitboards 48 = 0x400040200000000
-// knightMovesBitboards 49 = 0x800080500000000
-// knightMovesBitboards 50 = 0x1100110a00000000
-// knightMovesBitboards 51 = 0x2200221400000000
-// knightMovesBitboards 52 = 0x4400442800000000
-// knightMovesBitboards 53 = -0x77ff77b000000000
-// knightMovesBitboards 54 = 0x100010a000000000
-// knightMovesBitboards 55 = 0x2000204000000000
-// knightMovesBitboards 56 = 0x4020000000000
-// knightMovesBitboards 57 = 0x8050000000000
-// knightMovesBitboards 58 = 0x110a0000000000
-// knightMovesBitboards 59 = 0x22140000000000
-// knightMovesBitboards 60 = 0x44280000000000
-// knightMovesBitboards 61 = 0x88500000000000
-// knightMovesBitboards 62 = 0x10a00000000000
-// knightMovesBitboards 63 = 0x20400000000000
 //
 // kingMovesBitboards :: Int -> Bitboard
 // kingMovesBitboards 0 = 0x302
