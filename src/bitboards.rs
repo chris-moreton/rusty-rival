@@ -1,8 +1,12 @@
 use crate::types::types::{Bitboard, Position};
 
 pub mod bitboards {
-    use crate::types::types::{Bitboard, Mover, Piece, Position};
+    use crate::types::types::{Bitboard, Mover, Piece, Position, Square};
     use crate::types::types::Mover::White;
+
+    pub fn bit(i: Square) -> Bitboard {
+        return 1 << i;
+    }
 
     pub fn bit_list(bb: Bitboard) -> Vec<u32> {
         let mut bl = bit_list(bb, Vec::new());

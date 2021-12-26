@@ -3,9 +3,9 @@ pub mod types {
 
     pub type Square = i8;
     pub type Bitboard = u64;
-    pub type Move = u64;
-    pub type MoveList = LinkedList<Move>;
-    pub type Path = LinkedList<Move>;
+    pub type Move = u32;
+    pub type MoveList = Vec<Move>;
+    pub type Path = Vec<Move>;
     pub type MagicFunc = fn(Square, u64) -> Bitboard;
 
     #[derive(Debug, PartialEq)]

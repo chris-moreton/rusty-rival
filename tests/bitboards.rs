@@ -1,7 +1,14 @@
 use rusty_rival::bitboards::*;
-use rusty_rival::bitboards::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit_list, bit_string, bitboard_for_colour, bitboard_for_mover, DARK_SQUARES_BITS, empty_squares_bitboard, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, set_bits, south_fill};
+use rusty_rival::bitboards::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit, bit_list, bit_string, bitboard_for_colour, bitboard_for_mover, DARK_SQUARES_BITS, empty_squares_bitboard, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, set_bits, south_fill};
 use rusty_rival::fen::fen::{get_position, rank_bits};
 use rusty_rival::types::types::{Mover, Piece, Position};
+
+#[test]
+fn it_sets_a_bit() {
+    assert_eq!(bit(0), 0b0000000000000000000000000000000000000000000000000000000000000001);
+    assert_eq!(bit(63), 0b1000000000000000000000000000000000000000000000000000000000000000);
+    assert_eq!(bit(3), 0b0000000000000000000000000000000000000000000000000000000000001000);
+}
 
 #[test]
 fn it_gets_bit_lists() {
