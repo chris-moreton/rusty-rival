@@ -1,6 +1,6 @@
 pub mod moves {
     use crate::bitboards::bitboards::{bit_list, bitboard_for_mover, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, slider_bitboard_for_colour};
-    use crate::magic_bitboards::magic_bitboards::magic;
+    use crate::magic_bitboards::magic_bitboards::{magic, MAGIC_BISHOP_VARS, MAGIC_ROOK_VARS};
     use crate::types::types::{Bitboard, MoveList, Piece, Position, Square};
     use crate::types::types::Mover::White;
     use crate::types::types::Piece::{Bishop, King, Knight};
