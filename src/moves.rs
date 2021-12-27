@@ -1,8 +1,8 @@
 pub mod moves {
-    use crate::bitboards::bitboards::{bit_list, bitboard_for_mover, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, RANK_4_BITS, RANK_5_BITS, slider_bitboard_for_colour};
+    use crate::bitboards::bitboards::{bit, bit_list, bitboard_for_mover, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour};
     use crate::magic_bitboards::magic_bitboards::{magic, MAGIC_BISHOP_VARS, MAGIC_ROOK_VARS};
-    use crate::move_constants::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
-    use crate::types::types::{Bitboard, Move, MoveList, Piece, Position, Square};
+    use crate::move_constants::move_constants::{EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
+    use crate::types::types::{Bitboard, Move, MoveList, Mover, Piece, Position, Square};
     use crate::types::types::Mover::White;
     use crate::types::types::Piece::{Bishop, King, Knight};
     use crate::utils::utils::from_square_mask;
@@ -97,12 +97,35 @@ pub mod moves {
         return lookup.iter().nth(square as usize).unwrap() & enemy_bitboard;
     }
 
-    pub fn potential_pawn_jump_moves(bb: Bitboard, position: Position) -> Bitboard {
+    pub fn potential_pawn_jump_moves(bb: Bitboard, position: &Position) -> Bitboard {
         return if position.mover == White {
             (bb << 8) & RANK_4_BITS
         } else {
             (bb >> 8) & RANK_5_BITS
         }
+    }
+
+    pub fn pawn_forward_moves_bitboard(pawn_moves: Bitboard, position: &Position) -> Bitboard {
+        return pawn_moves | (potential_pawn_jump_moves(pawn_moves, &position) & empty_squares_bitboard(&position));
+    }
+
+    pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn_moves: &[Bitboard], non_captures: Bitboard, position: &Position) -> Bitboard {
+        let eps = position.en_passant_square;
+        let captures = if eps != EN_PASSANT_NOT_AVAILABLE && bit(eps) & en_passant_capture_rank(&position.mover) != 0 {
+            pawn_captures_plus_en_passant_square(capture_pawn_moves, from_square, &position)
+        } else {
+            pawn_captures(capture_pawn_moves, from_square, enemy_bitboard(&position))
+        };
+        return non_captures | captures;
+    }
+
+    pub fn pawn_captures_plus_en_passant_square(capture_pawn_moves: &[Bitboard], square: Square, position: &Position) -> Bitboard {
+        let eps = position.en_passant_square;
+        return pawn_captures(capture_pawn_moves, square, enemy_bitboard(&position) | if eps == EN_PASSANT_NOT_AVAILABLE { 0 } else { bit(eps) })
+    }
+
+    pub fn en_passant_capture_rank(mover: &Mover) -> Bitboard {
+        return if *mover == White { RANK_6_BITS } else { RANK_3_BITS }
     }
 
 }
