@@ -1,7 +1,8 @@
 pub mod moves {
     use crate::bitboards::bitboards::{bit_list, bitboard_for_mover, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, slider_bitboard_for_colour};
     use crate::magic_bitboards::magic_bitboards::{magic, MAGIC_BISHOP_VARS, MAGIC_ROOK_VARS};
-    use crate::types::types::{Bitboard, MoveList, Piece, Position, Square};
+    use crate::move_constants::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
+    use crate::types::types::{Bitboard, Move, MoveList, Piece, Position, Square};
     use crate::types::types::Mover::White;
     use crate::types::types::Piece::{Bishop, King, Knight};
     use crate::utils::utils::from_square_mask;
@@ -68,4 +69,27 @@ pub mod moves {
         return move_list;
     }
 
+    pub fn promotion_moves(mv: Move) -> MoveList {
+        return vec![mv | PROMOTION_QUEEN_MOVE_MASK,
+                    mv | PROMOTION_ROOK_MOVE_MASK,
+                    mv | PROMOTION_BISHOP_MOVE_MASK,
+                    mv | PROMOTION_KNIGHT_MOVE_MASK];
+    }
+
+    pub fn generate_pawn_moves_from_to_squares(from_square: Square, to_bitboard: Bitboard) -> MoveList {
+        let mask = from_square_mask(from_square);
+        let to_squares = bit_list(to_bitboard);
+        let mut move_list = Vec::new();
+        to_squares.iter().for_each(|to_square| {
+            let base_move = mask | *to_square as Move;
+            if *to_square >= 56 || *to_square <= 7 {
+                promotion_moves(base_move).iter().for_each(|mv| {
+                    move_list.push(*mv);
+                })
+            } else {
+                move_list.push(base_move);
+            }
+        });
+        return move_list;
+    }
 }
