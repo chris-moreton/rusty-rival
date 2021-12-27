@@ -1,10 +1,10 @@
 pub mod moves {
-    use crate::bitboards::bitboards::{bit, bit_list, bitboard_for_mover, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour};
+    use crate::bitboards::bitboards::{bit, bit_list, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
     use crate::magic_bitboards::magic_bitboards::{magic, MAGIC_BISHOP_VARS, MAGIC_ROOK_VARS};
     use crate::move_constants::move_constants::{EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
     use crate::types::types::{Bitboard, Move, MoveList, Mover, Piece, Position, Square};
     use crate::types::types::Mover::White;
-    use crate::types::types::Piece::{Bishop, King, Knight};
+    use crate::types::types::Piece::{Bishop, King, Knight, Pawn};
     use crate::utils::utils::from_square_mask;
 
     pub fn all_bits_except_friendly_pieces(position: &Position) -> Bitboard {
@@ -127,5 +127,49 @@ pub mod moves {
     pub fn en_passant_capture_rank(mover: &Mover) -> Bitboard {
         return if *mover == White { RANK_6_BITS } else { RANK_3_BITS }
     }
+
+    pub fn generate_pawn_moves(position: &Position) -> MoveList {
+        let bitboard = bitboard_for_mover(&position, &Pawn);
+        return if position.mover == White {
+            generate_white_pawn_moves(bitboard, position, empty_squares_bitboard(&position))
+        } else {
+            generate_black_pawn_moves(bitboard, position, empty_squares_bitboard(&position))
+        }
+    }
+
+    pub fn generate_white_pawn_moves(from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
+        let mut move_list = Vec::new();
+
+        bit_list(from_squares).iter().for_each(|from_square| {
+            let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
+                *from_square as Square,
+                WHITE_PAWN_MOVES_CAPTURE,
+                pawn_forward_moves_bitboard(WHITE_PAWN_MOVES_FORWARD.iter().nth(*from_square as usize).unwrap() & empty_squares, &position),
+                &position
+            );
+            let mut ms = generate_pawn_moves_from_to_squares(*from_square as Square, pawn_forward_and_capture_moves);
+            move_list.append(ms.as_mut());
+        });
+
+        return move_list;
+    }
+
+    pub fn generate_black_pawn_moves(from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
+        let mut move_list = Vec::new();
+
+        bit_list(from_squares).iter().for_each(|from_square| {
+            let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
+                *from_square as Square,
+                BLACK_PAWN_MOVES_CAPTURE,
+                pawn_forward_moves_bitboard(BLACK_PAWN_MOVES_FORWARD.iter().nth(*from_square as usize).unwrap() & empty_squares, &position),
+                &position
+            );
+            let mut ms = generate_pawn_moves_from_to_squares(*from_square as Square, pawn_forward_and_capture_moves);
+            move_list.append(ms.as_mut());
+        });
+
+        return move_list;
+    }
+
 
 }

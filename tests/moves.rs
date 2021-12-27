@@ -1,7 +1,7 @@
 use rusty_rival::bitboards::bitboards::{bit, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
 use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
+use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
 use rusty_rival::types::types::{Bitboard, Square};
 
@@ -137,4 +137,19 @@ fn it_returns_a_bitboard_showing_available_landing_squares_capture_and_non_captu
     let pfmb = pawn_forward_moves_bitboard (forward_moves_for_square & empty_squares, &position);
     assert_eq!(pfmb, 0b0000100000000000000000000000000000000000000000000000000000000000);
     assert_eq!(pawn_forward_and_capture_moves_bitboard(from_square as Square, WHITE_PAWN_MOVES_CAPTURE, pfmb, &position), 0b0000100000000000000000000000000000000000000000000000000000000000);
+}
+
+#[test]
+fn it_generates_pawn_moves_from_a_given_fen_ignoring_checks() {
+    let position = get_position(&"n5k1/4P1n1/1n2q2p/1p1p4/5R2/3K1B2/1r2N3/6r1 w - - 0 1".to_string());
+    let move_list = generate_pawn_moves(&position);
+    let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
+    algebraic.sort();
+    assert_eq!(algebraic, vec!["e7e8b","e7e8n","e7e8q","e7e8r"]);
+
+    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/3K1B2/1r2N2P/6r1 w - c6 0 1".to_string());
+    let move_list = generate_pawn_moves(&position);
+    let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
+    algebraic.sort();
+    assert_eq!(algebraic, vec!["a5a6","a5b6","b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r","d5c6","d5d6","d5e6","e7e8b","e7e8n","e7e8q","e7e8r","h2h3","h2h4"]);
 }
