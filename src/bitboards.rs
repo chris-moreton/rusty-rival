@@ -312,274 +312,30 @@ pub mod bitboards {
         0x40c0000000000000,
     ];
 
+    pub const WHITE_PAWN_MOVES_CAPTURE: &'static [Bitboard] = &[
+        0x200, 0x500, 0xa00, 0x1400, 0x2800, 0x5000, 0xa000, 0x4000, 0x20000, 0x50000, 0xa0000, 0x140000, 0x280000, 0x500000, 0xa00000, 0x400000, 0x2000000, 0x5000000, 0xa000000, 0x14000000, 0x28000000, 0x50000000, 0xa0000000, 0x40000000, 0x200000000, 0x500000000, 0xa00000000, 0x1400000000, 0x2800000000, 0x5000000000, 0xa000000000, 0x4000000000, 0x20000000000, 0x50000000000, 0xa0000000000, 0x140000000000, 0x280000000000, 0x500000000000, 0xa00000000000, 0x400000000000, 0x2000000000000, 0x5000000000000, 0xa000000000000, 0x14000000000000, 0x28000000000000, 0x50000000000000, 0xa0000000000000, 0x40000000000000, 0x200000000000000, 0x500000000000000, 0xa00000000000000, 0x1400000000000000, 0x2800000000000000, 0x5000000000000000, -0x6000000000000000 as i64 as u64, 0x4000000000000000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0     
+    ];
+
+    pub const BLACK_PAWN_MOVES_CAPTURE: &'static [Bitboard] = &[
+        0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x5, 0xa, 0x14, 0x28, 0x50, 0xa0, 0x40, 0x200, 0x500, 0xa00, 0x1400, 0x2800, 0x5000, 0xa000, 0x4000, 0x20000, 0x50000, 0xa0000, 0x140000, 0x280000, 0x500000, 0xa00000, 0x400000, 0x2000000, 0x5000000, 0xa000000, 0x14000000, 0x28000000, 0x50000000, 0xa0000000, 0x40000000, 0x200000000, 0x500000000, 0xa00000000, 0x1400000000, 0x2800000000, 0x5000000000, 0xa000000000, 0x4000000000, 0x20000000000, 0x50000000000, 0xa0000000000, 0x140000000000, 0x280000000000, 0x500000000000, 0xa00000000000, 0x400000000000, 0x2000000000000, 0x5000000000000, 0xa000000000000, 0x14000000000000, 0x28000000000000, 0x50000000000000, 0xa0000000000000, 0x40000000000000
+    ];
+
+    pub const WHITE_PAWN_MOVES_FORWARD: &'static [Bitboard] = &[
+        0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x100000000, 0x200000000, 0x400000000, 0x800000000, 0x1000000000, 0x2000000000, 0x4000000000, 0x8000000000, 0x10000000000, 0x20000000000, 0x40000000000, 0x80000000000, 0x100000000000, 0x200000000000, 0x400000000000, 0x800000000000, 0x1000000000000, 0x2000000000000, 0x4000000000000, 0x8000000000000, 0x10000000000000, 0x20000000000000, 0x40000000000000, 0x80000000000000, 0x100000000000000, 0x200000000000000, 0x400000000000000, 0x800000000000000, 0x1000000000000000, 0x2000000000000000, 0x4000000000000000, 1 << 63, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
+    ];
+
+    pub const BLACK_PAWN_MOVES_FORWARD: &'static [Bitboard] = &[
+        0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x100000000, 0x200000000, 0x400000000, 0x800000000, 0x1000000000, 0x2000000000, 0x4000000000, 0x8000000000, 0x10000000000, 0x20000000000, 0x40000000000, 0x80000000000, 0x100000000000, 0x200000000000, 0x400000000000, 0x800000000000, 0x1000000000000, 0x2000000000000, 0x4000000000000, 0x8000000000000, 0x10000000000000, 0x20000000000000, 0x40000000000000, 0x80000000000000, 
+    ];
+
+
 }
 
 
-//
-// whitePawnMovesForward :: Int -> Bitboard
-// whitePawnMovesForward 0 = 0x100
-// whitePawnMovesForward 1 = 0x200
-// whitePawnMovesForward 2 = 0x400
-// whitePawnMovesForward 3 = 0x800
-// whitePawnMovesForward 4 = 0x1000
-// whitePawnMovesForward 5 = 0x2000
-// whitePawnMovesForward 6 = 0x4000
-// whitePawnMovesForward 7 = 0x8000
-// whitePawnMovesForward 8 = 0x10000
-// whitePawnMovesForward 9 = 0x20000
-// whitePawnMovesForward 10 = 0x40000
-// whitePawnMovesForward 11 = 0x80000
-// whitePawnMovesForward 12 = 0x100000
-// whitePawnMovesForward 13 = 0x200000
-// whitePawnMovesForward 14 = 0x400000
-// whitePawnMovesForward 15 = 0x800000
-// whitePawnMovesForward 16 = 0x1000000
-// whitePawnMovesForward 17 = 0x2000000
-// whitePawnMovesForward 18 = 0x4000000
-// whitePawnMovesForward 19 = 0x8000000
-// whitePawnMovesForward 20 = 0x10000000
-// whitePawnMovesForward 21 = 0x20000000
-// whitePawnMovesForward 22 = 0x40000000
-// whitePawnMovesForward 23 = 0x80000000
-// whitePawnMovesForward 24 = 0x100000000
-// whitePawnMovesForward 25 = 0x200000000
-// whitePawnMovesForward 26 = 0x400000000
-// whitePawnMovesForward 27 = 0x800000000
-// whitePawnMovesForward 28 = 0x1000000000
-// whitePawnMovesForward 29 = 0x2000000000
-// whitePawnMovesForward 30 = 0x4000000000
-// whitePawnMovesForward 31 = 0x8000000000
-// whitePawnMovesForward 32 = 0x10000000000
-// whitePawnMovesForward 33 = 0x20000000000
-// whitePawnMovesForward 34 = 0x40000000000
-// whitePawnMovesForward 35 = 0x80000000000
-// whitePawnMovesForward 36 = 0x100000000000
-// whitePawnMovesForward 37 = 0x200000000000
-// whitePawnMovesForward 38 = 0x400000000000
-// whitePawnMovesForward 39 = 0x800000000000
-// whitePawnMovesForward 40 = 0x1000000000000
-// whitePawnMovesForward 41 = 0x2000000000000
-// whitePawnMovesForward 42 = 0x4000000000000
-// whitePawnMovesForward 43 = 0x8000000000000
-// whitePawnMovesForward 44 = 0x10000000000000
-// whitePawnMovesForward 45 = 0x20000000000000
-// whitePawnMovesForward 46 = 0x40000000000000
-// whitePawnMovesForward 47 = 0x80000000000000
-// whitePawnMovesForward 48 = 0x100000000000000
-// whitePawnMovesForward 49 = 0x200000000000000
-// whitePawnMovesForward 50 = 0x400000000000000
-// whitePawnMovesForward 51 = 0x800000000000000
-// whitePawnMovesForward 52 = 0x1000000000000000
-// whitePawnMovesForward 53 = 0x2000000000000000
-// whitePawnMovesForward 54 = 0x4000000000000000
-// whitePawnMovesForward 55 = 1 `shiftL` 63
-// whitePawnMovesForward 56 = 0x0
-// whitePawnMovesForward 57 = 0x0
-// whitePawnMovesForward 58 = 0x0
-// whitePawnMovesForward 59 = 0x0
-// whitePawnMovesForward 60 = 0x0
-// whitePawnMovesForward 61 = 0x0
-// whitePawnMovesForward 62 = 0x0
-// whitePawnMovesForward 63 = 0x0
-//
-// whitePawnMovesCapture :: Int -> Bitboard
-// whitePawnMovesCapture 0 = 0x200
-// whitePawnMovesCapture 1 = 0x500
-// whitePawnMovesCapture 2 = 0xa00
-// whitePawnMovesCapture 3 = 0x1400
-// whitePawnMovesCapture 4 = 0x2800
-// whitePawnMovesCapture 5 = 0x5000
-// whitePawnMovesCapture 6 = 0xa000
-// whitePawnMovesCapture 7 = 0x4000
-// whitePawnMovesCapture 8 = 0x20000
-// whitePawnMovesCapture 9 = 0x50000
-// whitePawnMovesCapture 10 = 0xa0000
-// whitePawnMovesCapture 11 = 0x140000
-// whitePawnMovesCapture 12 = 0x280000
-// whitePawnMovesCapture 13 = 0x500000
-// whitePawnMovesCapture 14 = 0xa00000
-// whitePawnMovesCapture 15 = 0x400000
-// whitePawnMovesCapture 16 = 0x2000000
-// whitePawnMovesCapture 17 = 0x5000000
-// whitePawnMovesCapture 18 = 0xa000000
-// whitePawnMovesCapture 19 = 0x14000000
-// whitePawnMovesCapture 20 = 0x28000000
-// whitePawnMovesCapture 21 = 0x50000000
-// whitePawnMovesCapture 22 = 0xa0000000
-// whitePawnMovesCapture 23 = 0x40000000
-// whitePawnMovesCapture 24 = 0x200000000
-// whitePawnMovesCapture 25 = 0x500000000
-// whitePawnMovesCapture 26 = 0xa00000000
-// whitePawnMovesCapture 27 = 0x1400000000
-// whitePawnMovesCapture 28 = 0x2800000000
-// whitePawnMovesCapture 29 = 0x5000000000
-// whitePawnMovesCapture 30 = 0xa000000000
-// whitePawnMovesCapture 31 = 0x4000000000
-// whitePawnMovesCapture 32 = 0x20000000000
-// whitePawnMovesCapture 33 = 0x50000000000
-// whitePawnMovesCapture 34 = 0xa0000000000
-// whitePawnMovesCapture 35 = 0x140000000000
-// whitePawnMovesCapture 36 = 0x280000000000
-// whitePawnMovesCapture 37 = 0x500000000000
-// whitePawnMovesCapture 38 = 0xa00000000000
-// whitePawnMovesCapture 39 = 0x400000000000
-// whitePawnMovesCapture 40 = 0x2000000000000
-// whitePawnMovesCapture 41 = 0x5000000000000
-// whitePawnMovesCapture 42 = 0xa000000000000
-// whitePawnMovesCapture 43 = 0x14000000000000
-// whitePawnMovesCapture 44 = 0x28000000000000
-// whitePawnMovesCapture 45 = 0x50000000000000
-// whitePawnMovesCapture 46 = 0xa0000000000000
-// whitePawnMovesCapture 47 = 0x40000000000000
-// whitePawnMovesCapture 48 = 0x200000000000000
-// whitePawnMovesCapture 49 = 0x500000000000000
-// whitePawnMovesCapture 50 = 0xa00000000000000
-// whitePawnMovesCapture 51 = 0x1400000000000000
-// whitePawnMovesCapture 52 = 0x2800000000000000
-// whitePawnMovesCapture 53 = 0x5000000000000000
-// whitePawnMovesCapture 54 = -0x6000000000000000
-// whitePawnMovesCapture 55 = 0x4000000000000000
-// whitePawnMovesCapture 56 = 0x0
-// whitePawnMovesCapture 57 = 0x0
-// whitePawnMovesCapture 58 = 0x0
-// whitePawnMovesCapture 59 = 0x0
-// whitePawnMovesCapture 60 = 0x0
-// whitePawnMovesCapture 61 = 0x0
-// whitePawnMovesCapture 62 = 0x0
-// whitePawnMovesCapture 63 = 0x0
-//
-// blackPawnMovesForward :: Int -> Bitboard
-// blackPawnMovesForward 0 = 0x0
-// blackPawnMovesForward 1 = 0x0
-// blackPawnMovesForward 2 = 0x0
-// blackPawnMovesForward 3 = 0x0
-// blackPawnMovesForward 4 = 0x0
-// blackPawnMovesForward 5 = 0x0
-// blackPawnMovesForward 6 = 0x0
-// blackPawnMovesForward 7 = 0x0
-// blackPawnMovesForward 8 = 0x1
-// blackPawnMovesForward 9 = 0x2
-// blackPawnMovesForward 10 = 0x4
-// blackPawnMovesForward 11 = 0x8
-// blackPawnMovesForward 12 = 0x10
-// blackPawnMovesForward 13 = 0x20
-// blackPawnMovesForward 14 = 0x40
-// blackPawnMovesForward 15 = 0x80
-// blackPawnMovesForward 16 = 0x100
-// blackPawnMovesForward 17 = 0x200
-// blackPawnMovesForward 18 = 0x400
-// blackPawnMovesForward 19 = 0x800
-// blackPawnMovesForward 20 = 0x1000
-// blackPawnMovesForward 21 = 0x2000
-// blackPawnMovesForward 22 = 0x4000
-// blackPawnMovesForward 23 = 0x8000
-// blackPawnMovesForward 24 = 0x10000
-// blackPawnMovesForward 25 = 0x20000
-// blackPawnMovesForward 26 = 0x40000
-// blackPawnMovesForward 27 = 0x80000
-// blackPawnMovesForward 28 = 0x100000
-// blackPawnMovesForward 29 = 0x200000
-// blackPawnMovesForward 30 = 0x400000
-// blackPawnMovesForward 31 = 0x800000
-// blackPawnMovesForward 32 = 0x1000000
-// blackPawnMovesForward 33 = 0x2000000
-// blackPawnMovesForward 34 = 0x4000000
-// blackPawnMovesForward 35 = 0x8000000
-// blackPawnMovesForward 36 = 0x10000000
-// blackPawnMovesForward 37 = 0x20000000
-// blackPawnMovesForward 38 = 0x40000000
-// blackPawnMovesForward 39 = 0x80000000
-// blackPawnMovesForward 40 = 0x100000000
-// blackPawnMovesForward 41 = 0x200000000
-// blackPawnMovesForward 42 = 0x400000000
-// blackPawnMovesForward 43 = 0x800000000
-// blackPawnMovesForward 44 = 0x1000000000
-// blackPawnMovesForward 45 = 0x2000000000
-// blackPawnMovesForward 46 = 0x4000000000
-// blackPawnMovesForward 47 = 0x8000000000
-// blackPawnMovesForward 48 = 0x10000000000
-// blackPawnMovesForward 49 = 0x20000000000
-// blackPawnMovesForward 50 = 0x40000000000
-// blackPawnMovesForward 51 = 0x80000000000
-// blackPawnMovesForward 52 = 0x100000000000
-// blackPawnMovesForward 53 = 0x200000000000
-// blackPawnMovesForward 54 = 0x400000000000
-// blackPawnMovesForward 55 = 0x800000000000
-// blackPawnMovesForward 56 = 0x1000000000000
-// blackPawnMovesForward 57 = 0x2000000000000
-// blackPawnMovesForward 58 = 0x4000000000000
-// blackPawnMovesForward 59 = 0x8000000000000
-// blackPawnMovesForward 60 = 0x10000000000000
-// blackPawnMovesForward 61 = 0x20000000000000
-// blackPawnMovesForward 62 = 0x40000000000000
-// blackPawnMovesForward 63 = 0x80000000000000
-//
-// blackPawnMovesCapture :: Int -> Bitboard
-// blackPawnMovesCapture 0 = 0x0
-// blackPawnMovesCapture 1 = 0x0
-// blackPawnMovesCapture 2 = 0x0
-// blackPawnMovesCapture 3 = 0x0
-// blackPawnMovesCapture 4 = 0x0
-// blackPawnMovesCapture 5 = 0x0
-// blackPawnMovesCapture 6 = 0x0
-// blackPawnMovesCapture 7 = 0x0
-// blackPawnMovesCapture 8 = 0x2
-// blackPawnMovesCapture 9 = 0x5
-// blackPawnMovesCapture 10 = 0xa
-// blackPawnMovesCapture 11 = 0x14
-// blackPawnMovesCapture 12 = 0x28
-// blackPawnMovesCapture 13 = 0x50
-// blackPawnMovesCapture 14 = 0xa0
-// blackPawnMovesCapture 15 = 0x40
-// blackPawnMovesCapture 16 = 0x200
-// blackPawnMovesCapture 17 = 0x500
-// blackPawnMovesCapture 18 = 0xa00
-// blackPawnMovesCapture 19 = 0x1400
-// blackPawnMovesCapture 20 = 0x2800
-// blackPawnMovesCapture 21 = 0x5000
-// blackPawnMovesCapture 22 = 0xa000
-// blackPawnMovesCapture 23 = 0x4000
-// blackPawnMovesCapture 24 = 0x20000
-// blackPawnMovesCapture 25 = 0x50000
-// blackPawnMovesCapture 26 = 0xa0000
-// blackPawnMovesCapture 27 = 0x140000
-// blackPawnMovesCapture 28 = 0x280000
-// blackPawnMovesCapture 29 = 0x500000
-// blackPawnMovesCapture 30 = 0xa00000
-// blackPawnMovesCapture 31 = 0x400000
-// blackPawnMovesCapture 32 = 0x2000000
-// blackPawnMovesCapture 33 = 0x5000000
-// blackPawnMovesCapture 34 = 0xa000000
-// blackPawnMovesCapture 35 = 0x14000000
-// blackPawnMovesCapture 36 = 0x28000000
-// blackPawnMovesCapture 37 = 0x50000000
-// blackPawnMovesCapture 38 = 0xa0000000
-// blackPawnMovesCapture 39 = 0x40000000
-// blackPawnMovesCapture 40 = 0x200000000
-// blackPawnMovesCapture 41 = 0x500000000
-// blackPawnMovesCapture 42 = 0xa00000000
-// blackPawnMovesCapture 43 = 0x1400000000
-// blackPawnMovesCapture 44 = 0x2800000000
-// blackPawnMovesCapture 45 = 0x5000000000
-// blackPawnMovesCapture 46 = 0xa000000000
-// blackPawnMovesCapture 47 = 0x4000000000
-// blackPawnMovesCapture 48 = 0x20000000000
-// blackPawnMovesCapture 49 = 0x50000000000
-// blackPawnMovesCapture 50 = 0xa0000000000
-// blackPawnMovesCapture 51 = 0x140000000000
-// blackPawnMovesCapture 52 = 0x280000000000
-// blackPawnMovesCapture 53 = 0x500000000000
-// blackPawnMovesCapture 54 = 0xa00000000000
-// blackPawnMovesCapture 55 = 0x400000000000
-// blackPawnMovesCapture 56 = 0x2000000000000
-// blackPawnMovesCapture 57 = 0x5000000000000
-// blackPawnMovesCapture 58 = 0xa000000000000
-// blackPawnMovesCapture 59 = 0x14000000000000
-// blackPawnMovesCapture 60 = 0x28000000000000
-// blackPawnMovesCapture 61 = 0x50000000000000
-// blackPawnMovesCapture 62 = 0xa0000000000000
-// blackPawnMovesCapture 63 = 0x40000000000000
-//
+
+
+
+
 // whitePassedPawnMask :: Int -> Bitboard
 // whitePassedPawnMask 0 = 0
 // whitePassedPawnMask 1 = 0

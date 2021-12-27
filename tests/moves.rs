@@ -1,6 +1,6 @@
-use rusty_rival::bitboards::bitboards::bit;
+use rusty_rival::bitboards::bitboards::{bit, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE};
 use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, moves_from_to_squares_bitboard};
+use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, moves_from_to_squares_bitboard, pawn_captures};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
 
 #[test]
@@ -93,4 +93,19 @@ fn it_creates_a_list_of_moves_from_a_given_from_square_and_a_list_of_to_squares(
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["b6a7","b6b7","b6c7"]);
+}
+
+#[test]
+fn it_returns_a_bitboard_showing_target_squares_for_pawn_captures_from_a_given_square_and_an_enemy_piece_bitboard() {
+    let position = get_position(&"n5k1/1P4n1/1n2q2p/Pp3P2/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
+    assert_eq!(pawn_captures(WHITE_PAWN_MOVES_CAPTURE, 29, enemy_bitboard(&position)), 0b0000000000000000000000000100000000000000000000000000000000000000);
+
+    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp1pP3/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
+    assert_eq!(pawn_captures(WHITE_PAWN_MOVES_CAPTURE, 51, enemy_bitboard(&position)), 0b0000000000000000000000000000000000000000000000000000000000000000);
+
+    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp1pP3/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
+    assert_eq!(pawn_captures(WHITE_PAWN_MOVES_CAPTURE, 54, enemy_bitboard(&position)), 0b1000000000000000000000000000000000000000000000000000000000000000);
+
+    let position = get_position(&"n5k1/4P1n1/1n2q2p/1p1p4/5R2/3K1B2/1r2N3/6r1 w - - 0 1".to_string());
+    assert_eq!(pawn_captures(WHITE_PAWN_MOVES_CAPTURE, 51, enemy_bitboard(&position)), 0b0000000000000000000000000000000000000000000000000000000000000000);
 }

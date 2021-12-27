@@ -165,3 +165,9 @@ fn it_gets_an_empty_squares_bitboard() {
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
     assert_eq!(empty_squares_bitboard(&position), 0b0111110111111101101101101011111010111001110010111011011111111111);
 }
+
+#[test]
+fn it_gets_the_enemy_bitboard() {
+    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp1pP3/3P1R2/3K1B2/1r2N2P/6r1 b - - 0 1".to_string());
+    assert_eq!(enemy_bitboard(&position), 0b0000000001001000000000001000100000010100000101000000100100000000);
+}

@@ -92,4 +92,8 @@ pub mod moves {
         });
         return move_list;
     }
+
+    pub fn pawn_captures(lookup: &[Bitboard], square: Square, enemy_bitboard: Bitboard) -> Bitboard {
+        return lookup.iter().nth(square as usize).unwrap() & enemy_bitboard;
+    }
 }
