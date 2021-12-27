@@ -1,6 +1,6 @@
 use rusty_rival::bitboards::bitboards::{bit, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE};
 use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, moves_from_to_squares_bitboard, pawn_captures};
+use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, moves_from_to_squares_bitboard, pawn_captures, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
 
 #[test]
@@ -108,4 +108,10 @@ fn it_returns_a_bitboard_showing_target_squares_for_pawn_captures_from_a_given_s
 
     let position = get_position(&"n5k1/4P1n1/1n2q2p/1p1p4/5R2/3K1B2/1r2N3/6r1 w - - 0 1".to_string());
     assert_eq!(pawn_captures(WHITE_PAWN_MOVES_CAPTURE, 51, enemy_bitboard(&position)), 0b0000000000000000000000000000000000000000000000000000000000000000);
+}
+
+#[test]
+fn it_returns_a_bitboard_showing_target_squares_for_pawn_moves_that_would_land_on_the_two_move_rank_if_moved_one_more_rank() {
+    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp6/3P1R2/3K1B2/1r2N2P/6r1 w - d5 0 1".to_string());
+    assert_eq!(potential_pawn_jump_moves(0b0101000000000100010000011000000001000000010101010000001100010001, position), 0b0000000000000000000000000000000001010101000000000000000000000000);
 }

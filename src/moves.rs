@@ -1,5 +1,5 @@
 pub mod moves {
-    use crate::bitboards::bitboards::{bit_list, bitboard_for_mover, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, slider_bitboard_for_colour};
+    use crate::bitboards::bitboards::{bit_list, bitboard_for_mover, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, RANK_4_BITS, RANK_5_BITS, slider_bitboard_for_colour};
     use crate::magic_bitboards::magic_bitboards::{magic, MAGIC_BISHOP_VARS, MAGIC_ROOK_VARS};
     use crate::move_constants::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
     use crate::types::types::{Bitboard, Move, MoveList, Piece, Position, Square};
@@ -96,4 +96,13 @@ pub mod moves {
     pub fn pawn_captures(lookup: &[Bitboard], square: Square, enemy_bitboard: Bitboard) -> Bitboard {
         return lookup.iter().nth(square as usize).unwrap() & enemy_bitboard;
     }
+
+    pub fn potential_pawn_jump_moves(bb: Bitboard, position: Position) -> Bitboard {
+        return if position.mover == White {
+            (bb << 8) & RANK_4_BITS
+        } else {
+            (bb >> 8) & RANK_5_BITS
+        }
+    }
+
 }
