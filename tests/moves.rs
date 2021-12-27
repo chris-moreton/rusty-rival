@@ -1,5 +1,6 @@
 use rusty_rival::bitboards::bitboards::{bit, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE};
 use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
+use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
 use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, moves_from_to_squares_bitboard, pawn_captures, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
 
@@ -114,4 +115,13 @@ fn it_returns_a_bitboard_showing_target_squares_for_pawn_captures_from_a_given_s
 fn it_returns_a_bitboard_showing_target_squares_for_pawn_moves_that_would_land_on_the_two_move_rank_if_moved_one_more_rank() {
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp6/3P1R2/3K1B2/1r2N2P/6r1 w - d5 0 1".to_string());
     assert_eq!(potential_pawn_jump_moves(0b0101000000000100010000011000000001000000010101010000001100010001, position), 0b0000000000000000000000000000000001010101000000000000000000000000);
+}
+
+#[test]
+fn it_identifies_the_en_passant_square_from_a_fen() {
+    let position = get_position(&"n5k1/4P1n1/4q2p/PpP1n3/3P1R2/3K1B2/1r2N2P/6r1 w - b6 0 1".to_string());
+    assert_eq!(position.en_passant_square, 46);
+
+    let position = get_position(&"n5k1/4P1n1/4q2p/PpP1n3/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
+    assert_eq!(position.en_passant_square, EN_PASSANT_NOT_AVAILABLE);
 }
