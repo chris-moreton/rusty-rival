@@ -1,5 +1,5 @@
 pub mod moves {
-    use crate::bitboards::bitboards::{bit, bit_list, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
+    use crate::bitboards::bitboards::{bit, bit_list, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, clear_bit, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
     use crate::magic_bitboards::magic_bitboards::{magic, MAGIC_BISHOP_VARS, MAGIC_ROOK_VARS};
     use crate::move_constants::move_constants::{EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
     use crate::types::types::{Bitboard, Move, MoveList, Mover, Piece, Position, Square};
@@ -171,5 +171,75 @@ pub mod moves {
         return move_list;
     }
 
+    // pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, bitboard: Bitboard) -> bool {
+    //     let square = bitboard.trailing_zeros() as Square;
+    //     return is_square_attacked_by(position, square, attacked) || any_squares_in_bitboard_attacked(position, attacker, clear_bit(bitboard, square));
+    // }
+
+    // {-# INLINE isSquareAttackedBy #-}
+    // isSquareAttackedBy :: Position -> Square -> Mover -> Bool
+    // isSquareAttackedBy !position !attackedSquare White = runEval $ do
+    // a <- rseq (isSquareAttackedByAnyPawn (whitePawnBitboard position) (pawnMovesCaptureOfColour Black attackedSquare) attackedSquare)
+    // b <- rseq (isSquareAttackedByAnyKnight (whiteKnightBitboard position) attackedSquare)
+    // c <- rseq (isSquareAttackedByAnyRook allPieces (rookMovePiecesBitboard position White) attackedSquare)
+    // d <- rseq (isSquareAttackedByAnyBishop allPieces (bishopMovePiecesBitboard position White) attackedSquare)
+    // e <- rseq (isSquareAttackedByKing (whiteKingBitboard position) attackedSquare)
+    // rseq a
+    // rseq b
+    // rseq c
+    // rseq d
+    // rseq e
+    // return (a || b || c || d || e)
+    // where allPieces = allPiecesBitboard position
+    // isSquareAttackedBy !position !attackedSquare Black =
+    // attackedByRook || attackedByBishop || attackedByKing || attackedByPawn || attackedByKnight
+    // where allPieces        = allPiecesBitboard position
+    // attackedByPawn   = isSquareAttackedByAnyPawn (blackPawnBitboard position) (pawnMovesCaptureOfColour White attackedSquare) attackedSquare
+    // attackedByKnight = isSquareAttackedByAnyKnight (blackKnightBitboard position) attackedSquare
+    // attackedByRook   = isSquareAttackedByAnyRook allPieces (rookMovePiecesBitboard position Black) attackedSquare
+    // attackedByBishop = isSquareAttackedByAnyBishop allPieces (bishopMovePiecesBitboard position Black) attackedSquare
+    // attackedByKing   = isSquareAttackedByKing (blackKingBitboard position) attackedSquare
+    //
+    //
+    // {-# INLINE isSquareAttackedByAnyKnight #-}
+    // isSquareAttackedByAnyKnight :: Bitboard -> Square -> Bool
+    // isSquareAttackedByAnyKnight 0 _ = False
+    // isSquareAttackedByAnyKnight !knightBitboard !attackedSquare = (.&.) knightBitboard (knightMovesBitboards attackedSquare) /= 0
+    //
+    // {-# INLINE isSquareAttackedByKing #-}
+    // isSquareAttackedByKing :: Bitboard -> Square -> Bool
+    // isSquareAttackedByKing !king !attackedSquare = (.&.) king (kingMovesBitboards attackedSquare) /= 0
+    //
+    // {-# INLINE isSquareAttackedByAnyPawn #-}
+    // isSquareAttackedByAnyPawn :: Bitboard -> Bitboard -> Square -> Bool
+    // isSquareAttackedByAnyPawn 0 _ _ = False
+    // isSquareAttackedByAnyPawn !pawns !pawnAttacks !attackedSquare = (.&.) pawns pawnAttacks /= 0
+    //
+    // {-# INLINE isSquareAttackedByAnyBishop #-}
+    // isSquareAttackedByAnyBishop :: Bitboard -> Bitboard -> Square -> Bool
+    // isSquareAttackedByAnyBishop _ 0 _ = False
+    // isSquareAttackedByAnyBishop !allPieces !attackingBishops !attackedSquare =
+    // isBishopAttackingSquare attackedSquare bishopSquare allPieces ||
+    // isSquareAttackedByAnyBishop allPieces (clearBit attackingBishops bishopSquare) attackedSquare
+    // where bishopSquare = countTrailingZeros attackingBishops
+    //
+    // {-# INLINE isSquareAttackedByAnyRook #-}
+    // isSquareAttackedByAnyRook :: Bitboard -> Bitboard -> Square -> Bool
+    // isSquareAttackedByAnyRook _ 0 _ = False
+    // isSquareAttackedByAnyRook !allPieces !attackingRooks !attackedSquare =
+    // isRookAttackingSquare attackedSquare rookSquare allPieces ||
+    // isSquareAttackedByAnyRook allPieces (clearBit attackingRooks rookSquare) attackedSquare
+    // where rookSquare = countTrailingZeros attackingRooks
+    //
+    //
+    // {-# INLINE isBishopAttackingSquare #-}
+    // isBishopAttackingSquare :: Square -> Square -> Bitboard -> Bool
+    // isBishopAttackingSquare !attackedSquare !pieceSquare !allPieceBitboard =
+    // testBit (magicBishop pieceSquare (magicIndexForBishop pieceSquare allPieceBitboard)) attackedSquare
+    //
+    // {-# INLINE isRookAttackingSquare #-}
+    // isRookAttackingSquare :: Square -> Square -> Bitboard -> Bool
+    // isRookAttackingSquare !attackedSquare !pieceSquare !allPieceBitboard =
+    // testBit (magicRook pieceSquare (magicIndexForRook pieceSquare allPieceBitboard)) attackedSquare
 
 }

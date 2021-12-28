@@ -4,6 +4,7 @@ use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
 use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
 use rusty_rival::types::types::{Bitboard, Square};
+use rusty_rival::types::types::Mover::{Black, White};
 
 #[test]
 fn it_gets_all_bits_except_friendly_pieces() {
@@ -152,4 +153,29 @@ fn it_generates_pawn_moves_from_a_given_fen_ignoring_checks() {
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["a5a6","a5b6","b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r","d5c6","d5d6","d5e6","e7e8b","e7e8n","e7e8q","e7e8r","h2h3","h2h4"]);
+}
+
+#[test]
+fn it_returns_true_if_any_squares_set_in_the_bitboard_are_attacked_by_the_given_attacker() {
+    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 w Q - 0 1".to_string());
+    let bitboard = 0b0000000000000000000000000000000000000000010110000000000000000000;
+    assert_eq!(any_squares_in_bitboard_attacked(&position, White, bitboard), false);
+
+    let bitboard = 0b0000000000000000000000000000000000000000111110000000000000000000;
+    assert_eq!(any_squares_in_bitboard_attacked(&position, White, bitboard), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, White, bit(60) | bit (61)), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, Black, EMPTY_CASTLE_SQUARES_WHITE_QUEEN), true);
+
+    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R w Q - 0 1".to_string());
+    assert_eq!(any_squares_in_bitboard_attacked(&position, Black, bit(3) | bit (2)), false);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, Black, bit(3) | bit (4)), false);
+
+    let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
+    assert_eq!(any_squares_in_bitboard_attacked(&position, Black, bit(3) | bit (2)), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, Black, 0b0000000000000000000000000000000000000000000000000000000000011000), true);
+
+    let position = get_position(&"r3k2r/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R b Q - 0 1".to_string());
+    assert_eq!(is_square_attacked_by(&position, 60, White), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, White, 0b0001100000000000000000000000000000000000000000000000000000000000), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, White, bit(59) | bit (60)), true);
 }
