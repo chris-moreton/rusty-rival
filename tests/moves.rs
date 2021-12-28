@@ -1,7 +1,7 @@
 use rusty_rival::bitboards::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use rusty_rival::fen::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
 use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, any_squares_in_bitboard_attacked, generate_castle_moves, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_square_attacked_by, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
+use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, any_squares_in_bitboard_attacked, generate_castle_moves, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_square_attacked_by, moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
 use rusty_rival::types::types::{Bitboard, MoveList, Square};
 use rusty_rival::types::types::Mover::{Black, White};
@@ -286,49 +286,49 @@ fn it_generates_castle_moves_for_a_given_mover() {
     let position = get_position(&"r3k2r/1P3Rn1/1n2q2p/P1pP2P1/8/5B2/1r2N2P/R3K2R b qQ - 0 1".to_string());
     assert_eq!(sort_moves(generate_castle_moves(&position)), vec!["e8c8"]);
 }
-//
-//
-// describe "moves" $
-// it "Gets all moves for a position" $ do
-// sort (map algebraicMoveFromMove (moves (get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()))))
-// `shouldBe` ["e8d7","e8d8","e8e7","e8f7","e8f8"]
-// let position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string())
-// let noChecks = filter (\x -> not (isCheck (makeMove position x) (mover position))) (moves position)
-// sort (map algebraicMoveFromMove noChecks) `shouldBe` ["e8d7","e8d8","e8f7"]
-// sort (map algebraicMoveFromMove (moves (get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/1R2K2R b Kkq - 0 1".to_string()))))
-// `shouldBe` ["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]
-// sort (map algebraicMoveFromMove (moves (get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P4K1P/R6R b kq - 0 1".to_string()))))
-// `shouldBe` ["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]
-// sort (map algebraicMoveFromMove (moves (get_position(&"5k2/7p/p3B1p1/P4pP1/3K1P1P/8/8/8 w - f6 0 1".to_string()))))
-// `shouldBe` ["d4c3","d4c4","d4c5","d4d3","d4d5","d4e3","d4e4","d4e5","e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g8","g5f6","h4h5"]
-// sort (map algebraicMoveFromMove (moves (get_position(&"6k1/5p1p/p3B1p1/P5P1/3K1P1P/8/8/8 w - - 0 1".to_string()))))
-// `shouldBe` ["d4c3","d4c4","d4c5","d4d3","d4d5","d4e3","d4e4","d4e5","e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g4","e6h3","f4f5","h4h5"]
-// sort (map algebraicMoveFromMove (moves (get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/3K1B2/1r2N2P/6r1 w - c6 0 1".to_string()))))
-// `shouldBe` [
-// "a5a6","a5b6"
-// , "b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r"
-// , "d3c2","d3c3","d3c4","d3d2","d3d4","d3e3","d3e4"
-// , "d5c6","d5d6","d5e6"
-// , "e2c1","e2c3","e2d4","e2g1","e2g3"
-// , "e7e8b","e7e8n","e7e8q","e7e8r"
-// , "f3e4","f3g2","f3g4","f3h1","f3h5"
-// , "f4a4","f4b4","f4c4","f4d4","f4e4","f4f5","f4f6","f4f7","f4f8","f4g4","f4h4"
-// , "h2h3","h2h4"
-// ]
-// sort (map algebraicMoveFromMove (moves (get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/3p1R2/2p2B2/1rPPN2P/R3K1r1 w Q - 0 1".to_string()))))
-// `shouldBe` [
-// "a1a2","a1a3","a1a4","a1b1","a1c1","a1d1"
-// , "a5a6","a5b6"
-// , "b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r"
-// , "d2c3","d2d3"
-// , "d5d6","d5e6"
-// , "e1d1","e1f1","e1f2"
-// , "e2c1","e2c3","e2d4","e2g1","e2g3"
-// , "e7e8b","e7e8n","e7e8q","e7e8r"
-// , "f3e4","f3g2","f3g4","f3h1","f3h5"
-// , "f4d4","f4e4","f4f5","f4f6","f4f7","f4f8","f4g4","f4h4"
-// , "h2h3","h2h4"
-// ]
+
+#[test]
+pub fn it_gets_all_moves_for_a_position() {
+    assert_eq!(sort_moves(moves(&get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()))), vec!["e8d7", "e8d8", "e8e7", "e8f7", "e8f8"]);
+
+    // let position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
+    // let no_checks = moves(&position).iter().filter(|&mut m| !is_check(make_move(position,x), &position.mover)).collect();
+    // assert_eq!(sort_moves(no_checks), vec!["e8d7","e8d8","e8f7"]);
+
+    assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/1R2K2R b Kkq - 0 1".to_string()))), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
+    assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P4K1P/R6R b kq - 0 1".to_string()))), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
+    assert_eq!(sort_moves(moves(&get_position(&"5k2/7p/p3B1p1/P4pP1/3K1P1P/8/8/8 w - f6 0 1".to_string()))), vec!["d4c3","d4c4","d4c5","d4d3","d4d5","d4e3","d4e4","d4e5","e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g8","g5f6","h4h5"]);
+    assert_eq!(sort_moves(moves(&get_position(&"6k1/5p1p/p3B1p1/P5P1/3K1P1P/8/8/8 w - - 0 1".to_string()))), vec!["d4c3","d4c4","d4c5","d4d3","d4d5","d4e3","d4e4","d4e5","e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g4","e6h3","f4f5","h4h5"]);
+
+    assert_eq!(sort_moves(moves(&get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/3K1B2/1r2N2P/6r1 w - c6 0 1".to_string()))),
+               vec!["a5a6","a5b6","b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r",
+                    "d3c2","d3c3","d3c4","d3d2","d3d4","d3e3","d3e4",
+                    "d5c6","d5d6","d5e6",
+                    "e2c1","e2c3","e2d4","e2g1","e2g3",
+                    "e7e8b","e7e8n","e7e8q","e7e8r",
+                    "f3e4","f3g2","f3g4","f3h1","f3h5",
+                    "f4a4","f4b4","f4c4","f4d4","f4e4","f4f5","f4f6","f4f7","f4f8","f4g4","f4h4",
+                    "h2h3","h2h4",
+               ]);
+
+    assert_eq!(sort_moves(moves(&get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/3p1R2/2p2B2/1rPPN2P/R3K1r1 w Q - 0 1".to_string()))),
+               vec![
+                   "a1a2","a1a3","a1a4","a1b1","a1c1","a1d1"
+                 , "a5a6","a5b6"
+                 , "b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r"
+                 , "d2c3","d2d3"
+                 , "d5d6","d5e6"
+                 , "e1d1","e1f1","e1f2"
+                 , "e2c1","e2c3","e2d4","e2g1","e2g3"
+                 , "e7e8b","e7e8n","e7e8q","e7e8r"
+                 , "f3e4","f3g2","f3g4","f3h1","f3h5"
+                 , "f4d4","f4e4","f4f5","f4f6","f4f7","f4f8","f4g4","f4h4"
+                 , "h2h3","h2h4"
+               ]);
+
+}
+
+
 //
 //
 //

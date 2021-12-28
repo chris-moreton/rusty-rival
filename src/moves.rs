@@ -4,7 +4,7 @@ pub mod moves {
     use crate::move_constants::move_constants::{EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
     use crate::types::types::{Bitboard, Move, MoveList, Mover, Piece, Position, Square};
     use crate::types::types::Mover::{Black, White};
-    use crate::types::types::Piece::{Bishop, King, Knight, Pawn};
+    use crate::types::types::Piece::{Bishop, King, Knight, Pawn, Rook};
     use crate::utils::utils::from_square_mask;
 
     pub fn all_bits_except_friendly_pieces(position: &Position) -> Bitboard {
@@ -280,6 +280,17 @@ pub mod moves {
                 move_list.push(from_square_mask(59) | 61);
             }
         }
+        return move_list;
+    }
+
+    pub fn moves(position: &Position) -> MoveList {
+        let mut move_list = Vec::new();
+        move_list.append(generate_pawn_moves(position).as_mut());
+        move_list.append(generate_king_moves(position).as_mut());
+        move_list.append(generate_castle_moves(position).as_mut());
+        move_list.append(generate_knight_moves(position).as_mut());
+        move_list.append(generate_slider_moves(position, Rook).as_mut());
+        move_list.append(generate_slider_moves(position, Bishop).as_mut());
         return move_list;
     }
 
