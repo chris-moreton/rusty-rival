@@ -1,7 +1,7 @@
 use rusty_rival::bitboards::bitboards::{bit, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
 use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
+use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, any_squares_in_bitboard_attacked, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_square_attacked_by, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
 use rusty_rival::types::types::{Bitboard, Square};
 use rusty_rival::types::types::Mover::{Black, White};

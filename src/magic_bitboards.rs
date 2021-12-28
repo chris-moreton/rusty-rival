@@ -7,6 +7,32 @@ pub mod magic_bitboards {
         return *magic_vars.magic_moves.iter().nth(square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
     }
 
+    pub fn magic_bishop(from_square: Square, to_squares_magic_index: u64) -> Bitboard {
+        return *MAGIC_MOVES_BISHOP.iter().nth(from_square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
+    }
+
+    pub fn magic_rook(from_square: Square, to_squares_magic_index: u64) -> Bitboard {
+        return *MAGIC_MOVES_ROOK.iter().nth(from_square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
+    }
+
+    pub fn magic_index_for_rook(piece_square: Square, all_piece_bitboard: Bitboard) -> u64 {
+        let number_magic = MAGIC_ROOK_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
+        let shift_magic = MAGIC_ROOK_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
+        let mask_magic = MAGIC_ROOK_VARS.occupancy_mask.iter().nth(piece_square as usize).unwrap();
+        let occupancy = all_piece_bitboard & mask_magic;
+        let raw_index = occupancy as u128 * *number_magic as u128;
+        return (raw_index >> shift_magic) as u64;
+    }
+
+    pub fn magic_index_for_bishop(piece_square: Square, all_piece_bitboard: Bitboard) -> u64 {
+        let number_magic = MAGIC_BISHOP_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
+        let shift_magic = MAGIC_BISHOP_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
+        let mask_magic = MAGIC_BISHOP_VARS.occupancy_mask.iter().nth(piece_square as usize).unwrap();
+        let occupancy = all_piece_bitboard & mask_magic;
+        let raw_index = occupancy as u128 * *number_magic as u128;
+        return (raw_index >> shift_magic) as u64;
+    }
+
     pub const MAGIC_ROOK_VARS: MagicVars = MagicVars {
         occupancy_mask: OCCUPANCY_MASK_ROOK,
         magic_number: MAGIC_NUMBER_ROOK,

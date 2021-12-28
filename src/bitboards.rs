@@ -71,6 +71,10 @@ pub mod bitboards {
         return bitboard & !bit(square);
     }
 
+    pub fn test_bit(bitboard: Bitboard, square: Square) -> bool {
+        return bitboard & bit(square) != 0;
+    }
+
     pub fn enemy_bitboard(position: &Position) -> Bitboard {
         return if position.mover == White { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
     }
