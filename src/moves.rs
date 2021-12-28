@@ -3,7 +3,7 @@ pub mod moves {
     use crate::magic_bitboards::magic_bitboards::{magic, MAGIC_BISHOP_VARS, MAGIC_ROOK_VARS};
     use crate::move_constants::move_constants::{EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
     use crate::types::types::{Bitboard, Move, MoveList, Mover, Piece, Position, Square};
-    use crate::types::types::Mover::White;
+    use crate::types::types::Mover::{Black, White};
     use crate::types::types::Piece::{Bishop, King, Knight, Pawn};
     use crate::utils::utils::from_square_mask;
 
@@ -171,35 +171,37 @@ pub mod moves {
         return move_list;
     }
 
-    // pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, bitboard: Bitboard) -> bool {
-    //     let square = bitboard.trailing_zeros() as Square;
-    //     return is_square_attacked_by(position, square, attacked) || any_squares_in_bitboard_attacked(position, attacker, clear_bit(bitboard, square));
-    // }
+    pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, bitboard: Bitboard) -> bool {
+        let square = bitboard.trailing_zeros() as Square;
+        return is_square_attacked_by(position, square, attacked) || any_squares_in_bitboard_attacked(position, attacker, clear_bit(bitboard, square));
+    }
 
-    // {-# INLINE isSquareAttackedBy #-}
-    // isSquareAttackedBy :: Position -> Square -> Mover -> Bool
-    // isSquareAttackedBy !position !attackedSquare White = runEval $ do
-    // a <- rseq (isSquareAttackedByAnyPawn (whitePawnBitboard position) (pawnMovesCaptureOfColour Black attackedSquare) attackedSquare)
-    // b <- rseq (isSquareAttackedByAnyKnight (whiteKnightBitboard position) attackedSquare)
-    // c <- rseq (isSquareAttackedByAnyRook allPieces (rookMovePiecesBitboard position White) attackedSquare)
-    // d <- rseq (isSquareAttackedByAnyBishop allPieces (bishopMovePiecesBitboard position White) attackedSquare)
-    // e <- rseq (isSquareAttackedByKing (whiteKingBitboard position) attackedSquare)
-    // rseq a
-    // rseq b
-    // rseq c
-    // rseq d
-    // rseq e
-    // return (a || b || c || d || e)
-    // where allPieces = allPiecesBitboard position
-    // isSquareAttackedBy !position !attackedSquare Black =
-    // attackedByRook || attackedByBishop || attackedByKing || attackedByPawn || attackedByKnight
-    // where allPieces        = allPiecesBitboard position
-    // attackedByPawn   = isSquareAttackedByAnyPawn (blackPawnBitboard position) (pawnMovesCaptureOfColour White attackedSquare) attackedSquare
-    // attackedByKnight = isSquareAttackedByAnyKnight (blackKnightBitboard position) attackedSquare
-    // attackedByRook   = isSquareAttackedByAnyRook allPieces (rookMovePiecesBitboard position Black) attackedSquare
-    // attackedByBishop = isSquareAttackedByAnyBishop allPieces (bishopMovePiecesBitboard position Black) attackedSquare
-    // attackedByKing   = isSquareAttackedByKing (blackKingBitboard position) attackedSquare
-    //
+    pub fn pawn_moves_capture_of_colour(mover: Mover, square: Square) -> &Bitboard {
+        return if mover == White {
+            WHITE_PAWN_MOVES_CAPTURE.iter().nth(square as usize).unwrap()
+        } else {
+            BLACK_PAWN_MOVES_CAPTURE.iter().nth(square as usize).unwrap()
+        }
+    }
+
+    pub fn is_square_attacked_by(position: &Position, attackedSquare: Square, mover: Mover) -> bool {
+        let all_pieces = position.all_pieces_bitboard;
+        return if mover == White {
+                is_square_attacked_by_any_pawn(position.white_pawn_bitboard, pawn_moves_capture_of_colour(Black, attackedSquare), attackedSquare) ||
+                is_square_attacked_by_any_knight(position.white_knight_bitboard, attackedSquare) ||
+                is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, White), attackedSquare) ||
+                is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, White), attackedSquare) ||
+                is_square_attacked_by_king(position.white_king_bitboard, attackedSquare)
+        } else {
+                is_square_attacked_by_any_pawn(position.black_pawn_bitboard, pawn_moves_capture_of_colour(Black, attackedSquare), attackedSquare) ||
+                is_square_attacked_by_any_knight(position.black_knight_bitboard, attackedSquare) ||
+                is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, Black), attackedSquare) ||
+                is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, Black), attackedSquare) ||
+                is_square_attacked_by_king(position.black_king_bitboard, attackedSquare)
+        }
+    }
+
+
     //
     // {-# INLINE isSquareAttackedByAnyKnight #-}
     // isSquareAttackedByAnyKnight :: Bitboard -> Square -> Bool
