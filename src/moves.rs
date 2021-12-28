@@ -1,5 +1,5 @@
 pub mod moves {
-    use crate::bitboards::bitboards::{bit, bit_list, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, clear_bit, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, test_bit, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
+    use crate::bitboards::bitboards::{bit, bit_list, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, clear_bit, EMPTY_CASTLE_SQUARES_BLACK_KING, EMPTY_CASTLE_SQUARES_BLACK_QUEEN, EMPTY_CASTLE_SQUARES_WHITE_KING, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES_BLACK_KING, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, NO_CHECK_CASTLE_SQUARES_WHITE_KING, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, test_bit, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
     use crate::magic_bitboards::magic_bitboards::{magic, magic_bishop, MAGIC_BISHOP_VARS, magic_index_for_bishop, magic_index_for_rook, magic_rook, MAGIC_ROOK_VARS};
     use crate::move_constants::move_constants::{EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
     use crate::types::types::{Bitboard, Move, MoveList, Mover, Piece, Position, Square};
@@ -260,6 +260,27 @@ pub mod moves {
 
     pub fn is_rook_attacking_square(attacked_square: Square, piece_square: Square, all_pieces_bitboard: Bitboard) -> bool {
         return test_bit(magic_rook(piece_square, magic_index_for_rook(piece_square, all_pieces_bitboard)), attacked_square);
+    }
+
+    pub fn generate_castle_moves(position: &Position) -> MoveList {
+        let all_pieces = position.all_pieces_bitboard;
+        let mut move_list = Vec::new();
+        if position.mover == White {
+            if position.white_king_castle_available && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 && !any_squares_in_bitboard_attacked(position, &Black, NO_CHECK_CASTLE_SQUARES_WHITE_KING) {
+                move_list.push(from_square_mask(3) | 1);
+            }
+            if position.white_queen_castle_available && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_QUEEN == 0 && !any_squares_in_bitboard_attacked(position, &Black, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN) {
+                move_list.push(from_square_mask(3) | 5);
+            }
+        } else {
+            if position.black_king_castle_available && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_KING == 0 && !any_squares_in_bitboard_attacked(position, &White, NO_CHECK_CASTLE_SQUARES_BLACK_KING) {
+                move_list.push(from_square_mask(59) | 57);
+            }
+            if position.black_queen_castle_available && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_QUEEN == 0 && !any_squares_in_bitboard_attacked(position, &White, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN) {
+                move_list.push(from_square_mask(59) | 61);
+            }
+        }
+        return move_list;
     }
 
 }
