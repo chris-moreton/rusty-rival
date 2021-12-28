@@ -1,7 +1,7 @@
 use rusty_rival::bitboards::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
 use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, any_squares_in_bitboard_attacked, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_square_attacked_by, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
+use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, any_squares_in_bitboard_attacked, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_square_attacked_by, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
 use rusty_rival::types::types::{Bitboard, Square};
 use rusty_rival::types::types::Mover::{Black, White};
@@ -153,6 +153,77 @@ fn it_generates_pawn_moves_from_a_given_fen_ignoring_checks() {
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["a5a6","a5b6","b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r","d5c6","d5d6","d5e6","e7e8b","e7e8n","e7e8q","e7e8r","h2h3","h2h4"]);
+}
+
+#[test]
+fn it_determines_if_a_given_square_is_attacked_by_a_given_colour_in_a_given_position() {
+    let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, bit(2) | bit(3)), true);
+    assert_eq!(is_bishop_attacking_square(4, 22, position.all_pieces_bitboard), true);
+    assert_eq!(is_bishop_attacking_square(5, 22, position.all_pieces_bitboard), false);
+    // isSquareAttackedBy position (bitRefFromAlgebraicSquareRef "d1") Black `shouldBe` True
+    // isSquareAttackedBy position 58 White `shouldBe` True
+    // isSquareAttackedBy position 60 White `shouldBe` True
+    // let position = getPosition "n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 w Q - 0 1"
+    // isSquareAttackedBy position 0 White `shouldBe` True
+    // isSquareAttackedBy position 0 Black `shouldBe` True
+    // isSquareAttackedBy position 1 White `shouldBe` True
+    // isSquareAttackedBy position 1 Black `shouldBe` False
+    // isSquareAttackedBy position 2 White `shouldBe` True
+    // isSquareAttackedBy position 2 Black `shouldBe` True
+    // isSquareAttackedBy position 3 White `shouldBe` True
+    // isSquareAttackedBy position 3 Black `shouldBe` True
+    // isSquareAttackedBy position 4 White `shouldBe` True
+    // isSquareAttackedBy position 4 Black `shouldBe` False
+    // isSquareAttackedBy position 5 White `shouldBe` True
+    // isSquareAttackedBy position 5 Black `shouldBe` False
+    // isSquareAttackedBy position 6 White `shouldBe` True
+    // isSquareAttackedBy position 6 Black `shouldBe` True
+    // isSquareAttackedBy position 7 White `shouldBe` False
+    // isSquareAttackedBy position 7 Black `shouldBe` False
+    // isSquareAttackedBy position 8 White `shouldBe` False
+    // isSquareAttackedBy position 8 Black `shouldBe` False
+    // isSquareAttackedBy position 9 White `shouldBe` True
+    // isSquareAttackedBy position 9 Black `shouldBe` True
+    // isSquareAttackedBy position 10 White `shouldBe` True
+    // isSquareAttackedBy position 10 Black `shouldBe` False
+    // isSquareAttackedBy position 11 White `shouldBe` True
+    // isSquareAttackedBy position 11 Black `shouldBe` True
+    // isSquareAttackedBy position 12 White `shouldBe` True
+    // isSquareAttackedBy position 12 Black `shouldBe` True
+    // isSquareAttackedBy position 13 White `shouldBe` False
+    // isSquareAttackedBy position 13 Black `shouldBe` True
+    // isSquareAttackedBy position 14 White `shouldBe` False
+    // isSquareAttackedBy position 14 Black `shouldBe` False
+    // isSquareAttackedBy position 15 White `shouldBe` True
+    // isSquareAttackedBy position 15 Black `shouldBe` True
+    // isSquareAttackedBy position 16 White `shouldBe` False
+    // isSquareAttackedBy position 16 Black `shouldBe` True
+    // isSquareAttackedBy position 17 White `shouldBe` True
+    // isSquareAttackedBy position 17 Black `shouldBe` True
+    // isSquareAttackedBy position 18 White `shouldBe` True
+    // isSquareAttackedBy position 18 Black `shouldBe` False
+    // isSquareAttackedBy position 19 White `shouldBe` False
+    // isSquareAttackedBy position 19 Black `shouldBe` True
+    // isSquareAttackedBy position 40 White `shouldBe` False
+    // isSquareAttackedBy position 40 Black `shouldBe` True
+    // isSquareAttackedBy position 41 White `shouldBe` False
+    // isSquareAttackedBy position 41 Black `shouldBe` True
+    // isSquareAttackedBy position 42 White `shouldBe` True
+    // isSquareAttackedBy position 42 Black `shouldBe` True
+    // isSquareAttackedBy position 43 White `shouldBe` True
+    // isSquareAttackedBy position 43 Black `shouldBe` True
+    // isSquareAttackedBy position 44 White `shouldBe` False
+    // isSquareAttackedBy position 44 Black `shouldBe` True
+    // isSquareAttackedBy position 45 White `shouldBe` True
+    // isSquareAttackedBy position 45 Black `shouldBe` True
+    // isSquareAttackedBy position 61 White `shouldBe` True
+    // isSquareAttackedBy position 61 Black `shouldBe` True
+    // isSquareAttackedBy position 62 White `shouldBe` False
+    // isSquareAttackedBy position 62 Black `shouldBe` False
+    // isSquareAttackedBy position 63 White `shouldBe` True
+    // isSquareAttackedBy position 63 Black `shouldBe` True
+
 }
 
 #[test]
