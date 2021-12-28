@@ -1,5 +1,5 @@
 use rusty_rival::bitboards::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
-use rusty_rival::fen::fen::{algebraic_move_from_move, get_position};
+use rusty_rival::fen::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
 use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
 use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, any_squares_in_bitboard_attacked, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_square_attacked_by, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
@@ -161,69 +161,70 @@ fn it_determines_if_a_given_square_is_attacked_by_a_given_colour_in_a_given_posi
     assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, bit(2) | bit(3)), true);
     assert_eq!(is_bishop_attacking_square(4, 22, position.all_pieces_bitboard), true);
     assert_eq!(is_bishop_attacking_square(5, 22, position.all_pieces_bitboard), false);
-    // isSquareAttackedBy position (bitRefFromAlgebraicSquareRef "d1") Black `shouldBe` True
-    // isSquareAttackedBy position 58 White `shouldBe` True
-    // isSquareAttackedBy position 60 White `shouldBe` True
-    // let position = getPosition "n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 w Q - 0 1"
-    // isSquareAttackedBy position 0 White `shouldBe` True
-    // isSquareAttackedBy position 0 Black `shouldBe` True
-    // isSquareAttackedBy position 1 White `shouldBe` True
-    // isSquareAttackedBy position 1 Black `shouldBe` False
-    // isSquareAttackedBy position 2 White `shouldBe` True
-    // isSquareAttackedBy position 2 Black `shouldBe` True
-    // isSquareAttackedBy position 3 White `shouldBe` True
-    // isSquareAttackedBy position 3 Black `shouldBe` True
-    // isSquareAttackedBy position 4 White `shouldBe` True
-    // isSquareAttackedBy position 4 Black `shouldBe` False
-    // isSquareAttackedBy position 5 White `shouldBe` True
-    // isSquareAttackedBy position 5 Black `shouldBe` False
-    // isSquareAttackedBy position 6 White `shouldBe` True
-    // isSquareAttackedBy position 6 Black `shouldBe` True
-    // isSquareAttackedBy position 7 White `shouldBe` False
-    // isSquareAttackedBy position 7 Black `shouldBe` False
-    // isSquareAttackedBy position 8 White `shouldBe` False
-    // isSquareAttackedBy position 8 Black `shouldBe` False
-    // isSquareAttackedBy position 9 White `shouldBe` True
-    // isSquareAttackedBy position 9 Black `shouldBe` True
-    // isSquareAttackedBy position 10 White `shouldBe` True
-    // isSquareAttackedBy position 10 Black `shouldBe` False
-    // isSquareAttackedBy position 11 White `shouldBe` True
-    // isSquareAttackedBy position 11 Black `shouldBe` True
-    // isSquareAttackedBy position 12 White `shouldBe` True
-    // isSquareAttackedBy position 12 Black `shouldBe` True
-    // isSquareAttackedBy position 13 White `shouldBe` False
-    // isSquareAttackedBy position 13 Black `shouldBe` True
-    // isSquareAttackedBy position 14 White `shouldBe` False
-    // isSquareAttackedBy position 14 Black `shouldBe` False
-    // isSquareAttackedBy position 15 White `shouldBe` True
-    // isSquareAttackedBy position 15 Black `shouldBe` True
-    // isSquareAttackedBy position 16 White `shouldBe` False
-    // isSquareAttackedBy position 16 Black `shouldBe` True
-    // isSquareAttackedBy position 17 White `shouldBe` True
-    // isSquareAttackedBy position 17 Black `shouldBe` True
-    // isSquareAttackedBy position 18 White `shouldBe` True
-    // isSquareAttackedBy position 18 Black `shouldBe` False
-    // isSquareAttackedBy position 19 White `shouldBe` False
-    // isSquareAttackedBy position 19 Black `shouldBe` True
-    // isSquareAttackedBy position 40 White `shouldBe` False
-    // isSquareAttackedBy position 40 Black `shouldBe` True
-    // isSquareAttackedBy position 41 White `shouldBe` False
-    // isSquareAttackedBy position 41 Black `shouldBe` True
-    // isSquareAttackedBy position 42 White `shouldBe` True
-    // isSquareAttackedBy position 42 Black `shouldBe` True
-    // isSquareAttackedBy position 43 White `shouldBe` True
-    // isSquareAttackedBy position 43 Black `shouldBe` True
-    // isSquareAttackedBy position 44 White `shouldBe` False
-    // isSquareAttackedBy position 44 Black `shouldBe` True
-    // isSquareAttackedBy position 45 White `shouldBe` True
-    // isSquareAttackedBy position 45 Black `shouldBe` True
-    // isSquareAttackedBy position 61 White `shouldBe` True
-    // isSquareAttackedBy position 61 Black `shouldBe` True
-    // isSquareAttackedBy position 62 White `shouldBe` False
-    // isSquareAttackedBy position 62 Black `shouldBe` False
-    // isSquareAttackedBy position 63 White `shouldBe` True
-    // isSquareAttackedBy position 63 Black `shouldBe` True
+    assert_eq!(is_square_attacked_by(&position, bitref_from_algebraic_squareref("d1".to_string()) as Square, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 58, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 60, &White), true);
 
+    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 w Q - 0 1".to_string());
+
+    assert_eq!(is_square_attacked_by(&position, 0, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 0, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 1, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 1, &Black), false);
+    assert_eq!(is_square_attacked_by(&position, 2, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 2, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 3, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 3, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 4, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 4, &Black), false);
+    assert_eq!(is_square_attacked_by(&position, 5, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 5, &Black), false);
+    assert_eq!(is_square_attacked_by(&position, 6, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 6, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 7, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 7, &Black), false);
+    assert_eq!(is_square_attacked_by(&position, 8, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 8, &Black), false);
+    assert_eq!(is_square_attacked_by(&position, 9, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 9, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 10, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 10, &Black), false);
+    assert_eq!(is_square_attacked_by(&position, 11, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 11, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 12, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 12, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 13, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 13, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 14, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 14, &Black), false);
+    assert_eq!(is_square_attacked_by(&position, 15, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 15, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 16, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 16, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 17, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 17, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 18, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 18, &Black), false);
+    assert_eq!(is_square_attacked_by(&position, 19, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 19, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 40, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 40, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 41, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 41, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 42, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 42, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 43, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 43, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 44, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 44, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 45, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 45, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 61, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 61, &Black), true);
+    assert_eq!(is_square_attacked_by(&position, 62, &White), false);
+    assert_eq!(is_square_attacked_by(&position, 62, &Black), false);
+    assert_eq!(is_square_attacked_by(&position, 63, &White), true);
+    assert_eq!(is_square_attacked_by(&position, 63, &Black), true);
 }
 
 #[test]
@@ -232,21 +233,21 @@ fn it_returns_true_if_any_squares_set_in_the_bitboard_are_attacked_by_the_given_
     let bitboard = 0b0000000000000000000000000000000000000000010110000000000000000000;
     assert_eq!(any_squares_in_bitboard_attacked(&position, &White, bitboard), false);
 
-    // let bitboard = 0b0000000000000000000000000000000000000000111110000000000000000000;
-    // assert_eq!(any_squares_in_bitboard_attacked(&position, &White, bitboard), true);
-    // assert_eq!(any_squares_in_bitboard_attacked(&position, &White, bit(60) | bit (61)), true);
-    // assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, EMPTY_CASTLE_SQUARES_WHITE_QUEEN), true);
-    //
-    // let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R w Q - 0 1".to_string());
-    // assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, bit(3) | bit (2)), false);
-    // assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, bit(3) | bit (4)), false);
-    //
-    // let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
-    // assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, bit(3) | bit (2)), true);
-    // assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, 0b0000000000000000000000000000000000000000000000000000000000011000), true);
-    //
-    // let position = get_position(&"r3k2r/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R b Q - 0 1".to_string());
-    // assert_eq!(is_square_attacked_by(&position, 60, &White), true);
-    // assert_eq!(any_squares_in_bitboard_attacked(&position, &White, 0b0001100000000000000000000000000000000000000000000000000000000000), true);
-    // assert_eq!(any_squares_in_bitboard_attacked(&position, &White, bit(59) | bit (60)), true);
+    let bitboard = 0b0000000000000000000000000000000000000000111110000000000000000000;
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &White, bitboard), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &White, bit(60) | bit (61)), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, EMPTY_CASTLE_SQUARES_WHITE_QUEEN), true);
+
+    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R w Q - 0 1".to_string());
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, bit(3) | bit (2)), false);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, bit(3) | bit (4)), false);
+
+    let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, bit(3) | bit (2)), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, 0b0000000000000000000000000000000000000000000000000000000000011000), true);
+
+    let position = get_position(&"r3k2r/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R b Q - 0 1".to_string());
+    assert_eq!(is_square_attacked_by(&position, 60, &White), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &White, 0b0001100000000000000000000000000000000000000000000000000000000000), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, &White, bit(59) | bit (60)), true);
 }

@@ -172,10 +172,13 @@ pub mod moves {
     }
 
     pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: &Mover, bitboard: Bitboard) -> bool {
-        let square = bitboard.trailing_zeros() as Square;
-        return
+        return if bitboard == 0 {
+            false
+        } else {
+            let square = bitboard.trailing_zeros() as Square;
             is_square_attacked_by(position, square, attacker) ||
-            any_squares_in_bitboard_attacked(position, attacker, clear_bit(bitboard, square));
+                any_squares_in_bitboard_attacked(position, attacker, clear_bit(bitboard, square))
+        }
     }
 
     pub fn pawn_moves_capture_of_colour(mover: Mover, square: Square) -> &'static Bitboard {
@@ -186,20 +189,20 @@ pub mod moves {
         }
     }
 
-    pub fn is_square_attacked_by(position: &Position, attackedSquare: Square, mover: &Mover) -> bool {
+    pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover: &Mover) -> bool {
         let all_pieces = position.all_pieces_bitboard;
         return if *mover == White {
-                is_square_attacked_by_any_pawn(position.white_pawn_bitboard, pawn_moves_capture_of_colour(Black, attackedSquare)) ||
-                is_square_attacked_by_any_knight(position.white_knight_bitboard, attackedSquare) ||
-                is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, White), attackedSquare) ||
-                is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, White), attackedSquare) ||
-                is_square_attacked_by_king(position.white_king_bitboard, attackedSquare)
+                is_square_attacked_by_any_pawn(position.white_pawn_bitboard, pawn_moves_capture_of_colour(Black, attacked_square)) ||
+                is_square_attacked_by_any_knight(position.white_knight_bitboard, attacked_square) ||
+                is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, White), attacked_square) ||
+                is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, White), attacked_square) ||
+                is_square_attacked_by_king(position.white_king_bitboard, attacked_square)
         } else {
-                is_square_attacked_by_any_pawn(position.black_pawn_bitboard, pawn_moves_capture_of_colour(White, attackedSquare)) ||
-                is_square_attacked_by_any_knight(position.black_knight_bitboard, attackedSquare) ||
-                is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, Black), attackedSquare) ||
-                is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, Black), attackedSquare) ||
-                is_square_attacked_by_king(position.black_king_bitboard, attackedSquare)
+                is_square_attacked_by_any_pawn(position.black_pawn_bitboard, pawn_moves_capture_of_colour(White, attacked_square)) ||
+                is_square_attacked_by_any_knight(position.black_knight_bitboard, attacked_square) ||
+                is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, Black), attacked_square) ||
+                is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, Black), attacked_square) ||
+                is_square_attacked_by_king(position.black_king_bitboard, attacked_square)
         }
     }
 
@@ -232,17 +235,23 @@ pub mod moves {
     }
 
     pub fn is_square_attacked_by_any_bishop(all_pieces: Bitboard, attacking_bishops: Bitboard, attacked_square: Square) -> bool {
-        let bishop_square = attacking_bishops.trailing_zeros();
-        return
+        return if attacking_bishops == 0 {
+            false
+        } else {
+            let bishop_square = attacking_bishops.trailing_zeros();
             is_bishop_attacking_square(attacked_square, bishop_square as Square, all_pieces) ||
-            is_square_attacked_by_any_bishop(all_pieces, clear_bit(attacking_bishops, bishop_square as Square), attacked_square);
+            is_square_attacked_by_any_bishop(all_pieces, clear_bit(attacking_bishops, bishop_square as Square), attacked_square)
+        }
     }
 
     pub fn is_square_attacked_by_any_rook(all_pieces: Bitboard, attacking_rooks: Bitboard, attacked_square: Square) -> bool {
-        let rook_square = attacking_rooks.trailing_zeros();
-        return
+        return if attacking_rooks == 0 {
+            false
+        } else {
+            let rook_square = attacking_rooks.trailing_zeros();
             is_rook_attacking_square(attacked_square, rook_square as Square, all_pieces) ||
-                is_square_attacked_by_any_bishop(all_pieces, clear_bit(attacking_rooks, rook_square as Square), attacked_square);
+            is_square_attacked_by_any_rook(all_pieces, clear_bit(attacking_rooks, rook_square as Square), attacked_square)
+        }
     }
 
     pub fn is_bishop_attacking_square(attacked_square: Square, piece_square: Square, all_pieces_bitboard: Bitboard) -> bool {
