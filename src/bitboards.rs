@@ -3,7 +3,7 @@ pub mod bitboards {
     use crate::types::types::{Bitboard, Mover, Piece, Position, Square};
     use crate::types::types::Mover::White;
 
-    pub fn bit(i: Square) -> Bitboard {
+    pub const fn bit(i: Square) -> Bitboard {
         return 1 << i;
     }
 
@@ -336,6 +336,21 @@ pub mod bitboards {
         0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x100000000, 0x200000000, 0x400000000, 0x800000000, 0x1000000000, 0x2000000000, 0x4000000000, 0x8000000000, 0x10000000000, 0x20000000000, 0x40000000000, 0x80000000000, 0x100000000000, 0x200000000000, 0x400000000000, 0x800000000000, 0x1000000000000, 0x2000000000000, 0x4000000000000, 0x8000000000000, 0x10000000000000, 0x20000000000000, 0x40000000000000, 0x80000000000000, 
     ];
 
+    pub const CASTLE_PRIV_WHITE_KING: Bitboard = 1;
+    pub const CASTLE_PRIV_WHITE_QUEEN: Bitboard = 2;
+    pub const CASTLE_PRIV_BLACK_KING: Bitboard = 4;
+    pub const CASTLE_PRIV_BLACK_QUEEN: Bitboard = 8;
+    pub const CASTLE_PRIV_BLACK_NONE: Bitboard = !CASTLE_PRIV_BLACK_KING & !CASTLE_PRIV_BLACK_QUEEN;
+    pub const CASTLE_PRIV_WHITE_NONE: Bitboard = !CASTLE_PRIV_WHITE_KING & !CASTLE_PRIV_WHITE_QUEEN;
+
+    pub const EMPTY_CASTLE_SQUARES_WHITE_KING: Bitboard = bit(1) | bit(2);
+    pub const EMPTY_CASTLE_SQUARES_WHITE_QUEEN: Bitboard = bit(4) | bit(5) | bit(6);
+    pub const EMPTY_CASTLE_SQUARES_BLACK_KING: Bitboard = bit(57) | bit(58);
+    pub const EMPTY_CASTLE_SQUARES_BLACK_QUEEN: Bitboard = bit(60) | bit(61) | bit(62);
+    pub const NO_CHECK_CASTLE_SQUARES_WHITE_KING: Bitboard = bit(2) | bit(3);
+    pub const NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN: Bitboard = bit(3) | bit(4);
+    pub const NO_CHECK_CASTLE_SQUARES_BLACK_KING: Bitboard = bit(58) | bit(59);
+    pub const NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN: Bitboard = bit(59) | bit(60);
 
 }
 
@@ -476,44 +491,3 @@ pub mod bitboards {
 // blackPassedPawnMask 62 = 0
 // blackPassedPawnMask 63  = 0
 //
-// castlePrivWhiteKing :: Bitboard
-// castlePrivWhiteKing = 1
-//
-// castlePrivWhiteQueen :: Bitboard
-// castlePrivWhiteQueen = 2
-//
-// castlePrivBlackKing :: Bitboard
-// castlePrivBlackKing = 4
-//
-// castlePrivBlackQueen :: Bitboard
-// castlePrivBlackQueen = 8
-//
-// castlePrivBlackNone :: Bitboard
-// castlePrivBlackNone = (.&.) (complement castlePrivBlackKing) (complement castlePrivBlackQueen)
-//
-// castlePrivWhiteNone :: Bitboard
-// castlePrivWhiteNone = (.&.) (complement castlePrivWhiteKing) (complement castlePrivWhiteQueen)
-//
-// emptyCastleSquaresWhiteKing :: Bitboard
-// emptyCastleSquaresWhiteKing = (.|.) (1 `shiftL` 1) (1 `shiftL` 2)
-//
-// emptyCastleSquaresWhiteQueen :: Bitboard
-// emptyCastleSquaresWhiteQueen = (.|.) (1 `shiftL` 4) ((.|.) (1 `shiftL` 5) (1 `shiftL` 6))
-//
-// emptyCastleSquaresBlackKing :: Bitboard
-// emptyCastleSquaresBlackKing = (.|.) (1 `shiftL` 57) (1 `shiftL` 58)
-//
-// emptyCastleSquaresBlackQueen :: Bitboard
-// emptyCastleSquaresBlackQueen = (.|.) (1 `shiftL` 62) ((.|.) (1 `shiftL` 61) (1 `shiftL` 60))
-//
-// noCheckCastleSquaresWhiteKing :: Bitboard
-// noCheckCastleSquaresWhiteKing = (.|.) (1 `shiftL` 2) (1 `shiftL` 3)
-//
-// noCheckCastleSquaresWhiteQueen :: Bitboard
-// noCheckCastleSquaresWhiteQueen = (.|.) (1 `shiftL` 3) (1 `shiftL` 4)
-//
-// noCheckCastleSquaresBlackKing :: Bitboard
-// noCheckCastleSquaresBlackKing = (.|.) (1 `shiftL` 58) (1 `shiftL` 59)
-//
-// noCheckCastleSquaresBlackQueen :: Bitboard
-// noCheckCastleSquaresBlackQueen = (.|.) (1 `shiftL` 59) (1 `shiftL` 60)
