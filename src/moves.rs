@@ -294,4 +294,20 @@ pub mod moves {
         return move_list;
     }
 
+    pub fn king_square(position: &Position, mover: Mover) -> Square {
+        return if mover == White {
+            position.white_king_bitboard.trailing_zeros() as Square
+        } else {
+            position.black_king_bitboard.trailing_zeros() as Square
+        }
+    }
+
+    pub fn is_check(position: &Position, mover: Mover) -> bool {
+        return if mover == White {
+            is_square_attacked_by(position, king_square(position, White), &Black)
+        } else {
+            is_square_attacked_by(position, king_square(position, Black), &White)
+        }
+    }
+
 }
