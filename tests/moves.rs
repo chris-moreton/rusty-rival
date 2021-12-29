@@ -291,9 +291,9 @@ fn it_generates_castle_moves_for_a_given_mover() {
 pub fn it_gets_all_moves_for_a_position() {
     assert_eq!(sort_moves(moves(&get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()))), vec!["e8d7", "e8d8", "e8e7", "e8f7", "e8f8"]);
 
-    // let position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
-    // let no_checks = moves(&position).iter().filter(|&mut m| !is_check(make_move(position,x), &position.mover)).collect();
-    // assert_eq!(sort_moves(no_checks), vec!["e8d7","e8d8","e8f7"]);
+    let position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
+    let no_checks = moves(&position).iter().filter(|&mut m| !is_check(make_move(position,x), &position.mover)).collect();
+    assert_eq!(sort_moves(no_checks), vec!["e8d7","e8d8","e8f7"]);
 
     assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/1R2K2R b Kkq - 0 1".to_string()))), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
     assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P4K1P/R6R b kq - 0 1".to_string()))), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
@@ -431,9 +431,9 @@ pub fn it_gets_all_moves_for_a_position() {
 //
 // describe "isPromotionSquare" $
 // it "Returns True if the given square is on the first or eigth ranks" $ do
-// testBit promotionSquares (bitRefFromAlgebraicSquareRef "a8") `shouldBe` True
-// testBit promotionSquares (bitRefFromAlgebraicSquareRef "b1") `shouldBe` True
-// testBit promotionSquares (bitRefFromAlgebraicSquareRef "a3") `shouldBe` False
+// testBit PROMOTION_SQUARES (bitRefFromAlgebraicSquareRef "a8") `shouldBe` True
+// testBit PROMOTION_SQUARES (bitRefFromAlgebraicSquareRef "b1") `shouldBe` True
+// testBit PROMOTION_SQUARES (bitRefFromAlgebraicSquareRef "a3") `shouldBe` False
 //
 // describe "promotionPieceFromMove" $
 // it "Returns the promotion piece from the move" $ do

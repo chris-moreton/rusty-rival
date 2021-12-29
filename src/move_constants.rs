@@ -1,5 +1,5 @@
 pub mod move_constants {
-    use crate::types::types::Move;
+    use crate::types::types::{Bitboard, Move};
 
     pub const PROMOTION_QUEEN_MOVE_MASK: Move = 192;
     pub const PROMOTION_ROOK_MOVE_MASK: Move = 64;
@@ -7,5 +7,5 @@ pub mod move_constants {
     pub const PROMOTION_KNIGHT_MOVE_MASK: Move = 256;
     pub const PROMOTION_FULL_MOVE_MASK: Move = 448;
     pub const EN_PASSANT_NOT_AVAILABLE: i8 = -1;
-
+    pub const PROMOTION_SQUARES: Bitboard = 0b1111111100000000000000000000000000000000000000000000000011111111;
 }

@@ -7,3 +7,4 @@ pub mod utils;
 pub mod magic_bitboards;
 pub mod magic_moves_bishop;
 pub mod magic_moves_rook;
+mod mod make_move;
