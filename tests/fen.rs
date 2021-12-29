@@ -1,7 +1,8 @@
 use rusty_rival::fen::*;
-use rusty_rival::fen::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, get_position, piece_bitboard, rank_bits};
+use rusty_rival::fen::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, get_position, move_from_algebraic_move, piece_bitboard, rank_bits};
 use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
 use rusty_rival::types::types::Mover;
+use rusty_rival::utils::utils::from_square_mask;
 
 #[test]
 fn it_gets_the_board_part_from_the_fen() {
@@ -71,6 +72,7 @@ fn it_gets_the_board_bits() {
 fn it_converts_a_bitref_to_an_algebraic_square() {
     assert_eq!("a8", algebraic_squareref_from_bitref(63));
     assert_eq!("h1", algebraic_squareref_from_bitref(0));
+    assert_eq!("h8", algebraic_squareref_from_bitref(56));
     assert_eq!("a1", algebraic_squareref_from_bitref(7));
 }
 
@@ -95,7 +97,17 @@ fn it_gets_a_piece_bitboard() {
 fn it_converts_a_compact_move_to_an_algebraic_move() {
     assert_eq!(algebraic_move_from_move(458808), "a1h8");
     assert_eq!(algebraic_move_from_move(458872), "a1h8r");
+}
 
+#[test]
+fn it_converts_an_algebraic_move_to_a_move() {
+    assert_eq!(algebraic_move_from_move(move_from_algebraic_move("a1h8".to_string())), "a1h8");
+    assert_eq!(algebraic_move_from_move(move_from_algebraic_move("h7g8b".to_string())), "h7g8b");
+    assert_eq!(algebraic_move_from_move(move_from_algebraic_move("h1a8".to_string())), "h1a8");
+
+
+    assert_eq!(458808, move_from_algebraic_move("a1h8".to_string()));
+    assert_eq!(458872, move_from_algebraic_move("a1h8r".to_string()));
 }
 
 #[test]

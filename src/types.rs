@@ -42,6 +42,7 @@ pub mod types {
     pub type HashTable = HashMap<u64, HashEntry>;
     pub type MagicHashTable = HashMap<u64, u64>;
 
+    #[derive(Debug, PartialEq)]
     pub struct Position {
         pub white_pawn_bitboard: Bitboard,
         pub white_knight_bitboard: Bitboard,

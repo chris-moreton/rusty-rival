@@ -1,5 +1,6 @@
 use rusty_rival::bitboards::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use rusty_rival::fen::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
+use rusty_rival::make_move::make_move::make_move;
 use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
 use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, any_squares_in_bitboard_attacked, generate_castle_moves, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_check, is_square_attacked_by, moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
@@ -288,12 +289,41 @@ fn it_generates_castle_moves_for_a_given_mover() {
 }
 
 #[test]
+pub fn it_checks_for_check() {
+    assert_eq!(is_check(&get_position(&"5k2/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), &Black), true);
+    assert_eq!(is_check(&get_position(&"8/4k3/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), &Black), true);
+    assert_eq!(is_check(&get_position(&"3k4/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), &Black), false);
+    assert_eq!(is_check(&get_position(&"8/3k4/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), &Black), false);
+    assert_eq!(is_check(&get_position(&"8/5k2/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), &Black), false);
+
+    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), &White), false);
+    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), &Black), false);
+
+    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), &White), false);
+    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), &Black), true);
+
+    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1".to_string()), &White), true);
+    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1".to_string()), &Black), true);
+
+    assert_eq!(is_check(&get_position(&"n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1".to_string()), &White), false);
+    assert_eq!(is_check(&get_position(&"n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1".to_string()), &Black), true);
+
+    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1".to_string()), &White), true);
+    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1".to_string()), &Black), false);
+
+    assert_eq!(is_check(&get_position(&"r2k3r/p6p/8/B7/1p2p3/2pb4/P4K1P/R6R w - - 0 1".to_string()), &Black), true);
+}
+
+#[test]
 pub fn it_gets_all_moves_for_a_position() {
     assert_eq!(sort_moves(moves(&get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()))), vec!["e8d7", "e8d8", "e8e7", "e8f7", "e8f8"]);
 
-    let position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
-    let no_checks = moves(&position).iter().filter(|&mut m| !is_check(make_move(position,x), &position.mover)).collect();
-    assert_eq!(sort_moves(no_checks), vec!["e8d7","e8d8","e8f7"]);
+    // let mut position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
+    // let no_checks = moves(&position).into_iter().filter(| m| {
+    //     make_move(&mut position, *m);
+    //     !is_check(&position, &position.mover)
+    // }).collect();
+    // assert_eq!(sort_moves(no_checks), vec!["e8d7","e8d8","e8f7"]);
 
     assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/1R2K2R b Kkq - 0 1".to_string()))), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
     assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P4K1P/R6R b kq - 0 1".to_string()))), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
@@ -486,45 +516,7 @@ pub fn it_gets_all_moves_for_a_position() {
 // friendlyPieceValues (get_position(&"-nbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1".to_string())) `shouldBe`
 // pieceValue Rook + pieceValue Bishop * 2 + pieceValue Queen + pieceValue Knight * 2
 //
-// describe "makeMove" $
-// it "Makes a move from a position and returns a new position" $ do
-// makeMove (get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()))
-// (moveFromAlgebraicMove "e2e3")
-// `shouldBe` get_position(&"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1".to_string())
-// makeMove (get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()))
-// (moveFromAlgebraicMove "e2e7")
-// `shouldBe` get_position(&"rnbqkbnr/ppppPppp/8/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1".to_string())
-// makeMove (get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1".to_string()))
-// (moveFromAlgebraicMove "e1g1")
-// `shouldBe` get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQ1RK1 b kq - 1 1".to_string())
-// makeMove (get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1".to_string()))
-// (moveFromAlgebraicMove "h1g1")
-// `shouldBe` get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK1R1 b kqQ - 1 1".to_string())
-// makeMove (get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1".to_string()))
-// (moveFromAlgebraicMove "e2e3")
-// `shouldBe` get_position(&"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQK2R b KQkq - 0 1".to_string())
-// makeMove (get_position(&"r3k2r/pppppppp/2n1b3/2bn1q2/8/4P3/PPPP1PPP/RNBQK2R b KQq - 0 1".to_string()))
-// (moveFromAlgebraicMove "e8c8")
-// `shouldBe` get_position(&"2kr3r/pppppppp/2n1b3/2bn1q2/8/4P3/PPPP1PPP/RNBQK2R w KQ - 1 2".to_string())
-// makeMove (get_position(&"r3k2r/pppppppp/2n1b3/2bn1q2/8/4P3/PPPP1PPP/RNBQK2R b KQq - 0 1".to_string()))
-// (moveFromAlgebraicMove "e8d8")
-// `shouldBe` get_position(&"r2k3r/pppppppp/2n1b3/2bn1q2/8/4P3/PPPP1PPP/RNBQK2R w KQ - 1 2".to_string())
-// makeMove (get_position(&"r3k2r/pppppppp/2n1b3/2bn1q2/8/4P3/PPPP1PPP/RNBQK2R b KQq - 0 1".to_string()))
-// (moveFromAlgebraicMove "h8g8")
-// `shouldBe` get_position(&"r3k1r1/pppppppp/2n1b3/2bn1q2/8/4P3/PPPP1PPP/RNBQK2R w KQq - 1 2".to_string())
-// makeMove (get_position(&"2kr3r/pppppp1p/2n1b3/2bn1q2/4Pp2/8/PPPP1PPP/RNBQK2R b KQ e3 15 1".to_string()))
-// (moveFromAlgebraicMove "f4e3")
-// `shouldBe` get_position(&"2kr3r/pppppp1p/2n1b3/2bn1q2/8/4p3/PPPP1PPP/RNBQK2R w KQ - 0 2".to_string())
-// makeMove (get_position(&"2kr3r/ppppppPp/2n1b3/2bn1q2/8/4p3/PPPP1P1P/RNBQK2R w KQ - 12 1".to_string()))
-// (moveFromAlgebraicMove "g7h8r")
-// `shouldBe` get_position(&"2kr3R/pppppp1p/2n1b3/2bn1q2/8/4p3/PPPP1P1P/RNBQK2R b KQ - 0 1".to_string())
-// makeMove (get_position(&"2kr3R/pppp1p1p/2n1b3/2bn1q2/8/4p3/PPPP1PpP/RNBQK2R b KQ - 0 1".to_string()))
-// (moveFromAlgebraicMove "g2g1q")
-// `shouldBe` get_position(&"2kr3R/pppp1p1p/2n1b3/2bn1q2/8/4p3/PPPP1P1P/RNBQK1qR w KQ - 0 2".to_string())
-// makeMove (get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()))
-// (moveFromAlgebraicMove "e2e4")
-// `shouldBe` get_position(&"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1".to_string())
-//
+
 // describe "isCapture" $
 // it "returns if a move is a capture" $ do
 // let position = get_position(&"rnbqkbnr/p1p2ppp/8/1pPpp3/4PP2/8/PP1P2PP/RNBQKBNR w KQkq d6 0 1".to_string())

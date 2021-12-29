@@ -302,12 +302,19 @@ pub mod moves {
         }
     }
 
-    pub fn is_check(position: &Position, mover: Mover) -> bool {
-        return if mover == White {
+    pub fn is_check(position: &Position, mover: &Mover) -> bool {
+        return if *mover == White {
             is_square_attacked_by(position, king_square(position, White), &Black)
         } else {
             is_square_attacked_by(position, king_square(position, Black), &White)
         }
     }
 
+    pub fn move_piece_within_bitboard(from: Square, to: Square, bb: Bitboard) -> Bitboard {
+        if test_bit(bb, from) {
+            clear_bit(bb, from) | bit(to)
+        } else {
+            clear_bit(bb, to)
+        }
+    }
 }

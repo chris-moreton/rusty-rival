@@ -2,6 +2,8 @@ pub mod fen {
     use crate::move_constants::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
     use crate::types::types::{Bitboard, Move, Mover, Position, Square};
     use crate::types::types::Mover::{Black, White};
+    use crate::utils::utils::from_square_mask;
+
     const EN_PASSANT_UNAVAILABLE: i8 = -1;
 
     pub fn bit_array_to_decimal(is: Vec<u8>) -> u64 {
@@ -22,7 +24,7 @@ pub mod fen {
         return result;
     }
 
-    fn is_file_number(c: char) -> bool {
+    pub fn is_file_number(c: char) -> bool {
         return c >= '0' && c <= '9';
     }
 
@@ -62,16 +64,25 @@ pub mod fen {
         return file_char.to_string() + &*(rank_char.to_string());
     }
 
-    pub fn bitref_from_algebraic_squareref(algebraic: String) -> u8 {
-        let file_num = algebraic.chars().nth(0).unwrap() as u8 - 97;
-        let rank_num = algebraic.chars().nth(1).unwrap() as u8 - 49;
-        return rank_num * 8 + (7 - file_num);
-    }
-
     pub fn algebraic_move_from_move(m: Move) -> String {
         let from_square = (m >> 16) as u8;
         let to_square = (m & 63) as u8;
         return algebraic_squareref_from_bitref(from_square) + &*algebraic_squareref_from_bitref(to_square) + &*promotion_part(m);
+    }
+
+    pub fn promotion_mask(piece_char: String) -> Move {
+        return if piece_char == "q" { PROMOTION_QUEEN_MOVE_MASK }
+        else if piece_char == "b" { PROMOTION_BISHOP_MOVE_MASK }
+        else if piece_char == "r" { PROMOTION_ROOK_MOVE_MASK }
+        else if piece_char == "n" { PROMOTION_QUEEN_MOVE_MASK }
+        else { 0 }
+    }
+
+    pub fn move_from_algebraic_move(a: String) -> Move {
+        let s = if a.len() == 4 { a + " " } else { a };
+        return from_square_mask(bitref_from_algebraic_squareref(s[0..2].to_string())) +
+            bitref_from_algebraic_squareref(s[2..4].to_string()) as Move +
+            promotion_mask(s[4..5].to_string());
     }
 
     pub fn promotion_part(m: Move) -> String {
@@ -89,29 +100,6 @@ pub mod fen {
         }
         return "".to_string();
     }
-
-
-    //
-    // promotionPart :: Move -> String
-    // promotionPart move
-    // | (.&.) PROMOTION_FULL_MOVE_MASK move == promotionQueenMoveMask = "q"
-    // | (.&.) PROMOTION_FULL_MOVE_MASK move == PROMOTION_ROOK_MOVE_MASK = "r"
-    // | (.&.) PROMOTION_FULL_MOVE_MASK move == PROMOTION_BISHOP_MOVE_MASK = "b"
-    // | (.&.) PROMOTION_FULL_MOVE_MASK move == PROMOTION_KNIGHT_MOVE_MASK = "n"
-    // | otherwise = ""
-    //
-    // promotionMask :: Char -> Int
-    // promotionMask pieceChar
-    // | pieceChar == 'q' = promotionQueenMoveMask
-    // | pieceChar == 'b' = PROMOTION_BISHOP_MOVE_MASK
-    // | pieceChar == 'r' = PROMOTION_ROOK_MOVE_MASK
-    // | pieceChar == 'n' = PROMOTION_KNIGHT_MOVE_MASK
-    // | otherwise = 0
-    //
-    // moveFromAlgebraicMove :: String -> Move
-    // moveFromAlgebraicMove moveString =
-    // fromSquareMask (bitRefFromAlgebraicSquareRef (substring moveString 0 2)) + bitRefFromAlgebraicSquareRef (substring moveString 2 4) + promotionMask (last moveString)
-
 
     pub fn get_fen_ranks(fen_board_part: String) -> Vec<String> {
         return fen_board_part.split("/").map(|s| s.to_string()).collect();
@@ -135,21 +123,21 @@ pub mod fen {
         return bit_array_to_decimal(board_bits(&fen_ranks, piece));
     }
 
-    fn en_passant_fen_part(fen: &String) -> String {
+    pub fn en_passant_fen_part(fen: &String) -> String {
         return fen_part(fen, 3);
     }
 
-    fn bit_ref_from_algebraic_square_ref(algebraic: &String) -> Square {
-        let file_num = algebraic.chars().nth(0).unwrap() as Square - 97;
-        let rank_num = algebraic.chars().nth(1).unwrap() as Square - 49;
-        return (rank_num * 8) + (7 - file_num);
+    pub fn bitref_from_algebraic_squareref(algebraic: String) -> Square {
+        let file_num = algebraic.chars().nth(0).unwrap() as u8 - 97;
+        let rank_num = algebraic.chars().nth(1).unwrap() as u8 - 49;
+        return (rank_num * 8 + (7 - file_num)) as Square;
     }
 
-    fn en_passant_bit_ref(en_passant_fen_part: &String) -> i8 {
+    fn en_passant_bit_ref(en_passant_fen_part: String) -> i8 {
         return if en_passant_fen_part == "-" {
             EN_PASSANT_UNAVAILABLE
         } else {
-            bit_ref_from_algebraic_square_ref(en_passant_fen_part)
+            bitref_from_algebraic_squareref(en_passant_fen_part)
         }
     }
 
@@ -186,7 +174,7 @@ pub mod fen {
             white_pieces_bitboard: wp | wn | wb | wr | wq | wk,
             black_pieces_bitboard: bp | bn | bb | br | bq | bk,
             mover: get_mover(fen),
-            en_passant_square: en_passant_bit_ref(&en_passant_fen_part(fen)) as Square,
+            en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square,
             white_king_castle_available: castle_part.contains("K"),
             white_queen_castle_available: castle_part.contains("Q"),
             black_king_castle_available: castle_part.contains("k"),

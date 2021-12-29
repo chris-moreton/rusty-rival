@@ -99,7 +99,7 @@ pub mod bitboards {
         return !position.all_pieces_bitboard;
     }
 
-    const fn every_eighth_bit_from(i: u8) -> Bitboard {
+    const fn every_eighth_bit_from(i: Square) -> Bitboard {
         return if i < 8 {
             1 << i
         } else {
@@ -107,77 +107,77 @@ pub mod bitboards {
         }
     }
 
-    pub const A1_BIT: u8 = 7;
-    pub const B1_BIT: u8 = 6;
-    pub const C1_BIT: u8 = 5;
-    pub const D1_BIT: u8 = 4;
-    pub const E1_BIT: u8 = 3;
-    pub const F1_BIT: u8 = 2;
-    pub const G1_BIT: u8 = 1;
-    pub const H1_BIT: u8 = 0;
+    pub const A1_BIT: Square = 7;
+    pub const B1_BIT: Square = 6;
+    pub const C1_BIT: Square = 5;
+    pub const D1_BIT: Square = 4;
+    pub const E1_BIT: Square = 3;
+    pub const F1_BIT: Square = 2;
+    pub const G1_BIT: Square = 1;
+    pub const H1_BIT: Square = 0;
 
-    pub const A2_BIT: u8 = A1_BIT + 8;
-    pub const B2_BIT: u8 = B1_BIT + 8;
-    pub const C2_BIT: u8 = C1_BIT + 8;
-    pub const D2_BIT: u8 = D1_BIT + 8;
-    pub const E2_BIT: u8 = E1_BIT + 8;
-    pub const F2_BIT: u8 = F1_BIT + 8;
-    pub const G2_BIT: u8 = G1_BIT + 8;
-    pub const H2_BIT: u8 = H1_BIT + 8;
+    pub const A2_BIT: Square = A1_BIT + 8;
+    pub const B2_BIT: Square = B1_BIT + 8;
+    pub const C2_BIT: Square = C1_BIT + 8;
+    pub const D2_BIT: Square = D1_BIT + 8;
+    pub const E2_BIT: Square = E1_BIT + 8;
+    pub const F2_BIT: Square = F1_BIT + 8;
+    pub const G2_BIT: Square = G1_BIT + 8;
+    pub const H2_BIT: Square = H1_BIT + 8;
 
-    pub const A3_BIT: u8 = A2_BIT + 8;
-    pub const B3_BIT: u8 = B2_BIT + 8;
-    pub const C3_BIT: u8 = C2_BIT + 8;
-    pub const D3_BIT: u8 = D2_BIT + 8;
-    pub const E3_BIT: u8 = E2_BIT + 8;
-    pub const F3_BIT: u8 = F2_BIT + 8;
-    pub const G3_BIT: u8 = G2_BIT + 8;
-    pub const H3_BIT: u8 = H2_BIT + 8;
+    pub const A3_BIT: Square = A2_BIT + 8;
+    pub const B3_BIT: Square = B2_BIT + 8;
+    pub const C3_BIT: Square = C2_BIT + 8;
+    pub const D3_BIT: Square = D2_BIT + 8;
+    pub const E3_BIT: Square = E2_BIT + 8;
+    pub const F3_BIT: Square = F2_BIT + 8;
+    pub const G3_BIT: Square = G2_BIT + 8;
+    pub const H3_BIT: Square = H2_BIT + 8;
 
-    pub const A4_BIT: u8 = A3_BIT + 8;
-    pub const B4_BIT: u8 = B3_BIT + 8;
-    pub const C4_BIT: u8 = C3_BIT + 8;
-    pub const D4_BIT: u8 = D3_BIT + 8;
-    pub const E4_BIT: u8 = E3_BIT + 8;
-    pub const F4_BIT: u8 = F3_BIT + 8;
-    pub const G4_BIT: u8 = G3_BIT + 8;
-    pub const H4_BIT: u8 = H3_BIT + 8;
+    pub const A4_BIT: Square = A3_BIT + 8;
+    pub const B4_BIT: Square = B3_BIT + 8;
+    pub const C4_BIT: Square = C3_BIT + 8;
+    pub const D4_BIT: Square = D3_BIT + 8;
+    pub const E4_BIT: Square = E3_BIT + 8;
+    pub const F4_BIT: Square = F3_BIT + 8;
+    pub const G4_BIT: Square = G3_BIT + 8;
+    pub const H4_BIT: Square = H3_BIT + 8;
 
-    pub const A5_BIT: u8 = A4_BIT + 8;
-    pub const B5_BIT: u8 = B4_BIT + 8;
-    pub const C5_BIT: u8 = C4_BIT + 8;
-    pub const D5_BIT: u8 = D4_BIT + 8;
-    pub const E5_BIT: u8 = E4_BIT + 8;
-    pub const F5_BIT: u8 = F4_BIT + 8;
-    pub const G5_BIT: u8 = G4_BIT + 8;
-    pub const H5_BIT: u8 = H4_BIT + 8;
+    pub const A5_BIT: Square = A4_BIT + 8;
+    pub const B5_BIT: Square = B4_BIT + 8;
+    pub const C5_BIT: Square = C4_BIT + 8;
+    pub const D5_BIT: Square = D4_BIT + 8;
+    pub const E5_BIT: Square = E4_BIT + 8;
+    pub const F5_BIT: Square = F4_BIT + 8;
+    pub const G5_BIT: Square = G4_BIT + 8;
+    pub const H5_BIT: Square = H4_BIT + 8;
 
-    pub const A6_BIT: u8 = A5_BIT + 8;
-    pub const B6_BIT: u8 = B5_BIT + 8;
-    pub const C6_BIT: u8 = C5_BIT + 8;
-    pub const D6_BIT: u8 = D5_BIT + 8;
-    pub const E6_BIT: u8 = E5_BIT + 8;
-    pub const F6_BIT: u8 = F5_BIT + 8;
-    pub const G6_BIT: u8 = G5_BIT + 8;
-    pub const H6_BIT: u8 = H5_BIT + 8;
+    pub const A6_BIT: Square = A5_BIT + 8;
+    pub const B6_BIT: Square = B5_BIT + 8;
+    pub const C6_BIT: Square = C5_BIT + 8;
+    pub const D6_BIT: Square = D5_BIT + 8;
+    pub const E6_BIT: Square = E5_BIT + 8;
+    pub const F6_BIT: Square = F5_BIT + 8;
+    pub const G6_BIT: Square = G5_BIT + 8;
+    pub const H6_BIT: Square = H5_BIT + 8;
 
-    pub const A7_BIT: u8 = A6_BIT + 8;
-    pub const B7_BIT: u8 = B6_BIT + 8;
-    pub const C7_BIT: u8 = C6_BIT + 8;
-    pub const D7_BIT: u8 = D6_BIT + 8;
-    pub const E7_BIT: u8 = E6_BIT + 8;
-    pub const F7_BIT: u8 = F6_BIT + 8;
-    pub const G7_BIT: u8 = G6_BIT + 8;
-    pub const H7_BIT: u8 = H6_BIT + 8;
+    pub const A7_BIT: Square = A6_BIT + 8;
+    pub const B7_BIT: Square = B6_BIT + 8;
+    pub const C7_BIT: Square = C6_BIT + 8;
+    pub const D7_BIT: Square = D6_BIT + 8;
+    pub const E7_BIT: Square = E6_BIT + 8;
+    pub const F7_BIT: Square = F6_BIT + 8;
+    pub const G7_BIT: Square = G6_BIT + 8;
+    pub const H7_BIT: Square = H6_BIT + 8;
 
-    pub const A8_BIT: u8 = A7_BIT + 8;
-    pub const B8_BIT: u8 = B7_BIT + 8;
-    pub const C8_BIT: u8 = C7_BIT + 8;
-    pub const D8_BIT: u8 = D7_BIT + 8;
-    pub const E8_BIT: u8 = E7_BIT + 8;
-    pub const F8_BIT: u8 = F7_BIT + 8;
-    pub const G8_BIT: u8 = G7_BIT + 8;
-    pub const H8_BIT: u8 = H7_BIT + 8;
+    pub const A8_BIT: Square = A7_BIT + 8;
+    pub const B8_BIT: Square = B7_BIT + 8;
+    pub const C8_BIT: Square = C7_BIT + 8;
+    pub const D8_BIT: Square = D7_BIT + 8;
+    pub const E8_BIT: Square = E7_BIT + 8;
+    pub const F8_BIT: Square = F7_BIT + 8;
+    pub const G8_BIT: Square = G7_BIT + 8;
+    pub const H8_BIT: Square = H7_BIT + 8;
 
     pub fn exactly_one_bit_set(bb: Bitboard) -> bool {
         return bb != 0 && bb & (bb - 1) == 0;
@@ -200,7 +200,7 @@ pub mod bitboards {
         return x;
     }
 
-    pub const fn two_bits(bit1: u8, bit2: u8) -> Bitboard {
+    pub const fn two_bits(bit1: Square, bit2: Square) -> Bitboard {
         let mut x: Bitboard = 0;
         x = x | 1 << bit1;
         x = x | 1 << bit2;
