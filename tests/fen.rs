@@ -97,6 +97,7 @@ fn it_gets_a_piece_bitboard() {
 fn it_converts_a_compact_move_to_an_algebraic_move() {
     assert_eq!(algebraic_move_from_move(458808), "a1h8");
     assert_eq!(algebraic_move_from_move(458872), "a1h8r");
+    assert_eq!(algebraic_move_from_move(720947), "e2e7");
 }
 
 #[test]
