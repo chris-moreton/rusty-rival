@@ -9,7 +9,7 @@ pub mod types {
     pub type MagicFunc = fn(Square, u64) -> Bitboard;
     pub type MagicMovesArray = [[Bitboard; 4096]; 64];
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Copy, Clone)]
     pub enum Mover { White, Black }
 
     #[derive(Debug, PartialEq)]
