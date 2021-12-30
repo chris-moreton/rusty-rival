@@ -65,4 +65,25 @@ pub fn it_makes_a_move() {
     make_move(&mut position, move_from_algebraic_move("e2e4".to_string()));
     assert_eq!(get_position(&"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1".to_string()), position);
 
+    let mut position = get_position(&"8/p7/8/1P6/K1k3pP/6P1/8/8 b - h3 0 1".to_string());
+    make_move(&mut position, move_from_algebraic_move("a7a6".to_string()));
+    assert_eq!(get_position(&"8/8/p7/1P6/K1k3pP/6P1/8/8 w - - 0 2".to_string()), position);
+
+    let mut position = get_position(&"8/p7/8/1P6/K1k3pP/6P1/8/8 b - h3 0 1".to_string());
+    make_move(&mut position, move_from_algebraic_move("a7a5".to_string()));
+    assert_eq!(get_position(&"8/8/8/pP6/K1k3pP/6P1/8/8 w - a6 0 2".to_string()), position);
+
+    let mut position = get_position(&"8/p7/8/1P6/K1k3pP/6P1/8/8 b - h3 0 1".to_string());
+    make_move(&mut position, move_from_algebraic_move("c4c5".to_string()));
+    assert_eq!(get_position(&"8/p7/8/1Pk5/K5pP/6P1/8/8 w - - 1 2".to_string()), position);
+
+    // assert_eq!(perft(get_position(&"8/p7/8/1P6/K1k5/6Pp/8/8 w - - 0 1".to_string()), 0), 4);
+    // assert_eq!(perft(get_position(&"8/8/p7/1P6/K1k3pP/6P1/8/8 w - - 0 1".to_string()), 0), 5);
+    // assert_eq!(perft(get_position(&"8/p7/8/1Pk5/K5pP/6P1/8/8 w - - 0 1".to_string()), 0), 5);
+    // assert_eq!(perft(get_position(&"8/p7/8/1P1k4/K5pP/6P1/8/8 w - - 0 1".to_string()), 0), 6);
+    // assert_eq!(perft(get_position(&"8/p7/8/1P6/K2k2pP/6P1/8/8 w - - 0 1".to_string()), 0), 6);
+    // assert_eq!(perft(get_position(&"8/p7/8/1P6/K5pP/2k3P1/8/8 w - - 0 1".to_string()), 0), 4);
+    // assert_eq!(perft(get_position(&"8/p7/8/1P6/K5pP/3k2P1/8/8 w - - 0 1".to_string()), 0), 6);
+    // assert_eq!(perft(get_position(&"8/8/8/pP6/K1k3pP/6P1/8/8 w - a6 0 1".to_string()), 0), 5);
+
 }

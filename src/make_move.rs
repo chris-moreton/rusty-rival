@@ -402,7 +402,6 @@ pub mod make_move {
         position.black_king_bitboard = move_piece_within_bitboard(from, to, position.black_king_bitboard);
         position.all_pieces_bitboard = position.all_pieces_bitboard ^ switch_bitboard;
         position.black_pieces_bitboard = position.black_pieces_bitboard ^ switch_bitboard;
-        position.mover = Black;
         position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         position.half_moves += 1;
     }
