@@ -21,14 +21,11 @@ pub fn it_makes_a_move() {
     make_move(&mut position, move_from_algebraic_move("e2e3".to_string()));
     assert_eq!(get_position(&"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1".to_string()), position);
 
-    // let mut position = get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
-    // make_move(&mut position, move_from_algebraic_move("e2e7".to_string()));
-    // assert_eq!(get_position(&"rnbqkbnr/ppppPppp/8/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1".to_string()), position);
+    let mut position = get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
+    make_move(&mut position, move_from_algebraic_move("e2e7".to_string()));
+    assert_eq!(get_position(&"rnbqkbnr/ppppPppp/8/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1".to_string()), position);
 }
 
-// makeMove (get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()))
-// (moveFromAlgebraicMove "")
-// `shouldBe` get_position(&"".to_string())
 
 // makeMove (get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1".to_string()))
 // (moveFromAlgebraicMove "e1g1")
