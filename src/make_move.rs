@@ -197,6 +197,7 @@ pub mod make_move {
     }
 
     pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Square) {
+
         let current_move_number = position.move_number;
         let m = position.mover;
         let new_white_pawn_bitboard = move_piece_within_bitboard(from, to, position.white_pawn_bitboard);
@@ -210,6 +211,7 @@ pub mod make_move {
         let bn = move_piece_within_bitboard(from, to, position.black_knight_bitboard);
         let wb = move_piece_within_bitboard(from, to, position.white_bishop_bitboard);
         let bb = move_piece_within_bitboard(from, to, position.black_bishop_bitboard);
+
         let wr = move_white_rook_when_castling(from, to, position.white_king_bitboard, move_piece_within_bitboard(from, to, position.white_rook_bitboard));
         let br = move_black_rook_when_castling (from, to, position.black_king_bitboard, move_piece_within_bitboard(from, to, position.black_rook_bitboard));
         let wq = move_piece_within_bitboard(from, to, position.white_queen_bitboard);
@@ -225,7 +227,7 @@ pub mod make_move {
         position.white_knight_bitboard = wn;
         position.black_knight_bitboard = bn;
         position.white_bishop_bitboard = wb;
-        position.black_bishop_bitboard = bp;
+        position.black_bishop_bitboard = bb;
         position.white_rook_bitboard = wr;
         position.black_rook_bitboard = br;
         position.white_queen_bitboard = wq;
@@ -243,7 +245,9 @@ pub mod make_move {
         position.black_king_castle_available = position.black_king_castle_available && from!= E8_BIT && from != H8_BIT && to != H8_BIT;
         position.black_queen_castle_available = position.black_queen_castle_available && from != E8_BIT && from != A8_BIT && to != A8_BIT;
         position.half_moves = if test_bit(position.all_pieces_bitboard, to) || is_pawn_move { 0 } else { position.half_moves + 1 };
-        position.move_number = if m == Black { current_move_number + 1 } else { current_move_number }
+        position.move_number = if m == Black { current_move_number + 1 } else { current_move_number };
+
+
 
     }
 
