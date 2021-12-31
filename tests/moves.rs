@@ -312,6 +312,7 @@ pub fn it_checks_for_check() {
     assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1".to_string()), &Black), false);
 
     assert_eq!(is_check(&get_position(&"r2k3r/p6p/8/B7/1p2p3/2pb4/P4K1P/R6R w - - 0 1".to_string()), &Black), true);
+
 }
 
 #[test]
