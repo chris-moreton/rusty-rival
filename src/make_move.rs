@@ -1,17 +1,23 @@
 pub mod make_move {
+    use std::ptr::null;
     use crate::bitboards::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, D1_BIT, D8_BIT, E1_BIT, E8_BIT, F1_BIT, F8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
     use crate::fen::fen::get_position;
     use crate::move_constants::move_constants::*;
     use crate::moves::moves::move_piece_within_bitboard;
     use crate::types::types::{Bitboard, Move, Mover, Piece, Position, Square};
     use crate::types::types::Mover::{Black, White};
-    use crate::types::types::Piece::{Bishop, King, Knight, Pawn, Queen, Rook};
+    use crate::types::types::Piece::{Bishop, Empty, King, Knight, Pawn, Queen, Rook};
     use crate::utils::utils::{from_square_mask, from_square_part, to_square_part};
 
     pub fn make_move(position: &mut Position, mv: Move) {
         let from = from_square_part(mv);
         let to = to_square_part(mv);
+        position.moved_from_square = from;
         position.moved_piece = moving_piece(position, from as Square);
+        position.captured_piece = Piece::Empty;
+        position.promoted_piece = Piece::Empty;
+        position.captured_square = -1;
+        position.castle_type = ' ';
         return if is_simple_move(position, mv, from as Square, to) {
             make_simple_move(position, mv, from as Square)
         } else {
@@ -24,7 +30,7 @@ pub mod make_move {
         let from = from_square_part(mv);
         let to = to_square_part(mv);
 
-        if position.promoted_piece != Pawn {
+        if position.promoted_piece != Empty {
             make_move_with_promotion(position, mv, position.promoted_piece);
         } else if from == E1_BIT && (to == G1_BIT || to == C1_BIT) && (position.white_king_castle_available || position.white_queen_castle_available) {
             make_white_castle_move(position, to);
@@ -37,10 +43,10 @@ pub mod make_move {
 
     pub fn make_white_castle_move(position: &mut Position, to: Square) {
         let wr= if to == C1_BIT {
-            position.castle_type = 'K';
+            position.castle_type = 'Q';
             move_piece_within_bitboard(A1_BIT, D1_BIT, position.white_rook_bitboard) 
         } else {
-            position.castle_type = 'Q';
+            position.castle_type = 'K';
             move_piece_within_bitboard(H1_BIT, F1_BIT, position.white_rook_bitboard)
         };
         let wk = move_piece_within_bitboard(E1_BIT, to, position.white_king_bitboard);
@@ -58,10 +64,10 @@ pub mod make_move {
 
     pub fn make_black_castle_move(position: &mut Position, to: Square) {
         let br= if to == C8_BIT {
-            position.castle_type = 'k';
+            position.castle_type = 'q';
             move_piece_within_bitboard(A8_BIT, D8_BIT, position.black_rook_bitboard)
         } else {
-            position.castle_type = 'q';
+            position.castle_type = 'k';
             move_piece_within_bitboard(H8_BIT, F8_BIT, position.black_rook_bitboard)
         };
 
@@ -77,8 +83,7 @@ pub mod make_move {
         position.black_queen_castle_available = false;
         position.half_moves += 1;
         position.move_number += 1;
-
-
+        
     }
     
     pub fn promotion_piece_from_move(mv: Move) -> Piece {
@@ -87,7 +92,7 @@ pub mod make_move {
             PROMOTION_ROOK_MOVE_MASK => Rook,
             PROMOTION_BISHOP_MOVE_MASK => Bishop,
             PROMOTION_KNIGHT_MOVE_MASK => Knight,
-            _ => Pawn
+            _ => Empty
         }
     }
 
@@ -431,6 +436,20 @@ pub mod make_move {
 
     pub fn is_simple_capture(position: &mut Position, square: Square) -> bool {
         return if test_bit(position.all_pieces_bitboard, square) {
+            position.captured_square = square;
+            if position.mover == White {
+                if test_bit(position.black_pawn_bitboard, square) { position.captured_piece = Pawn }
+                if test_bit(position.black_knight_bitboard, square) { position.captured_piece = Knight }
+                if test_bit(position.black_bishop_bitboard, square) { position.captured_piece = Bishop }
+                if test_bit(position.black_rook_bitboard, square) { position.captured_piece = Rook }
+                if test_bit(position.black_queen_bitboard, square) { position.captured_piece = Queen }
+            } else {
+                if test_bit(position.white_pawn_bitboard, square) { position.captured_piece = Pawn }
+                if test_bit(position.white_knight_bitboard, square) { position.captured_piece = Knight }
+                if test_bit(position.white_bishop_bitboard, square) { position.captured_piece = Bishop }
+                if test_bit(position.white_rook_bitboard, square) { position.captured_piece = Rook }
+                if test_bit(position.white_queen_bitboard, square) { position.captured_piece = Queen }
+            }
             true
         } else {
             false

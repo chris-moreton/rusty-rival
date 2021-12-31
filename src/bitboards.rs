@@ -54,6 +54,7 @@ pub mod bitboards {
             (Mover::Black, Piece::Knight) => position.black_knight_bitboard,
             (Mover::Black, Piece::Bishop) => position.black_bishop_bitboard,
             (Mover::Black, Piece::Pawn) => position.black_pawn_bitboard,
+            _ => panic!("Can't handle piece")
         }
     }
 

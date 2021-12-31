@@ -13,7 +13,7 @@ pub mod types {
     pub enum Mover { White, Black }
 
     #[derive(Debug, PartialEq, Copy, Clone)]
-    pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook }
+    pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook, Empty }
 
     #[derive(Debug, PartialEq)]
     pub enum Bound { Exact, Lower, Upper }
