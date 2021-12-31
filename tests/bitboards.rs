@@ -122,7 +122,8 @@ fn it_returns_the_correct_bitboard_for_mover() {
         moved_piece: Piece::Pawn,
         moved_from_square: 0,
         promoted_piece: Piece::Pawn,
-        castle_type: ' '
+        castle_type: ' ',
+        previous_half_move_count: 0
     };
 
     assert_eq!(1, bitboard_for_mover(&p1, &Piece::Pawn));
@@ -161,7 +162,8 @@ fn it_returns_the_correct_bitboard_for_mover() {
         moved_piece: Piece::Pawn,
         moved_from_square: 0,
         promoted_piece: Piece::Pawn,
-        castle_type: ' '
+        castle_type: ' ',
+        previous_half_move_count: 0
     };
 
     assert_eq!(7, bitboard_for_mover(&p2, &Piece::Pawn));

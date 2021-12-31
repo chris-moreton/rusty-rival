@@ -72,7 +72,8 @@ pub mod types {
         pub moved_piece: Piece,
         pub moved_from_square: Square,
         pub promoted_piece: Piece,
-        pub castle_type: char
+        pub castle_type: char,
+        pub previous_half_move_count: u16
     }
 
     impl PartialEq for Position {

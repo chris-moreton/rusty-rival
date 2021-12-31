@@ -186,7 +186,8 @@ pub mod fen {
             moved_piece: Piece::Pawn,
             moved_from_square: 0,
             promoted_piece: Piece::Pawn,
-            castle_type: ' '
+            castle_type: ' ',
+            previous_half_move_count: 0
         }
     }
 }

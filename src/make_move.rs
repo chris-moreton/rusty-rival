@@ -25,6 +25,48 @@ pub mod make_move {
         }
     }
 
+    pub fn unmake_move(position: &mut Position) {
+        put_moving_piece_back(position);
+
+        if position.captured_piece != Empty {
+            put_captured_piece_back(position);
+        }
+
+        if position.castle_type != ' ' {
+            put_castled_rook_back(position);
+        }
+
+        if position.promoted_piece != Empty {
+            remove_promoted_piece(position);
+        }
+
+        if position.mover == White {
+            position.mover = Black;
+            position.move_number = position.move_number - 1;
+        } else {
+            position.mover = White;
+        }
+
+        position.half_moves = position.previous_half_move_count;
+
+    }
+
+    pub fn put_moving_piece_back(position: &mut Position) {
+
+    }
+
+    pub fn put_captured_piece_back(position: &mut Position) {
+
+    }
+
+    pub fn put_castled_rook_back(position: &mut Position) {
+
+    }
+
+    pub fn remove_promoted_piece(position: &mut Position) {
+
+    }
+
     pub fn make_complex_move(position: &mut Position, mv: Move) {
         position.promoted_piece = promotion_piece_from_move(mv);
         let from = from_square_part(mv);
