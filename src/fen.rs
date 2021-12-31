@@ -1,6 +1,6 @@
 pub mod fen {
     use crate::move_constants::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
-    use crate::types::types::{Bitboard, Move, Mover, Position, Square};
+    use crate::types::types::{Bitboard, Move, Mover, Piece, Position, Square};
     use crate::types::types::Mover::{Black, White};
     use crate::utils::utils::from_square_mask;
 
@@ -181,6 +181,12 @@ pub mod fen {
             black_queen_castle_available: castle_part.contains("q"),
             half_moves: fen_part(fen, 4).parse::<u16>().unwrap(),
             move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
+            captured_piece: Piece::Pawn,
+            captured_square: 0,
+            moved_piece: Piece::Pawn,
+            moved_from_square: 0,
+            promoted_piece: Piece::Pawn,
+            castle_type: ' '
         }
     }
 }

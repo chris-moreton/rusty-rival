@@ -12,6 +12,7 @@ pub mod make_move {
         let from = from_square_part(mv);
         let to = to_square_part(mv);
         let piece = moving_piece(position, from as Square);
+        position.moved_piece = piece.clone();
         return if is_simple_move(position, mv, from as Square, to, &piece) {
             make_simple_move(position, mv, from as Square, piece)
         } else {

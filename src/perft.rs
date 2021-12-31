@@ -1,4 +1,4 @@
-use crate::make_move::make_move::{make_move, switch_side};
+use crate::make_move::make_move::{make_move};
 use crate::moves::moves::{is_check, moves};
 use crate::types::types::Position;
 
