@@ -181,13 +181,6 @@ pub mod fen {
             black_queen_castle_available: castle_part.contains("q"),
             half_moves: fen_part(fen, 4).parse::<u16>().unwrap(),
             move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
-            captured_piece: Piece::Pawn,
-            captured_square: 0,
-            moved_piece: Piece::Pawn,
-            moved_from_square: 0,
-            promoted_piece: Piece::Pawn,
-            castle_type: ' ',
-            previous_half_move_count: 0
         }
     }
 }

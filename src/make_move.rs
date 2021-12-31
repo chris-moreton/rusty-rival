@@ -12,13 +12,8 @@ pub mod make_move {
     pub fn make_move(position: &mut Position, mv: Move) {
         let from = from_square_part(mv);
         let to = to_square_part(mv);
-        position.moved_from_square = from;
-        position.moved_piece = moving_piece(position, from as Square);
-        position.captured_piece = Piece::Empty;
-        position.promoted_piece = Piece::Empty;
-        position.captured_square = -1;
-        position.castle_type = ' ';
-        return if is_simple_move(position, mv, from as Square, to) {
+        let piece = moving_piece(position, from);
+        return if is_simple_move(position, mv, from as Square, to, piece) {
             make_simple_move(position, mv, from as Square)
         } else {
             make_complex_move(position, mv)
@@ -26,54 +21,16 @@ pub mod make_move {
     }
 
     pub fn unmake_move(position: &mut Position) {
-        put_moving_piece_back(position);
-
-        if position.captured_piece != Empty {
-            put_captured_piece_back(position);
-        }
-
-        if position.castle_type != ' ' {
-            put_castled_rook_back(position);
-        }
-
-        if position.promoted_piece != Empty {
-            remove_promoted_piece(position);
-        }
-
-        if position.mover == White {
-            position.mover = Black;
-            position.move_number = position.move_number - 1;
-        } else {
-            position.mover = White;
-        }
-
-        position.half_moves = position.previous_half_move_count;
-
-    }
-
-    pub fn put_moving_piece_back(position: &mut Position) {
-
-    }
-
-    pub fn put_captured_piece_back(position: &mut Position) {
-
-    }
-
-    pub fn put_castled_rook_back(position: &mut Position) {
-
-    }
-
-    pub fn remove_promoted_piece(position: &mut Position) {
 
     }
 
     pub fn make_complex_move(position: &mut Position, mv: Move) {
-        position.promoted_piece = promotion_piece_from_move(mv);
+        let promoted_piece = promotion_piece_from_move(mv);
         let from = from_square_part(mv);
         let to = to_square_part(mv);
 
-        if position.promoted_piece != Empty {
-            make_move_with_promotion(position, mv, position.promoted_piece);
+        if promoted_piece != Empty {
+            make_move_with_promotion(position, mv, promoted_piece);
         } else if from == E1_BIT && (to == G1_BIT || to == C1_BIT) && (position.white_king_castle_available || position.white_queen_castle_available) {
             make_white_castle_move(position, to);
         } else if from == E8_BIT && (to == G8_BIT || to == C8_BIT) && (position.black_king_castle_available || position.black_queen_castle_available) {
@@ -85,10 +42,8 @@ pub mod make_move {
 
     pub fn make_white_castle_move(position: &mut Position, to: Square) {
         let wr= if to == C1_BIT {
-            position.castle_type = 'Q';
-            move_piece_within_bitboard(A1_BIT, D1_BIT, position.white_rook_bitboard) 
+            move_piece_within_bitboard(A1_BIT, D1_BIT, position.white_rook_bitboard)
         } else {
-            position.castle_type = 'K';
             move_piece_within_bitboard(H1_BIT, F1_BIT, position.white_rook_bitboard)
         };
         let wk = move_piece_within_bitboard(E1_BIT, to, position.white_king_bitboard);
@@ -106,10 +61,8 @@ pub mod make_move {
 
     pub fn make_black_castle_move(position: &mut Position, to: Square) {
         let br= if to == C8_BIT {
-            position.castle_type = 'q';
             move_piece_within_bitboard(A8_BIT, D8_BIT, position.black_rook_bitboard)
         } else {
-            position.castle_type = 'k';
             move_piece_within_bitboard(H8_BIT, F8_BIT, position.black_rook_bitboard)
         };
 
@@ -222,9 +175,7 @@ pub mod make_move {
     
     pub fn remove_pawn_when_en_passant(position: &mut Position, attacker: Bitboard, defender: Bitboard, to: Square, en_passant_square: Square) -> Bitboard {
         if en_passant_square == to && test_bit(attacker, to) {
-            position.captured_piece = Pawn;
             let epcps = en_passant_captured_piece_square(to);
-            position.captured_square = epcps;
             remove_piece_from_bitboard(epcps, defender)
         } else {
             defender
@@ -316,42 +267,43 @@ pub mod make_move {
     pub fn make_simple_move(position: &mut Position, mv: Move, from: Square) {
         let to = to_square_part(mv);
         let switch_bitboard = bit(from) | bit(to);
+        let piece = moving_piece(position, from);
         return if position.mover == White {
-            make_simple_white_move(position, from, to, switch_bitboard)
+            make_simple_white_move(position, from, to, switch_bitboard, piece)
         } else {
-            make_simple_black_move(position, from, to, switch_bitboard)
+            make_simple_black_move(position, from, to, switch_bitboard, piece)
         }
     }
 
-    pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square, switch_bitboard: Bitboard) {
+    pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square, switch_bitboard: Bitboard, piece: Piece) {
         position.mover = Black;
-        return if position.moved_piece == Pawn {
+        return if piece == Pawn {
             make_simple_white_pawn_move(position, from, to, switch_bitboard)
-        } else if position.moved_piece == Knight {
+        } else if piece == Knight {
             make_simple_white_knight_move(position, from, to, switch_bitboard)
-        } else if position.moved_piece == Bishop {
+        } else if piece == Bishop {
             make_simple_white_bishop_move(position, from, to, switch_bitboard)
-        } else if position.moved_piece == Rook {
+        } else if piece == Rook {
             make_simple_white_rook_move(position, from, to, switch_bitboard)
-        } else if position.moved_piece == Queen {
+        } else if piece == Queen {
             make_simple_white_queen_move(position, from, to, switch_bitboard)
         } else {
             make_simple_white_king_move(position, from, to, switch_bitboard)
         }
     }
 
-    pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square, switch_bitboard: Bitboard) {
+    pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square, switch_bitboard: Bitboard, piece: Piece) {
         position.move_number += 1;
         position.mover = White;
-        return if position.moved_piece == Pawn {
+        return if piece == Pawn {
             make_simple_black_pawn_move(position, from, to, switch_bitboard)
-        } else if position.moved_piece == Knight {
+        } else if piece == Knight {
             make_simple_black_knight_move(position, from, to, switch_bitboard)
-        } else if position.moved_piece == Bishop {
+        } else if piece == Bishop {
             make_simple_black_bishop_move(position, from, to, switch_bitboard)
-        } else if position.moved_piece == Rook {
+        } else if piece == Rook {
             make_simple_black_rook_move(position, from, to, switch_bitboard)
-        } else if position.moved_piece == Queen {
+        } else if piece == Queen {
             make_simple_black_queen_move(position, from, to, switch_bitboard)
         } else {
             make_simple_black_king_move(position, from, to, switch_bitboard)
@@ -469,33 +421,15 @@ pub mod make_move {
         return King
     }
 
-    pub fn is_simple_move(position: &mut Position, mv: Move, from: Square, to: Square) -> bool {
+    pub fn is_simple_move(position: &mut Position, mv: Move, from: Square, to: Square, piece: Piece) -> bool {
         return
             !is_simple_capture(position, to) &&
-                !(position.moved_piece == Pawn && is_complex_pawn_move(position, from, to)) &&
-                    !(position.moved_piece == King && is_potential_first_king_move(position, from));
+                !(piece == Pawn && is_complex_pawn_move(position, from, to)) &&
+                    !(piece == King && is_potential_first_king_move(position, from));
     }
 
     pub fn is_simple_capture(position: &mut Position, square: Square) -> bool {
-        return if test_bit(position.all_pieces_bitboard, square) {
-            position.captured_square = square;
-            if position.mover == White {
-                if test_bit(position.black_pawn_bitboard, square) { position.captured_piece = Pawn }
-                if test_bit(position.black_knight_bitboard, square) { position.captured_piece = Knight }
-                if test_bit(position.black_bishop_bitboard, square) { position.captured_piece = Bishop }
-                if test_bit(position.black_rook_bitboard, square) { position.captured_piece = Rook }
-                if test_bit(position.black_queen_bitboard, square) { position.captured_piece = Queen }
-            } else {
-                if test_bit(position.white_pawn_bitboard, square) { position.captured_piece = Pawn }
-                if test_bit(position.white_knight_bitboard, square) { position.captured_piece = Knight }
-                if test_bit(position.white_bishop_bitboard, square) { position.captured_piece = Bishop }
-                if test_bit(position.white_rook_bitboard, square) { position.captured_piece = Rook }
-                if test_bit(position.white_queen_bitboard, square) { position.captured_piece = Queen }
-            }
-            true
-        } else {
-            false
-        }
+        test_bit(position.all_pieces_bitboard, square)
     }
 
     // todo - remove position param
