@@ -1,5 +1,5 @@
 use rusty_rival::fen::fen::get_position;
-use rusty_rival::make_move::make_move::{make_move, switch_side};
+use rusty_rival::make_move::make_move::{default_position_history, make_move, switch_side};
 use rusty_rival::moves::moves::{is_check, moves};
 use rusty_rival::perft::perft;
 use rusty_rival::types::types::Mover::White;
@@ -8,7 +8,9 @@ use rusty_rival::types::types::Position;
 #[test]
 #[ignore]
 fn it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_with_a_given_position_as_its_head_long_version() {
-    assert_eq!(perft(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string()), 4), 3186478);
+    let mut history = default_position_history();
+
+    assert_eq!(perft(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string()), 4, &mut history), 3186478);
 
     // assert_eq!(perft(&get_position(&"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1".to_string()), 3), 43238);
     // assert_eq!(perft(&get_position(&"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".to_string()), 2), 97862);

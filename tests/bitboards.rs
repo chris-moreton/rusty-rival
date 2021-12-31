@@ -116,7 +116,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         white_queen_castle_available: true,
         black_queen_castle_available: true,
         half_moves: 0,
-        move_number: 0,
+        move_number: 1,
     };
 
     assert_eq!(1, bitboard_for_mover(&p1, &Piece::Pawn));
@@ -149,7 +149,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         white_queen_castle_available: true,
         black_queen_castle_available: true,
         half_moves: 0,
-        move_number: 0,
+        move_number: 1,
     };
 
     assert_eq!(7, bitboard_for_mover(&p2, &Piece::Pawn));

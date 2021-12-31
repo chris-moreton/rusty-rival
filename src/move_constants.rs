@@ -8,4 +8,6 @@ pub mod move_constants {
     pub const PROMOTION_FULL_MOVE_MASK: Move = 448;
     pub const EN_PASSANT_NOT_AVAILABLE: i8 = -1;
     pub const PROMOTION_SQUARES: Bitboard = 0b1111111100000000000000000000000000000000000000000000000011111111;
+
+    pub const MAX_MOVE_HISTORY: u16 = 512;
 }

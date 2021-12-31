@@ -4,23 +4,28 @@ pub mod make_move {
     use crate::fen::fen::get_position;
     use crate::move_constants::move_constants::*;
     use crate::moves::moves::move_piece_within_bitboard;
-    use crate::types::types::{Bitboard, Move, Mover, Piece, Position, Square};
+    use crate::types::types::{Bitboard, Move, Mover, Piece, Position, PositionHistory, Square};
     use crate::types::types::Mover::{Black, White};
     use crate::types::types::Piece::{Bishop, Empty, King, Knight, Pawn, Queen, Rook};
     use crate::utils::utils::{from_square_mask, from_square_part, to_square_part};
 
-    pub fn make_move(position: &mut Position, mv: Move) {
+    pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistory) {
         let from = from_square_part(mv);
         let to = to_square_part(mv);
         let piece = moving_piece(position, from);
+        let index = get_move_index(position.move_number, position.mover);
         return if is_simple_move(position, mv, from as Square, to, piece) {
             make_simple_move(position, mv, from as Square)
         } else {
             make_complex_move(position, mv)
-        }
+        };
     }
 
-    pub fn unmake_move(position: &mut Position) {
+    pub fn get_move_index(move_number: u16, mover: Mover) -> u16 {
+        move_number * 2 - if mover == White { 1 } else { 0 }
+    }
+
+    pub fn unmake_move(position: &mut Position, history: &PositionHistory) {
 
     }
 
@@ -440,6 +445,36 @@ pub mod make_move {
     // todo - remove position param
     pub fn is_potential_first_king_move(position: &mut Position, from: Square) -> bool {
         return from == E1_BIT as Square || from == E8_BIT as Square
+    }
+
+    pub fn default_position_history() -> PositionHistory {
+        PositionHistory {
+            history: [Position {
+                white_pawn_bitboard: 0,
+                white_knight_bitboard: 0,
+                white_bishop_bitboard: 0,
+                white_queen_bitboard: 0,
+                white_king_bitboard: 0,
+                white_rook_bitboard: 0,
+                black_pawn_bitboard: 0,
+                black_knight_bitboard: 0,
+                black_bishop_bitboard: 0,
+                black_queen_bitboard: 0,
+                black_king_bitboard: 0,
+                black_rook_bitboard: 0,
+                all_pieces_bitboard: 0,
+                white_pieces_bitboard: 0,
+                black_pieces_bitboard: 0,
+                mover: Mover::White,
+                en_passant_square: 0,
+                white_king_castle_available: false,
+                black_king_castle_available: false,
+                white_queen_castle_available: false,
+                black_queen_castle_available: false,
+                half_moves: 0,
+                move_number: 1
+            }; MAX_MOVE_HISTORY as usize]
+        }
     }
 
 }

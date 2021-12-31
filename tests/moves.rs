@@ -1,6 +1,6 @@
 use rusty_rival::bitboards::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use rusty_rival::fen::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
-use rusty_rival::make_move::make_move::{make_move, switch_side};
+use rusty_rival::make_move::make_move::{default_position_history, make_move, switch_side};
 use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
 use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, any_squares_in_bitboard_attacked, generate_castle_moves, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_check, is_square_attacked_by, moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::types::Piece::{Bishop, Rook};
@@ -316,12 +316,14 @@ pub fn it_checks_for_check() {
 
 #[test]
 pub fn it_gets_all_moves_for_a_position() {
+    let mut history = default_position_history();
+
     assert_eq!(sort_moves(moves(&get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()))), vec!["e8d7", "e8d8", "e8e7", "e8f7", "e8f8"]);
 
     let mut position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
     let no_checks = moves(&position).into_iter().filter(| m| {
         let mut position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
-        make_move(&mut position, *m);
+        make_move(&mut position, *m, &mut history);
         !is_check(&position, &switch_side(position.mover) )
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["e8d7","e8d8","e8f7"]);
@@ -360,7 +362,7 @@ pub fn it_gets_all_moves_for_a_position() {
     let mut position = get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string());
     let no_checks = moves(&position).into_iter().filter(| m| {
         let mut position = get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string());
-        make_move(&mut position, *m);
+        make_move(&mut position, *m, &mut history);
         !is_check(&position, &switch_side(position.mover) )
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["a1b1", "a1c1", "a1d1", "a2a3", "a2a4", "a5b4", "a5b6", "a5c7", "a5d8", "e1c1", "e1d1", "e1d2", "e1f2", "h1f1", "h1g1", "h2h3", "h2h4"]);
@@ -368,7 +370,7 @@ pub fn it_gets_all_moves_for_a_position() {
     let mut position = get_position(&"8/8/p7/1P6/K1k3pP/6P1/8/8 b - - 0 1".to_string());
     let no_checks = moves(&position).into_iter().filter(| m| {
         let mut position = get_position(&"8/8/p7/1P6/K1k3pP/6P1/8/8 b - - 0 1".to_string());
-        make_move(&mut position, *m);
+        make_move(&mut position, *m, &mut history);
         !is_check(&position, &switch_side(position.mover) )
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["a6a5", "a6b5", "c4c3", "c4c5", "c4d3", "c4d4", "c4d5"]);

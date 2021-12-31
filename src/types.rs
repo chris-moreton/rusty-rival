@@ -1,5 +1,6 @@
 pub mod types {
     use std::collections::{HashMap};
+    use crate::move_constants::move_constants::MAX_MOVE_HISTORY;
 
     pub type Square = i8;
     pub type Bitboard = u64;
@@ -71,7 +72,7 @@ pub mod types {
 
     #[derive(Debug, Copy, Clone)]
     pub struct PositionHistory {
-        pub history: [Position; 256]
+        pub history: [Position; MAX_MOVE_HISTORY as usize]
     }
 
     impl PartialEq for Position {
