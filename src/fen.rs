@@ -18,9 +18,9 @@ pub mod fen {
 
     pub fn board_bits(fen_ranks: &Vec<String>, piece_char: char) -> Vec<u8> {
         let mut result: Vec<u8> = Vec::new();
-        fen_ranks.iter().for_each(|item| {
+        for item in fen_ranks {
             result.append(&mut rank_bits(item, piece_char))
-        });
+        }
         return result;
     }
 

@@ -17,10 +17,10 @@ pub mod moves {
         let from_part_only = from_square_mask(from);
         let to_squares = bit_list(to_bitboard);
         let mut move_list: MoveList = vec![];
-        to_squares.iter().for_each(|sq| {
-            let mv = from_part_only | (*sq as u32);
+        for sq in to_squares {
+            let mv = from_part_only | (sq as u32);
             move_list.push(mv);
-        });
+        }
         return move_list;
     }
 
@@ -29,12 +29,12 @@ pub mod moves {
         let valid_destinations = all_bits_except_friendly_pieces(position);
         let from_squares = bit_list(bitboard_for_mover(position, &Knight));
         let mut move_list = Vec::new();
-        from_squares.iter().for_each(|from_square| {
-            let to_squares = bit_list(KNIGHT_MOVES_BITBOARDS[*from_square as usize] & valid_destinations);
-            to_squares.iter().for_each(|to_square| {
-               move_list.push(from_square_mask(*from_square as i8) | *to_square as u32);
-            });
-        });
+        for from_square in from_squares {
+            let to_squares = bit_list(KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
+            for to_square in to_squares {
+               move_list.push(from_square_mask(from_square as i8) | to_square as u32);
+            };
+        };
         return move_list;
     }
 
@@ -44,9 +44,9 @@ pub mod moves {
         let from_square = bitboard_for_mover(position, &King).trailing_zeros();
         let mut move_list = Vec::new();
         let to_squares = bit_list(KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
-        to_squares.iter().for_each(|to_square| {
-            move_list.push(from_square_mask(from_square as i8) | *to_square as u32);
-        });
+        for to_square in to_squares {
+            move_list.push(from_square_mask(from_square as i8) | to_square as u32);
+        }
         return move_list;
     }
 
@@ -59,19 +59,19 @@ pub mod moves {
     pub fn generate_slider_moves_with_targets(position: &Position, piece: Piece, valid_destinations: Bitboard) -> MoveList {
         let from_squares = bit_list(slider_bitboard_for_colour(position, &position.mover, &piece));
         let mut move_list = Vec::new();
-        from_squares.iter().for_each(|from_square| {
+        for from_square in from_squares {
             let magic_vars = if piece == Bishop { &MAGIC_BISHOP_VARS } else { &MAGIC_ROOK_VARS };
-            let number_magic = magic_vars.magic_number.iter().nth(*from_square as usize).unwrap();
-            let shift_magic = magic_vars.magic_number_shifts.iter().nth(*from_square as usize).unwrap();
-            let mask_magic = magic_vars.occupancy_mask.iter().nth(*from_square as usize).unwrap();
+            let number_magic = magic_vars.magic_number[from_square as usize];
+            let shift_magic = magic_vars.magic_number_shifts[from_square as usize];
+            let mask_magic = magic_vars.occupancy_mask[from_square as usize];
             let occupancy = position.all_pieces_bitboard & mask_magic;
-            let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * *number_magic as u128) as u128)) as u64;
+            let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
             let to_squares_magic_index = raw_index >> shift_magic;
-            let to_squares = bit_list(magic(magic_vars, *from_square as Square, to_squares_magic_index) & valid_destinations);
-            to_squares.iter().for_each(|to_square| {
-                move_list.push(from_square_mask(*from_square as i8) | *to_square as u32);
-            });
-        });
+            let to_squares = bit_list(magic(magic_vars, from_square as Square, to_squares_magic_index) & valid_destinations);
+            for to_square in to_squares {
+                move_list.push(from_square_mask(from_square as i8) | to_square as u32);
+            }
+        };
         return move_list;
     }
 
@@ -88,22 +88,22 @@ pub mod moves {
         let mask = from_square_mask(from_square);
         let to_squares = bit_list(to_bitboard);
         let mut move_list = Vec::new();
-        to_squares.iter().for_each(|to_square| {
-            let base_move = mask | *to_square as Move;
-            if *to_square >= 56 || *to_square <= 7 {
-                promotion_moves(base_move).iter().for_each(|mv| {
-                    move_list.push(*mv);
-                })
+        for to_square in to_squares {
+            let base_move = mask | to_square as Move;
+            if to_square >= 56 || to_square <= 7 {
+                for mv in promotion_moves(base_move) {
+                    move_list.push(mv);
+                }
             } else {
                 move_list.push(base_move);
             }
-        });
+        }
         return move_list;
     }
 
     #[inline(always)]
     pub fn pawn_captures(lookup: &[Bitboard], square: Square, enemy_bitboard: Bitboard) -> Bitboard {
-        return lookup.iter().nth(square as usize).unwrap() & enemy_bitboard;
+        return lookup[square as usize] & enemy_bitboard;
     }
 
     #[inline(always)]
@@ -156,16 +156,16 @@ pub mod moves {
     pub fn generate_white_pawn_moves(from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
         let mut move_list = Vec::new();
 
-        bit_list(from_squares).iter().for_each(|from_square| {
+        for from_square in bit_list(from_squares) {
             let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
-                *from_square as Square,
+                from_square as Square,
                 WHITE_PAWN_MOVES_CAPTURE,
-                pawn_forward_moves_bitboard(WHITE_PAWN_MOVES_FORWARD.iter().nth(*from_square as usize).unwrap() & empty_squares, &position),
+                pawn_forward_moves_bitboard(WHITE_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares, &position),
                 &position
             );
-            let mut ms = generate_pawn_moves_from_to_squares(*from_square as Square, pawn_forward_and_capture_moves);
+            let mut ms = generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves);
             move_list.append(ms.as_mut());
-        });
+        };
 
         return move_list;
     }
@@ -174,16 +174,16 @@ pub mod moves {
     pub fn generate_black_pawn_moves(from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
         let mut move_list = Vec::new();
 
-        bit_list(from_squares).iter().for_each(|from_square| {
+        for from_square in bit_list(from_squares) {
             let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
-                *from_square as Square,
+                from_square as Square,
                 BLACK_PAWN_MOVES_CAPTURE,
-                pawn_forward_moves_bitboard(BLACK_PAWN_MOVES_FORWARD.iter().nth(*from_square as usize).unwrap() & empty_squares, &position),
+                pawn_forward_moves_bitboard(BLACK_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares, &position),
                 &position
             );
-            let mut ms = generate_pawn_moves_from_to_squares(*from_square as Square, pawn_forward_and_capture_moves);
+            let mut ms = generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves);
             move_list.append(ms.as_mut());
-        });
+        };
 
         return move_list;
     }
@@ -200,11 +200,11 @@ pub mod moves {
     }
 
     #[inline(always)]
-    pub fn pawn_moves_capture_of_colour(mover: Mover, square: Square) -> &'static Bitboard {
+    pub fn pawn_moves_capture_of_colour(mover: Mover, square: Square) -> Bitboard {
         return if mover == White {
-            WHITE_PAWN_MOVES_CAPTURE.iter().nth(square as usize).unwrap()
+            WHITE_PAWN_MOVES_CAPTURE[square as usize]
         } else {
-            BLACK_PAWN_MOVES_CAPTURE.iter().nth(square as usize).unwrap()
+            BLACK_PAWN_MOVES_CAPTURE[square as usize]
         }
     }
 
@@ -246,16 +246,16 @@ pub mod moves {
 
     #[inline(always)]
     pub fn is_square_attacked_by_any_knight(knight_bitboard: Bitboard, attacked_square: Square) -> bool {
-        return knight_bitboard & KNIGHT_MOVES_BITBOARDS.iter().nth(attacked_square as usize).unwrap() != 0;
+        return knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0;
     }
 
     #[inline(always)]
     pub fn is_square_attacked_by_king(king_bitboard: Bitboard, attacked_square: Square) -> bool {
-        return king_bitboard & KING_MOVES_BITBOARDS.iter().nth(attacked_square as usize).unwrap() != 0;
+        return king_bitboard & KING_MOVES_BITBOARDS[attacked_square as usize] != 0;
     }
 
     #[inline(always)]
-    pub fn is_square_attacked_by_any_pawn(pawns: Bitboard, pawn_attacks: &Bitboard) -> bool {
+    pub fn is_square_attacked_by_any_pawn(pawns: Bitboard, pawn_attacks: Bitboard) -> bool {
         return pawns & pawn_attacks != 0;
     }
 

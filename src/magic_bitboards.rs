@@ -20,22 +20,22 @@ pub mod magic_bitboards {
 
     #[inline(always)]
     pub fn magic_index_for_rook(piece_square: Square, all_piece_bitboard: Bitboard) -> u64 {
-        let number_magic = MAGIC_ROOK_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
-        let shift_magic = MAGIC_ROOK_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
-        let mask_magic = MAGIC_ROOK_VARS.occupancy_mask.iter().nth(piece_square as usize).unwrap();
+        let number_magic = *MAGIC_ROOK_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
+        let shift_magic = *MAGIC_ROOK_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
+        let mask_magic = *MAGIC_ROOK_VARS.occupancy_mask.iter().nth(piece_square as usize).unwrap();
         let occupancy = all_piece_bitboard & mask_magic;
-        let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * *number_magic as u128) as u128)) as u64;
-        return raw_index >> *shift_magic as u64;
+        let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
+        return raw_index >> shift_magic as u64;
     }
 
     #[inline(always)]
     pub fn magic_index_for_bishop(piece_square: Square, all_piece_bitboard: Bitboard) -> u64 {
-        let number_magic = MAGIC_BISHOP_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
-        let shift_magic = MAGIC_BISHOP_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
-        let mask_magic = MAGIC_BISHOP_VARS.occupancy_mask.iter().nth(piece_square as usize).unwrap();
+        let number_magic = *MAGIC_BISHOP_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
+        let shift_magic = *MAGIC_BISHOP_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
+        let mask_magic = *MAGIC_BISHOP_VARS.occupancy_mask.iter().nth(piece_square as usize).unwrap();
         let occupancy = all_piece_bitboard & mask_magic;
-        let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * *number_magic as u128) as u128)) as u64;
-        return raw_index >> *shift_magic as u64;
+        let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
+        return raw_index >> shift_magic as u64;
     }
 
     pub const MAGIC_ROOK_VARS: MagicVars = MagicVars {
