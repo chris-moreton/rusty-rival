@@ -3,10 +3,12 @@ pub mod bitboards {
     use crate::types::types::{Bitboard, Mover, Piece, Position, Square};
     use crate::types::types::Mover::White;
 
+    #[inline(always)]
     pub const fn bit(i: Square) -> Bitboard {
         return 1 << i;
     }
 
+    #[inline(always)]
     pub fn bit_list(bb: Bitboard) -> Vec<u8> {
         let mut bl = bit_list(bb, Vec::new());
         bl.reverse();
@@ -36,10 +38,12 @@ pub mod bitboards {
         }
     }
 
+    #[inline(always)]
     pub fn bitboard_for_mover(position: &Position, piece: &Piece) -> Bitboard {
         bitboard_for_colour(position, &position.mover, piece)
     }
 
+    #[inline(always)]
     pub fn bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
         match (mover, piece) {
             (Mover::White, Piece::King) => position.white_king_bitboard,
@@ -58,6 +62,7 @@ pub mod bitboards {
         }
     }
 
+    #[inline(always)]
     pub fn slider_bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
         match (mover, piece) {
             (Mover::White, Piece::Rook) => position.white_rook_bitboard | position.white_queen_bitboard,
@@ -68,14 +73,17 @@ pub mod bitboards {
         }
     }
 
+    #[inline(always)]
     pub fn clear_bit(bitboard: Bitboard, square: Square) -> Bitboard {
         return bitboard & !bit(square);
     }
 
+    #[inline(always)]
     pub fn test_bit(bitboard: Bitboard, square: Square) -> bool {
         return bitboard & bit(square) != 0;
     }
 
+    #[inline(always)]
     pub fn enemy_bitboard(position: &Position) -> Bitboard {
         return if position.mover == White { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
     }
@@ -94,8 +102,7 @@ pub mod bitboards {
         return c;
     }
 
-    const PROMOTION_SQUARES: Bitboard = 0b1111111100000000000000000000000000000000000000000000000011111111;
-
+    #[inline(always)]
     pub fn empty_squares_bitboard(position: &Position) -> Bitboard {
         return !position.all_pieces_bitboard;
     }
@@ -180,6 +187,7 @@ pub mod bitboards {
     pub const G8_BIT: Square = G7_BIT + 8;
     pub const H8_BIT: Square = H7_BIT + 8;
 
+    #[inline(always)]
     pub fn exactly_one_bit_set(bb: Bitboard) -> bool {
         return bb != 0 && bb & (bb - 1) == 0;
     }
@@ -193,6 +201,7 @@ pub mod bitboards {
     pub const FILE_G_BITS: Bitboard = every_eighth_bit_from(G8_BIT);
     pub const FILE_H_BITS: Bitboard = every_eighth_bit_from(H8_BIT);
 
+    #[inline(always)]
     pub fn set_bits(is: Vec<u8>) -> Bitboard {
         let mut x: Bitboard = 0;
         is.iter().for_each(|i| {

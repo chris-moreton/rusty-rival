@@ -3,18 +3,22 @@ pub mod magic_bitboards {
     use crate::magic_moves_rook::magic_moves_rook::MAGIC_MOVES_ROOK;
     use crate::types::types::{Bitboard, MagicVars, Square};
 
+    #[inline(always)]
     pub fn magic(magic_vars: &MagicVars, square: Square, to_squares_magic_index: u64) -> Bitboard {
         return *magic_vars.magic_moves.iter().nth(square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
     }
 
+    #[inline(always)]
     pub fn magic_bishop(from_square: Square, to_squares_magic_index: u64) -> Bitboard {
         return *MAGIC_MOVES_BISHOP.iter().nth(from_square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
     }
 
+    #[inline(always)]
     pub fn magic_rook(from_square: Square, to_squares_magic_index: u64) -> Bitboard {
         return *MAGIC_MOVES_ROOK.iter().nth(from_square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
     }
 
+    #[inline(always)]
     pub fn magic_index_for_rook(piece_square: Square, all_piece_bitboard: Bitboard) -> u64 {
         let number_magic = MAGIC_ROOK_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
         let shift_magic = MAGIC_ROOK_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
@@ -24,6 +28,7 @@ pub mod magic_bitboards {
         return raw_index >> *shift_magic as u64;
     }
 
+    #[inline(always)]
     pub fn magic_index_for_bishop(piece_square: Square, all_piece_bitboard: Bitboard) -> u64 {
         let number_magic = MAGIC_BISHOP_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
         let shift_magic = MAGIC_BISHOP_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
