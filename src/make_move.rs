@@ -178,28 +178,6 @@ pub fn remove_piece_from_bitboard(square: Square, bitboard: Bitboard) -> Bitboar
 }
 
 #[inline(always)]
-pub fn move_white_rook_when_castling(from: Square, to: Square, king_board: Bitboard, rook_board: Bitboard) -> Bitboard {
-    if from == E1_BIT && to == G1_BIT && test_bit(king_board, E1_BIT) {
-        move_mover_or_remove_captured(H1_BIT, F1_BIT, rook_board)
-    } else if from == E1_BIT && to == C1_BIT && test_bit(king_board, E1_BIT) {
-        move_mover_or_remove_captured(A1_BIT, D1_BIT, rook_board)
-    } else {
-        rook_board
-    }
-}
-
-#[inline(always)]
-pub fn move_black_rook_when_castling(from: Square, to: Square, king_board: Bitboard, rook_board: Bitboard) -> Bitboard {
-    if from == E8_BIT && to == G8_BIT && test_bit(king_board, E8_BIT) {
-        move_mover_or_remove_captured(H8_BIT, F8_BIT, rook_board)
-    } else if from == E8_BIT && to == C8_BIT && test_bit(king_board, E8_BIT) {
-        move_mover_or_remove_captured(A8_BIT, D8_BIT, rook_board)
-    } else {
-        rook_board
-    }
-}
-
-#[inline(always)]
 pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Square) {
 
     let is_pawn_move = test_bit(position.white_pawn_bitboard | position.black_pawn_bitboard, from);
@@ -218,10 +196,8 @@ pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Squar
     let bn = move_mover_or_remove_captured(from, to, position.black_knight_bitboard);
     let wb = move_mover_or_remove_captured(from, to, position.white_bishop_bitboard);
     let bb = move_mover_or_remove_captured(from, to, position.black_bishop_bitboard);
-
-    let wr = move_white_rook_when_castling(from, to, position.white_king_bitboard, move_mover_or_remove_captured(from, to, position.white_rook_bitboard));
-    let br = move_black_rook_when_castling (from, to, position.black_king_bitboard, move_mover_or_remove_captured(from, to, position.black_rook_bitboard));
-
+    let wr = move_mover_or_remove_captured(from, to, position.white_rook_bitboard);
+    let br = move_mover_or_remove_captured(from, to, position.black_rook_bitboard);
     let wq = move_mover_or_remove_captured(from, to, position.white_queen_bitboard);
     let bq = move_mover_or_remove_captured(from, to, position.black_queen_bitboard);
     let wk = move_mover_or_remove_captured(from, to, position.white_king_bitboard);
