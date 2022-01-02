@@ -32,14 +32,15 @@ pub fn all_bits_except_friendly_pieces(position: &Position) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn moves_from_to_squares_bitboard(from: Square, to_bitboard: Bitboard) -> MoveList {
+pub fn moves_from_to_squares_bitboard(from: Square, mut to_bitboard: Bitboard) -> MoveList {
     let from_part_only = from_square_mask(from);
-    let to_squares = bit_list(to_bitboard);
     let mut move_list: MoveList = vec![];
-    for sq in to_squares {
-        let mv = from_part_only | (sq as u32);
-        move_list.push(mv);
+    while to_bitboard != 0 {
+        let sq = to_bitboard.trailing_zeros() as u8;
+        move_list.push(from_part_only | (sq as u32));
+        to_bitboard = to_bitboard & !(1 << sq);
     }
+
     move_list
 }
 
@@ -49,10 +50,13 @@ pub fn generate_knight_moves(position: &Position) -> MoveList {
     let from_squares = bit_list(bitboard_for_mover(position, &Knight));
     let mut move_list = Vec::new();
     for from_square in from_squares {
-        let to_squares = bit_list(KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
-        for to_square in to_squares {
-            move_list.push(from_square_mask(from_square as i8) | to_square as u32);
-        };
+        let fsm = from_square_mask(from_square as i8);
+        let mut to_bitboard = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
+        while to_bitboard != 0 {
+            let sq = to_bitboard.trailing_zeros() as u8;
+            move_list.push(fsm | sq as u32);
+            to_bitboard = to_bitboard & !(1 << sq);
+        }
     };
     move_list
 }
@@ -62,9 +66,12 @@ pub fn generate_king_moves(position: &Position) -> MoveList {
     let valid_destinations = all_bits_except_friendly_pieces(position);
     let from_square = bitboard_for_mover(position, &King).trailing_zeros();
     let mut move_list = Vec::new();
-    let to_squares = bit_list(KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
-    for to_square in to_squares {
-        move_list.push(from_square_mask(from_square as i8) | to_square as u32);
+    let fsm = from_square_mask(from_square as i8);
+    let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
+    while to_bitboard != 0 {
+        let sq = to_bitboard.trailing_zeros() as u8;
+        move_list.push(fsm | sq as u32);
+        to_bitboard = to_bitboard & !(1 << sq);
     }
     move_list
 }
@@ -72,23 +79,26 @@ pub fn generate_king_moves(position: &Position) -> MoveList {
 #[inline(always)]
 pub fn generate_slider_moves(position: &Position, piece: Piece, magic_box: &MagicBox) -> MoveList {
     let valid_destinations = all_bits_except_friendly_pieces(position);
-    let from_squares = bit_list(slider_bitboard_for_colour(position, &position.mover, &piece));
+    let mut from_bitboard = slider_bitboard_for_colour(position, &position.mover, &piece);
     let mut move_list = Vec::new();
-    for from_square in from_squares {
-        for to_square in bit_list(if piece == Bishop {
+    while from_bitboard != 0 {
+        let from_square = from_bitboard.trailing_zeros() as u8;
+        let fsm = from_square_mask(from_square as i8);
+
+        let mut to_bitboard = if piece == Bishop {
             magic_bishop(from_square as Square, magic_index_for_bishop(from_square as Square, position.all_pieces_bitboard, magic_box), magic_box)
         } else {
             magic_rook(from_square as Square, magic_index_for_rook(from_square as Square, position.all_pieces_bitboard, magic_box), magic_box)
-        } & valid_destinations) {
-            move_list.push(from_square_mask(from_square as i8) | to_square as u32);
+        } & valid_destinations;
+
+        while to_bitboard != 0 {
+            let sq = to_bitboard.trailing_zeros() as u8;
+            move_list.push(fsm | sq as u32);
+            to_bitboard = to_bitboard & !(1 << sq);
         }
+        from_bitboard = from_bitboard & !(1 << from_square);
     };
     move_list
-}
-
-#[inline(always)]
-pub fn promotion_moves(mv: Move) -> MoveList {
-    vec![mv | PROMOTION_QUEEN_MOVE_MASK, mv | PROMOTION_ROOK_MOVE_MASK, mv | PROMOTION_BISHOP_MOVE_MASK, mv | PROMOTION_KNIGHT_MOVE_MASK]
 }
 
 #[inline(always)]
@@ -99,9 +109,10 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, to_bitboard: Bit
     for to_square in to_squares {
         let base_move = mask | to_square as Move;
         if to_square >= 56 || to_square <= 7 {
-            for mv in promotion_moves(base_move) {
-                move_list.push(mv);
-            }
+            move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
+            move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
+            move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
+            move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
         } else {
             move_list.push(base_move);
         }
