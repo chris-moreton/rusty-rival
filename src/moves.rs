@@ -51,7 +51,7 @@ pub fn generate_knight_moves(position: &Position) -> MoveList {
     for from_square in from_squares {
         let to_squares = bit_list(KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
         for to_square in to_squares {
-           move_list.push(from_square_mask(from_square as i8) | to_square as u32);
+            move_list.push(from_square_mask(from_square as i8) | to_square as u32);
         };
     };
     move_list
@@ -110,7 +110,7 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, to_bitboard: Bit
             move_list.push(base_move);
         }
     }
-    return move_list;
+    move_list
 }
 
 #[inline(always)]
@@ -129,16 +129,16 @@ pub fn potential_pawn_jump_moves(bb: Bitboard, position: &Position) -> Bitboard 
 
 #[inline(always)]
 pub fn pawn_forward_moves_bitboard(pawn_moves: Bitboard, position: &Position) -> Bitboard {
-    pawn_moves | (potential_pawn_jump_moves(pawn_moves, &position) & empty_squares_bitboard(&position))
+    pawn_moves | (potential_pawn_jump_moves(pawn_moves, position) & empty_squares_bitboard(position))
 }
 
 #[inline(always)]
 pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn_moves: &[Bitboard], non_captures: Bitboard, position: &Position) -> Bitboard {
     let eps = position.en_passant_square;
     let captures = if eps != EN_PASSANT_NOT_AVAILABLE && bit(eps) & en_passant_capture_rank(&position.mover) != 0 {
-        pawn_captures_plus_en_passant_square(capture_pawn_moves, from_square, &position)
+        pawn_captures_plus_en_passant_square(capture_pawn_moves, from_square, position)
     } else {
-        pawn_captures(capture_pawn_moves, from_square, enemy_bitboard(&position))
+        pawn_captures(capture_pawn_moves, from_square, enemy_bitboard(position))
     };
     non_captures | captures
 }
@@ -146,7 +146,7 @@ pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn
 #[inline(always)]
 pub fn pawn_captures_plus_en_passant_square(capture_pawn_moves: &[Bitboard], square: Square, position: &Position) -> Bitboard {
     let eps = position.en_passant_square;
-    pawn_captures(capture_pawn_moves, square, enemy_bitboard(&position) | if eps == EN_PASSANT_NOT_AVAILABLE { 0 } else { bit(eps) })
+    pawn_captures(capture_pawn_moves, square, enemy_bitboard(position) | if eps == EN_PASSANT_NOT_AVAILABLE { 0 } else { bit(eps) })
 }
 
 #[inline(always)]
@@ -156,11 +156,11 @@ pub fn en_passant_capture_rank(mover: &Mover) -> Bitboard {
 
 #[inline(always)]
 pub fn generate_pawn_moves(position: &Position) -> MoveList {
-    let bitboard = bitboard_for_mover(&position, &Pawn);
+    let bitboard = bitboard_for_mover(position, &Pawn);
     if position.mover == White {
-        generate_white_pawn_moves(bitboard, position, empty_squares_bitboard(&position))
+        generate_white_pawn_moves(bitboard, position, empty_squares_bitboard(position))
     } else {
-        generate_black_pawn_moves(bitboard, position, empty_squares_bitboard(&position))
+        generate_black_pawn_moves(bitboard, position, empty_squares_bitboard(position))
     }
 }
 
@@ -172,8 +172,8 @@ pub fn generate_white_pawn_moves(from_squares: Bitboard, position: &Position, em
         let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
             from_square as Square,
             WHITE_PAWN_MOVES_CAPTURE,
-            pawn_forward_moves_bitboard(WHITE_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares, &position),
-            &position
+            pawn_forward_moves_bitboard(WHITE_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares, position),
+            position
         );
         let mut ms = generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves);
         move_list.append(ms.as_mut());
@@ -190,8 +190,8 @@ pub fn generate_black_pawn_moves(from_squares: Bitboard, position: &Position, em
         let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
             from_square as Square,
             BLACK_PAWN_MOVES_CAPTURE,
-            pawn_forward_moves_bitboard(BLACK_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares, &position),
-            &position
+            pawn_forward_moves_bitboard(BLACK_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares, position),
+            position
         );
         let mut ms = generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves);
         move_list.append(ms.as_mut());
@@ -224,13 +224,13 @@ pub fn pawn_moves_capture_of_colour(mover: Mover, square: Square) -> Bitboard {
 pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover: &Mover, magic_box: &MagicBox) -> bool {
     let all_pieces = position.all_pieces_bitboard;
     if *mover == White {
-            is_square_attacked_by_any_pawn(position.white_pawn_bitboard, pawn_moves_capture_of_colour(Black, attacked_square)) ||
+        is_square_attacked_by_any_pawn(position.white_pawn_bitboard, pawn_moves_capture_of_colour(Black, attacked_square)) ||
             is_square_attacked_by_any_knight(position.white_knight_bitboard, attacked_square) ||
             is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, White), attacked_square, magic_box) ||
             is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, White), attacked_square, magic_box) ||
             is_square_attacked_by_king(position.white_king_bitboard, attacked_square)
     } else {
-            is_square_attacked_by_any_pawn(position.black_pawn_bitboard, pawn_moves_capture_of_colour(White, attacked_square)) ||
+        is_square_attacked_by_any_pawn(position.black_pawn_bitboard, pawn_moves_capture_of_colour(White, attacked_square)) ||
             is_square_attacked_by_any_knight(position.black_knight_bitboard, attacked_square) ||
             is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, Black), attacked_square, magic_box) ||
             is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, Black), attacked_square, magic_box) ||
@@ -278,7 +278,7 @@ pub fn is_square_attacked_by_any_bishop(all_pieces: Bitboard, attacking_bishops:
     } else {
         let bishop_square = attacking_bishops.trailing_zeros();
         is_bishop_attacking_square(attacked_square, bishop_square as Square, all_pieces, magic_box) ||
-        is_square_attacked_by_any_bishop(all_pieces, clear_bit(attacking_bishops, bishop_square as Square), attacked_square, magic_box)
+            is_square_attacked_by_any_bishop(all_pieces, clear_bit(attacking_bishops, bishop_square as Square), attacked_square, magic_box)
     }
 }
 
@@ -289,18 +289,18 @@ pub fn is_square_attacked_by_any_rook(all_pieces: Bitboard, attacking_rooks: Bit
     } else {
         let rook_square = attacking_rooks.trailing_zeros();
         is_rook_attacking_square(attacked_square, rook_square as Square, all_pieces, magic_box) ||
-        is_square_attacked_by_any_rook(all_pieces, clear_bit(attacking_rooks, rook_square as Square), attacked_square, magic_box)
+            is_square_attacked_by_any_rook(all_pieces, clear_bit(attacking_rooks, rook_square as Square), attacked_square, magic_box)
     }
 }
 
 #[inline(always)]
 pub fn is_bishop_attacking_square(attacked_square: Square, piece_square: Square, all_pieces_bitboard: Bitboard, magic_box: &MagicBox) -> bool {
-    test_bit(magic_bishop(piece_square, magic_index_for_bishop(piece_square, all_pieces_bitboard, &magic_box), &magic_box), attacked_square)
+    test_bit(magic_bishop(piece_square,magic_index_for_bishop(piece_square, all_pieces_bitboard, magic_box), magic_box), attacked_square)
 }
 
 #[inline(always)]
 pub fn is_rook_attacking_square(attacked_square: Square, piece_square: Square, all_pieces_bitboard: Bitboard, magic_box: &MagicBox) -> bool {
-    test_bit(magic_rook(piece_square, magic_index_for_rook(piece_square, all_pieces_bitboard, &magic_box), &magic_box), attacked_square)
+    test_bit(magic_rook(piece_square,magic_index_for_rook(piece_square, all_pieces_bitboard, magic_box), magic_box), attacked_square)
 }
 
 #[inline(always)]

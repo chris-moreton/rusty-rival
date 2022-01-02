@@ -79,9 +79,9 @@ pub fn promotion_mask(piece_char: String) -> Move {
 
 pub fn move_from_algebraic_move(a: String) -> Move {
     let s = if a.len() == 4 { a + " " } else { a };
-    return from_square_mask(bitref_from_algebraic_squareref(s[0..2].to_string())) +
+    from_square_mask(bitref_from_algebraic_squareref(s[0..2].to_string())) +
         bitref_from_algebraic_squareref(s[2..4].to_string()) as Move +
-        promotion_mask(s[4..5].to_string());
+        promotion_mask(s[4..5].to_string())
 }
 
 pub fn promotion_part(m: Move) -> String {
@@ -104,16 +104,16 @@ pub fn get_fen_ranks(fen_board_part: String) -> Vec<String> {
     return fen_board_part.split("/").map(|s| s.to_string()).collect();
 }
 
-pub fn fen_part(fen: &String, i: u8) -> String {
+pub fn fen_part(fen: &str, i: u8) -> String {
     let parts: Vec<&str> = fen.split(" ").collect();
     return String::from(parts[i as usize])
 }
 
-pub fn fen_board_part(fen: &String) -> String {
+pub fn fen_board_part(fen: &str) -> String {
     return fen_part(fen, 0)
 }
 
-pub fn get_mover(fen: &String) -> Mover {
+pub fn get_mover(fen: &str) -> Mover {
     let m = fen_part(fen, 1);
     return if m == "w" { White } else { Black }
 }
@@ -122,25 +122,25 @@ pub fn piece_bitboard(fen_ranks: &Vec<String>, piece: char) -> Bitboard {
     return bit_array_to_decimal(board_bits(&fen_ranks, piece));
 }
 
-pub fn en_passant_fen_part(fen: &String) -> String {
+pub fn en_passant_fen_part(fen: &str) -> String {
     return fen_part(fen, 3);
 }
 
 pub fn bitref_from_algebraic_squareref(algebraic: String) -> Square {
-    let file_num = algebraic.chars().nth(0).unwrap() as u8 - 97;
+    let file_num = algebraic.chars().next().unwrap() as u8 - 97;
     let rank_num = algebraic.chars().nth(1).unwrap() as u8 - 49;
-    return (rank_num * 8 + (7 - file_num)) as Square;
+    (rank_num * 8 + (7 - file_num)) as Square
 }
 
 fn en_passant_bit_ref(en_passant_fen_part: String) -> i8 {
-    return if en_passant_fen_part == "-" {
+    if en_passant_fen_part == "-" {
         EN_PASSANT_UNAVAILABLE
     } else {
         bitref_from_algebraic_squareref(en_passant_fen_part)
     }
 }
 
-pub fn get_position(fen: &String) -> Position {
+pub fn get_position(fen: &str) -> Position {
     let fen_ranks = get_fen_ranks(fen_board_part(fen));
     let mover = get_mover(fen);
     let wp = piece_bitboard(&fen_ranks, 'P');
@@ -156,7 +156,7 @@ pub fn get_position(fen: &String) -> Position {
     let wq = piece_bitboard(&fen_ranks, 'Q');
     let bq = piece_bitboard(&fen_ranks, 'q');
     let castle_part = fen_part(fen, 2);
-    return Position {
+    Position {
         white_pawn_bitboard: wp,
         black_pawn_bitboard: bp,
         white_knight_bitboard: wn,
@@ -174,10 +174,10 @@ pub fn get_position(fen: &String) -> Position {
         black_pieces_bitboard: bp | bn | bb | br | bq | bk,
         mover: get_mover(fen),
         en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square,
-        white_king_castle_available: castle_part.contains("K"),
-        white_queen_castle_available: castle_part.contains("Q"),
-        black_king_castle_available: castle_part.contains("k"),
-        black_queen_castle_available: castle_part.contains("q"),
+        white_king_castle_available: castle_part.contains('K'),
+        white_queen_castle_available: castle_part.contains('Q'),
+        black_king_castle_available: castle_part.contains('k'),
+        black_queen_castle_available: castle_part.contains('q'),
         half_moves: fen_part(fen, 4).parse::<u16>().unwrap(),
         move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
     }
