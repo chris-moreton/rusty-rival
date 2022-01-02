@@ -2,12 +2,12 @@ use crate::types::{Bitboard, MagicBox, MagicVars, Square};
 
 #[inline(always)]
 pub fn magic_bishop(from_square: Square, to_squares_magic_index: u64, magic_box: &MagicBox) -> Bitboard {
-    return magic_box.bishop.magic_moves[from_square as usize][to_squares_magic_index as usize]
+    magic_box.bishop.magic_moves[from_square as usize][to_squares_magic_index as usize]
 }
 
 #[inline(always)]
 pub fn magic_rook(from_square: Square, to_squares_magic_index: u64, magic_box: &MagicBox) -> Bitboard {
-    return magic_box.rook.magic_moves[from_square as usize][to_squares_magic_index as usize]
+    magic_box.rook.magic_moves[from_square as usize][to_squares_magic_index as usize]
 }
 
 #[inline(always)]
@@ -17,7 +17,7 @@ pub fn magic_index_for_rook(piece_square: Square, all_piece_bitboard: Bitboard, 
     let mask_magic = magic_box.rook.occupancy_mask[piece_square as usize];
     let occupancy = all_piece_bitboard & mask_magic;
     let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
-    return raw_index >> shift_magic as u64;
+    raw_index >> shift_magic as u64
 }
 
 #[inline(always)]
@@ -27,11 +27,11 @@ pub fn magic_index_for_bishop(piece_square: Square, all_piece_bitboard: Bitboard
     let mask_magic = magic_box.bishop.occupancy_mask[piece_square as usize];
     let occupancy = all_piece_bitboard & mask_magic;
     let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
-    return raw_index >> shift_magic as u64;
+    raw_index >> shift_magic as u64
 }
 
 pub const MAGIC_NUMBER_ROOK: [Bitboard; 64] = [
-    -0x5e7ffddf7fbffdd0 as i64 as u64,
+    -0x5e7ffddf7fbffdd0_i64 as u64,
     0x40100040022000,
     0x80088020001002,
     0x80080280841000,
@@ -51,23 +51,23 @@ pub const MAGIC_NUMBER_ROOK: [Bitboard; 64] = [
     0x90004040026008,
     0x208808010002001,
     0x2002020020704940,
-    -0x7fb7fefff7eefffb as i64 as u64,
+    -0x7fb7fefff7eefffb_i64 as u64,
     0x6820808004002200,
     0xa80040008023011,
     0xb1460000811044,
     0x4204400080008ea0,
-    -0x4ffdbffe7fdffe7c as i64 as u64,
+    -0x4ffdbffe7fdffe7c_i64 as u64,
     0x2020200080100380,
     0x10080080100080,
     0x2204080080800400,
     0xa40080360080,
     0x2040604002810b1,
     0x8c218600004104,
-    -0x7e7fffbfffbfe000 as i64 as u64,
+    -0x7e7fffbfffbfe000_i64 as u64,
     0x488c402000401001,
     0x4018a00080801004,
     0x1230002105001008,
-    -0x76fb7ff7ff7ffc00 as i64 as u64,
+    -0x76fb7ff7ff7ffc00_i64 as u64,
     0x42000c42003810,
     0x8408110400b012,
     0x18086182000401,
@@ -91,7 +91,7 @@ pub const MAGIC_NUMBER_ROOK: [Bitboard; 64] = [
     0x1008010400021,
     0x4082001007241,
     0x211009001200509,
-    -0x7feaffeffdbbe7ff as i64 as u64,
+    -0x7feaffeffdbbe7ff_i64 as u64,
     0x801000804000603,
     0xc0900220024a401,
     0x1000200608243
@@ -104,15 +104,15 @@ pub const MAGIC_NUMBER_BISHOP: [Bitboard; 64] = [
     0x2ca804a100200020,
     0x204042200000900,
     0x2002121024000002,
-    -0x7fbfbefbdfdfff18 as i64 as u64,
-    -0x7ed5fdfdfafef7c0 as i64 as u64,
-    -0x7ffae7ee7bf7ffb8 as i64 as u64,
+    -0x7fbfbefbdfdfff18_i64 as u64,
+    -0x7ed5fdfdfafef7c0_i64 as u64,
+    -0x7ffae7ee7bf7ffb8_i64 as u64,
     0x1001c20208010101,
     0x1001080204002100,
     0x181080489021800,
     0x62040420010a00,
     0x5028043004300020,
-    -0x3ff7f5bbfd9faffe as i64 as u64,
+    -0x3ff7f5bbfd9faffe_i64 as u64,
     0x8a00a0104220200,
     0x940000410821212,
     0x1808024a280210,
@@ -139,18 +139,18 @@ pub const MAGIC_NUMBER_BISHOP: [Bitboard; 64] = [
     0x23010400020600,
     0x41040020110302,
     0x412101004020818,
-    -0x7fddf7f5f6bfbdf8 as i64 as u64,
+    -0x7fddf7f5f6bfbdf8_i64 as u64,
     0x1401210240484800,
     0x22244208010080,
     0x1105040104000210,
     0x2040088800c40081,
-    -0x7e7b7efdadfffc00 as i64 as u64,
+    -0x7e7b7efdadfffc00_i64 as u64,
     0x4004610041002200,
     0x40201a444400810,
     0x4611010802020008,
-    -0x7ffff4fbfefbfbfe as i64 as u64,
+    -0x7ffff4fbfefbfbfe_i64 as u64,
     0x20004821880a00,
-    -0x7dffffdfddbbff00 as i64 as u64,
+    -0x7dffffdfddbbff00_i64 as u64,
     0x9431801010068,
     0x1040c20806108040,
     0x804901403022a40,
