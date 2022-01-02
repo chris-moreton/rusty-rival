@@ -111,7 +111,7 @@ pub mod make_move {
         } else {
             clear_bit(position.white_rook_bitboard, H1_BIT) | bit(F1_BIT)
         };
-        let wk = move_piece_within_bitboard(E1_BIT, to, position.white_king_bitboard);
+        let wk = clear_bit(position.white_king_bitboard, E1_BIT) | bit(to);
         let wpb = wr | wk | position.white_queen_bitboard | position.white_knight_bitboard | position.white_bishop_bitboard | position.white_pawn_bitboard;
         position.white_rook_bitboard = wr;
         position.white_king_bitboard = wk;
@@ -132,7 +132,8 @@ pub mod make_move {
             clear_bit(position.black_rook_bitboard, H8_BIT) | bit(F8_BIT)
         };
 
-        let bk = move_piece_within_bitboard(E8_BIT, to, position.black_king_bitboard);
+        let bk = clear_bit(position.black_king_bitboard, E8_BIT) | bit(to);
+
         let bpb = br | bk | position.black_queen_bitboard | position.black_knight_bitboard | position.black_bishop_bitboard | position.black_pawn_bitboard;
         position.black_rook_bitboard = br;
         position.black_king_bitboard = bk;
