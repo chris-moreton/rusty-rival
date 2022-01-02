@@ -7,20 +7,14 @@ pub const fn bit(i: Square) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn bit_list(bb: Bitboard) -> Vec<u8> {
-    let mut bl = bit_list(bb, Vec::new());
-    bl.reverse();
-    return bl;
-
-    fn bit_list(bb: Bitboard, mut r: Vec<u8>) -> Vec<u8> {
-        if bb == 0 {
-            return r
-        }
+pub fn bit_list(mut bb: Bitboard) -> Vec<u8> {
+    let mut r = vec![];
+    while bb != 0 {
         let b = bb.trailing_zeros() as u8;
-        let new_bb = bb & !(1 << b);
         r.push(b);
-        bit_list(new_bb, r)
+        bb = bb & !(1 << b);
     }
+    r
 }
 
 pub fn bit_string(bb: Bitboard) -> String {
@@ -86,12 +80,14 @@ pub fn enemy_bitboard(position: &Position) -> Bitboard {
     if position.mover == White { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
 }
 
+#[inline(always)]
 pub fn south_fill(bb: Bitboard) -> Bitboard {
     let a = bb | (bb >> 8);
     let b = a | (a >> 16);
     b | (b >> 32)
 }
 
+#[inline(always)]
 pub fn north_fill(bb: Bitboard) -> Bitboard {
     let a = bb | (bb << 8);
     let b = a | (a << 16);

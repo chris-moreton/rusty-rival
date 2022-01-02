@@ -71,11 +71,7 @@ pub fn generate_king_moves(position: &Position) -> MoveList {
 
 #[inline(always)]
 pub fn generate_slider_moves(position: &Position, piece: Piece, magic_box: &MagicBox) -> MoveList {
-    generate_slider_moves_with_targets(position, piece, all_bits_except_friendly_pieces(position), magic_box)
-}
-
-#[inline(always)]
-pub fn generate_slider_moves_with_targets(position: &Position, piece: Piece, valid_destinations: Bitboard, magic_box: &MagicBox) -> MoveList {
+    let valid_destinations = all_bits_except_friendly_pieces(position);
     let from_squares = bit_list(slider_bitboard_for_colour(position, &position.mover, &piece));
     let mut move_list = Vec::new();
     for from_square in from_squares {
