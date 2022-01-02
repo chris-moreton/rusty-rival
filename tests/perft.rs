@@ -1,9 +1,7 @@
 use rusty_rival::fen::get_position;
-use rusty_rival::make_move::{default_position_history, make_move, switch_side};
-use rusty_rival::moves::{allocate_magic_boxes, is_check, moves};
+use rusty_rival::make_move::{default_position_history};
+use rusty_rival::moves::{allocate_magic_boxes};
 use rusty_rival::perft::perft;
-use rusty_rival::types::Mover::White;
-use rusty_rival::types::Position;
 
 #[test]
 fn it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_with_a_given_position_as_its_head() {

@@ -38,7 +38,7 @@ pub fn moves_from_to_squares_bitboard(from: Square, mut to_bitboard: Bitboard) -
     while to_bitboard != 0 {
         let sq = to_bitboard.trailing_zeros() as u8;
         move_list.push(from_part_only | (sq as u32));
-        to_bitboard = to_bitboard & !(1 << sq);
+        to_bitboard &= !(1 << sq);
     }
 
     move_list
@@ -55,7 +55,7 @@ pub fn generate_knight_moves(position: &Position) -> MoveList {
         while to_bitboard != 0 {
             let sq = to_bitboard.trailing_zeros() as u8;
             move_list.push(fsm | sq as u32);
-            to_bitboard = to_bitboard & !(1 << sq);
+            to_bitboard &= !(1 << sq);
         }
     };
     move_list
@@ -71,7 +71,7 @@ pub fn generate_king_moves(position: &Position) -> MoveList {
     while to_bitboard != 0 {
         let sq = to_bitboard.trailing_zeros() as u8;
         move_list.push(fsm | sq as u32);
-        to_bitboard = to_bitboard & !(1 << sq);
+        to_bitboard &= !(1 << sq);
     }
     move_list
 }
@@ -96,17 +96,17 @@ pub fn generate_slider_moves(position: &Position, piece: Piece, magic_box: &Magi
             move_list.push(fsm | sq as u32);
             to_bitboard = to_bitboard & !(1 << sq);
         }
-        from_bitboard = from_bitboard & !(1 << from_square);
+        from_bitboard &= !(1 << from_square);
     };
     move_list
 }
 
 #[inline(always)]
-pub fn generate_pawn_moves_from_to_squares(from_square: Square, to_bitboard: Bitboard) -> MoveList {
+pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard: Bitboard) -> MoveList {
     let mask = from_square_mask(from_square);
-    let to_squares = bit_list(to_bitboard);
     let mut move_list = Vec::new();
-    for to_square in to_squares {
+    while to_bitboard != 0 {
+        let to_square = to_bitboard.trailing_zeros();
         let base_move = mask | to_square as Move;
         if to_square >= 56 || to_square <= 7 {
             move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
@@ -116,6 +116,7 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, to_bitboard: Bit
         } else {
             move_list.push(base_move);
         }
+        to_bitboard &= !(1 << to_square);
     }
     move_list
 }
@@ -172,10 +173,11 @@ pub fn generate_pawn_moves(position: &Position) -> MoveList {
 }
 
 #[inline(always)]
-pub fn generate_white_pawn_moves(from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
+pub fn generate_white_pawn_moves(mut from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
     let mut move_list = Vec::new();
 
-    for from_square in bit_list(from_squares) {
+    while from_squares != 0 {
+        let from_square = from_squares.trailing_zeros();
         let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
             from_square as Square,
             WHITE_PAWN_MOVES_CAPTURE,
@@ -184,16 +186,18 @@ pub fn generate_white_pawn_moves(from_squares: Bitboard, position: &Position, em
         );
         let mut ms = generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves);
         move_list.append(ms.as_mut());
+        from_squares &= !(1 << from_square);
     };
 
     move_list
 }
 
 #[inline(always)]
-pub fn generate_black_pawn_moves(from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
+pub fn generate_black_pawn_moves(mut from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
     let mut move_list = Vec::new();
 
-    for from_square in bit_list(from_squares) {
+    while from_squares != 0 {
+        let from_square = from_squares.trailing_zeros();
         let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
             from_square as Square,
             BLACK_PAWN_MOVES_CAPTURE,
@@ -202,6 +206,7 @@ pub fn generate_black_pawn_moves(from_squares: Bitboard, position: &Position, em
         );
         let mut ms = generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves);
         move_list.append(ms.as_mut());
+        from_squares &= !(1 << from_square);
     };
 
     move_list
