@@ -12,7 +12,7 @@ pub fn bit_list(mut bb: Bitboard) -> Vec<u8> {
     while bb != 0 {
         let b = bb.trailing_zeros() as u8;
         r.push(b);
-        bb = bb & !(1 << b);
+        bb &= !(1 << b);
     }
     r
 }

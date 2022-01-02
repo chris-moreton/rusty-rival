@@ -352,14 +352,13 @@ pub fn moving_piece(position: &Position, from_square: Square) -> Piece {
         else if test_bit(position.white_rook_bitboard, from_square) { Rook }
         else if test_bit(position.white_queen_bitboard, from_square) { Queen }
         else { King }
-    } else {
-        if test_bit(position.black_pawn_bitboard, from_square) { Pawn }
+    } else if test_bit(position.black_pawn_bitboard, from_square) { Pawn }
         else if test_bit(position.black_knight_bitboard, from_square) { Knight }
         else if test_bit(position.black_bishop_bitboard, from_square) { Bishop }
         else if test_bit(position.black_rook_bitboard, from_square) { Rook }
         else if test_bit(position.black_queen_bitboard, from_square) { Queen }
         else { King }
-    }
+
 }
 
 #[inline(always)]

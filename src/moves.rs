@@ -94,7 +94,7 @@ pub fn generate_slider_moves(position: &Position, piece: Piece, magic_box: &Magi
         while to_bitboard != 0 {
             let sq = to_bitboard.trailing_zeros() as u8;
             move_list.push(fsm | sq as u32);
-            to_bitboard = to_bitboard & !(1 << sq);
+            to_bitboard &= !(1 << sq);
         }
         from_bitboard &= !(1 << from_square);
     };
