@@ -127,9 +127,9 @@ pub mod make_move {
     #[inline(always)]
     pub fn make_black_castle_move(position: &mut Position, to: Square) {
         let br= if to == C8_BIT {
-            move_piece_within_bitboard(A8_BIT, D8_BIT, position.black_rook_bitboard)
+            clear_bit(position.black_rook_bitboard, A8_BIT) | bit(D8_BIT)
         } else {
-            move_piece_within_bitboard(H8_BIT, F8_BIT, position.black_rook_bitboard)
+            clear_bit(position.black_rook_bitboard, H8_BIT) | bit(F8_BIT)
         };
 
         let bk = move_piece_within_bitboard(E8_BIT, to, position.black_king_bitboard);
