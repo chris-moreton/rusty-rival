@@ -1,11 +1,11 @@
-use rusty_rival::bitboards::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
-use rusty_rival::fen::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
-use rusty_rival::make_move::make_move::{default_position_history, make_move, switch_side};
-use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::moves::{all_bits_except_friendly_pieces, allocate_magic_boxes, any_squares_in_bitboard_attacked, generate_castle_moves, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_check, is_square_attacked_by, moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
-use rusty_rival::types::types::Piece::{Bishop, Rook};
-use rusty_rival::types::types::{Bitboard, MoveList, Position, Square};
-use rusty_rival::types::types::Mover::{Black, White};
+use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
+use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
+use rusty_rival::make_move::{default_position_history, make_move, switch_side};
+use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
+use rusty_rival::moves::{all_bits_except_friendly_pieces, allocate_magic_boxes, any_squares_in_bitboard_attacked, generate_castle_moves, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_check, is_square_attacked_by, moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
+use rusty_rival::types::Piece::{Bishop, Rook};
+use rusty_rival::types::{Bitboard, MoveList, Position, Square};
+use rusty_rival::types::Mover::{Black, White};
 
 #[test]
 fn it_gets_all_bits_except_friendly_pieces() {

@@ -1,10 +1,10 @@
-use rusty_rival::bitboards::bitboards::{E1_BIT, E2_BIT, E3_BIT, E4_BIT, E7_BIT, F4_BIT, G1_BIT, G7_BIT, H1_BIT, H8_BIT};
-use rusty_rival::fen::fen::{bitref_from_algebraic_squareref, get_position, move_from_algebraic_move};
-use rusty_rival::make_move::make_move::{default_position_history, get_move_index, make_move, moving_piece, unmake_move};
-use rusty_rival::move_constants::move_constants::MAX_MOVE_HISTORY;
-use rusty_rival::types::types::Piece::{Bishop, Empty, King, Knight, Pawn, Queen, Rook};
-use rusty_rival::types::types::{Move, Mover, Position, PositionHistory};
-use rusty_rival::types::types::Mover::{Black, White};
+use rusty_rival::bitboards::{E1_BIT, E2_BIT, E3_BIT, E4_BIT, E7_BIT, F4_BIT, G1_BIT, G7_BIT, H1_BIT, H8_BIT};
+use rusty_rival::fen::{bitref_from_algebraic_squareref, get_position, move_from_algebraic_move};
+use rusty_rival::make_move::{default_position_history, get_move_index, make_move, moving_piece, unmake_move};
+use rusty_rival::move_constants::MAX_MOVE_HISTORY;
+use rusty_rival::types::Piece::{Bishop, Empty, King, Knight, Pawn, Queen, Rook};
+use rusty_rival::types::{Move, Mover, Position, PositionHistory};
+use rusty_rival::types::Mover::{Black, White};
 
 #[test]
 pub fn it_determines_the_moving_piece() {

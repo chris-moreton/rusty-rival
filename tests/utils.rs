@@ -1,4 +1,4 @@
-use rusty_rival::utils::utils::{from_square_mask, from_square_part, to_square_part};
+use rusty_rival::utils::{from_square_mask, from_square_part, to_square_part};
 
 #[test]
 fn it_creates_a_move_with_the_from_part_only() {

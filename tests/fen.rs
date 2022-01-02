@@ -1,8 +1,8 @@
 use rusty_rival::fen::*;
-use rusty_rival::fen::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, get_position, move_from_algebraic_move, piece_bitboard, rank_bits};
-use rusty_rival::move_constants::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::types::types::Mover;
-use rusty_rival::utils::utils::from_square_mask;
+use rusty_rival::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, get_position, move_from_algebraic_move, piece_bitboard, rank_bits};
+use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
+use rusty_rival::types::Mover;
+use rusty_rival::utils::from_square_mask;
 
 #[test]
 fn it_gets_the_board_part_from_the_fen() {
