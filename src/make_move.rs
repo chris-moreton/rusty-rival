@@ -1,6 +1,6 @@
 pub mod make_move {
     use std::ptr::null;
-    use crate::bitboards::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, D1_BIT, D8_BIT, E1_BIT, E8_BIT, F1_BIT, F8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
+    use crate::bitboards::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, D8_BIT, E1_BIT, E8_BIT, F1_BIT, F8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
     use crate::fen::fen::get_position;
     use crate::move_constants::move_constants::*;
     use crate::moves::moves::move_piece_within_bitboard;
@@ -107,9 +107,9 @@ pub mod make_move {
     #[inline(always)]
     pub fn make_white_castle_move(position: &mut Position, to: Square) {
         let wr= if to == C1_BIT {
-            move_piece_within_bitboard(A1_BIT, D1_BIT, position.white_rook_bitboard)
+            clear_bit(position.white_rook_bitboard, A1_BIT) | bit(D1_BIT)
         } else {
-            move_piece_within_bitboard(H1_BIT, F1_BIT, position.white_rook_bitboard)
+            clear_bit(position.white_rook_bitboard, H1_BIT) | bit(F1_BIT)
         };
         let wk = move_piece_within_bitboard(E1_BIT, to, position.white_king_bitboard);
         let wpb = wr | wk | position.white_queen_bitboard | position.white_knight_bitboard | position.white_bishop_bitboard | position.white_pawn_bitboard;
