@@ -14,11 +14,13 @@ pub mod make_move {
         let to = to_square_part(mv);
         let piece = moving_piece(position, from);
         store_history(position, history);
-        return if is_simple_move(position, from as Square, to, piece) {
+        if is_simple_move(position, from as Square, to, piece) {
             make_simple_move(position, mv, from as Square)
         } else {
             make_complex_move(position, mv)
         };
+        position.mover = switch_side(position.mover);
+        position.move_number = if position.mover == White { position.move_number + 1 } else { position.move_number }
     }
 
     #[inline(always)]
@@ -117,7 +119,6 @@ pub mod make_move {
         position.white_king_bitboard = wk;
         position.all_pieces_bitboard = wpb | position.black_pieces_bitboard;
         position.white_pieces_bitboard = wpb;
-        position.mover = Black;
         position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         position.white_king_castle_available = false;
         position.white_queen_castle_available = false;
@@ -139,13 +140,11 @@ pub mod make_move {
         position.black_king_bitboard = bk;
         position.all_pieces_bitboard = bpb | position.white_pieces_bitboard;
         position.black_pieces_bitboard = bpb;
-        position.mover = White;
         position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         position.black_king_castle_available = false;
         position.black_queen_castle_available = false;
         position.half_moves += 1;
-        position.move_number += 1;
-        
+
     }
 
     #[inline(always)]
@@ -182,8 +181,6 @@ pub mod make_move {
     pub fn make_move_with_promotion(position: &mut Position, mv: Move, promotion_piece: Piece) {
         let from = from_square_part(mv);
         let to = to_square_part(mv);
-        let m = position.mover;
-        let current_move_number = position.move_number;
         let wp = remove_pawn_if_promotion(move_piece_within_bitboard(from, to, position.white_pawn_bitboard));
         let bp = remove_pawn_if_promotion(move_piece_within_bitboard(from, to, position.black_pawn_bitboard));
         let wn = create_if_promotion(promotion_piece == Knight, position.white_pawn_bitboard, move_piece_within_bitboard(from, to, position.white_knight_bitboard), from, to);
@@ -213,14 +210,12 @@ pub mod make_move {
         position.all_pieces_bitboard = wpb | bpb;
         position.white_pieces_bitboard = wpb;
         position.black_pieces_bitboard = bpb;
-        position.mover = switch_side(m);
         position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         position.white_king_castle_available = position.white_king_castle_available && to != H1_BIT;
         position.white_queen_castle_available = position.white_queen_castle_available && to != A1_BIT;
         position.black_king_castle_available = position.black_king_castle_available && to != H8_BIT;
         position.black_queen_castle_available = position.black_queen_castle_available && to != A8_BIT;
         position.half_moves = 0;
-        position.move_number = if m == Black { current_move_number + 1 } else { current_move_number }
     }
 
     #[inline(always)]
@@ -276,7 +271,6 @@ pub mod make_move {
     #[inline(always)]
     pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Square) {
 
-        let current_move_number = position.move_number;
         let m = position.mover;
         let is_pawn_move = test_bit(position.white_pawn_bitboard | position.black_pawn_bitboard, from);
         position.white_pawn_bitboard = move_piece_within_bitboard(from, to, position.white_pawn_bitboard);
@@ -321,14 +315,12 @@ pub mod make_move {
         position.all_pieces_bitboard = wpb | bpb;
         position.white_pieces_bitboard = wpb;
         position.black_pieces_bitboard = bpb;
-        position.mover = switch_side(m);
 
         position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         position.white_king_castle_available = position.white_king_castle_available && from != E1_BIT && from != H1_BIT && to != H1_BIT;
         position.white_queen_castle_available = position.white_queen_castle_available && from != E1_BIT && from != A1_BIT && to != A1_BIT;
         position.black_king_castle_available = position.black_king_castle_available && from!= E8_BIT && from != H8_BIT && to != H8_BIT;
         position.black_queen_castle_available = position.black_queen_castle_available && from != E8_BIT && from != A8_BIT && to != A8_BIT;
-        position.move_number = if m == Black { current_move_number + 1 } else { current_move_number };
 
     }
 
@@ -351,7 +343,6 @@ pub mod make_move {
 
     #[inline(always)]
     pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square, switch_bitboard: Bitboard, piece: Piece) {
-        position.mover = Black;
         position.all_pieces_bitboard = position.all_pieces_bitboard ^ switch_bitboard;
         position.white_pieces_bitboard = position.white_pieces_bitboard ^ switch_bitboard;
         return if piece == Pawn {
@@ -379,8 +370,6 @@ pub mod make_move {
 
     #[inline(always)]
     pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square, switch_bitboard: Bitboard, piece: Piece) {
-        position.move_number += 1;
-        position.mover = White;
         position.all_pieces_bitboard = position.all_pieces_bitboard ^ switch_bitboard;
         position.black_pieces_bitboard = position.black_pieces_bitboard ^ switch_bitboard;
         return if piece == Pawn {
