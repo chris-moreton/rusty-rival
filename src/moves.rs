@@ -372,10 +372,11 @@ pub fn is_check(position: &Position, mover: &Mover, magic_box: &MagicBox) -> boo
 }
 
 #[inline(always)]
-pub fn move_piece_within_bitboard(from: Square, to: Square, bb: Bitboard) -> Bitboard {
+pub fn move_mover_or_remove_captured(from: Square, to: Square, bb: Bitboard) -> Bitboard {
     if test_bit(bb, from) {
         clear_bit(bb, from) | bit(to)
     } else {
         clear_bit(bb, to)
     }
 }
+
