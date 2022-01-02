@@ -80,20 +80,11 @@ pub mod moves {
         let from_squares = bit_list(slider_bitboard_for_colour(position, &position.mover, &piece));
         let mut move_list = Vec::new();
         for from_square in from_squares {
-            let number_magic = if piece == Bishop { magic_box.bishop.magic_number[from_square as usize] } else { magic_box.rook.magic_number[from_square as usize] };
-            let shift_magic = if piece == Bishop { magic_box.bishop.magic_number_shifts[from_square as usize] } else { magic_box.rook.magic_number_shifts[from_square as usize] };
-            let mask_magic = if piece == Bishop { magic_box.bishop.occupancy_mask[from_square as usize] } else { magic_box.rook.occupancy_mask[from_square as usize] };
-            let occupancy = position.all_pieces_bitboard & mask_magic;
-            let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
-            let to_squares_magic_index = raw_index >> shift_magic;
-            let to_squares = bit_list(
-                if piece == Bishop {
-                    magic_bishop (from_square as Square, to_squares_magic_index, magic_box)
-                } else {
-                    magic_rook (from_square as Square, to_squares_magic_index, magic_box)
-                }  & valid_destinations
-            );
-            for to_square in to_squares {
+            for to_square in bit_list(if piece == Bishop {
+                magic_bishop(from_square as Square, magic_index_for_bishop(from_square as Square, position.all_pieces_bitboard, magic_box), magic_box)
+            } else {
+                magic_rook(from_square as Square, magic_index_for_rook(from_square as Square, position.all_pieces_bitboard, magic_box), magic_box)
+            } & valid_destinations) {
                 move_list.push(from_square_mask(from_square as i8) | to_square as u32);
             }
         };
@@ -219,7 +210,7 @@ pub mod moves {
             false
         } else {
             let square = bitboard.trailing_zeros() as Square;
-            is_square_attacked_by(position, square, attacker, &magic_box) ||
+            is_square_attacked_by(position, square, attacker, magic_box) ||
                 any_squares_in_bitboard_attacked(position, attacker, clear_bit(bitboard, square), magic_box)
         }
     }
