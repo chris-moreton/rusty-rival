@@ -1,4 +1,4 @@
-use crate::types::{Bitboard, MagicBox, MagicVars, Square};
+use crate::types::{Bitboard, MagicBox, Square};
 
 #[inline(always)]
 pub fn magic_bishop(from_square: Square, to_squares_magic_index: u64, magic_box: &MagicBox) -> Bitboard {

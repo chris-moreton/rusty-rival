@@ -29,20 +29,6 @@ pub struct MagicBox {
     pub(crate) rook: Box<MagicVars>,
 }
 
-pub struct HashEntry {
-    score: u16,
-    he_path: Path,
-    height: u16,
-    bound: Bound,
-    lock: u64
-}
-
-pub struct MoveScore {
-    ms_score: u16,
-    ms_bound: Bound,
-    ms_path: Path,
-}
-
 #[derive(Debug, Copy, Clone)]
 pub struct Position {
     pub white_pawn_bitboard: Bitboard,

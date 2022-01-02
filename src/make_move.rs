@@ -1,12 +1,10 @@
-use std::ptr::null;
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, D8_BIT, E1_BIT, E8_BIT, F1_BIT, F8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
-use crate::fen::get_position;
 use crate::move_constants::*;
 use crate::moves::move_piece_within_bitboard;
 use crate::types::{Bitboard, Move, Mover, Piece, Position, PositionHistory, Square};
 use crate::types::Mover::{Black, White};
 use crate::types::Piece::{Bishop, Empty, King, Knight, Pawn, Queen, Rook};
-use crate::utils::{from_square_mask, from_square_part, to_square_part};
+use crate::utils::{from_square_part, to_square_part};
 
 pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistory) {
     let from = from_square_part(mv);
@@ -270,7 +268,6 @@ pub fn move_black_rook_when_castling(from: Square, to: Square, king_board: Bitbo
 #[inline(always)]
 pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Square) {
 
-    let m = position.mover;
     let is_pawn_move = test_bit(position.white_pawn_bitboard | position.black_pawn_bitboard, from);
     position.white_pawn_bitboard = move_piece_within_bitboard(from, to, position.white_pawn_bitboard);
     position.black_pawn_bitboard = move_piece_within_bitboard(from, to, position.black_pawn_bitboard);

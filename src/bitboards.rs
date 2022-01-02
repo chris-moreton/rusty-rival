@@ -3,7 +3,7 @@ use crate::types::Mover::White;
 
 #[inline(always)]
 pub const fn bit(i: Square) -> Bitboard {
-    return 1 << i;
+    1 << i
 }
 
 #[inline(always)]
@@ -19,7 +19,7 @@ pub fn bit_list(bb: Bitboard) -> Vec<u8> {
         let b = bb.trailing_zeros() as u8;
         let new_bb = bb & !(1 << b);
         r.push(b);
-        return bit_list(new_bb, r);
+        bit_list(new_bb, r)
     }
 }
 
@@ -32,7 +32,7 @@ pub fn bit_string(bb: Bitboard) -> String {
         }
         let bit_mask: u64 = 1 << square;
         let append_char = if bit_mask == bit_mask & bb { "1" } else { "0" };
-        return bit_string(bb ^ bit_mask, square - 1, s + append_char);
+        bit_string(bb ^ bit_mask, square - 1, s + append_char)
     }
 }
 
@@ -73,40 +73,38 @@ pub fn slider_bitboard_for_colour(position: &Position, mover: &Mover, piece: &Pi
 
 #[inline(always)]
 pub fn clear_bit(bitboard: Bitboard, square: Square) -> Bitboard {
-    return bitboard & !bit(square);
+    bitboard & !bit(square)
 }
 
 #[inline(always)]
 pub fn test_bit(bitboard: Bitboard, square: Square) -> bool {
-    return bitboard & bit(square) != 0;
+    bitboard & bit(square) != 0
 }
 
 #[inline(always)]
 pub fn enemy_bitboard(position: &Position) -> Bitboard {
-    return if position.mover == White { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
+    if position.mover == White { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
 }
 
 pub fn south_fill(bb: Bitboard) -> Bitboard {
     let a = bb | (bb >> 8);
     let b = a | (a >> 16);
-    let c = b | (b >> 32);
-    return c;
+    b | (b >> 32)
 }
 
 pub fn north_fill(bb: Bitboard) -> Bitboard {
     let a = bb | (bb << 8);
     let b = a | (a << 16);
-    let c = b | (b << 32);
-    return c;
+    b | (b << 32)
 }
 
 #[inline(always)]
 pub fn empty_squares_bitboard(position: &Position) -> Bitboard {
-    return !position.all_pieces_bitboard;
+    !position.all_pieces_bitboard
 }
 
 const fn every_eighth_bit_from(i: Square) -> Bitboard {
-    return if i < 8 {
+    if i < 8 {
         1 << i
     } else {
         (1 << i) | every_eighth_bit_from(i - 8)
@@ -187,7 +185,7 @@ pub const H8_BIT: Square = H7_BIT + 8;
 
 #[inline(always)]
 pub fn exactly_one_bit_set(bb: Bitboard) -> bool {
-    return bb != 0 && bb & (bb - 1) == 0;
+    bb != 0 && bb & (bb - 1) == 0
 }
 
 pub const FILE_A_BITS: Bitboard = every_eighth_bit_from(A8_BIT);
@@ -203,16 +201,16 @@ pub const FILE_H_BITS: Bitboard = every_eighth_bit_from(H8_BIT);
 pub fn set_bits(is: Vec<u8>) -> Bitboard {
     let mut x: Bitboard = 0;
     is.iter().for_each(|i| {
-        x = x | 1 << i;
+        x |= 1 << i;
     });
-    return x;
+    x
 }
 
 pub const fn two_bits(bit1: Square, bit2: Square) -> Bitboard {
     let mut x: Bitboard = 0;
-    x = x | 1 << bit1;
-    x = x | 1 << bit2;
-    return x;
+    x |= 1 << bit1;
+    x |= 1 << bit2;
+    x
 }
 
 pub const ALL_64_BITS_SET: Bitboard = 18446744073709551615;
@@ -243,7 +241,7 @@ pub const LOW_32_BITS: Bitboard = RANK_1_BITS | RANK_2_BITS | RANK_3_BITS | RANK
 pub const DARK_SQUARES_BITS: Bitboard = 0b0101010110101010010101011010101001010101101010100101010110101010;
 pub const LIGHT_SQUARES_BITS: Bitboard = !DARK_SQUARES_BITS;
 
-pub static KNIGHT_MOVES_BITBOARDS: &'static [Bitboard] = &[
+pub static KNIGHT_MOVES_BITBOARDS: &[Bitboard] = &[
     0x20400, 0x50800, 0xa1100, 0x142200, 0x284400, 0x508800, 0xa01000, 0x402000,
     0x2040004, 0x5080008, 0xa110011, 0x14220022, 0x28440044, 0x50880088, 0xa0100010, 0x40200020,
     0x204000402, 0x508000805, 0xa1100110a, 0x1422002214, 0x2844004428, 0x5088008850, 0xa0100010a0, 0x4020002040,
@@ -253,15 +251,15 @@ pub static KNIGHT_MOVES_BITBOARDS: &'static [Bitboard] = &[
     0b0001010000100010000000000010001000010100000000000000000000000000,
     0b0010100001000100000000000100010000101000000000000000000000000000,
     0b0101000010001000000000001000100001010000000000000000000000000000,
-    -0x5fefffef60000000 as i64 as u64,
+    -0x5fefffef60000000_i64 as u64,
     0b0100000000100000000000000010000001000000000000000000000000000000,
     0x400040200000000, 0x800080500000000, 0x1100110a00000000, 0x2200221400000000, 0x4400442800000000,
-    -0x77ff77b000000000 as i64 as u64,
+    -0x77ff77b000000000_i64 as u64,
     0x100010a000000000, 0x2000204000000000,
     0x4020000000000, 0x8050000000000, 0x110a0000000000, 0x22140000000000, 0x44280000000000, 0x88500000000000, 0x10a00000000000, 0x20400000000000
 ];
 
-pub static KING_MOVES_BITBOARDS: &'static [Bitboard] = &[
+pub static KING_MOVES_BITBOARDS: &[Bitboard] = &[
     0x302,
     0x705,
     0xe0a,
@@ -316,31 +314,31 @@ pub static KING_MOVES_BITBOARDS: &'static [Bitboard] = &[
     0x1c141c0000000000,
     0x3828380000000000,
     0x7050700000000000,
-    -0x1f5f200000000000 as i64 as u64,
-    -0x3fbf400000000000 as i64 as u64,
+    -0x1f5f200000000000_i64 as u64,
+    -0x3fbf400000000000_i64 as u64,
     0x203000000000000,
     0x507000000000000,
     0xa0e000000000000,
     0x141c000000000000,
     0x2838000000000000,
     0x5070000000000000,
-    -0x5f20000000000000 as i64 as u64,
+    -0x5f20000000000000_i64 as u64,
     0x40c0000000000000,
 ];
 
-pub const WHITE_PAWN_MOVES_CAPTURE: &'static [Bitboard] = &[
-    0x200, 0x500, 0xa00, 0x1400, 0x2800, 0x5000, 0xa000, 0x4000, 0x20000, 0x50000, 0xa0000, 0x140000, 0x280000, 0x500000, 0xa00000, 0x400000, 0x2000000, 0x5000000, 0xa000000, 0x14000000, 0x28000000, 0x50000000, 0xa0000000, 0x40000000, 0x200000000, 0x500000000, 0xa00000000, 0x1400000000, 0x2800000000, 0x5000000000, 0xa000000000, 0x4000000000, 0x20000000000, 0x50000000000, 0xa0000000000, 0x140000000000, 0x280000000000, 0x500000000000, 0xa00000000000, 0x400000000000, 0x2000000000000, 0x5000000000000, 0xa000000000000, 0x14000000000000, 0x28000000000000, 0x50000000000000, 0xa0000000000000, 0x40000000000000, 0x200000000000000, 0x500000000000000, 0xa00000000000000, 0x1400000000000000, 0x2800000000000000, 0x5000000000000000, -0x6000000000000000 as i64 as u64, 0x4000000000000000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
+pub const WHITE_PAWN_MOVES_CAPTURE: &[Bitboard] = &[
+    0x200, 0x500, 0xa00, 0x1400, 0x2800, 0x5000, 0xa000, 0x4000, 0x20000, 0x50000, 0xa0000, 0x140000, 0x280000, 0x500000, 0xa00000, 0x400000, 0x2000000, 0x5000000, 0xa000000, 0x14000000, 0x28000000, 0x50000000, 0xa0000000, 0x40000000, 0x200000000, 0x500000000, 0xa00000000, 0x1400000000, 0x2800000000, 0x5000000000, 0xa000000000, 0x4000000000, 0x20000000000, 0x50000000000, 0xa0000000000, 0x140000000000, 0x280000000000, 0x500000000000, 0xa00000000000, 0x400000000000, 0x2000000000000, 0x5000000000000, 0xa000000000000, 0x14000000000000, 0x28000000000000, 0x50000000000000, 0xa0000000000000, 0x40000000000000, 0x200000000000000, 0x500000000000000, 0xa00000000000000, 0x1400000000000000, 0x2800000000000000, 0x5000000000000000, -0x6000000000000000_i64 as u64, 0x4000000000000000, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
 ];
 
-pub const BLACK_PAWN_MOVES_CAPTURE: &'static [Bitboard] = &[
+pub const BLACK_PAWN_MOVES_CAPTURE: &[Bitboard] = &[
     0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x5, 0xa, 0x14, 0x28, 0x50, 0xa0, 0x40, 0x200, 0x500, 0xa00, 0x1400, 0x2800, 0x5000, 0xa000, 0x4000, 0x20000, 0x50000, 0xa0000, 0x140000, 0x280000, 0x500000, 0xa00000, 0x400000, 0x2000000, 0x5000000, 0xa000000, 0x14000000, 0x28000000, 0x50000000, 0xa0000000, 0x40000000, 0x200000000, 0x500000000, 0xa00000000, 0x1400000000, 0x2800000000, 0x5000000000, 0xa000000000, 0x4000000000, 0x20000000000, 0x50000000000, 0xa0000000000, 0x140000000000, 0x280000000000, 0x500000000000, 0xa00000000000, 0x400000000000, 0x2000000000000, 0x5000000000000, 0xa000000000000, 0x14000000000000, 0x28000000000000, 0x50000000000000, 0xa0000000000000, 0x40000000000000
 ];
 
-pub const WHITE_PAWN_MOVES_FORWARD: &'static [Bitboard] = &[
+pub const WHITE_PAWN_MOVES_FORWARD: &[Bitboard] = &[
     0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x100000000, 0x200000000, 0x400000000, 0x800000000, 0x1000000000, 0x2000000000, 0x4000000000, 0x8000000000, 0x10000000000, 0x20000000000, 0x40000000000, 0x80000000000, 0x100000000000, 0x200000000000, 0x400000000000, 0x800000000000, 0x1000000000000, 0x2000000000000, 0x4000000000000, 0x8000000000000, 0x10000000000000, 0x20000000000000, 0x40000000000000, 0x80000000000000, 0x100000000000000, 0x200000000000000, 0x400000000000000, 0x800000000000000, 0x1000000000000000, 0x2000000000000000, 0x4000000000000000, 1 << 63, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
 ];
 
-pub const BLACK_PAWN_MOVES_FORWARD: &'static [Bitboard] = &[
+pub const BLACK_PAWN_MOVES_FORWARD: &[Bitboard] = &[
     0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x100000000, 0x200000000, 0x400000000, 0x800000000, 0x1000000000, 0x2000000000, 0x4000000000, 0x8000000000, 0x10000000000, 0x20000000000, 0x40000000000, 0x80000000000, 0x100000000000, 0x200000000000, 0x400000000000, 0x800000000000, 0x1000000000000, 0x2000000000000, 0x4000000000000, 0x8000000000000, 0x10000000000000, 0x20000000000000, 0x40000000000000, 0x80000000000000,
 ];
 

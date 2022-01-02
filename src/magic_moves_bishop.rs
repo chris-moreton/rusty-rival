@@ -1,4 +1,4 @@
-use crate::types::{Bitboard, MagicMovesArray};
+use crate::types::{MagicMovesArray};
 
 
 pub static MAGIC_MOVES_BISHOP: MagicMovesArray = [
