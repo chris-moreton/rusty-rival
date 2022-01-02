@@ -26,6 +26,11 @@ pub mod types {
         pub(crate) magic_moves: [[Bitboard; 4096]; 64]
     }
 
+    pub struct MagicBox {
+        pub(crate) bishop: Box<MagicVars>,
+        pub(crate) rook: Box<MagicVars>,
+    }
+
     pub struct HashEntry {
         score: u16,
         he_path: Path,

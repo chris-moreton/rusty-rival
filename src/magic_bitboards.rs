@@ -1,56 +1,35 @@
 pub mod magic_bitboards {
-    use crate::magic_moves_bishop::magic_moves_bishop::MAGIC_MOVES_BISHOP;
-    use crate::magic_moves_rook::magic_moves_rook::MAGIC_MOVES_ROOK;
-    use crate::types::types::{Bitboard, MagicVars, Square};
+    use crate::types::types::{Bitboard, MagicBox, MagicVars, Square};
 
     #[inline(always)]
-    pub fn magic(magic_vars: &MagicVars, square: Square, to_squares_magic_index: u64) -> Bitboard {
-        return *magic_vars.magic_moves.iter().nth(square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
+    pub fn magic_bishop(from_square: Square, to_squares_magic_index: u64, magic_box: &MagicBox) -> Bitboard {
+        return magic_box.bishop.magic_moves[from_square as usize][to_squares_magic_index as usize]
     }
 
     #[inline(always)]
-    pub fn magic_bishop(from_square: Square, to_squares_magic_index: u64) -> Bitboard {
-        return *MAGIC_MOVES_BISHOP.iter().nth(from_square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
+    pub fn magic_rook(from_square: Square, to_squares_magic_index: u64, magic_box: &MagicBox) -> Bitboard {
+        return magic_box.rook.magic_moves[from_square as usize][to_squares_magic_index as usize]
     }
 
     #[inline(always)]
-    pub fn magic_rook(from_square: Square, to_squares_magic_index: u64) -> Bitboard {
-        return *MAGIC_MOVES_ROOK.iter().nth(from_square as usize).unwrap().iter().nth(to_squares_magic_index as usize).unwrap();
-    }
-
-    #[inline(always)]
-    pub fn magic_index_for_rook(piece_square: Square, all_piece_bitboard: Bitboard) -> u64 {
-        let number_magic = *MAGIC_ROOK_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
-        let shift_magic = *MAGIC_ROOK_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
-        let mask_magic = *MAGIC_ROOK_VARS.occupancy_mask.iter().nth(piece_square as usize).unwrap();
+    pub fn magic_index_for_rook(piece_square: Square, all_piece_bitboard: Bitboard, magic_box: &MagicBox) -> u64 {
+        let number_magic = magic_box.rook.magic_number[piece_square as usize];
+        let shift_magic = magic_box.rook.magic_number_shifts[piece_square as usize];
+        let mask_magic = magic_box.rook.occupancy_mask[piece_square as usize];
         let occupancy = all_piece_bitboard & mask_magic;
         let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
         return raw_index >> shift_magic as u64;
     }
 
     #[inline(always)]
-    pub fn magic_index_for_bishop(piece_square: Square, all_piece_bitboard: Bitboard) -> u64 {
-        let number_magic = *MAGIC_BISHOP_VARS.magic_number.iter().nth(piece_square as usize).unwrap();
-        let shift_magic = *MAGIC_BISHOP_VARS.magic_number_shifts.iter().nth(piece_square as usize).unwrap();
-        let mask_magic = *MAGIC_BISHOP_VARS.occupancy_mask.iter().nth(piece_square as usize).unwrap();
+    pub fn magic_index_for_bishop(piece_square: Square, all_piece_bitboard: Bitboard, magic_box: &MagicBox) -> u64 {
+        let number_magic = magic_box.bishop.magic_number[piece_square as usize];
+        let shift_magic = magic_box.bishop.magic_number_shifts[piece_square as usize];
+        let mask_magic = magic_box.bishop.occupancy_mask[piece_square as usize];
         let occupancy = all_piece_bitboard & mask_magic;
         let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
         return raw_index >> shift_magic as u64;
     }
-
-    pub const MAGIC_ROOK_VARS: MagicVars = MagicVars {
-        occupancy_mask: OCCUPANCY_MASK_ROOK,
-        magic_number: MAGIC_NUMBER_ROOK,
-        magic_moves: MAGIC_MOVES_ROOK,
-        magic_number_shifts: MAGIC_NUMBER_SHIFTS_ROOK
-    };
-
-    pub const MAGIC_BISHOP_VARS: MagicVars = MagicVars {
-        occupancy_mask: OCCUPANCY_MASK_BISHOP,
-        magic_number: MAGIC_NUMBER_BISHOP,
-        magic_moves: MAGIC_MOVES_BISHOP,
-        magic_number_shifts: MAGIC_NUMBER_SHIFTS_BISHOP
-    };
 
     pub const MAGIC_NUMBER_ROOK: [Bitboard; 64] = [
         -0x5e7ffddf7fbffdd0 as i64 as u64,
