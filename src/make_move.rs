@@ -95,15 +95,6 @@ pub fn is_promotion_square(square: Square) -> bool {
 }
 
 #[inline(always)]
-pub fn create_if_promotion(is_promotion_piece: bool, pawn_bitboard: Bitboard, piece_bitboard: Bitboard, from_square: Square, to_square: Square) -> Bitboard {
-    if is_promotion_piece && is_promotion_square(to_square) && test_bit(pawn_bitboard, from_square) {
-        piece_bitboard | bit(to_square)
-    } else {
-        piece_bitboard
-    }
-}
-
-#[inline(always)]
 pub fn remove_pawn_if_promotion(bitboard: Bitboard) -> Bitboard {
     bitboard & 0b0000000011111111111111111111111111111111111111111111111100000000
 }
@@ -114,14 +105,31 @@ pub fn make_move_with_promotion(position: &mut Position, mv: Move, promotion_pie
     let to = to_square_part(mv);
     let wp = remove_pawn_if_promotion(move_mover_or_remove_captured(from, to, position.white_pawn_bitboard));
     let bp = remove_pawn_if_promotion(move_mover_or_remove_captured(from, to, position.black_pawn_bitboard));
-    let wn = create_if_promotion(promotion_piece == Knight, position.white_pawn_bitboard, move_mover_or_remove_captured(from, to, position.white_knight_bitboard), from, to);
-    let bn = create_if_promotion(promotion_piece == Knight, position.black_pawn_bitboard, move_mover_or_remove_captured(from, to, position.black_knight_bitboard), from, to);
-    let wb = create_if_promotion(promotion_piece == Bishop, position.white_pawn_bitboard, move_mover_or_remove_captured(from, to, position.white_bishop_bitboard), from, to);
-    let bb = create_if_promotion(promotion_piece == Bishop, position.black_pawn_bitboard, move_mover_or_remove_captured(from, to, position.black_bishop_bitboard), from, to);
-    let wr = create_if_promotion(promotion_piece == Rook, position.white_pawn_bitboard, move_mover_or_remove_captured(from, to, position.white_rook_bitboard), from, to);
-    let br = create_if_promotion(promotion_piece == Rook, position.black_pawn_bitboard, move_mover_or_remove_captured(from, to, position.black_rook_bitboard), from, to);
-    let wq = create_if_promotion(promotion_piece == Queen, position.white_pawn_bitboard, move_mover_or_remove_captured(from, to, position.white_queen_bitboard), from, to);
-    let bq = create_if_promotion(promotion_piece == Queen, position.black_pawn_bitboard, move_mover_or_remove_captured(from, to, position.black_queen_bitboard), from, to);
+
+    let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_knight_bitboard);
+    let wn = if position.mover == White && promotion_piece == Knight { piece_bitboard | bit(to) } else { piece_bitboard };
+
+    let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_knight_bitboard);
+    let bn = if position.mover == Black && promotion_piece == Knight { piece_bitboard | bit(to) } else { piece_bitboard };
+
+    let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_bishop_bitboard);
+    let wb = if position.mover == White && promotion_piece == Bishop { piece_bitboard | bit(to) } else { piece_bitboard };
+
+    let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_bishop_bitboard);
+    let bb = if position.mover == Black && promotion_piece == Bishop { piece_bitboard | bit(to) } else { piece_bitboard };
+
+    let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_rook_bitboard);
+    let wr = if position.mover == White && promotion_piece == Rook { piece_bitboard | bit(to) } else { piece_bitboard };
+
+    let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_rook_bitboard);
+    let br = if position.mover == Black && promotion_piece == Rook { piece_bitboard | bit(to) } else { piece_bitboard };
+
+    let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_queen_bitboard);
+    let wq = if position.mover == White && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
+
+    let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_queen_bitboard);
+    let bq = if position.mover == Black && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
+
     let wk = move_mover_or_remove_captured(from, to, position.white_king_bitboard);
     let bk = move_mover_or_remove_captured(from, to, position.black_king_bitboard);
     let wpb = wp | wn | wr | wk | wq | wb;
@@ -385,22 +393,17 @@ pub fn default_position_history() -> PositionHistory {
 }
 
 #[inline(always)]
-pub fn store_history(position: &mut Position, history: &mut PositionHistory) {
-    let index = get_move_index(position.move_number, position.mover);
-
-    history.history[index] = position.clone()
-}
-
-#[inline(always)]
 pub fn get_move_index(move_number: u16, mover: Mover) -> usize {
     (move_number * 2 - if mover == White { 1 } else { 0 }) as usize
 }
 
 #[inline(always)]
-pub fn unmake_move(position: &mut Position, history: &PositionHistory) {
-    let index = get_move_index(position.move_number, position.mover) - 1;
-    let old = history.history[index];
+pub fn store_history(position: &mut Position, history: &mut PositionHistory) {
+    history.history[get_move_index(position.move_number, position.mover)] = *position
+}
 
-    *position = old.clone();
+#[inline(always)]
+pub fn unmake_move(position: &mut Position, history: &PositionHistory) {
+    *position = history.history[get_move_index(position.move_number, position.mover) - 1];
 }
 
