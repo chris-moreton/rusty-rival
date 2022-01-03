@@ -1,4 +1,4 @@
-use crate::bitboards::{bit, bit_list, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, clear_bit, EMPTY_CASTLE_SQUARES_BLACK_KING, EMPTY_CASTLE_SQUARES_BLACK_QUEEN, EMPTY_CASTLE_SQUARES_WHITE_KING, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES_BLACK_KING, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, NO_CHECK_CASTLE_SQUARES_WHITE_KING, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, test_bit, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
+use crate::bitboards::{bit, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, clear_bit, EMPTY_CASTLE_SQUARES_BLACK_KING, EMPTY_CASTLE_SQUARES_BLACK_QUEEN, EMPTY_CASTLE_SQUARES_WHITE_KING, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES_BLACK_KING, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, NO_CHECK_CASTLE_SQUARES_WHITE_KING, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, test_bit, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use crate::magic_bitboards::{magic_bishop, magic_index_for_bishop, magic_index_for_rook, MAGIC_NUMBER_BISHOP, MAGIC_NUMBER_ROOK, MAGIC_NUMBER_SHIFTS_BISHOP, MAGIC_NUMBER_SHIFTS_ROOK, magic_rook, OCCUPANCY_MASK_BISHOP, OCCUPANCY_MASK_ROOK};
 use crate::magic_moves_bishop::MAGIC_MOVES_BISHOP;
 use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
@@ -47,9 +47,10 @@ pub fn moves_from_to_squares_bitboard(from: Square, mut to_bitboard: Bitboard) -
 #[inline(always)]
 pub fn generate_knight_moves(position: &Position) -> MoveList {
     let valid_destinations = all_bits_except_friendly_pieces(position);
-    let from_squares = bit_list(bitboard_for_mover(position, &Knight));
+    let mut from_squares_bitboard = bitboard_for_mover(position, &Knight);
     let mut move_list = Vec::new();
-    for from_square in from_squares {
+    while from_squares_bitboard != 0 {
+        let from_square = from_squares_bitboard.trailing_zeros();
         let fsm = from_square_mask(from_square as i8);
         let mut to_bitboard = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
         while to_bitboard != 0 {
@@ -57,6 +58,7 @@ pub fn generate_knight_moves(position: &Position) -> MoveList {
             move_list.push(fsm | sq as u32);
             to_bitboard &= !(1 << sq);
         }
+        from_squares_bitboard &= !(1 << from_square)
     };
     move_list
 }

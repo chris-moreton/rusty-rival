@@ -7,30 +7,6 @@ pub const fn bit(i: Square) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn bit_list(mut bb: Bitboard) -> Vec<u8> {
-    let mut r = vec![];
-    while bb != 0 {
-        let b = bb.trailing_zeros() as u8;
-        r.push(b);
-        bb &= !(1 << b);
-    }
-    r
-}
-
-pub fn bit_string(bb: Bitboard) -> String {
-    return bit_string(bb, 63, String::new());
-
-    fn bit_string(bb: Bitboard, square: i8, s: String) -> String {
-        if square == -1 {
-            return s;
-        }
-        let bit_mask: u64 = 1 << square;
-        let append_char = if bit_mask == bit_mask & bb { "1" } else { "0" };
-        bit_string(bb ^ bit_mask, square - 1, s + append_char)
-    }
-}
-
-#[inline(always)]
 pub fn bitboard_for_mover(position: &Position, piece: &Piece) -> Bitboard {
     bitboard_for_colour(position, &position.mover, piece)
 }

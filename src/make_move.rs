@@ -242,15 +242,16 @@ pub fn make_simple_move(position: &mut Position, mv: Move, from: Square) {
     let piece = moving_piece(position, from);
     position.all_pieces_bitboard ^= switch_bitboard;
     if position.mover == White {
-        make_simple_white_move(position, from, to, switch_bitboard, piece)
+        position.white_pieces_bitboard ^= switch_bitboard;
+        make_simple_white_move(position, from, to, piece)
     } else {
-        make_simple_black_move(position, from, to, switch_bitboard, piece)
+        position.black_pieces_bitboard ^= switch_bitboard;
+        make_simple_black_move(position, from, to, piece)
     }
 }
 
 #[inline(always)]
-pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square, switch_bitboard: Bitboard, piece: Piece) {
-    position.white_pieces_bitboard ^= switch_bitboard;
+pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square, piece: Piece) {
     if piece == Pawn {
         position.white_pawn_bitboard = clear_bit(position.white_pawn_bitboard, from) | bit(to);
         position.en_passant_square = if to - from == 16 { from + 8 } else { EN_PASSANT_NOT_AVAILABLE };
@@ -284,8 +285,7 @@ pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square,
 }
 
 #[inline(always)]
-pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square, switch_bitboard: Bitboard, piece: Piece) {
-    position.black_pieces_bitboard ^= switch_bitboard;
+pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square, piece: Piece) {
     if piece == Pawn {
         position.black_pawn_bitboard = clear_bit(position.black_pawn_bitboard, from) | bit(to);
         position.en_passant_square = if from - to == 16 { from - 8 } else { EN_PASSANT_NOT_AVAILABLE };
@@ -388,31 +388,7 @@ pub fn default_position_history() -> PositionHistory {
 pub fn store_history(position: &mut Position, history: &mut PositionHistory) {
     let index = get_move_index(position.move_number, position.mover);
 
-    history.history[index] = Position {
-        white_pawn_bitboard: position.white_pawn_bitboard,
-        white_knight_bitboard: position.white_knight_bitboard,
-        white_bishop_bitboard: position.white_bishop_bitboard,
-        white_queen_bitboard: position.white_queen_bitboard,
-        white_king_bitboard: position.white_king_bitboard,
-        white_rook_bitboard: position.white_rook_bitboard,
-        black_pawn_bitboard: position.black_pawn_bitboard,
-        black_knight_bitboard: position.black_knight_bitboard,
-        black_bishop_bitboard: position.black_bishop_bitboard,
-        black_queen_bitboard: position.black_queen_bitboard,
-        black_king_bitboard: position.black_king_bitboard,
-        black_rook_bitboard: position.black_rook_bitboard,
-        all_pieces_bitboard: position.all_pieces_bitboard,
-        white_pieces_bitboard: position.white_pieces_bitboard,
-        black_pieces_bitboard: position.black_pieces_bitboard,
-        mover: position.mover,
-        en_passant_square: position.en_passant_square,
-        white_king_castle_available: position.white_king_castle_available,
-        black_king_castle_available: position.black_king_castle_available,
-        white_queen_castle_available: position.white_queen_castle_available,
-        black_queen_castle_available: position.black_queen_castle_available,
-        half_moves: position.half_moves,
-        move_number: position.move_number,
-    }
+    history.history[index] = position.clone()
 }
 
 #[inline(always)]
@@ -425,28 +401,6 @@ pub fn unmake_move(position: &mut Position, history: &PositionHistory) {
     let index = get_move_index(position.move_number, position.mover) - 1;
     let old = history.history[index];
 
-    position.white_pawn_bitboard = old.white_pawn_bitboard;
-    position.white_knight_bitboard = old.white_knight_bitboard;
-    position.white_bishop_bitboard = old.white_bishop_bitboard;
-    position.white_queen_bitboard = old.white_queen_bitboard;
-    position.white_king_bitboard = old.white_king_bitboard;
-    position.white_rook_bitboard = old.white_rook_bitboard;
-    position.black_pawn_bitboard = old.black_pawn_bitboard;
-    position.black_knight_bitboard = old.black_knight_bitboard;
-    position.black_bishop_bitboard = old.black_bishop_bitboard;
-    position.black_queen_bitboard = old.black_queen_bitboard;
-    position.black_king_bitboard = old.black_king_bitboard;
-    position.black_rook_bitboard = old.black_rook_bitboard;
-    position.all_pieces_bitboard = old.all_pieces_bitboard;
-    position.white_pieces_bitboard = old.white_pieces_bitboard;
-    position.black_pieces_bitboard = old.black_pieces_bitboard;
-    position.mover = old.mover;
-    position.en_passant_square = old.en_passant_square;
-    position.white_king_castle_available = old.white_king_castle_available;
-    position.black_king_castle_available = old.black_king_castle_available;
-    position.white_queen_castle_available = old.white_queen_castle_available;
-    position.black_queen_castle_available = old.black_queen_castle_available;
-    position.half_moves = old.half_moves;
-    position.move_number = old.move_number;
+    *position = old.clone();
 }
 

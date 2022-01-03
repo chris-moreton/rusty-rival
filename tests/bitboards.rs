@@ -1,4 +1,4 @@
-use rusty_rival::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit, bit_list, bit_string, bitboard_for_mover, clear_bit, DARK_SQUARES_BITS, empty_squares_bitboard, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, set_bits, south_fill, test_bit};
+use rusty_rival::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit, bitboard_for_mover, clear_bit, DARK_SQUARES_BITS, empty_squares_bitboard, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, set_bits, south_fill, test_bit};
 use rusty_rival::fen::{get_position, rank_bits};
 use rusty_rival::types::{Mover, Piece, Position};
 
@@ -10,24 +10,10 @@ fn it_sets_a_bit() {
 }
 
 #[test]
-fn it_gets_bit_lists() {
-    assert_eq!(0, bit_list(0b0000000000000000000000000000000000000000000000000000000000000000).len());
-    assert_eq!(vec![55], bit_list(0b0000000010000000000000000000000000000000000000000000000000000000));
-    assert_eq!(vec![0,55], bit_list(0b0000000010000000000000000000000000000000000000000000000000000001));
-    assert_eq!(vec![0,55,63], bit_list(0b1000000010000000000000000000000000000000000000000000000000000001));
-}
-
-#[test]
 fn it_sets_bits() {
     assert_eq!(set_bits(vec![55]), 0b0000000010000000000000000000000000000000000000000000000000000000);
     assert_eq!(set_bits(vec![55,0]), 0b0000000010000000000000000000000000000000000000000000000000000001);
     assert_eq!(set_bits(vec![63,55,0]), 0b1000000010000000000000000000000000000000000000000000000000000001);
-}
-
-#[test]
-fn it_gets_a_bit_string() {
-    assert_eq!("0000000000000000000000000000000000000000000000000000000000001111", bit_string(15));
-    assert_eq!("1000000010000000000000000000000000000000000000000000000000000001", bit_string(0b1000000010000000000000000000000000000000000000000000000000000001));
 }
 
 #[test]
