@@ -103,6 +103,7 @@ pub fn remove_pawn_if_promotion(bitboard: Bitboard) -> Bitboard {
 pub fn make_move_with_promotion(position: &mut Position, mv: Move, promotion_piece: Piece) {
     let from = from_square_part(mv);
     let to = to_square_part(mv);
+    
     let wp = remove_pawn_if_promotion(move_mover_or_remove_captured(from, to, position.white_pawn_bitboard));
     let bp = remove_pawn_if_promotion(move_mover_or_remove_captured(from, to, position.black_pawn_bitboard));
 
@@ -130,10 +131,12 @@ pub fn make_move_with_promotion(position: &mut Position, mv: Move, promotion_pie
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_queen_bitboard);
     let bq = if position.mover == Black && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
 
-    let wk = move_mover_or_remove_captured(from, to, position.white_king_bitboard);
-    let bk = move_mover_or_remove_captured(from, to, position.black_king_bitboard);
+    let wk = position.white_king_bitboard;
+    let bk = position.black_king_bitboard;
+
     let wpb = wp | wn | wr | wk | wq | wb;
     let bpb = bp | bn | br | bk | bq | bb;
+
     position.white_pawn_bitboard = wp;
     position.black_pawn_bitboard = bp;
     position.white_knight_bitboard = wn;
