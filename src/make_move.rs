@@ -35,6 +35,9 @@ pub fn make_complex_move(position: &mut Position, mv: Move) {
     } else {
         make_simple_complex_move(position, from, to);
     }
+
+    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+
 }
 
 #[inline(always)]
@@ -50,7 +53,6 @@ pub fn make_white_castle_move(position: &mut Position, to: Square) {
     position.white_king_bitboard = wk;
     position.all_pieces_bitboard = wpb | position.black_pieces_bitboard;
     position.white_pieces_bitboard = wpb;
-    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
     position.white_king_castle_available = false;
     position.white_queen_castle_available = false;
     position.half_moves += 1;
@@ -71,7 +73,6 @@ pub fn make_black_castle_move(position: &mut Position, to: Square) {
     position.black_king_bitboard = bk;
     position.all_pieces_bitboard = bpb | position.white_pieces_bitboard;
     position.black_pieces_bitboard = bpb;
-    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
     position.black_king_castle_available = false;
     position.black_queen_castle_available = false;
     position.half_moves += 1;
@@ -103,7 +104,7 @@ pub fn remove_pawn_if_promotion(bitboard: Bitboard) -> Bitboard {
 pub fn make_move_with_promotion(position: &mut Position, mv: Move, promotion_piece: Piece) {
     let from = from_square_part(mv);
     let to = to_square_part(mv);
-    
+
     let wp = remove_pawn_if_promotion(move_mover_or_remove_captured(from, to, position.white_pawn_bitboard));
     let bp = remove_pawn_if_promotion(move_mover_or_remove_captured(from, to, position.black_pawn_bitboard));
 
@@ -152,7 +153,7 @@ pub fn make_move_with_promotion(position: &mut Position, mv: Move, promotion_pie
     position.all_pieces_bitboard = wpb | bpb;
     position.white_pieces_bitboard = wpb;
     position.black_pieces_bitboard = bpb;
-    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+
     position.white_king_castle_available = position.white_king_castle_available && to != H1_BIT;
     position.white_queen_castle_available = position.white_queen_castle_available && to != A1_BIT;
     position.black_king_castle_available = position.black_king_castle_available && to != H8_BIT;
@@ -233,7 +234,6 @@ pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Squar
     position.white_pieces_bitboard = wpb;
     position.black_pieces_bitboard = bpb;
 
-    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
     position.white_king_castle_available = position.white_king_castle_available && from != E1_BIT && from != H1_BIT && to != H1_BIT;
     position.white_queen_castle_available = position.white_queen_castle_available && from != E1_BIT && from != A1_BIT && to != A1_BIT;
     position.black_king_castle_available = position.black_king_castle_available && from!= E8_BIT && from != H8_BIT && to != H8_BIT;
