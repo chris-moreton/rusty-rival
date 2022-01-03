@@ -2,7 +2,7 @@ use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_square
 use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
 use rusty_rival::make_move::{default_position_history, make_move, switch_side};
 use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::{all_bits_except_friendly_pieces, allocate_magic_boxes, any_squares_in_bitboard_attacked, generate_castle_moves, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_check, is_square_attacked_by, moves, moves_from_to_squares_bitboard, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
+use rusty_rival::moves::{all_bits_except_friendly_pieces, allocate_magic_boxes, any_squares_in_bitboard_attacked, generate_castle_moves, generate_king_moves, generate_knight_moves, generate_pawn_moves, generate_pawn_moves_from_to_squares, generate_slider_moves, is_bishop_attacking_square, is_check, is_square_attacked_by, moves, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::Piece::{Bishop, Rook};
 use rusty_rival::types::{MoveList, Square};
 use rusty_rival::types::Mover::{Black, White};
@@ -17,13 +17,6 @@ fn it_gets_all_bits_except_friendly_pieces() {
 fn it_gets_all_pieces_bitboard() {
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
     assert_eq!(position.all_pieces_bitboard, 0b1000001000000010010010010100000101000110001101000100100000000000);
-}
-
-#[test]
-fn it_creates_a_list_of_moves_from_a_from_square_and_a_list_of_to_squares() {
-    let mut moves = moves_from_to_squares_bitboard(11, bit(22) | bit(33) | bit(44));
-    moves.sort();
-    assert_eq!(moves, vec![720918,720929,720940]);
 }
 
 #[test]

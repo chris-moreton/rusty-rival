@@ -32,19 +32,6 @@ pub fn all_bits_except_friendly_pieces(position: &Position) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn moves_from_to_squares_bitboard(from: Square, mut to_bitboard: Bitboard) -> MoveList {
-    let from_part_only = from_square_mask(from);
-    let mut move_list: MoveList = vec![];
-    while to_bitboard != 0 {
-        let sq = to_bitboard.trailing_zeros() as u8;
-        move_list.push(from_part_only | (sq as u32));
-        to_bitboard &= !(1 << sq);
-    }
-
-    move_list
-}
-
-#[inline(always)]
 pub fn generate_knight_moves(position: &Position) -> MoveList {
     let valid_destinations = all_bits_except_friendly_pieces(position);
     let mut from_squares_bitboard = bitboard_for_mover(position, &Knight);

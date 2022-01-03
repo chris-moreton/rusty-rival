@@ -125,4 +125,7 @@ fn it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_wit
     assert_eq!(perft(&mut get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/2KR3R b kq - 0 1".to_string()), 4, &mut history, magic_box), 4238116);
     assert_eq!(perft(&mut get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()), 4, &mut history, magic_box), 4865609);
 
+    assert_eq!(perft(&mut get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string()), 4, &mut history, magic_box), 3186478);
+    assert_eq!(perft(&mut get_position(&"rnbqkb1r/ppppp1pp/7n/4Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3".to_string()), 4, &mut history, magic_box), 11139762);
+
 }
