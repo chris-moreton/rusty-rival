@@ -9,21 +9,17 @@ use crate::types::Piece::{Bishop, King, Knight, Pawn, Rook};
 use crate::utils::from_square_mask;
 
 #[inline(always)]
-pub fn allocate_magic_boxes() -> MagicBox {
-    MagicBox {
-        bishop: Box::new(MagicVars {
-            occupancy_mask: OCCUPANCY_MASK_BISHOP,
-            magic_number: MAGIC_NUMBER_BISHOP,
-            magic_moves: MAGIC_MOVES_BISHOP,
-            magic_number_shifts: MAGIC_NUMBER_SHIFTS_BISHOP
-        }),
-        rook: Box::new(MagicVars {
-            occupancy_mask: OCCUPANCY_MASK_ROOK,
-            magic_number: MAGIC_NUMBER_ROOK,
-            magic_moves: MAGIC_MOVES_ROOK,
-            magic_number_shifts: MAGIC_NUMBER_SHIFTS_ROOK
-        })
-    }
+pub fn moves(position: &Position, magic_box: &MagicBox) -> MoveList {
+    let mut move_list = Vec::new();
+
+    generate_pawn_moves(position, &mut move_list);
+    generate_king_moves(position, &mut move_list);
+    generate_castle_moves(position, &mut move_list, magic_box);
+    generate_knight_moves(position, &mut move_list);
+    generate_slider_moves(position, Rook, &mut move_list, magic_box);
+    generate_slider_moves(position, Bishop, &mut move_list, magic_box);
+
+    move_list
 }
 
 #[inline(always)]
@@ -32,10 +28,9 @@ pub fn all_bits_except_friendly_pieces(position: &Position) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn generate_knight_moves(position: &Position) -> MoveList {
+pub fn generate_knight_moves(position: &Position, move_list: &mut MoveList) {
     let valid_destinations = all_bits_except_friendly_pieces(position);
     let mut from_squares_bitboard = bitboard_for_mover(position, &Knight);
-    let mut move_list = Vec::new();
     while from_squares_bitboard != 0 {
         let from_square = from_squares_bitboard.trailing_zeros();
         let fsm = from_square_mask(from_square as i8);
@@ -46,30 +41,26 @@ pub fn generate_knight_moves(position: &Position) -> MoveList {
             to_bitboard &= !(1 << sq);
         }
         from_squares_bitboard &= !(1 << from_square)
-    };
-    move_list
+    }
 }
 
 #[inline(always)]
-pub fn generate_king_moves(position: &Position) -> MoveList {
+pub fn generate_king_moves(position: &Position, move_list: &mut MoveList) {
     let valid_destinations = all_bits_except_friendly_pieces(position);
     let from_square = bitboard_for_mover(position, &King).trailing_zeros();
-    let mut move_list = Vec::new();
     let fsm = from_square_mask(from_square as i8);
     let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
     while to_bitboard != 0 {
         let sq = to_bitboard.trailing_zeros() as u8;
         move_list.push(fsm | sq as u32);
         to_bitboard &= !(1 << sq);
-    }
-    move_list
+    };
 }
 
 #[inline(always)]
-pub fn generate_slider_moves(position: &Position, piece: Piece, magic_box: &MagicBox) -> MoveList {
+pub fn generate_slider_moves(position: &Position, piece: Piece, move_list: &mut MoveList, magic_box: &MagicBox) {
     let valid_destinations = all_bits_except_friendly_pieces(position);
     let mut from_bitboard = slider_bitboard_for_colour(position, &position.mover, &piece);
-    let mut move_list = Vec::new();
     while from_bitboard != 0 {
         let from_square = from_bitboard.trailing_zeros() as u8;
         let fsm = from_square_mask(from_square as i8);
@@ -87,13 +78,11 @@ pub fn generate_slider_moves(position: &Position, piece: Piece, magic_box: &Magi
         }
         from_bitboard &= !(1 << from_square);
     };
-    move_list
 }
 
 #[inline(always)]
-pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard: Bitboard) -> MoveList {
+pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard: Bitboard, move_list: &mut MoveList) {
     let mask = from_square_mask(from_square);
-    let mut move_list = Vec::new();
     while to_bitboard != 0 {
         let to_square = to_bitboard.trailing_zeros();
         let base_move = mask | to_square as Move;
@@ -106,8 +95,7 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard:
             move_list.push(base_move);
         }
         to_bitboard &= !(1 << to_square);
-    }
-    move_list
+    };
 }
 
 #[inline(always)]
@@ -152,18 +140,17 @@ pub fn en_passant_capture_rank(mover: &Mover) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn generate_pawn_moves(position: &Position) -> MoveList {
+pub fn generate_pawn_moves(position: &Position, move_list: &mut MoveList) {
     let bitboard = bitboard_for_mover(position, &Pawn);
     if position.mover == White {
-        generate_white_pawn_moves(bitboard, position, empty_squares_bitboard(position))
+        generate_white_pawn_moves(bitboard, position, empty_squares_bitboard(position), move_list)
     } else {
-        generate_black_pawn_moves(bitboard, position, empty_squares_bitboard(position))
-    }
+        generate_black_pawn_moves(bitboard, position, empty_squares_bitboard(position), move_list)
+    };
 }
 
 #[inline(always)]
-pub fn generate_white_pawn_moves(mut from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
-    let mut move_list = Vec::new();
+pub fn generate_white_pawn_moves(mut from_squares: Bitboard, position: &Position, empty_squares: Bitboard, move_list: &mut MoveList) {
 
     while from_squares != 0 {
         let from_square = from_squares.trailing_zeros();
@@ -173,17 +160,13 @@ pub fn generate_white_pawn_moves(mut from_squares: Bitboard, position: &Position
             pawn_forward_moves_bitboard(WHITE_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares, position),
             position
         );
-        let mut ms = generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves);
-        move_list.append(ms.as_mut());
+        generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves, move_list);
         from_squares &= !(1 << from_square);
     };
-
-    move_list
 }
 
 #[inline(always)]
-pub fn generate_black_pawn_moves(mut from_squares: Bitboard, position: &Position, empty_squares: Bitboard) -> MoveList {
-    let mut move_list = Vec::new();
+pub fn generate_black_pawn_moves(mut from_squares: Bitboard, position: &Position, empty_squares: Bitboard, move_list: &mut MoveList) {
 
     while from_squares != 0 {
         let from_square = from_squares.trailing_zeros();
@@ -193,12 +176,9 @@ pub fn generate_black_pawn_moves(mut from_squares: Bitboard, position: &Position
             pawn_forward_moves_bitboard(BLACK_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares, position),
             position
         );
-        let mut ms = generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves);
-        move_list.append(ms.as_mut());
+        generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves, move_list);
         from_squares &= !(1 << from_square);
     };
-
-    move_list
 }
 
 #[inline(always)]
@@ -305,9 +285,8 @@ pub fn is_rook_attacking_square(attacked_square: Square, piece_square: Square, a
 }
 
 #[inline(always)]
-pub fn generate_castle_moves(position: &Position, magic_box: &MagicBox) -> MoveList {
+pub fn generate_castle_moves(position: &Position, move_list: &mut MoveList, magic_box: &MagicBox) {
     let all_pieces = position.all_pieces_bitboard;
-    let mut move_list = Vec::new();
     if position.mover == White {
         if position.white_king_castle_available && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 &&
             !any_squares_in_bitboard_attacked(position, &Black, NO_CHECK_CASTLE_SQUARES_WHITE_KING, magic_box) {
@@ -326,20 +305,7 @@ pub fn generate_castle_moves(position: &Position, magic_box: &MagicBox) -> MoveL
             !any_squares_in_bitboard_attacked(position, &White, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, magic_box) {
             move_list.push(from_square_mask(59) | 61);
         }
-    }
-    move_list
-}
-
-#[inline(always)]
-pub fn moves(position: &Position, magic_box: &MagicBox) -> MoveList {
-    let mut move_list = Vec::new();
-    move_list.append(generate_pawn_moves(position).as_mut());
-    move_list.append(generate_king_moves(position).as_mut());
-    move_list.append(generate_castle_moves(position, magic_box).as_mut());
-    move_list.append(generate_knight_moves(position).as_mut());
-    move_list.append(generate_slider_moves(position, Rook, magic_box).as_mut());
-    move_list.append(generate_slider_moves(position, Bishop, magic_box).as_mut());
-    move_list
+    };
 }
 
 #[inline(always)]
@@ -369,3 +335,20 @@ pub fn move_mover_or_remove_captured(from: Square, to: Square, bb: Bitboard) -> 
     }
 }
 
+#[inline(always)]
+pub fn allocate_magic_boxes() -> MagicBox {
+    MagicBox {
+        bishop: Box::new(MagicVars {
+            occupancy_mask: OCCUPANCY_MASK_BISHOP,
+            magic_number: MAGIC_NUMBER_BISHOP,
+            magic_moves: MAGIC_MOVES_BISHOP,
+            magic_number_shifts: MAGIC_NUMBER_SHIFTS_BISHOP
+        }),
+        rook: Box::new(MagicVars {
+            occupancy_mask: OCCUPANCY_MASK_ROOK,
+            magic_number: MAGIC_NUMBER_ROOK,
+            magic_moves: MAGIC_MOVES_ROOK,
+            magic_number_shifts: MAGIC_NUMBER_SHIFTS_ROOK
+        })
+    }
+}

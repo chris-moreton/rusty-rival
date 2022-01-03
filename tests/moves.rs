@@ -22,13 +22,13 @@ fn it_gets_all_pieces_bitboard() {
 #[test]
 fn it_generates_knight_moves_from_a_given_fen_ignoring_checks() {
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
-    let move_list = generate_knight_moves(&position);
+    let mut move_list = Vec::new(); generate_knight_moves(&position, &mut move_list);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["a8c7","b6a4","b6c4","b6c8","b6d5","b6d7","g7e8","g7f5","g7h5"]);
 
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQKq g3 5 56".to_string());
-    let move_list = generate_knight_moves(&position);
+    let mut move_list = Vec::new(); generate_knight_moves(&position, &mut move_list);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["e2c1","e2d4","e2g1","e2g3"]);
@@ -37,13 +37,13 @@ fn it_generates_knight_moves_from_a_given_fen_ignoring_checks() {
 #[test]
 fn it_generates_king_moves_from_a_given_fen_ignoring_checks() {
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
-    let move_list = generate_king_moves(&position);
+    let mut move_list = Vec::new(); generate_king_moves(&position, &mut move_list);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["g8f7","g8f8","g8h7","g8h8"]);
 
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQKq g3 5 56".to_string());
-    let move_list = generate_king_moves(&position);
+    let mut move_list = Vec::new(); generate_king_moves(&position, &mut move_list);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["d3c2","d3c4","d3d2","d3d4","d3e3","d3e4"]);
@@ -54,13 +54,13 @@ fn it_generates_bishop_moves_including_diagonal_queen_moves_from_a_given_fen_ign
     let magic_box = &allocate_magic_boxes();
 
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/7R w kQKq g3 5 56".to_string());
-    let move_list = generate_slider_moves(&position, Bishop, magic_box);
+    let mut move_list = Vec::new(); generate_slider_moves(&position, Bishop, &mut move_list, magic_box);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["f3a8","f3b7","f3c6","f3d5","f3e4","f3g2"]);
 
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
-    let move_list = generate_slider_moves(&position, Bishop, magic_box);
+    let mut move_list = Vec::new(); generate_slider_moves(&position, Bishop, &mut move_list, magic_box);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g4"]);
@@ -71,12 +71,12 @@ fn it_generates_rook_moves_including_horizontal_queen_moves_from_a_given_fen_ign
     let magic_box = &allocate_magic_boxes();
 
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQKq g3 5 56".to_string());
-    let move_list = generate_slider_moves(&position, Rook, magic_box);
+    let mut move_list = Vec::new(); generate_slider_moves(&position, Rook, &mut move_list, magic_box);
     let algebraic = sort_moves(move_list);
     assert_eq!(algebraic, vec!["f4c4","f4d4","f4e4","f4f5","f4f6","f4f7","f4f8"]);
 
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/6r1 b kQKq g3 5 56".to_string());
-    let move_list = generate_slider_moves(&position, Rook, magic_box);
+    let mut move_list = Vec::new(); generate_slider_moves(&position, Rook, &mut move_list, magic_box);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["b2a2","b2b1","b2b3","b2b4","b2c2","b2d2","b2e2","e6c6","e6d6","e6e2","e6e3","e6e4","e6e5","e6e7","e6e8","e6f6","e6g6","g1a1","g1b1","g1c1","g1d1","g1e1","g1f1","g1g2","g1g3","g1g4","g1h1"]);
@@ -84,12 +84,12 @@ fn it_generates_rook_moves_including_horizontal_queen_moves_from_a_given_fen_ign
 
 #[test]
 fn it_creates_a_list_of_moves_from_a_given_from_square_and_a_list_of_to_squares() {
-    let move_list = generate_pawn_moves_from_to_squares(54, bit(63) | bit(62) | bit(61));
+    let mut move_list = Vec::new(); generate_pawn_moves_from_to_squares(54, bit(63) | bit(62) | bit(61), &mut move_list);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r","b7c8b","b7c8n","b7c8q","b7c8r"]);
 
-    let move_list = generate_pawn_moves_from_to_squares(46, bit(55) | bit(54) | bit(53));
+    let mut move_list = Vec::new(); generate_pawn_moves_from_to_squares(46, bit(55) | bit(54) | bit(53), &mut move_list);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["b6a7","b6b7","b6c7"]);
@@ -140,13 +140,13 @@ fn it_returns_a_bitboard_showing_available_landing_squares_capture_and_non_captu
 #[test]
 fn it_generates_pawn_moves_from_a_given_fen_ignoring_checks() {
     let position = get_position(&"n5k1/4P1n1/1n2q2p/1p1p4/5R2/3K1B2/1r2N3/6r1 w - - 0 1".to_string());
-    let move_list = generate_pawn_moves(&position);
+    let mut move_list = Vec::new(); generate_pawn_moves(&position, &mut move_list);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["e7e8b","e7e8n","e7e8q","e7e8r"]);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/3K1B2/1r2N2P/6r1 w - c6 0 1".to_string());
-    let move_list = generate_pawn_moves(&position);
+    let mut move_list = Vec::new(); generate_pawn_moves(&position, &mut move_list);
     let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
     algebraic.sort();
     assert_eq!(algebraic, vec!["a5a6","a5b6","b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r","d5c6","d5d6","d5e6","e7e8b","e7e8n","e7e8q","e7e8r","h2h3","h2h4"]);
@@ -264,31 +264,40 @@ fn it_generates_castle_moves_for_a_given_mover() {
     let magic_box = &allocate_magic_boxes();
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 w Q - 0 1".to_string());
-    assert_eq!(sort_moves(generate_castle_moves(&position, magic_box)).len(), 0);
+    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
+    assert_eq!(sort_moves(move_list).len(), 0);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R w KQ - 0 1".to_string());
-    assert_eq!(sort_moves(generate_castle_moves(&position, magic_box)), vec!["e1c1", "e1g1"]);
+    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
+    assert_eq!(sort_moves(move_list), vec!["e1c1", "e1g1"]);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/3rN2P/R3K2R w KQ - 0 1".to_string());
-    assert_eq!(sort_moves(generate_castle_moves(&position, magic_box)), vec!["e1g1"]);
+    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
+    assert_eq!(sort_moves(move_list), vec!["e1g1"]);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/4Nr1P/R3K2R w Q - 0 1".to_string());
-    assert_eq!(sort_moves(generate_castle_moves(&position, magic_box)), vec!["e1c1"]);
+    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
+    assert_eq!(sort_moves(move_list), vec!["e1c1"]);
 
     let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
-    assert_eq!(sort_moves(generate_castle_moves(&position, magic_box)).len(), 0);
+    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
+    assert_eq!(sort_moves(move_list).len(), 0);
 
     let position = get_position(&"r3k1R1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 b Q - 0 1".to_string());
-    assert_eq!(sort_moves(generate_castle_moves(&position, magic_box)).len(), 0);
+    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
+    assert_eq!(sort_moves(move_list).len(), 0);
 
     let position = get_position(&"r3k2r/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R b Q - 0 1".to_string());
-    assert_eq!(sort_moves(generate_castle_moves(&position, magic_box)).len(), 0);
+    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
+    assert_eq!(sort_moves(move_list).len(), 0);
 
     let position = get_position(&"r3k2r/1P2PRn1/1n2q2p/P1pP4/8/5B2/1r2N2P/R3K2R b Q - 0 1".to_string());
-    assert_eq!(sort_moves(generate_castle_moves(&position, magic_box)).len(), 0);
+    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
+    assert_eq!(sort_moves(move_list).len(), 0);
 
     let position = get_position(&"r3k2r/1P3Rn1/1n2q2p/P1pP2P1/8/5B2/1r2N2P/R3K2R b qQ - 0 1".to_string());
-    assert_eq!(sort_moves(generate_castle_moves(&position, magic_box)), vec!["e8c8"]);
+    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
+    assert_eq!(sort_moves(move_list), vec!["e8c8"]);
 }
 
 #[test]
