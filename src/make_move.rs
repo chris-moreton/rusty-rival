@@ -21,6 +21,21 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
 }
 
 #[inline(always)]
+pub fn make_simple_move(position: &mut Position, mv: Move, from: Square) {
+    let to = to_square_part(mv);
+    let switch_bitboard = bit(from) | bit(to);
+    let piece = moving_piece(position, from);
+    position.all_pieces_bitboard ^= switch_bitboard;
+    if position.mover == White {
+        position.white_pieces_bitboard ^= switch_bitboard;
+        make_simple_white_move(position, from, to, piece)
+    } else {
+        position.black_pieces_bitboard ^= switch_bitboard;
+        make_simple_black_move(position, from, to, piece)
+    }
+}
+
+#[inline(always)]
 pub fn make_complex_move(position: &mut Position, mv: Move) {
     let promoted_piece = promotion_piece_from_move(mv);
     let from = from_square_part(mv);
@@ -247,21 +262,6 @@ pub fn switch_side(mover: Mover) -> Mover {
 }
 
 #[inline(always)]
-pub fn make_simple_move(position: &mut Position, mv: Move, from: Square) {
-    let to = to_square_part(mv);
-    let switch_bitboard = bit(from) | bit(to);
-    let piece = moving_piece(position, from);
-    position.all_pieces_bitboard ^= switch_bitboard;
-    if position.mover == White {
-        position.white_pieces_bitboard ^= switch_bitboard;
-        make_simple_white_move(position, from, to, piece)
-    } else {
-        position.black_pieces_bitboard ^= switch_bitboard;
-        make_simple_black_move(position, from, to, piece)
-    }
-}
-
-#[inline(always)]
 pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square, piece: Piece) {
     if piece == Pawn {
         position.white_pawn_bitboard = clear_bit(position.white_pawn_bitboard, from) | bit(to);
@@ -345,7 +345,6 @@ pub fn moving_piece(position: &Position, from_square: Square) -> Piece {
         else if test_bit(position.black_rook_bitboard, from_square) { Rook }
         else if test_bit(position.black_queen_bitboard, from_square) { Queen }
         else { King }
-
 }
 
 #[inline(always)]
