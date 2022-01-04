@@ -1,7 +1,7 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, D8_BIT, E1_BIT, E8_BIT, F1_BIT, F8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::moves::{move_mover_or_remove_captured};
-use crate::types::{Bitboard, Move, Mover, Piece, Position, PositionHistory, Square};
+use crate::types::{Bitboard, is_any_black_castle_available, is_any_white_castle_available, Move, Mover, Piece, Position, PositionHistory, Square, unset_bk_castle, unset_black_castles, unset_bq_castle, unset_white_castles, unset_wk_castle, unset_wq_castle};
 use crate::types::Mover::{Black, White};
 use crate::types::Piece::{Bishop, Empty, King, Knight, Pawn, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
@@ -43,9 +43,9 @@ pub fn make_complex_move(position: &mut Position, mv: Move) {
 
     if promoted_piece != Empty {
         make_move_with_promotion(position, mv, promoted_piece);
-    } else if from == E1_BIT && (to == G1_BIT || to == C1_BIT) && (position.white_king_castle_available || position.white_queen_castle_available) {
+    } else if from == E1_BIT && (to == G1_BIT || to == C1_BIT) && is_any_white_castle_available(position) {
         make_white_castle_move(position, to);
-    } else if from == E8_BIT && (to == G8_BIT || to == C8_BIT) && (position.black_king_castle_available || position.black_queen_castle_available) {
+    } else if from == E8_BIT && (to == G8_BIT || to == C8_BIT) && is_any_black_castle_available(position) {
         make_black_castle_move(position, to);
     } else {
         make_simple_complex_move(position, from, to);
@@ -68,8 +68,7 @@ pub fn make_white_castle_move(position: &mut Position, to: Square) {
     position.white_king_bitboard = wk;
     position.all_pieces_bitboard = wpb | position.black_pieces_bitboard;
     position.white_pieces_bitboard = wpb;
-    position.white_king_castle_available = false;
-    position.white_queen_castle_available = false;
+    unset_white_castles(position);
     position.half_moves += 1;
 }
 
@@ -88,8 +87,7 @@ pub fn make_black_castle_move(position: &mut Position, to: Square) {
     position.black_king_bitboard = bk;
     position.all_pieces_bitboard = bpb | position.white_pieces_bitboard;
     position.black_pieces_bitboard = bpb;
-    position.black_king_castle_available = false;
-    position.black_queen_castle_available = false;
+    unset_black_castles(position);
     position.half_moves += 1;
 
 }
@@ -169,10 +167,11 @@ pub fn make_move_with_promotion(position: &mut Position, mv: Move, promotion_pie
     position.white_pieces_bitboard = wpb;
     position.black_pieces_bitboard = bpb;
 
-    position.white_king_castle_available = position.white_king_castle_available && to != H1_BIT;
-    position.white_queen_castle_available = position.white_queen_castle_available && to != A1_BIT;
-    position.black_king_castle_available = position.black_king_castle_available && to != H8_BIT;
-    position.black_queen_castle_available = position.black_queen_castle_available && to != A8_BIT;
+    if to == H1_BIT { unset_wk_castle(position) }
+    if to == A1_BIT { unset_wq_castle(position) }
+    if to == H8_BIT { unset_bk_castle(position) }
+    if to == A8_BIT { unset_bq_castle(position) }
+
     position.half_moves = 0;
 }
 
@@ -249,10 +248,11 @@ pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Squar
     position.white_pieces_bitboard = wpb;
     position.black_pieces_bitboard = bpb;
 
-    position.white_king_castle_available = position.white_king_castle_available && from != E1_BIT && from != H1_BIT && to != H1_BIT;
-    position.white_queen_castle_available = position.white_queen_castle_available && from != E1_BIT && from != A1_BIT && to != A1_BIT;
-    position.black_king_castle_available = position.black_king_castle_available && from!= E8_BIT && from != H8_BIT && to != H8_BIT;
-    position.black_queen_castle_available = position.black_queen_castle_available && from != E8_BIT && from != A8_BIT && to != A8_BIT;
+    if from == E1_BIT || from == H1_BIT || to == H1_BIT { unset_wk_castle(position) }
+    if from == E1_BIT || from == A1_BIT || to == A1_BIT { unset_wq_castle(position) }
+    if from == E8_BIT || from == H8_BIT || to == H8_BIT { unset_bk_castle(position) }
+    if from == E8_BIT || from == A8_BIT || to == A8_BIT { unset_bq_castle(position) }
+
 
 }
 
@@ -279,8 +279,8 @@ pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square,
             },
             Rook => {
                 position.white_rook_bitboard = clear_bit(position.white_rook_bitboard, from) | bit(to);
-                position.white_king_castle_available = position.white_king_castle_available && from != H1_BIT;
-                position.white_queen_castle_available = position.white_queen_castle_available && from != A1_BIT;
+                if from == H1_BIT { unset_wk_castle(position) }
+                if from == A1_BIT { unset_wq_castle(position) }
             },
             Queen => {
                 position.white_queen_bitboard = clear_bit(position.white_queen_bitboard, from) | bit(to);
@@ -314,8 +314,8 @@ pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square,
             }
             Rook => {
                 position.black_rook_bitboard = clear_bit(position.black_rook_bitboard, from) | bit(to);
-                position.black_king_castle_available = position.black_king_castle_available && from != H8_BIT;
-                position.black_queen_castle_available = position.black_queen_castle_available && from != A8_BIT;
+                if from == H8_BIT { unset_bk_castle(position) }
+                if from == A8_BIT { unset_bq_castle(position) }
             }
             Queen => {
                 position.black_queen_bitboard = clear_bit(position.black_queen_bitboard, from) | bit(to);
@@ -384,10 +384,7 @@ pub fn default_position_history() -> PositionHistory {
             black_pieces_bitboard: 0,
             mover: Mover::White,
             en_passant_square: 0,
-            white_king_castle_available: false,
-            black_king_castle_available: false,
-            white_queen_castle_available: false,
-            black_queen_castle_available: false,
+            castle_flags: 0,
             half_moves: 0,
             move_number: 1
         }; MAX_MOVE_HISTORY as usize]

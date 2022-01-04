@@ -1,4 +1,4 @@
-use crate::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
+use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
 use crate::types::{Bitboard, Move, Mover, Position, Square};
 use crate::types::Mover::{Black, White};
 use crate::utils::from_square_mask;
@@ -157,6 +157,12 @@ pub fn get_position(fen: &str) -> Position {
     let wq = piece_bitboard(&fen_ranks, 'Q');
     let bq = piece_bitboard(&fen_ranks, 'q');
     let castle_part = fen_part(fen, 2);
+    let mut castle_flags = 0;
+    if castle_part.contains('K') { castle_flags |= WK_CASTLE };
+    if castle_part.contains('Q') { castle_flags |= WQ_CASTLE };
+    if castle_part.contains('k') { castle_flags |= BK_CASTLE };
+    if castle_part.contains('q') { castle_flags |= BQ_CASTLE };
+
     Position {
         white_pawn_bitboard: wp,
         black_pawn_bitboard: bp,
@@ -175,11 +181,9 @@ pub fn get_position(fen: &str) -> Position {
         black_pieces_bitboard: bp | bn | bb | br | bq | bk,
         mover: get_mover(fen),
         en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square,
-        white_king_castle_available: castle_part.contains('K'),
-        white_queen_castle_available: castle_part.contains('Q'),
-        black_king_castle_available: castle_part.contains('k'),
-        black_queen_castle_available: castle_part.contains('q'),
+        castle_flags,
         half_moves: fen_part(fen, 4).parse::<u16>().unwrap(),
         move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
     }
+
 }

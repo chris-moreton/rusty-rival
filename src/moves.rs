@@ -3,7 +3,7 @@ use crate::magic_bitboards::{magic_bishop, magic_index_for_bishop, magic_index_f
 use crate::magic_moves_bishop::MAGIC_MOVES_BISHOP;
 use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
 use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
-use crate::types::{Bitboard, MagicBox, MagicVars, Move, MoveList, Mover, Piece, Position, Square};
+use crate::types::{Bitboard, is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, MagicBox, MagicVars, Move, MoveList, Mover, Piece, Position, Square};
 use crate::types::Mover::{Black, White};
 use crate::types::Piece::{Bishop, King, Knight, Pawn, Rook};
 use crate::utils::from_square_mask;
@@ -288,20 +288,20 @@ pub fn is_rook_attacking_square(attacked_square: Square, piece_square: Square, a
 pub fn generate_castle_moves(position: &Position, move_list: &mut MoveList, magic_box: &MagicBox) {
     let all_pieces = position.all_pieces_bitboard;
     if position.mover == White {
-        if position.white_king_castle_available && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 &&
+        if is_wk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 &&
             !any_squares_in_bitboard_attacked(position, &Black, NO_CHECK_CASTLE_SQUARES_WHITE_KING, magic_box) {
             move_list.push(from_square_mask(3) | 1);
         }
-        if position.white_queen_castle_available && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_QUEEN == 0 &&
+        if is_wq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_QUEEN == 0 &&
             !any_squares_in_bitboard_attacked(position, &Black, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, magic_box) {
             move_list.push(from_square_mask(3) | 5);
         }
     } else {
-        if position.black_king_castle_available && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_KING == 0 &&
+        if is_bk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_KING == 0 &&
             !any_squares_in_bitboard_attacked(position, &White, NO_CHECK_CASTLE_SQUARES_BLACK_KING, magic_box) {
             move_list.push(from_square_mask(59) | 57);
         }
-        if position.black_queen_castle_available && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_QUEEN == 0 &&
+        if is_bq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_QUEEN == 0 &&
             !any_squares_in_bitboard_attacked(position, &White, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, magic_box) {
             move_list.push(from_square_mask(59) | 61);
         }

@@ -1,4 +1,4 @@
-use crate::move_constants::MAX_MOVE_HISTORY;
+use crate::move_constants::{BK_CASTLE, BQ_CASTLE, MAX_MOVE_HISTORY, WK_CASTLE, WQ_CASTLE};
 
 pub type Square = i8;
 pub type Bitboard = u64;
@@ -29,6 +29,35 @@ pub struct MagicBox {
     pub(crate) rook: Box<MagicVars>,
 }
 
+#[inline(always)]
+pub fn unset_wk_castle(position: &mut Position) { position.castle_flags &= !WK_CASTLE }
+#[inline(always)]
+pub fn unset_wq_castle(position: &mut Position) { position.castle_flags &= !WQ_CASTLE }
+#[inline(always)]
+pub fn unset_bk_castle(position: &mut Position) { position.castle_flags &= !BK_CASTLE }
+#[inline(always)]
+pub fn unset_bq_castle(position: &mut Position) { position.castle_flags &= !BQ_CASTLE }
+
+#[inline(always)]
+pub fn unset_white_castles(position: &mut Position) { position.castle_flags &= !(WK_CASTLE | WQ_CASTLE) }
+#[inline(always)]
+pub fn unset_black_castles(position: &mut Position) { position.castle_flags &= !(BK_CASTLE | BQ_CASTLE) }
+
+#[inline(always)]
+pub fn is_wk_castle_available(position: &Position) -> bool { position.castle_flags & WK_CASTLE != 0 }
+#[inline(always)]
+pub fn is_wq_castle_available(position: &Position) -> bool { position.castle_flags & WQ_CASTLE != 0 }
+#[inline(always)]
+pub fn is_bk_castle_available(position: &Position) -> bool { position.castle_flags & BK_CASTLE != 0 }
+#[inline(always)]
+pub fn is_bq_castle_available(position: &Position) -> bool { position.castle_flags & BQ_CASTLE != 0 }
+
+#[inline(always)]
+pub fn is_any_white_castle_available(position: &Position) -> bool { position.castle_flags & (WK_CASTLE | WQ_CASTLE) != 0 }
+
+#[inline(always)]
+pub fn is_any_black_castle_available(position: &Position) -> bool { position.castle_flags & (BK_CASTLE | BQ_CASTLE) != 0 }
+
 #[derive(Debug, Copy, Clone)]
 pub struct Position {
     pub white_pawn_bitboard: Bitboard,
@@ -48,10 +77,7 @@ pub struct Position {
     pub black_pieces_bitboard: Bitboard,
     pub mover: Mover,
     pub en_passant_square: Square,
-    pub white_king_castle_available: bool,
-    pub black_king_castle_available: bool,
-    pub white_queen_castle_available: bool,
-    pub black_queen_castle_available: bool,
+    pub castle_flags: u8,
     pub half_moves: u16,
     pub move_number: u16,
 }
@@ -80,10 +106,7 @@ impl PartialEq for Position {
         self.black_pieces_bitboard == other.black_pieces_bitboard &&
         self.mover == other.mover &&
         self.en_passant_square == other.en_passant_square &&
-        self.white_king_castle_available == other.white_king_castle_available &&
-        self.black_king_castle_available == other.black_king_castle_available &&
-        self.white_queen_castle_available == other.white_queen_castle_available &&
-        self.black_queen_castle_available == other.black_queen_castle_available &&
+        self.castle_flags == other.castle_flags &&
         self.half_moves == other.half_moves &&
         self.move_number == other.move_number
     }

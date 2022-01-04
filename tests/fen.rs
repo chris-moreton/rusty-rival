@@ -1,6 +1,6 @@
 use rusty_rival::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, get_position, move_from_algebraic_move, piece_bitboard, rank_bits};
 use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::types::Mover;
+use rusty_rival::types::{is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, Mover};
 
 #[test]
 fn it_gets_the_board_part_from_the_fen() {
@@ -135,10 +135,10 @@ fn it_creates_a_position_from_a_fen_2() {
     let position = get_position(&fen.to_string());
     assert_eq!(position.en_passant_square, EN_PASSANT_NOT_AVAILABLE);
     assert_eq!(position.mover, Mover::White);
-    assert_eq!(position.white_king_castle_available, false);
-    assert_eq!(position.white_queen_castle_available, true);
-    assert_eq!(position.black_king_castle_available, true);
-    assert_eq!(position.black_queen_castle_available, false);
+    assert_eq!(is_wk_castle_available(&position), false);
+    assert_eq!(is_wq_castle_available(&position), true);
+    assert_eq!(is_bk_castle_available(&position), true);
+    assert_eq!(is_bq_castle_available(&position), false);
 }
 
 
