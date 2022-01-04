@@ -112,7 +112,7 @@ pub fn is_promotion_square(square: Square) -> bool {
 
 #[inline(always)]
 pub fn remove_pawn_if_promotion(bitboard: Bitboard) -> Bitboard {
-    bitboard & 0b0000000011111111111111111111111111111111111111111111111100000000
+    bitboard & NON_PROMOTION_SQUARES
 }
 
 #[inline(always)]

@@ -30,7 +30,7 @@ pub fn all_bits_except_friendly_pieces(position: &Position) -> Bitboard {
 #[inline(always)]
 pub fn generate_knight_moves(position: &Position, move_list: &mut MoveList) {
     let valid_destinations = all_bits_except_friendly_pieces(position);
-    let mut from_squares_bitboard = bitboard_for_mover(position, &Knight);
+    let mut from_squares_bitboard = bitboard_for_mover(position, Knight);
     while from_squares_bitboard != 0 {
         let from_square = from_squares_bitboard.trailing_zeros();
         let fsm = from_square_mask(from_square as Square);
@@ -47,7 +47,7 @@ pub fn generate_knight_moves(position: &Position, move_list: &mut MoveList) {
 #[inline(always)]
 pub fn generate_king_moves(position: &Position, move_list: &mut MoveList) {
     let valid_destinations = all_bits_except_friendly_pieces(position);
-    let from_square = bitboard_for_mover(position, &King).trailing_zeros();
+    let from_square = bitboard_for_mover(position, King).trailing_zeros();
     let fsm = from_square_mask(from_square as Square);
     let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
     while to_bitboard != 0 {
@@ -141,7 +141,7 @@ pub fn en_passant_capture_rank(mover: &Mover) -> Bitboard {
 
 #[inline(always)]
 pub fn generate_pawn_moves(position: &Position, move_list: &mut MoveList) {
-    let bitboard = bitboard_for_mover(position, &Pawn);
+    let bitboard = bitboard_for_mover(position, Pawn);
     if position.mover == White {
         generate_white_pawn_moves(bitboard, position, empty_squares_bitboard(position), move_list)
     } else {

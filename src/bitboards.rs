@@ -7,12 +7,12 @@ pub const fn bit(i: Square) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn bitboard_for_mover(position: &Position, piece: &Piece) -> Bitboard {
+pub fn bitboard_for_mover(position: &Position, piece: Piece) -> Bitboard {
     bitboard_for_colour(position, &position.mover, piece)
 }
 
 #[inline(always)]
-pub fn bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
+pub fn bitboard_for_colour(position: &Position, mover: &Mover, piece: Piece) -> Bitboard {
     match (mover, piece) {
         (Mover::White, Piece::King) => position.white_king_bitboard,
         (Mover::White, Piece::Queen) => position.white_queen_bitboard,
@@ -169,15 +169,6 @@ pub const FILE_F_BITS: Bitboard = every_eighth_bit_from(F8_BIT);
 pub const FILE_G_BITS: Bitboard = every_eighth_bit_from(G8_BIT);
 pub const FILE_H_BITS: Bitboard = every_eighth_bit_from(H8_BIT);
 
-#[inline(always)]
-pub fn set_bits(is: Vec<u8>) -> Bitboard {
-    let mut x: Bitboard = 0;
-    is.iter().for_each(|i| {
-        x |= 1 << i;
-    });
-    x
-}
-
 pub const fn two_bits(bit1: Square, bit2: Square) -> Bitboard {
     let mut x: Bitboard = 0;
     x |= 1 << bit1;
@@ -213,7 +204,7 @@ pub const LOW_32_BITS: Bitboard = RANK_1_BITS | RANK_2_BITS | RANK_3_BITS | RANK
 pub const DARK_SQUARES_BITS: Bitboard = 0b0101010110101010010101011010101001010101101010100101010110101010;
 pub const LIGHT_SQUARES_BITS: Bitboard = !DARK_SQUARES_BITS;
 
-pub static KNIGHT_MOVES_BITBOARDS: &[Bitboard] = &[
+pub const KNIGHT_MOVES_BITBOARDS: &[Bitboard] = &[
     0x20400, 0x50800, 0xa1100, 0x142200, 0x284400, 0x508800, 0xa01000, 0x402000,
     0x2040004, 0x5080008, 0xa110011, 0x14220022, 0x28440044, 0x50880088, 0xa0100010, 0x40200020,
     0x204000402, 0x508000805, 0xa1100110a, 0x1422002214, 0x2844004428, 0x5088008850, 0xa0100010a0, 0x4020002040,
@@ -231,7 +222,7 @@ pub static KNIGHT_MOVES_BITBOARDS: &[Bitboard] = &[
     0x4020000000000, 0x8050000000000, 0x110a0000000000, 0x22140000000000, 0x44280000000000, 0x88500000000000, 0x10a00000000000, 0x20400000000000
 ];
 
-pub static KING_MOVES_BITBOARDS: &[Bitboard] = &[
+pub const KING_MOVES_BITBOARDS: &[Bitboard] = &[
     0x302,
     0x705,
     0xe0a,

@@ -1,4 +1,4 @@
-use rusty_rival::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit, bitboard_for_mover, clear_bit, DARK_SQUARES_BITS, empty_squares_bitboard, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, set_bits, south_fill, test_bit};
+use rusty_rival::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit, bitboard_for_mover, clear_bit, DARK_SQUARES_BITS, empty_squares_bitboard, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, south_fill, test_bit};
 use rusty_rival::fen::{get_position, rank_bits};
 use rusty_rival::types::{Mover, Piece, Position};
 
@@ -7,13 +7,6 @@ fn it_sets_a_bit() {
     assert_eq!(bit(0), 0b0000000000000000000000000000000000000000000000000000000000000001);
     assert_eq!(bit(63), 0b1000000000000000000000000000000000000000000000000000000000000000);
     assert_eq!(bit(3), 0b0000000000000000000000000000000000000000000000000000000000001000);
-}
-
-#[test]
-fn it_sets_bits() {
-    assert_eq!(set_bits(vec![55]), 0b0000000010000000000000000000000000000000000000000000000000000000);
-    assert_eq!(set_bits(vec![55,0]), 0b0000000010000000000000000000000000000000000000000000000000000001);
-    assert_eq!(set_bits(vec![63,55,0]), 0b1000000010000000000000000000000000000000000000000000000000000001);
 }
 
 #[test]
@@ -104,12 +97,12 @@ fn it_returns_the_correct_bitboard_for_mover() {
         move_number: 1,
     };
 
-    assert_eq!(1, bitboard_for_mover(&p1, &Piece::Pawn));
-    assert_eq!(2, bitboard_for_mover(&p1, &Piece::Knight));
-    assert_eq!(3, bitboard_for_mover(&p1, &Piece::Bishop));
-    assert_eq!(4, bitboard_for_mover(&p1, &Piece::Queen));
-    assert_eq!(5, bitboard_for_mover(&p1, &Piece::King));
-    assert_eq!(6, bitboard_for_mover(&p1, &Piece::Rook));
+    assert_eq!(1, bitboard_for_mover(&p1, Piece::Pawn));
+    assert_eq!(2, bitboard_for_mover(&p1, Piece::Knight));
+    assert_eq!(3, bitboard_for_mover(&p1, Piece::Bishop));
+    assert_eq!(4, bitboard_for_mover(&p1, Piece::Queen));
+    assert_eq!(5, bitboard_for_mover(&p1, Piece::King));
+    assert_eq!(6, bitboard_for_mover(&p1, Piece::Rook));
 
     let p2 = Position {
         white_pawn_bitboard: 1,
@@ -137,12 +130,12 @@ fn it_returns_the_correct_bitboard_for_mover() {
         move_number: 1,
     };
 
-    assert_eq!(7, bitboard_for_mover(&p2, &Piece::Pawn));
-    assert_eq!(8, bitboard_for_mover(&p2, &Piece::Knight));
-    assert_eq!(9, bitboard_for_mover(&p2, &Piece::Bishop));
-    assert_eq!(10, bitboard_for_mover(&p2, &Piece::Queen));
-    assert_eq!(11, bitboard_for_mover(&p2, &Piece::King));
-    assert_eq!(12, bitboard_for_mover(&p2, &Piece::Rook));
+    assert_eq!(7, bitboard_for_mover(&p2, Piece::Pawn));
+    assert_eq!(8, bitboard_for_mover(&p2, Piece::Knight));
+    assert_eq!(9, bitboard_for_mover(&p2, Piece::Bishop));
+    assert_eq!(10, bitboard_for_mover(&p2, Piece::Queen));
+    assert_eq!(11, bitboard_for_mover(&p2, Piece::King));
+    assert_eq!(12, bitboard_for_mover(&p2, Piece::Rook));
 }
 
 #[test]
