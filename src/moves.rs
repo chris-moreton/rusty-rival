@@ -10,7 +10,7 @@ use crate::utils::from_square_mask;
 
 #[inline(always)]
 pub fn moves(position: &Position, magic_box: &MagicBox) -> MoveList {
-    let mut move_list = Vec::new();
+    let mut move_list = Vec::with_capacity(80);
 
     generate_pawn_moves(position, &mut move_list);
     generate_king_moves(position, &mut move_list);
@@ -33,11 +33,11 @@ pub fn generate_knight_moves(position: &Position, move_list: &mut MoveList) {
     let mut from_squares_bitboard = bitboard_for_mover(position, &Knight);
     while from_squares_bitboard != 0 {
         let from_square = from_squares_bitboard.trailing_zeros();
-        let fsm = from_square_mask(from_square as i8);
+        let fsm = from_square_mask(from_square as Square);
         let mut to_bitboard = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
         while to_bitboard != 0 {
-            let sq = to_bitboard.trailing_zeros() as u8;
-            move_list.push(fsm | sq as u32);
+            let sq = to_bitboard.trailing_zeros() as Square;
+            move_list.push(fsm | sq as Move);
             to_bitboard &= !(1 << sq);
         }
         from_squares_bitboard &= !(1 << from_square)
@@ -48,11 +48,11 @@ pub fn generate_knight_moves(position: &Position, move_list: &mut MoveList) {
 pub fn generate_king_moves(position: &Position, move_list: &mut MoveList) {
     let valid_destinations = all_bits_except_friendly_pieces(position);
     let from_square = bitboard_for_mover(position, &King).trailing_zeros();
-    let fsm = from_square_mask(from_square as i8);
+    let fsm = from_square_mask(from_square as Square);
     let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
     while to_bitboard != 0 {
-        let sq = to_bitboard.trailing_zeros() as u8;
-        move_list.push(fsm | sq as u32);
+        let sq = to_bitboard.trailing_zeros() as Square;
+        move_list.push(fsm | sq as Move);
         to_bitboard &= !(1 << sq);
     };
 }
@@ -62,8 +62,8 @@ pub fn generate_slider_moves(position: &Position, piece: Piece, move_list: &mut 
     let valid_destinations = all_bits_except_friendly_pieces(position);
     let mut from_bitboard = slider_bitboard_for_colour(position, &position.mover, &piece);
     while from_bitboard != 0 {
-        let from_square = from_bitboard.trailing_zeros() as u8;
-        let fsm = from_square_mask(from_square as i8);
+        let from_square = from_bitboard.trailing_zeros() as Square;
+        let fsm = from_square_mask(from_square as Square);
 
         let mut to_bitboard = if piece == Bishop {
             magic_bishop(from_square as Square, magic_index_for_bishop(from_square as Square, position.all_pieces_bitboard, magic_box), magic_box)
@@ -72,8 +72,8 @@ pub fn generate_slider_moves(position: &Position, piece: Piece, move_list: &mut 
         } & valid_destinations;
 
         while to_bitboard != 0 {
-            let sq = to_bitboard.trailing_zeros() as u8;
-            move_list.push(fsm | sq as u32);
+            let sq = to_bitboard.trailing_zeros() as Square;
+            move_list.push(fsm | sq as Move);
             to_bitboard &= !(1 << sq);
         }
         from_bitboard &= !(1 << from_square);
