@@ -1,4 +1,4 @@
-use crate::types::{Bitboard, Mover, Piece, Position, Square};
+use crate::types::{Bitboard, Mover, Piece, Position, PositionSupplement, Square};
 use crate::types::Mover::White;
 
 #[inline(always)]
@@ -52,8 +52,8 @@ pub fn test_bit(bitboard: Bitboard, square: Square) -> bool {
 }
 
 #[inline(always)]
-pub fn enemy_bitboard(position: &Position) -> Bitboard {
-    if position.mover == White { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
+pub fn enemy_bitboard(position: &Position, supplement: &PositionSupplement) -> Bitboard {
+    if position.mover == White { supplement.black_pieces_bitboard } else { supplement.white_pieces_bitboard }
 }
 
 #[inline(always)]
@@ -71,7 +71,7 @@ pub fn north_fill(bb: Bitboard) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn empty_squares_bitboard(position: &Position) -> Bitboard {
+pub fn empty_squares_bitboard(position: &PositionSupplement) -> Bitboard {
     !position.all_pieces_bitboard
 }
 

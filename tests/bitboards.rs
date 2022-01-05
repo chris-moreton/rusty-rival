@@ -1,5 +1,5 @@
 use rusty_rival::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit, bitboard_for_mover, clear_bit, DARK_SQUARES_BITS, empty_squares_bitboard, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, south_fill, test_bit};
-use rusty_rival::fen::{get_position, rank_bits};
+use rusty_rival::fen::{get_position, get_supplement, rank_bits};
 use rusty_rival::move_constants::ALL_CASTLE_FLAGS;
 use rusty_rival::types::{Mover, Piece, Position};
 
@@ -85,9 +85,6 @@ fn it_returns_the_correct_bitboard_for_mover() {
         black_queen_bitboard: 10,
         black_king_bitboard: 11,
         black_rook_bitboard: 12,
-        all_pieces_bitboard: 13,
-        white_pieces_bitboard: 14,
-        black_pieces_bitboard: 15,
         mover: Mover::White,
         en_passant_square: 1,
         castle_flags: ALL_CASTLE_FLAGS,
@@ -115,9 +112,6 @@ fn it_returns_the_correct_bitboard_for_mover() {
         black_queen_bitboard: 10,
         black_king_bitboard: 11,
         black_rook_bitboard: 12,
-        all_pieces_bitboard: 13,
-        white_pieces_bitboard: 14,
-        black_pieces_bitboard: 15,
         mover: Mover::Black,
         en_passant_square: 1,
         castle_flags: ALL_CASTLE_FLAGS,
@@ -136,13 +130,13 @@ fn it_returns_the_correct_bitboard_for_mover() {
 #[test]
 fn it_gets_an_empty_squares_bitboard() {
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
-    assert_eq!(empty_squares_bitboard(&position), 0b0111110111111101101101101011111010111001110010111011011111111111);
+    assert_eq!(empty_squares_bitboard(&get_supplement(position)), 0b0111110111111101101101101011111010111001110010111011011111111111);
 }
 
 #[test]
 fn it_gets_the_enemy_bitboard() {
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp1pP3/3P1R2/3K1B2/1r2N2P/6r1 b - - 0 1".to_string());
-    assert_eq!(enemy_bitboard(&position), 0b0000000001001000000000001000100000010100000101000000100100000000);
+    assert_eq!(enemy_bitboard(&position, &get_supplement(position)), 0b0000000001001000000000001000100000010100000101000000100100000000);
 }
 
 #[test]

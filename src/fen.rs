@@ -1,5 +1,5 @@
-use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
-use crate::types::{Bitboard, Move, Mover, Position, Square};
+use crate::move_constants::{BK_CASTLE, BQ_CASTLE, MAX_MOVE_HISTORY, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
+use crate::types::{Bitboard, Move, Mover, Position, PositionSupplement, Square};
 use crate::types::Mover::{Black, White};
 use crate::utils::from_square_mask;
 
@@ -142,6 +142,35 @@ fn en_passant_bit_ref(en_passant_fen_part: String) -> i8 {
     }
 }
 
+pub fn get_supplement(position: Position) -> PositionSupplement {
+    let wpb = position.white_bishop_bitboard | position.white_pawn_bitboard | position.white_queen_bitboard | position.white_rook_bitboard | position.white_knight_bitboard | position.white_king_bitboard;
+    let bpb = position.black_bishop_bitboard | position.black_pawn_bitboard | position.black_queen_bitboard | position.black_rook_bitboard | position.black_knight_bitboard | position.black_king_bitboard;
+    PositionSupplement {
+        history: [Position {
+            white_pawn_bitboard: 0,
+            white_knight_bitboard: 0,
+            white_bishop_bitboard: 0,
+            white_queen_bitboard: 0,
+            white_king_bitboard: 0,
+            white_rook_bitboard: 0,
+            black_pawn_bitboard: 0,
+            black_knight_bitboard: 0,
+            black_bishop_bitboard: 0,
+            black_queen_bitboard: 0,
+            black_king_bitboard: 0,
+            black_rook_bitboard: 0,
+            mover: Mover::White,
+            en_passant_square: 0,
+            castle_flags: 0,
+            half_moves: 0,
+            move_number: 1
+        }; MAX_MOVE_HISTORY as usize],
+        all_pieces_bitboard: wpb | bpb,
+        white_pieces_bitboard: wpb,
+        black_pieces_bitboard: bpb
+    }
+}
+
 pub fn get_position(fen: &str) -> Position {
     let fen_ranks = get_fen_ranks(fen_board_part(fen));
     let wp = piece_bitboard(&fen_ranks, 'P');
@@ -176,9 +205,6 @@ pub fn get_position(fen: &str) -> Position {
         black_queen_bitboard: bq,
         white_king_bitboard: wk,
         black_king_bitboard: bk,
-        all_pieces_bitboard: wp | bp | wn | bn | wb | bb | wr | br | wq | bq | wk | bk,
-        white_pieces_bitboard: wp | wn | wb | wr | wq | wk,
-        black_pieces_bitboard: bp | bn | bb | br | bq | bk,
         mover: get_mover(fen),
         en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square,
         castle_flags,

@@ -72,9 +72,6 @@ pub struct Position {
     pub black_queen_bitboard: Bitboard,
     pub black_king_bitboard: Bitboard,
     pub black_rook_bitboard: Bitboard,
-    pub all_pieces_bitboard: Bitboard,
-    pub white_pieces_bitboard: Bitboard,
-    pub black_pieces_bitboard: Bitboard,
     pub mover: Mover,
     pub en_passant_square: Square,
     pub castle_flags: u8,
@@ -83,8 +80,13 @@ pub struct Position {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct PositionHistory {
-    pub history: [Position; MAX_MOVE_HISTORY as usize]
+pub struct PositionSupplement {
+    pub history: [Position; MAX_MOVE_HISTORY as usize],
+
+    // These are calculated each time a move is made and represent the current board status
+    pub all_pieces_bitboard: Bitboard,
+    pub white_pieces_bitboard: Bitboard,
+    pub black_pieces_bitboard: Bitboard,
 }
 
 impl PartialEq for Position {
@@ -101,9 +103,6 @@ impl PartialEq for Position {
         self.black_queen_bitboard == other.black_queen_bitboard &&
         self.black_king_bitboard == other.black_king_bitboard &&
         self.black_rook_bitboard == other.black_rook_bitboard &&
-        self.all_pieces_bitboard == other.all_pieces_bitboard &&
-        self.white_pieces_bitboard == other.white_pieces_bitboard &&
-        self.black_pieces_bitboard == other.black_pieces_bitboard &&
         self.mover == other.mover &&
         self.en_passant_square == other.en_passant_square &&
         self.castle_flags == other.castle_flags &&
