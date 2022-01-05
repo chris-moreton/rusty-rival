@@ -8,24 +8,24 @@ pub const fn bit(i: Square) -> Bitboard {
 
 #[inline(always)]
 pub fn bitboard_for_mover(position: &Position, piece: Piece) -> Bitboard {
-    bitboard_for_colour(position, &position.mover, piece)
+    bitboard_for_colour(position, &position.main.mover, piece)
 }
 
 #[inline(always)]
 pub fn bitboard_for_colour(position: &Position, mover: &Mover, piece: Piece) -> Bitboard {
     match (mover, piece) {
-        (Mover::White, Piece::King) => position.white_king_bitboard,
-        (Mover::White, Piece::Queen) => position.white_queen_bitboard,
-        (Mover::White, Piece::Rook) => position.white_rook_bitboard,
-        (Mover::White, Piece::Knight) => position.white_knight_bitboard,
-        (Mover::White, Piece::Bishop) => position.white_bishop_bitboard,
-        (Mover::White, Piece::Pawn) => position.white_pawn_bitboard,
-        (Mover::Black, Piece::King) => position.black_king_bitboard,
-        (Mover::Black, Piece::Queen) => position.black_queen_bitboard,
-        (Mover::Black, Piece::Rook) => position.black_rook_bitboard,
-        (Mover::Black, Piece::Knight) => position.black_knight_bitboard,
-        (Mover::Black, Piece::Bishop) => position.black_bishop_bitboard,
-        (Mover::Black, Piece::Pawn) => position.black_pawn_bitboard,
+        (Mover::White, Piece::King) => position.main.white_king_bitboard,
+        (Mover::White, Piece::Queen) => position.main.white_queen_bitboard,
+        (Mover::White, Piece::Rook) => position.main.white_rook_bitboard,
+        (Mover::White, Piece::Knight) => position.main.white_knight_bitboard,
+        (Mover::White, Piece::Bishop) => position.main.white_bishop_bitboard,
+        (Mover::White, Piece::Pawn) => position.main.white_pawn_bitboard,
+        (Mover::Black, Piece::King) => position.main.black_king_bitboard,
+        (Mover::Black, Piece::Queen) => position.main.black_queen_bitboard,
+        (Mover::Black, Piece::Rook) => position.main.black_rook_bitboard,
+        (Mover::Black, Piece::Knight) => position.main.black_knight_bitboard,
+        (Mover::Black, Piece::Bishop) => position.main.black_bishop_bitboard,
+        (Mover::Black, Piece::Pawn) => position.main.black_pawn_bitboard,
         _ => panic!("Can't handle piece")
     }
 }
@@ -33,10 +33,10 @@ pub fn bitboard_for_colour(position: &Position, mover: &Mover, piece: Piece) -> 
 #[inline(always)]
 pub fn slider_bitboard_for_colour(position: &Position, mover: &Mover, piece: &Piece) -> Bitboard {
     match (mover, piece) {
-        (Mover::White, Piece::Rook) => position.white_rook_bitboard | position.white_queen_bitboard,
-        (Mover::White, Piece::Bishop) => position.white_bishop_bitboard | position.white_queen_bitboard,
-        (Mover::Black, Piece::Rook) => position.black_rook_bitboard | position.black_queen_bitboard,
-        (Mover::Black, Piece::Bishop) => position.black_bishop_bitboard | position.black_queen_bitboard,
+        (Mover::White, Piece::Rook) => position.main.white_rook_bitboard | position.main.white_queen_bitboard,
+        (Mover::White, Piece::Bishop) => position.main.white_bishop_bitboard | position.main.white_queen_bitboard,
+        (Mover::Black, Piece::Rook) => position.main.black_rook_bitboard | position.main.black_queen_bitboard,
+        (Mover::Black, Piece::Bishop) => position.main.black_bishop_bitboard | position.main.black_queen_bitboard,
         _ => panic!("Can't handle piece")
     }
 }
@@ -53,7 +53,7 @@ pub fn test_bit(bitboard: Bitboard, square: Square) -> bool {
 
 #[inline(always)]
 pub fn enemy_bitboard(position: &Position) -> Bitboard {
-    if position.mover == White { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
+    if position.main.mover == White { position.supplement.black_pieces_bitboard } else { position.supplement.white_pieces_bitboard }
 }
 
 #[inline(always)]
@@ -72,7 +72,7 @@ pub fn north_fill(bb: Bitboard) -> Bitboard {
 
 #[inline(always)]
 pub fn empty_squares_bitboard(position: &Position) -> Bitboard {
-    !position.all_pieces_bitboard
+    !position.supplement.all_pieces_bitboard
 }
 
 const fn every_eighth_bit_from(i: Square) -> Bitboard {

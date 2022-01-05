@@ -1,7 +1,7 @@
 use rusty_rival::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit, bitboard_for_mover, clear_bit, DARK_SQUARES_BITS, empty_squares_bitboard, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, south_fill, test_bit};
 use rusty_rival::fen::{get_position, rank_bits};
 use rusty_rival::move_constants::ALL_CASTLE_FLAGS;
-use rusty_rival::types::{Mover, Piece, Position};
+use rusty_rival::types::{Mover, Piece, Position, PositionMain, PositionSupplement};
 
 #[test]
 fn it_sets_a_bit() {
@@ -73,26 +73,8 @@ fn it_gets_the_rank_bits_for_a_piece() {
 #[test]
 fn it_returns_the_correct_bitboard_for_mover() {
     let p1 = Position {
-        white_pawn_bitboard: 1,
-        white_knight_bitboard: 2,
-        white_bishop_bitboard: 3,
-        white_queen_bitboard: 4,
-        white_king_bitboard: 5,
-        white_rook_bitboard: 6,
-        black_pawn_bitboard: 7,
-        black_knight_bitboard: 8,
-        black_bishop_bitboard: 9,
-        black_queen_bitboard: 10,
-        black_king_bitboard: 11,
-        black_rook_bitboard: 12,
-        all_pieces_bitboard: 13,
-        white_pieces_bitboard: 14,
-        black_pieces_bitboard: 15,
-        mover: Mover::White,
-        en_passant_square: 1,
-        castle_flags: ALL_CASTLE_FLAGS,
-        half_moves: 0,
-        move_number: 1,
+        main: PositionMain { white_pawn_bitboard: 1, white_knight_bitboard: 2, white_bishop_bitboard: 3, white_queen_bitboard: 4, white_king_bitboard: 5, white_rook_bitboard: 6, black_pawn_bitboard: 7, black_knight_bitboard: 8, black_bishop_bitboard: 9, black_queen_bitboard: 10, black_king_bitboard: 11, black_rook_bitboard: 12, mover: Mover::White, en_passant_square: 1, castle_flags: ALL_CASTLE_FLAGS, half_moves: 0, move_number: 1 },
+        supplement: PositionSupplement { all_pieces_bitboard: 13, white_pieces_bitboard: 14, black_pieces_bitboard: 15 },
     };
 
     assert_eq!(1, bitboard_for_mover(&p1, Piece::Pawn));
@@ -103,26 +85,8 @@ fn it_returns_the_correct_bitboard_for_mover() {
     assert_eq!(6, bitboard_for_mover(&p1, Piece::Rook));
 
     let p2 = Position {
-        white_pawn_bitboard: 1,
-        white_knight_bitboard: 2,
-        white_bishop_bitboard: 3,
-        white_queen_bitboard: 4,
-        white_king_bitboard: 5,
-        white_rook_bitboard: 6,
-        black_pawn_bitboard: 7,
-        black_knight_bitboard: 8,
-        black_bishop_bitboard: 9,
-        black_queen_bitboard: 10,
-        black_king_bitboard: 11,
-        black_rook_bitboard: 12,
-        all_pieces_bitboard: 13,
-        white_pieces_bitboard: 14,
-        black_pieces_bitboard: 15,
-        mover: Mover::Black,
-        en_passant_square: 1,
-        castle_flags: ALL_CASTLE_FLAGS,
-        half_moves: 0,
-        move_number: 1,
+        main: PositionMain { white_pawn_bitboard: 1, white_knight_bitboard: 2, white_bishop_bitboard: 3, white_queen_bitboard: 4, white_king_bitboard: 5, white_rook_bitboard: 6, black_pawn_bitboard: 7, black_knight_bitboard: 8, black_bishop_bitboard: 9, black_queen_bitboard: 10, black_king_bitboard: 11, black_rook_bitboard: 12, mover: Mover::Black, en_passant_square: 1, castle_flags: ALL_CASTLE_FLAGS, half_moves: 0, move_number: 1 },
+        supplement: PositionSupplement { all_pieces_bitboard: 13, white_pieces_bitboard: 14, black_pieces_bitboard: 15 },
     };
 
     assert_eq!(7, bitboard_for_mover(&p2, Piece::Pawn));

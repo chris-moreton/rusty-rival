@@ -16,7 +16,7 @@ fn it_gets_all_bits_except_friendly_pieces() {
 #[test]
 fn it_gets_all_pieces_bitboard() {
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
-    assert_eq!(position.all_pieces_bitboard, 0b1000001000000010010010010100000101000110001101000100100000000000);
+    assert_eq!(position.supplement.all_pieces_bitboard, 0b1000001000000010010010010100000101000110001101000100100000000000);
 }
 
 #[test]
@@ -119,10 +119,10 @@ fn it_returns_a_bitboard_showing_target_squares_for_pawn_moves_that_would_land_o
 #[test]
 fn it_identifies_the_en_passant_square_from_a_fen() {
     let position = get_position(&"n5k1/4P1n1/4q2p/PpP1n3/3P1R2/3K1B2/1r2N2P/6r1 w - b6 0 1".to_string());
-    assert_eq!(position.en_passant_square, 46);
+    assert_eq!(position.main.en_passant_square, 46);
 
     let position = get_position(&"n5k1/4P1n1/4q2p/PpP1n3/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
-    assert_eq!(position.en_passant_square, EN_PASSANT_NOT_AVAILABLE);
+    assert_eq!(position.main.en_passant_square, EN_PASSANT_NOT_AVAILABLE);
 }
 
 #[test]
@@ -158,8 +158,8 @@ fn it_determines_if_a_given_square_is_attacked_by_a_given_colour_in_a_given_posi
 
     let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
     assert_eq!(any_squares_in_bitboard_attacked(&position, &Black, bit(2) | bit(3), magic_box), true);
-    assert_eq!(is_bishop_attacking_square(4, 22, position.all_pieces_bitboard, magic_box), true);
-    assert_eq!(is_bishop_attacking_square(5, 22, position.all_pieces_bitboard, magic_box), false);
+    assert_eq!(is_bishop_attacking_square(4, 22, position.supplement.all_pieces_bitboard, magic_box), true);
+    assert_eq!(is_bishop_attacking_square(5, 22, position.supplement.all_pieces_bitboard, magic_box), false);
     assert_eq!(is_square_attacked_by(&position, bitref_from_algebraic_squareref("d1".to_string()) as Square, &Black, magic_box), true);
     assert_eq!(is_square_attacked_by(&position, 58, &White, magic_box), true);
     assert_eq!(is_square_attacked_by(&position, 60, &White, magic_box), true);
@@ -340,7 +340,7 @@ pub fn it_gets_all_moves_for_a_position() {
     let no_checks = moves(&position, magic_box).into_iter().filter(| m| {
         let mut position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
         make_move(&mut position, *m, &mut history);
-        !is_check(&position, &switch_side(position.mover), magic_box)
+        !is_check(&position, &switch_side(position.main.mover), magic_box)
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["e8d7","e8d8","e8f7"]);
 
@@ -379,7 +379,7 @@ pub fn it_gets_all_moves_for_a_position() {
     let no_checks = moves(&position, magic_box).into_iter().filter(| m| {
         let mut position = get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string());
         make_move(&mut position, *m, &mut history);
-        !is_check(&position, &switch_side(position.mover), magic_box)
+        !is_check(&position, &switch_side(position.main.mover), magic_box)
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["a1b1", "a1c1", "a1d1", "a2a3", "a2a4", "a5b4", "a5b6", "a5c7", "a5d8", "e1c1", "e1d1", "e1d2", "e1f2", "h1f1", "h1g1", "h2h3", "h2h4"]);
 
@@ -387,7 +387,7 @@ pub fn it_gets_all_moves_for_a_position() {
     let no_checks = moves(&position, magic_box).into_iter().filter(| m| {
         let mut position = get_position(&"8/8/p7/1P6/K1k3pP/6P1/8/8 b - - 0 1".to_string());
         make_move(&mut position, *m, &mut history);
-        !is_check(&position, &switch_side(position.mover), magic_box)
+        !is_check(&position, &switch_side(position.main.mover), magic_box)
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["a6a5", "a6b5", "c4c3", "c4c5", "c4d3", "c4d4", "c4d5"]);
 

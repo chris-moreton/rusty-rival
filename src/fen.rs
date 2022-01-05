@@ -1,5 +1,5 @@
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
-use crate::types::{Bitboard, Move, Mover, Position, Square};
+use crate::types::{Bitboard, Move, Mover, Position, PositionMain, PositionSupplement, Square};
 use crate::types::Mover::{Black, White};
 use crate::utils::from_square_mask;
 
@@ -164,26 +164,8 @@ pub fn get_position(fen: &str) -> Position {
     if castle_part.contains('q') { castle_flags |= BQ_CASTLE };
 
     Position {
-        white_pawn_bitboard: wp,
-        black_pawn_bitboard: bp,
-        white_knight_bitboard: wn,
-        black_knight_bitboard: bn,
-        white_bishop_bitboard: wb,
-        black_bishop_bitboard: bb,
-        white_rook_bitboard: wr,
-        black_rook_bitboard: br,
-        white_queen_bitboard: wq,
-        black_queen_bitboard: bq,
-        white_king_bitboard: wk,
-        black_king_bitboard: bk,
-        all_pieces_bitboard: wp | bp | wn | bn | wb | bb | wr | br | wq | bq | wk | bk,
-        white_pieces_bitboard: wp | wn | wb | wr | wq | wk,
-        black_pieces_bitboard: bp | bn | bb | br | bq | bk,
-        mover: get_mover(fen),
-        en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square,
-        castle_flags,
-        half_moves: fen_part(fen, 4).parse::<u16>().unwrap(),
-        move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
+        main: PositionMain { white_pawn_bitboard: wp, black_pawn_bitboard: bp, white_knight_bitboard: wn, black_knight_bitboard: bn, white_bishop_bitboard: wb, black_bishop_bitboard: bb, white_rook_bitboard: wr, black_rook_bitboard: br, white_queen_bitboard: wq, black_queen_bitboard: bq, white_king_bitboard: wk, black_king_bitboard: bk, mover: get_mover(fen), en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square, castle_flags, half_moves: fen_part(fen, 4).parse::<u16>().unwrap(), move_number: fen_part(fen, 5).parse::<u16>().unwrap() },
+        supplement: PositionSupplement { all_pieces_bitboard: wp | bp | wn | bn | wb | bb | wr | br | wq | bq | wk | bk, white_pieces_bitboard: wp | wn | wb | wr | wq | wk, black_pieces_bitboard: bp | bn | bb | br | bq | bk },
     }
 
 }

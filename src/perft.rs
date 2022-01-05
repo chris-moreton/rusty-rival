@@ -8,7 +8,7 @@ pub fn perft(position: &mut Position, depth: u8, history: &mut PositionHistory, 
 
     moves(position, magic_box).into_iter().for_each(|m| {
         make_move(position, m, history);
-        if !is_check(position, &switch_side(position.mover), magic_box) {
+        if !is_check(position, &switch_side(position.main.mover), magic_box) {
             count += if depth == 0 {
                 1
             } else {
