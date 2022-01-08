@@ -11,20 +11,18 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
     let to = to_square_part(mv);
     let piece = moving_piece(position, from);
     store_history(position, history);
-    if is_simple_move(position, from as Square, to, piece) {
-        make_simple_move(position, mv, from as Square)
+    if is_complex_move(position, from as Square, to, piece) {
+        make_complex_move(position, from, to, mv)
     } else {
-        make_complex_move(position, mv)
+        make_simple_move(position, from as Square, to, piece)
     };
     position.mover = switch_side(position.mover);
     position.move_number = if position.mover == White { position.move_number + 1 } else { position.move_number }
 }
 
 #[inline(always)]
-pub fn make_simple_move(position: &mut Position, mv: Move, from: Square) {
-    let to = to_square_part(mv);
+pub fn make_simple_move(position: &mut Position, from: Square, to: Square, piece: Piece) {
     let switch_bitboard = bit(from) | bit(to);
-    let piece = moving_piece(position, from);
     position.all_pieces_bitboard ^= switch_bitboard;
     if position.mover == White {
         position.white_pieces_bitboard ^= switch_bitboard;
@@ -36,10 +34,8 @@ pub fn make_simple_move(position: &mut Position, mv: Move, from: Square) {
 }
 
 #[inline(always)]
-pub fn make_complex_move(position: &mut Position, mv: Move) {
+pub fn make_complex_move(position: &mut Position, from: Square, to: Square, mv: Move) {
     let promoted_piece = promotion_piece_from_move(mv);
-    let from = from_square_part(mv);
-    let to = to_square_part(mv);
 
     if promoted_piece != Empty {
         make_move_with_promotion(position, mv, promoted_piece);
@@ -348,15 +344,10 @@ pub fn moving_piece(position: &Position, from_square: Square) -> Piece {
 }
 
 #[inline(always)]
-pub fn is_simple_move(position: &mut Position, from: Square, to: Square, piece: Piece) -> bool {
-    !is_simple_capture(position, to) &&
-        !(piece == Pawn && is_complex_pawn_move(from, to)) &&
-            !(piece == King && test_bit(KING_START_POSITIONS, from))
-}
-
-#[inline(always)]
-pub fn is_simple_capture(position: &mut Position, square: Square) -> bool {
-    test_bit(position.all_pieces_bitboard, square)
+pub fn is_complex_move(position: &mut Position, from: Square, to: Square, piece: Piece) -> bool {
+    test_bit(position.all_pieces_bitboard, to) ||
+        (piece == Pawn && is_complex_pawn_move(from, to)) ||
+            (piece == King && test_bit(KING_START_POSITIONS, from))
 }
 
 #[inline(always)]
