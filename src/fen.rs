@@ -1,6 +1,5 @@
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
-use crate::types::{Bitboard, Move, Mover, Position, Square};
-use crate::types::Mover::{Black, White};
+use crate::types::{Bitboard, BLACK, Move, Mover, Position, Square, WHITE};
 use crate::utils::from_square_mask;
 
 const EN_PASSANT_UNAVAILABLE: i8 = -1;
@@ -117,7 +116,7 @@ pub fn fen_board_part(fen: &str) -> String {
 
 pub fn get_mover(fen: &str) -> Mover {
     let m = fen_part(fen, 1);
-    if m == "w" { White } else { Black }
+    if m == "w" { WHITE } else { BLACK }
 }
 
 pub fn piece_bitboard(fen_ranks: &[String], piece: char) -> Bitboard {

@@ -1,7 +1,7 @@
 use rusty_rival::bitboards::{A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, bit, bitboard_for_mover, clear_bit, DARK_SQUARES_BITS, empty_squares_bitboard, enemy_bitboard, exactly_one_bit_set, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS, MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, north_fill, RANK_8_BITS, south_fill, test_bit};
 use rusty_rival::fen::{get_position, rank_bits};
 use rusty_rival::move_constants::ALL_CASTLE_FLAGS;
-use rusty_rival::types::{Mover, Piece, Position};
+use rusty_rival::types::{BLACK, Piece, Position, WHITE};
 
 #[test]
 fn it_sets_a_bit() {
@@ -88,7 +88,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         all_pieces_bitboard: 13,
         white_pieces_bitboard: 14,
         black_pieces_bitboard: 15,
-        mover: Mover::White,
+        mover: WHITE,
         en_passant_square: 1,
         castle_flags: ALL_CASTLE_FLAGS,
         half_moves: 0,
@@ -118,7 +118,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         all_pieces_bitboard: 13,
         white_pieces_bitboard: 14,
         black_pieces_bitboard: 15,
-        mover: Mover::Black,
+        mover: BLACK,
         en_passant_square: 1,
         castle_flags: ALL_CASTLE_FLAGS,
         half_moves: 0,

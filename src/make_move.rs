@@ -1,8 +1,7 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, D8_BIT, E1_BIT, E8_BIT, F1_BIT, F8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::moves::{move_mover_or_remove_captured};
-use crate::types::{Bitboard, is_any_black_castle_available, is_any_white_castle_available, Move, Mover, Piece, Position, PositionHistory, Square, unset_bk_castle, unset_black_castles, unset_bq_castle, unset_white_castles, unset_wk_castle, unset_wq_castle};
-use crate::types::Mover::{Black, White};
+use crate::types::{Bitboard, BLACK, is_any_black_castle_available, is_any_white_castle_available, Move, Mover, Piece, Position, PositionHistory, Square, unset_bk_castle, unset_black_castles, unset_bq_castle, unset_white_castles, unset_wk_castle, unset_wq_castle, WHITE};
 use crate::types::Piece::{Bishop, Empty, King, Knight, Pawn, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
 
@@ -17,14 +16,14 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
         make_simple_move(position, from as Square, to, piece)
     };
     position.mover = switch_side(position.mover);
-    position.move_number = if position.mover == White { position.move_number + 1 } else { position.move_number }
+    position.move_number = if position.mover == WHITE { position.move_number + 1 } else { position.move_number }
 }
 
 #[inline(always)]
 pub fn make_simple_move(position: &mut Position, from: Square, to: Square, piece: Piece) {
     let switch_bitboard = bit(from) | bit(to);
     position.all_pieces_bitboard ^= switch_bitboard;
-    if position.mover == White {
+    if position.mover == WHITE {
         position.white_pieces_bitboard ^= switch_bitboard;
         make_simple_white_move(position, from, to, piece)
     } else {
@@ -118,28 +117,28 @@ pub fn make_move_with_promotion(position: &mut Position, mv: Move, promotion_pie
     let bp = remove_pawn_if_promotion(move_mover_or_remove_captured(from, to, position.black_pawn_bitboard));
 
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_knight_bitboard);
-    let wn = if position.mover == White && promotion_piece == Knight { piece_bitboard | bit(to) } else { piece_bitboard };
+    let wn = if position.mover == WHITE && promotion_piece == Knight { piece_bitboard | bit(to) } else { piece_bitboard };
 
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_knight_bitboard);
-    let bn = if position.mover == Black && promotion_piece == Knight { piece_bitboard | bit(to) } else { piece_bitboard };
+    let bn = if position.mover == BLACK && promotion_piece == Knight { piece_bitboard | bit(to) } else { piece_bitboard };
 
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_bishop_bitboard);
-    let wb = if position.mover == White && promotion_piece == Bishop { piece_bitboard | bit(to) } else { piece_bitboard };
+    let wb = if position.mover == WHITE && promotion_piece == Bishop { piece_bitboard | bit(to) } else { piece_bitboard };
 
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_bishop_bitboard);
-    let bb = if position.mover == Black && promotion_piece == Bishop { piece_bitboard | bit(to) } else { piece_bitboard };
+    let bb = if position.mover == BLACK && promotion_piece == Bishop { piece_bitboard | bit(to) } else { piece_bitboard };
 
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_rook_bitboard);
-    let wr = if position.mover == White && promotion_piece == Rook { piece_bitboard | bit(to) } else { piece_bitboard };
+    let wr = if position.mover == WHITE && promotion_piece == Rook { piece_bitboard | bit(to) } else { piece_bitboard };
 
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_rook_bitboard);
-    let br = if position.mover == Black && promotion_piece == Rook { piece_bitboard | bit(to) } else { piece_bitboard };
+    let br = if position.mover == BLACK && promotion_piece == Rook { piece_bitboard | bit(to) } else { piece_bitboard };
 
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_queen_bitboard);
-    let wq = if position.mover == White && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
+    let wq = if position.mover == WHITE && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
 
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_queen_bitboard);
-    let bq = if position.mover == Black && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
+    let bq = if position.mover == BLACK && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
 
     let wk = position.white_king_bitboard;
     let bk = position.black_king_bitboard;
@@ -254,7 +253,8 @@ pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Squar
 
 #[inline(always)]
 pub fn switch_side(mover: Mover) -> Mover {
-    if mover == White { Black } else { White }
+    //if mover == WHITE { BLACK } else { WHITE }
+    mover * -1
 }
 
 #[inline(always)]
@@ -328,7 +328,7 @@ pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square,
 
 #[inline(always)]
 pub fn moving_piece(position: &Position, from_square: Square) -> Piece {
-    if position.mover == White {
+    if position.mover == WHITE {
         if test_bit(position.white_pawn_bitboard, from_square) { Pawn }
         else if test_bit(position.white_knight_bitboard, from_square) { Knight }
         else if test_bit(position.white_bishop_bitboard, from_square) { Bishop }
@@ -373,7 +373,7 @@ pub fn default_position_history() -> PositionHistory {
             all_pieces_bitboard: 0,
             white_pieces_bitboard: 0,
             black_pieces_bitboard: 0,
-            mover: Mover::White,
+            mover: WHITE,
             en_passant_square: 0,
             castle_flags: 0,
             half_moves: 0,
@@ -384,7 +384,7 @@ pub fn default_position_history() -> PositionHistory {
 
 #[inline(always)]
 pub fn get_move_index(move_number: u16, mover: Mover) -> usize {
-    (move_number * 2 - if mover == White { 1 } else { 0 }) as usize
+    (move_number * 2 - if mover == WHITE { 1 } else { 0 }) as usize
 }
 
 #[inline(always)]

@@ -3,8 +3,7 @@ use crate::magic_bitboards::{magic_bishop, magic_index_for_bishop, magic_index_f
 use crate::magic_moves_bishop::MAGIC_MOVES_BISHOP;
 use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
 use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
-use crate::types::{Bitboard, is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, MagicBox, MagicVars, Move, MoveList, Mover, Piece, Position, Square};
-use crate::types::Mover::{Black, White};
+use crate::types::{Bitboard, BLACK, is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, MagicBox, MagicVars, Move, MoveList, Mover, Piece, Position, Square, WHITE};
 use crate::types::Piece::{Bishop, King, Knight, Pawn, Rook};
 use crate::utils::from_square_mask;
 
@@ -24,7 +23,7 @@ pub fn moves(position: &Position, magic_box: &MagicBox) -> MoveList {
 
 #[inline(always)]
 pub fn all_bits_except_friendly_pieces(position: &Position) -> Bitboard {
-    !if position.mover == White { position.white_pieces_bitboard } else { position.black_pieces_bitboard }
+    !if position.mover == WHITE { position.white_pieces_bitboard } else { position.black_pieces_bitboard }
 }
 
 #[inline(always)]
@@ -60,7 +59,7 @@ pub fn generate_king_moves(position: &Position, move_list: &mut MoveList) {
 #[inline(always)]
 pub fn generate_slider_moves(position: &Position, piece: Piece, move_list: &mut MoveList, magic_box: &MagicBox) {
     let valid_destinations = all_bits_except_friendly_pieces(position);
-    let mut from_bitboard = slider_bitboard_for_colour(position, &position.mover, &piece);
+    let mut from_bitboard = slider_bitboard_for_colour(position, position.mover, &piece);
     while from_bitboard != 0 {
         let from_square = from_bitboard.trailing_zeros() as Square;
         let fsm = from_square_mask(from_square as Square);
@@ -105,7 +104,7 @@ pub fn pawn_captures(lookup: &[Bitboard], square: Square, enemy_bitboard: Bitboa
 
 #[inline(always)]
 pub fn potential_pawn_jump_moves(bb: Bitboard, position: &Position) -> Bitboard {
-    if position.mover == White {
+    if position.mover == WHITE {
         (bb << 8) & RANK_4_BITS
     } else {
         (bb >> 8) & RANK_5_BITS
@@ -136,13 +135,13 @@ pub fn pawn_captures_plus_en_passant_square(capture_pawn_moves: &[Bitboard], squ
 
 #[inline(always)]
 pub fn en_passant_capture_rank(mover: &Mover) -> Bitboard {
-    if *mover == White { RANK_6_BITS } else { RANK_3_BITS }
+    if *mover == WHITE { RANK_6_BITS } else { RANK_3_BITS }
 }
 
 #[inline(always)]
 pub fn generate_pawn_moves(position: &Position, move_list: &mut MoveList) {
     let bitboard = bitboard_for_mover(position, Pawn);
-    if position.mover == White {
+    if position.mover == WHITE {
         generate_white_pawn_moves(bitboard, position, empty_squares_bitboard(position), move_list)
     } else {
         generate_black_pawn_moves(bitboard, position, empty_squares_bitboard(position), move_list)
@@ -182,7 +181,7 @@ pub fn generate_black_pawn_moves(mut from_squares: Bitboard, position: &Position
 }
 
 #[inline(always)]
-pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: &Mover, bitboard: Bitboard, magic_box: &MagicBox) -> bool {
+pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, bitboard: Bitboard, magic_box: &MagicBox) -> bool {
     if bitboard == 0 {
         false
     } else {
@@ -194,7 +193,7 @@ pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: &Mover, b
 
 #[inline(always)]
 pub fn pawn_moves_capture_of_colour(mover: Mover, square: Square) -> Bitboard {
-    if mover == White {
+    if mover == WHITE {
         WHITE_PAWN_MOVES_CAPTURE[square as usize]
     } else {
         BLACK_PAWN_MOVES_CAPTURE[square as usize]
@@ -202,26 +201,26 @@ pub fn pawn_moves_capture_of_colour(mover: Mover, square: Square) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover: &Mover, magic_box: &MagicBox) -> bool {
+pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover: Mover, magic_box: &MagicBox) -> bool {
     let all_pieces = position.all_pieces_bitboard;
-    if *mover == White {
-        is_square_attacked_by_any_pawn(position.white_pawn_bitboard, pawn_moves_capture_of_colour(Black, attacked_square)) ||
+    if mover == WHITE {
+        is_square_attacked_by_any_pawn(position.white_pawn_bitboard, pawn_moves_capture_of_colour(BLACK, attacked_square)) ||
             is_square_attacked_by_any_knight(position.white_knight_bitboard, attacked_square) ||
-            is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, White), attacked_square, magic_box) ||
-            is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, White), attacked_square, magic_box) ||
+            is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, WHITE), attacked_square, magic_box) ||
+            is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, WHITE), attacked_square, magic_box) ||
             is_square_attacked_by_king(position.white_king_bitboard, attacked_square)
     } else {
-        is_square_attacked_by_any_pawn(position.black_pawn_bitboard, pawn_moves_capture_of_colour(White, attacked_square)) ||
+        is_square_attacked_by_any_pawn(position.black_pawn_bitboard, pawn_moves_capture_of_colour(WHITE, attacked_square)) ||
             is_square_attacked_by_any_knight(position.black_knight_bitboard, attacked_square) ||
-            is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, Black), attacked_square, magic_box) ||
-            is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, Black), attacked_square, magic_box) ||
+            is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, BLACK), attacked_square, magic_box) ||
+            is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, BLACK), attacked_square, magic_box) ||
             is_square_attacked_by_king(position.black_king_bitboard, attacked_square)
     }
 }
 
 #[inline(always)]
 pub fn rook_move_pieces_bitboard(position: &Position, mover: Mover) -> Bitboard {
-    if mover == White {
+    if mover == WHITE {
         position.white_rook_bitboard | position.white_queen_bitboard
     } else {
         position.black_rook_bitboard | position.black_queen_bitboard
@@ -230,7 +229,7 @@ pub fn rook_move_pieces_bitboard(position: &Position, mover: Mover) -> Bitboard 
 
 #[inline(always)]
 pub fn bishop_move_pieces_bitboard(position: &Position, mover: Mover) -> Bitboard {
-    if mover == White {
+    if mover == WHITE {
         position.white_bishop_bitboard | position.white_queen_bitboard
     } else {
         position.black_bishop_bitboard | position.black_queen_bitboard
@@ -287,22 +286,22 @@ pub fn is_rook_attacking_square(attacked_square: Square, piece_square: Square, a
 #[inline(always)]
 pub fn generate_castle_moves(position: &Position, move_list: &mut MoveList, magic_box: &MagicBox) {
     let all_pieces = position.all_pieces_bitboard;
-    if position.mover == White {
+    if position.mover == WHITE {
         if is_wk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 &&
-            !any_squares_in_bitboard_attacked(position, &Black, NO_CHECK_CASTLE_SQUARES_WHITE_KING, magic_box) {
+            !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_KING, magic_box) {
             move_list.push(from_square_mask(3) | 1);
         }
         if is_wq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_QUEEN == 0 &&
-            !any_squares_in_bitboard_attacked(position, &Black, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, magic_box) {
+            !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, magic_box) {
             move_list.push(from_square_mask(3) | 5);
         }
     } else {
         if is_bk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_KING == 0 &&
-            !any_squares_in_bitboard_attacked(position, &White, NO_CHECK_CASTLE_SQUARES_BLACK_KING, magic_box) {
+            !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_KING, magic_box) {
             move_list.push(from_square_mask(59) | 57);
         }
         if is_bq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_QUEEN == 0 &&
-            !any_squares_in_bitboard_attacked(position, &White, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, magic_box) {
+            !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, magic_box) {
             move_list.push(from_square_mask(59) | 61);
         }
     };
@@ -310,7 +309,7 @@ pub fn generate_castle_moves(position: &Position, move_list: &mut MoveList, magi
 
 #[inline(always)]
 pub fn king_square(position: &Position, mover: Mover) -> Square {
-    if mover == White {
+    if mover == WHITE {
         position.white_king_bitboard.trailing_zeros() as Square
     } else {
         position.black_king_bitboard.trailing_zeros() as Square
@@ -318,11 +317,11 @@ pub fn king_square(position: &Position, mover: Mover) -> Square {
 }
 
 #[inline(always)]
-pub fn is_check(position: &Position, mover: &Mover, magic_box: &MagicBox) -> bool {
-    if *mover == White {
-        is_square_attacked_by(position, king_square(position, White), &Black, magic_box)
+pub fn is_check(position: &Position, mover: Mover, magic_box: &MagicBox) -> bool {
+    if mover == WHITE {
+        is_square_attacked_by(position, king_square(position, WHITE), BLACK, magic_box)
     } else {
-        is_square_attacked_by(position, king_square(position, Black), &White, magic_box)
+        is_square_attacked_by(position, king_square(position, BLACK), WHITE, magic_box)
     }
 }
 

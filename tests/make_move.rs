@@ -1,7 +1,7 @@
 use rusty_rival::fen::{bitref_from_algebraic_squareref, get_position, move_from_algebraic_move};
 use rusty_rival::make_move::{default_position_history, get_move_index, make_move, moving_piece, unmake_move};
 use rusty_rival::types::Piece::{Bishop, King, Knight, Pawn, Queen, Rook};
-use rusty_rival::types::Mover::{Black, White};
+use rusty_rival::types::{BLACK, WHITE};
 
 #[test]
 pub fn it_determines_the_moving_piece() {
@@ -17,12 +17,12 @@ pub fn it_determines_the_moving_piece() {
 
 #[test]
 pub fn it_gets_the_halfmove_index_from_the_move_number() {
-    assert_eq!(get_move_index(1, White), 1);
-    assert_eq!(get_move_index(1, Black), 2);
-    assert_eq!(get_move_index(2, White), 3);
-    assert_eq!(get_move_index(2, Black), 4);
-    assert_eq!(get_move_index(3, White), 5);
-    assert_eq!(get_move_index(3, Black), 6);
+    assert_eq!(get_move_index(1, WHITE), 1);
+    assert_eq!(get_move_index(1, BLACK), 2);
+    assert_eq!(get_move_index(2, WHITE), 3);
+    assert_eq!(get_move_index(2, BLACK), 4);
+    assert_eq!(get_move_index(3, WHITE), 5);
+    assert_eq!(get_move_index(3, BLACK), 6);
 }
 
 #[test]

@@ -7,9 +7,10 @@ pub type MoveList = Vec<Move>;
 pub type Path = Vec<Move>;
 pub type MagicFunc = fn(Square, u64) -> Bitboard;
 pub type MagicMovesArray = [[Bitboard; 4096]; 64];
+pub type Mover = i8;
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub enum Mover { White, Black }
+pub const WHITE: i8 = -1;
+pub const BLACK: i8 = 1;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook, Empty }
