@@ -1,6 +1,5 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, D8_BIT, E1_BIT, E8_BIT, F1_BIT, F8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
-use crate::moves::{move_mover_or_remove_captured};
 use crate::types::{Bitboard, BLACK, is_any_black_castle_available, is_any_white_castle_available, Move, Mover, Piece, Position, PositionHistory, Square, unset_bk_castle, unset_black_castles, unset_bq_castle, unset_white_castles, unset_wk_castle, unset_wq_castle, WHITE};
 use crate::types::Piece::{Bishop, Empty, King, Knight, Pawn, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
@@ -16,7 +15,7 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
         make_simple_move(position, from as Square, to, piece)
     };
     position.mover = switch_side(position.mover);
-    position.move_number = if position.mover == WHITE { position.move_number + 1 } else { position.move_number }
+    if position.mover == WHITE { position.move_number += 1 }
 }
 
 #[inline(always)]
@@ -199,30 +198,56 @@ pub fn remove_piece_from_bitboard(square: Square, bitboard: Bitboard) -> Bitboar
 }
 
 #[inline(always)]
-pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Square) {
+pub fn move_mover(from: Square, to: Square, bb: Bitboard) -> Bitboard {
+    if test_bit(bb, from) {
+        clear_bit(bb, from) | bit(to)
+    } else {
+        bb
+    }
+}
 
-    let is_pawn_move = test_bit(position.white_pawn_bitboard | position.black_pawn_bitboard, from);
-    position.white_pawn_bitboard = move_mover_or_remove_captured(from, to, position.white_pawn_bitboard);
-    position.black_pawn_bitboard = move_mover_or_remove_captured(from, to, position.black_pawn_bitboard);
+#[inline(always)]
+pub fn remove_captured(to: Square, bb: Bitboard) -> Bitboard {
+    clear_bit(bb, to)
+}
+
+#[inline(always)]
+pub fn move_mover_or_remove_captured(from: Square, to: Square, bb: Bitboard) -> Bitboard {
+    if test_bit(bb, from) {
+        clear_bit(bb, from) | bit(to)
+    } else {
+        clear_bit(bb, to)
+    }
+}
+
+#[inline(always)]
+pub fn make_simple_complex_white_move(position: &mut Position, from: Square, to: Square) {
+
+    let is_pawn_move = test_bit(position.white_pawn_bitboard, from);
+
+    position.white_pawn_bitboard = move_mover(from, to, position.white_pawn_bitboard);
+    position.black_pawn_bitboard = remove_captured(from, to, position.black_pawn_bitboard);
 
     if position.en_passant_square == to {
-        if test_bit(position.black_pawn_bitboard, to) {
-            position.white_pawn_bitboard = remove_piece_from_bitboard(en_passant_captured_piece_square(to), position.white_pawn_bitboard);
-        } else if test_bit(position.white_pawn_bitboard, to) {
+        if test_bit(position.white_pawn_bitboard, to) {
             position.black_pawn_bitboard = remove_piece_from_bitboard(en_passant_captured_piece_square(to), position.black_pawn_bitboard);
         }
     }
 
-    let wn = move_mover_or_remove_captured(from, to, position.white_knight_bitboard);
-    let bn = move_mover_or_remove_captured(from, to, position.black_knight_bitboard);
-    let wb = move_mover_or_remove_captured(from, to, position.white_bishop_bitboard);
-    let bb = move_mover_or_remove_captured(from, to, position.black_bishop_bitboard);
-    let wr = move_mover_or_remove_captured(from, to, position.white_rook_bitboard);
-    let br = move_mover_or_remove_captured(from, to, position.black_rook_bitboard);
-    let wq = move_mover_or_remove_captured(from, to, position.white_queen_bitboard);
-    let bq = move_mover_or_remove_captured(from, to, position.black_queen_bitboard);
-    let wk = move_mover_or_remove_captured(from, to, position.white_king_bitboard);
-    let bk = move_mover_or_remove_captured(from, to, position.black_king_bitboard);
+    let wn = move_mover(from, to, position.white_knight_bitboard);
+    let bn = remove_captured(to, position.black_knight_bitboard);
+
+    let wb = move_mover(from, to, position.white_bishop_bitboard);
+    let bb = remove_captured(to, position.black_bishop_bitboard);
+
+    let wr = move_mover(from, to, position.white_rook_bitboard);
+    let br = remove_captured(to, position.black_rook_bitboard);
+
+    let wq = move_mover(from, to, position.white_queen_bitboard);
+    let bq = remove_captured(to, position.black_queen_bitboard);
+
+    let wk = move_mover(from, to, position.white_king_bitboard);
+    let bk = remove_captured(to, position.black_king_bitboard);
 
     let wpb = position.white_pawn_bitboard | wn | wr | wk | wq | wb;
     let bpb = position.black_pawn_bitboard | bn | br | bk | bq | bb;
@@ -243,11 +268,75 @@ pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Squar
     position.white_pieces_bitboard = wpb;
     position.black_pieces_bitboard = bpb;
 
-    if from == E1_BIT || from == H1_BIT || to == H1_BIT { unset_wk_castle(position) }
-    if from == E1_BIT || from == A1_BIT || to == A1_BIT { unset_wq_castle(position) }
-    if from == E8_BIT || from == H8_BIT || to == H8_BIT { unset_bk_castle(position) }
-    if from == E8_BIT || from == A8_BIT || to == A8_BIT { unset_bq_castle(position) }
+    if from == E1_BIT || from == H1_BIT { unset_wk_castle(position) }
+    if from == E1_BIT || from == A1_BIT { unset_wq_castle(position) }
+    if to == H8_BIT { unset_bk_castle(position) }
+    if to == A8_BIT { unset_bq_castle(position) }
+}
 
+#[inline(always)]
+pub fn make_simple_complex_black_move(position: &mut Position, from: Square, to: Square) {
+
+    let is_pawn_move = test_bit(position.black_pawn_bitboard, from);
+
+    position.white_pawn_bitboard = remove_captured(from, to, position.white_pawn_bitboard);
+    position.black_pawn_bitboard = move_mover(from, to, position.black_pawn_bitboard);
+
+    if position.en_passant_square == to {
+        if test_bit(position.black_pawn_bitboard, to) {
+            position.white_pawn_bitboard = remove_piece_from_bitboard(en_passant_captured_piece_square(to), position.white_pawn_bitboard);
+        }
+    }
+
+    let wn = remove_captured(to, position.white_knight_bitboard);
+    let bn = move_mover(from, to, position.black_knight_bitboard);
+
+    let wb = remove_captured(to, position.white_bishop_bitboard);
+    let bb = move_mover(from, to, position.black_bishop_bitboard);
+
+    let wr = remove_captured(to, position.white_rook_bitboard);
+    let br = move_mover(from, to, position.black_rook_bitboard);
+
+    let wq = remove_captured(to, position.white_queen_bitboard);
+    let bq = move_mover(from, to, position.black_queen_bitboard);
+
+    let wk = remove_captured(to, position.white_king_bitboard);
+    let bk = move_mover(from, to, position.black_king_bitboard);
+
+    let wpb = position.white_pawn_bitboard | wn | wr | wk | wq | wb;
+    let bpb = position.black_pawn_bitboard | bn | br | bk | bq | bb;
+
+    position.half_moves = if test_bit(position.all_pieces_bitboard, to) || is_pawn_move { 0 } else { position.half_moves + 1 };
+
+    position.white_knight_bitboard = wn;
+    position.black_knight_bitboard = bn;
+    position.white_bishop_bitboard = wb;
+    position.black_bishop_bitboard = bb;
+    position.white_rook_bitboard = wr;
+    position.black_rook_bitboard = br;
+    position.white_queen_bitboard = wq;
+    position.black_queen_bitboard = bq;
+    position.white_king_bitboard = wk;
+    position.black_king_bitboard = bk;
+    position.all_pieces_bitboard = wpb | bpb;
+    position.white_pieces_bitboard = wpb;
+    position.black_pieces_bitboard = bpb;
+
+    if from == E8_BIT || from == H8_BIT { unset_bk_castle(position) }
+    if from == E8_BIT || from == A8_BIT { unset_bq_castle(position) }
+    if to == H1_BIT { unset_wk_castle(position) }
+    if to == A1_BIT { unset_wq_castle(position) }
+
+}
+
+#[inline(always)]
+pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Square) {
+
+    if position.mover == WHITE {
+        make_simple_complex_white_move(position, from, to)
+    } else {
+        make_simple_complex_black_move(position, from, to)
+    }
 
 }
 

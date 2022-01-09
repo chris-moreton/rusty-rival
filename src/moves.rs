@@ -326,15 +326,6 @@ pub fn is_check(position: &Position, mover: Mover, magic_box: &MagicBox) -> bool
 }
 
 #[inline(always)]
-pub fn move_mover_or_remove_captured(from: Square, to: Square, bb: Bitboard) -> Bitboard {
-    if test_bit(bb, from) {
-        clear_bit(bb, from) | bit(to)
-    } else {
-        clear_bit(bb, to)
-    }
-}
-
-#[inline(always)]
 pub fn allocate_magic_boxes() -> MagicBox {
     MagicBox {
         bishop: Box::new(MagicVars {
