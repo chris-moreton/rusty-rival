@@ -9,6 +9,20 @@ pub type MagicFunc = fn(Square, u64) -> Bitboard;
 pub type MagicMovesArray = [[Bitboard; 4096]; 64];
 pub type Mover = i8;
 
+#[macro_export]
+macro_rules! switch_side {
+    ($a:expr) => { $a *= -1 }
+}
+
+#[macro_export]
+macro_rules! move_mover {
+    ($bitboard:expr, $from_mask:expr, $to_mask: expr) => {
+        if $bitboard & $from_mask != 0 {
+            $bitboard ^= $from_mask | $to_mask;
+        }
+    }
+}
+
 pub const WHITE: i8 = -1;
 pub const BLACK: i8 = 1;
 
