@@ -15,10 +15,23 @@ macro_rules! switch_side {
 }
 
 #[macro_export]
-macro_rules! move_mover {
-    ($bitboard:expr, $from_mask:expr, $to_mask: expr) => {
+macro_rules! move_mover_white {
+    ($bitboard:expr, $from_mask:expr, $to_mask:expr, $position:expr) => {
         if $bitboard & $from_mask != 0 {
-            $bitboard ^= $from_mask | $to_mask;
+            let switch = $from_mask | $to_mask;
+            $bitboard ^= switch;
+            $position.white_pieces_bitboard ^= switch;
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! move_mover_black {
+    ($bitboard:expr, $from_mask:expr, $to_mask:expr, $position:expr) => {
+        if $bitboard & $from_mask != 0 {
+            let switch = $from_mask | $to_mask;
+            $bitboard ^= switch;
+            $position.black_pieces_bitboard ^= switch;
         }
     }
 }
