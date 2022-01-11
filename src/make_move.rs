@@ -52,15 +52,15 @@ pub fn make_complex_move(position: &mut Position, from: Square, to: Square, mv: 
 
 #[inline(always)]
 pub fn make_white_castle_move(position: &mut Position, to: Square) {
-    let wr= if to == C1_BIT {
+    position.white_rook_bitboard = if to == C1_BIT {
         clear_bit(position.white_rook_bitboard, A1_BIT) | bit(D1_BIT)
     } else {
         clear_bit(position.white_rook_bitboard, H1_BIT) | bit(F1_BIT)
     };
-    let wk = clear_bit(position.white_king_bitboard, E1_BIT) | bit(to);
-    let wpb = wr | wk | position.white_queen_bitboard | position.white_knight_bitboard | position.white_bishop_bitboard | position.white_pawn_bitboard;
-    position.white_rook_bitboard = wr;
-    position.white_king_bitboard = wk;
+
+    position.white_king_bitboard = bit(to);
+
+    let wpb = position.white_rook_bitboard | position.white_king_bitboard | position.white_queen_bitboard | position.white_knight_bitboard | position.white_bishop_bitboard | position.white_pawn_bitboard;
     position.all_pieces_bitboard = wpb | position.black_pieces_bitboard;
     position.white_pieces_bitboard = wpb;
     unset_white_castles(position);
@@ -69,17 +69,15 @@ pub fn make_white_castle_move(position: &mut Position, to: Square) {
 
 #[inline(always)]
 pub fn make_black_castle_move(position: &mut Position, to: Square) {
-    let br= if to == C8_BIT {
+    position.black_rook_bitboard = if to == C8_BIT {
         clear_bit(position.black_rook_bitboard, A8_BIT) | bit(D8_BIT)
     } else {
         clear_bit(position.black_rook_bitboard, H8_BIT) | bit(F8_BIT)
     };
 
-    let bk = clear_bit(position.black_king_bitboard, E8_BIT) | bit(to);
+    position.black_king_bitboard = bit(to);
 
-    let bpb = br | bk | position.black_queen_bitboard | position.black_knight_bitboard | position.black_bishop_bitboard | position.black_pawn_bitboard;
-    position.black_rook_bitboard = br;
-    position.black_king_bitboard = bk;
+    let bpb = position.black_rook_bitboard | position.black_king_bitboard | position.black_queen_bitboard | position.black_knight_bitboard | position.black_bishop_bitboard | position.black_pawn_bitboard;
     position.all_pieces_bitboard = bpb | position.white_pieces_bitboard;
     position.black_pieces_bitboard = bpb;
     unset_black_castles(position);
@@ -389,18 +387,19 @@ pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square,
 
 #[inline(always)]
 pub fn moving_piece(position: &Position, from_square: Square) -> Piece {
+    let from_bb = bit(from_square);
     if position.mover == WHITE {
-        if test_bit(position.white_pawn_bitboard, from_square) { Pawn }
-        else if test_bit(position.white_knight_bitboard, from_square) { Knight }
-        else if test_bit(position.white_bishop_bitboard, from_square) { Bishop }
-        else if test_bit(position.white_rook_bitboard, from_square) { Rook }
-        else if test_bit(position.white_queen_bitboard, from_square) { Queen }
+        if position.white_pawn_bitboard & from_bb != 0 { Pawn }
+        else if position.white_knight_bitboard & from_bb != 0 { Knight }
+        else if position.white_bishop_bitboard & from_bb != 0 { Bishop }
+        else if position.white_rook_bitboard & from_bb != 0  { Rook }
+        else if position.white_queen_bitboard & from_bb != 0  { Queen }
         else { King }
-    } else if test_bit(position.black_pawn_bitboard, from_square) { Pawn }
-        else if test_bit(position.black_knight_bitboard, from_square) { Knight }
-        else if test_bit(position.black_bishop_bitboard, from_square) { Bishop }
-        else if test_bit(position.black_rook_bitboard, from_square) { Rook }
-        else if test_bit(position.black_queen_bitboard, from_square) { Queen }
+    } else if position.black_pawn_bitboard & from_bb != 0 { Pawn }
+        else if position.black_knight_bitboard & from_bb != 0 { Knight }
+        else if position.black_bishop_bitboard & from_bb != 0 { Bishop }
+        else if position.black_rook_bitboard & from_bb != 0 { Rook }
+        else if position.black_queen_bitboard & from_bb != 0 { Queen }
         else { King }
 }
 
