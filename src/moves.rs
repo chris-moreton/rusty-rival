@@ -2,7 +2,7 @@ use crate::bitboards::{bit, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_
 use crate::magic_bitboards::{magic_bishop, magic_index_for_bishop, magic_index_for_rook, MAGIC_NUMBER_BISHOP, MAGIC_NUMBER_ROOK, MAGIC_NUMBER_SHIFTS_BISHOP, MAGIC_NUMBER_SHIFTS_ROOK, magic_rook, OCCUPANCY_MASK_BISHOP, OCCUPANCY_MASK_ROOK};
 use crate::magic_moves_bishop::MAGIC_MOVES_BISHOP;
 use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
-use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
+use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MOVED_BISHOP_MASK, PIECE_MOVED_KING_MASK, PIECE_MOVED_KNIGHT_MASK, PIECE_MOVED_PAWN_MASK, PIECE_MOVED_QUEEN_MASK, PIECE_MOVED_ROOK_MASK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::types::{Bitboard, BLACK, is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, MagicBox, MagicVars, Move, MoveList, Mover, Piece, Position, Square, WHITE};
 use crate::types::Piece::{Bishop, King, Knight, Pawn, Rook};
 use crate::utils::from_square_mask;
@@ -32,7 +32,7 @@ pub fn generate_knight_moves(position: &Position, move_list: &mut MoveList) {
     let mut from_squares_bitboard = bitboard_for_mover(position, Knight);
     while from_squares_bitboard != 0 {
         let from_square = from_squares_bitboard.trailing_zeros();
-        let fsm = from_square_mask(from_square as Square);
+        let fsm = from_square_mask(from_square as Square) | PIECE_MOVED_KNIGHT_MASK;
         let mut to_bitboard = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
         while to_bitboard != 0 {
             let sq = to_bitboard.trailing_zeros() as Square;
@@ -47,7 +47,7 @@ pub fn generate_knight_moves(position: &Position, move_list: &mut MoveList) {
 pub fn generate_king_moves(position: &Position, move_list: &mut MoveList) {
     let valid_destinations = all_bits_except_friendly_pieces(position);
     let from_square = bitboard_for_mover(position, King).trailing_zeros();
-    let fsm = from_square_mask(from_square as Square);
+    let fsm = from_square_mask(from_square as Square) | PIECE_MOVED_KING_MASK;
     let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
     while to_bitboard != 0 {
         let sq = to_bitboard.trailing_zeros() as Square;
@@ -62,7 +62,17 @@ pub fn generate_slider_moves(position: &Position, piece: Piece, move_list: &mut 
     let mut from_bitboard = slider_bitboard_for_colour(position, position.mover, &piece);
     while from_bitboard != 0 {
         let from_square = from_bitboard.trailing_zeros() as Square;
-        let fsm = from_square_mask(from_square as Square);
+        let piece_moved_mask = if bit(from_square) & (position.white_queen_bitboard | position.black_queen_bitboard) != 0 {
+            PIECE_MOVED_QUEEN_MASK
+        } else {
+            match piece {
+                Bishop => PIECE_MOVED_BISHOP_MASK,
+                Rook => PIECE_MOVED_ROOK_MASK,
+                _ => panic!("Invalid sliding piece inferred")
+            }
+        };
+
+        let fsm = from_square_mask(from_square) | piece_moved_mask;
 
         let mut to_bitboard = if piece == Bishop {
             magic_bishop(from_square as Square, magic_index_for_bishop(from_square as Square, position.all_pieces_bitboard, magic_box), magic_box)
@@ -81,10 +91,10 @@ pub fn generate_slider_moves(position: &Position, piece: Piece, move_list: &mut 
 
 #[inline(always)]
 pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard: Bitboard, move_list: &mut MoveList) {
-    let mask = from_square_mask(from_square);
+    let fsm = from_square_mask(from_square) | PIECE_MOVED_PAWN_MASK;
     while to_bitboard != 0 {
         let to_square = to_bitboard.trailing_zeros();
-        let base_move = mask | to_square as Move;
+        let base_move = fsm | to_square;
         if to_square >= 56 || to_square <= 7 {
             move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
             move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
@@ -289,20 +299,20 @@ pub fn generate_castle_moves(position: &Position, move_list: &mut MoveList, magi
     if position.mover == WHITE {
         if is_wk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 &&
             !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_KING, magic_box) {
-            move_list.push(from_square_mask(3) | 1);
+            move_list.push(from_square_mask(3) | 1 | PIECE_MOVED_KING_MASK);
         }
         if is_wq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_QUEEN == 0 &&
             !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, magic_box) {
-            move_list.push(from_square_mask(3) | 5);
+            move_list.push(from_square_mask(3) | 5 | PIECE_MOVED_KING_MASK);
         }
     } else {
         if is_bk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_KING == 0 &&
             !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_KING, magic_box) {
-            move_list.push(from_square_mask(59) | 57);
+            move_list.push(from_square_mask(59) | 57 | PIECE_MOVED_KING_MASK);
         }
         if is_bq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_QUEEN == 0 &&
             !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, magic_box) {
-            move_list.push(from_square_mask(59) | 61);
+            move_list.push(from_square_mask(59) | 61 | PIECE_MOVED_KING_MASK);
         }
     };
 }

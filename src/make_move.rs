@@ -12,9 +12,17 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
     let to_mask = bit(to);
     let from_mask = bit(from);
 
-    let piece = if position.mover == WHITE {
-        if position.white_pawn_bitboard & from_mask != 0 { Pawn } else if position.white_knight_bitboard & from_mask != 0 { Knight } else if position.white_bishop_bitboard & from_mask != 0 { Bishop } else if position.white_rook_bitboard & from_mask != 0 { Rook } else if position.white_queen_bitboard & from_mask != 0 { Queen } else { King }
-    } else if position.black_pawn_bitboard & from_mask != 0 { Pawn } else if position.black_knight_bitboard & from_mask != 0 { Knight } else if position.black_bishop_bitboard & from_mask != 0 { Bishop } else if position.black_rook_bitboard & from_mask != 0 { Rook } else if position.black_queen_bitboard & from_mask != 0 { Queen } else { King };
+    let piece = match mv & PIECE_MOVED_FULL_MASK {
+        PIECE_MOVED_PAWN_MASK => Pawn,
+        PIECE_MOVED_KING_MASK => King,
+        PIECE_MOVED_BISHOP_MASK => Bishop,
+        PIECE_MOVED_ROOK_MASK => Rook,
+        PIECE_MOVED_QUEEN_MASK => Queen,
+        PIECE_MOVED_KNIGHT_MASK => Knight,
+        _ => if position.mover == WHITE {
+            if position.white_pawn_bitboard & from_mask != 0 { Pawn } else if position.white_knight_bitboard & from_mask != 0 { Knight } else if position.white_bishop_bitboard & from_mask != 0 { Bishop } else if position.white_rook_bitboard & from_mask != 0 { Rook } else if position.white_queen_bitboard & from_mask != 0 { Queen } else { King }
+        } else if position.black_pawn_bitboard & from_mask != 0 { Pawn } else if position.black_knight_bitboard & from_mask != 0 { Knight } else if position.black_bishop_bitboard & from_mask != 0 { Bishop } else if position.black_rook_bitboard & from_mask != 0 { Rook } else if position.black_queen_bitboard & from_mask != 0 { Queen } else { King }
+    };
 
     store_history(position, history);
     if position.all_pieces_bitboard & to_mask != 0 ||
@@ -22,7 +30,7 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
         (piece == King && KING_START_POSITIONS & from_mask != 0) {
         make_complex_move(position, from, to, mv)
     } else {
-        make_simple_move(position, from as Square, to, piece)
+        make_simple_move(position, from, to, piece)
     };
 
     if position.mover == WHITE {
