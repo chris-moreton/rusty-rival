@@ -15,6 +15,11 @@ macro_rules! switch_side {
 }
 
 #[macro_export]
+macro_rules! unset_lsb {
+    ($a:expr) => { $a &= $a - 1 }
+}
+
+#[macro_export]
 macro_rules! move_mover_white {
     ($bitboard:expr, $from_mask:expr, $to_mask:expr, $position:expr) => {
         if $bitboard & $from_mask != 0 {

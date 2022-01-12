@@ -1,10 +1,10 @@
 use crate::types::{Move, Square};
 
 #[inline(always)]
-pub fn from_square_mask(square: Square) -> Move { (square as Move) << 16 }
+pub const fn from_square_mask(square: Square) -> Move { (square as Move) << 16 }
 
 #[inline(always)]
-pub fn from_square_part(mv: Move) -> Square {
+pub const fn from_square_part(mv: Move) -> Square {
     (mv >> 16) as Square
 }
 

@@ -1,4 +1,5 @@
 use crate::types::{Bitboard, Move};
+use crate::utils::from_square_mask;
 
 pub const PROMOTION_QUEEN_MOVE_MASK: Move = 192;
 pub const PROMOTION_ROOK_MOVE_MASK: Move = 64;
@@ -18,3 +19,8 @@ pub const BQ_CASTLE: u8 = 8;
 pub const ALL_CASTLE_FLAGS: u8 = WK_CASTLE | WQ_CASTLE | BK_CASTLE | BQ_CASTLE;
 
 pub const MAX_MOVE_HISTORY: u16 = 512;
+
+pub const WHITE_KING_CASTLE_MOVE: Move = from_square_mask(3) | 1;
+pub const WHITE_QUEEN_CASTLE_MOVE: Move = from_square_mask(3) | 5;
+pub const BLACK_KING_CASTLE_MOVE: Move = from_square_mask(59) | 57;
+pub const BLACK_QUEEN_CASTLE_MOVE: Move = from_square_mask(59) | 61;

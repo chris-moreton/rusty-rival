@@ -1,6 +1,4 @@
 use rusty_rival::fen::get_position;
-use rusty_rival::make_move::{default_position_history};
-use rusty_rival::moves::{allocate_magic_boxes};
 use rusty_rival::perft::perft;
 
 #[test]
