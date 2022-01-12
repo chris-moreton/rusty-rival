@@ -5,7 +5,7 @@ use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
 use crate::move_constants::{BLACK_KING_CASTLE_MOVE, BLACK_QUEEN_CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE, WHITE_QUEEN_CASTLE_MOVE};
 use crate::types::{Bitboard, BLACK, is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, MagicBox, MagicVars, Move, MoveList, Mover, Piece, Position, Square, WHITE};
 use crate::types::Piece::{Bishop, King, Knight, Pawn, Rook};
-use crate::unset_lsb;
+use crate::{opponent, unset_lsb};
 use crate::utils::from_square_mask;
 
 #[inline(always)]
@@ -209,13 +209,13 @@ pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover
             is_square_attacked_by_any_knight(position.white_knight_bitboard, attacked_square) ||
             is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, WHITE), attacked_square, magic_box) ||
             is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, WHITE), attacked_square, magic_box) ||
-            is_square_attacked_by_king(position.white_king_bitboard, attacked_square)
+            is_square_attacked_by_king(position.white_king_square, attacked_square)
     } else {
         is_square_attacked_by_any_pawn(position.black_pawn_bitboard, pawn_moves_capture_of_colour(WHITE, attacked_square)) ||
             is_square_attacked_by_any_knight(position.black_knight_bitboard, attacked_square) ||
             is_square_attacked_by_any_rook(all_pieces, rook_move_pieces_bitboard(position, BLACK), attacked_square, magic_box) ||
             is_square_attacked_by_any_bishop(all_pieces, bishop_move_pieces_bitboard(position, BLACK), attacked_square, magic_box) ||
-            is_square_attacked_by_king(position.black_king_bitboard, attacked_square)
+            is_square_attacked_by_king(position.black_king_square, attacked_square)
     }
 }
 
@@ -243,8 +243,8 @@ pub fn is_square_attacked_by_any_knight(knight_bitboard: Bitboard, attacked_squa
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by_king(king_bitboard: Bitboard, attacked_square: Square) -> bool {
-    king_bitboard & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
+pub fn is_square_attacked_by_king(king_square: Square, attacked_square: Square) -> bool {
+    bit(king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
 }
 
 #[inline(always)]
@@ -311,19 +311,15 @@ pub fn generate_castle_moves(position: &Position, move_list: &mut MoveList, magi
 #[inline(always)]
 pub fn king_square(position: &Position, mover: Mover) -> Square {
     if mover == WHITE {
-        position.white_king_bitboard.trailing_zeros() as Square
+        position.white_king_square
     } else {
-        position.black_king_bitboard.trailing_zeros() as Square
+        position.black_king_square
     }
 }
 
 #[inline(always)]
 pub fn is_check(position: &Position, mover: Mover, magic_box: &MagicBox) -> bool {
-    if mover == WHITE {
-        is_square_attacked_by(position, king_square(position, WHITE), BLACK, magic_box)
-    } else {
-        is_square_attacked_by(position, king_square(position, BLACK), WHITE, magic_box)
-    }
+    is_square_attacked_by(position, king_square(position, mover), opponent!(mover), magic_box)
 }
 
 #[inline(always)]

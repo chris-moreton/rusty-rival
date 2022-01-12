@@ -5,13 +5,17 @@ pub type Bitboard = u64;
 pub type Move = u32;
 pub type MoveList = Vec<Move>;
 pub type Path = Vec<Move>;
-pub type MagicFunc = fn(Square, u64) -> Bitboard;
 pub type MagicMovesArray = [[Bitboard; 4096]; 64];
 pub type Mover = i8;
 
 #[macro_export]
 macro_rules! switch_side {
     ($a:expr) => { $a *= -1 }
+}
+
+#[macro_export]
+macro_rules! opponent {
+    ($a:expr) => { $a * -1 }
 }
 
 #[macro_export]
@@ -97,13 +101,13 @@ pub struct Position {
     pub white_knight_bitboard: Bitboard,
     pub white_bishop_bitboard: Bitboard,
     pub white_queen_bitboard: Bitboard,
-    pub white_king_bitboard: Bitboard,
+    pub white_king_square: Square,
     pub white_rook_bitboard: Bitboard,
     pub black_pawn_bitboard: Bitboard,
     pub black_knight_bitboard: Bitboard,
     pub black_bishop_bitboard: Bitboard,
     pub black_queen_bitboard: Bitboard,
-    pub black_king_bitboard: Bitboard,
+    pub black_king_square: Square,
     pub black_rook_bitboard: Bitboard,
     pub all_pieces_bitboard: Bitboard,
     pub white_pieces_bitboard: Bitboard,
@@ -126,13 +130,13 @@ impl PartialEq for Position {
         self.white_knight_bitboard == other.white_knight_bitboard &&
         self.white_bishop_bitboard == other.white_bishop_bitboard &&
         self.white_queen_bitboard == other.white_queen_bitboard &&
-        self.white_king_bitboard == other.white_king_bitboard &&
+        self.white_king_square == other.white_king_square &&
         self.white_rook_bitboard == other.white_rook_bitboard &&
         self.black_pawn_bitboard == other.black_pawn_bitboard &&
         self.black_knight_bitboard == other.black_knight_bitboard &&
         self.black_bishop_bitboard == other.black_bishop_bitboard &&
         self.black_queen_bitboard == other.black_queen_bitboard &&
-        self.black_king_bitboard == other.black_king_bitboard &&
+        self.black_king_square == other.black_king_square &&
         self.black_rook_bitboard == other.black_rook_bitboard &&
         self.all_pieces_bitboard == other.all_pieces_bitboard &&
         self.white_pieces_bitboard == other.white_pieces_bitboard &&

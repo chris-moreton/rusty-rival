@@ -67,14 +67,14 @@ pub fn make_complex_move(position: &mut Position, from: Square, to: Square, mv: 
 #[inline(always)]
 pub fn make_white_castle_move(position: &mut Position, to: Square) {
     position.white_rook_bitboard = if to == C1_BIT {
-        position.white_king_bitboard = 1 << C1_BIT;
+        position.white_king_square = C1_BIT;
         clear_bit(position.white_rook_bitboard, A1_BIT) | bit(D1_BIT)
     } else {
-        position.white_king_bitboard = 1 << G1_BIT;
+        position.white_king_square = G1_BIT;
         clear_bit(position.white_rook_bitboard, H1_BIT) | bit(F1_BIT)
     };
 
-    let wpb = position.white_rook_bitboard | position.white_king_bitboard | position.white_queen_bitboard | position.white_knight_bitboard | position.white_bishop_bitboard | position.white_pawn_bitboard;
+    let wpb = position.white_rook_bitboard | bit(position.white_king_square) | position.white_queen_bitboard | position.white_knight_bitboard | position.white_bishop_bitboard | position.white_pawn_bitboard;
     position.all_pieces_bitboard = wpb | position.black_pieces_bitboard;
     position.white_pieces_bitboard = wpb;
     unset_white_castles(position);
@@ -84,14 +84,14 @@ pub fn make_white_castle_move(position: &mut Position, to: Square) {
 #[inline(always)]
 pub fn make_black_castle_move(position: &mut Position, to: Square) {
     position.black_rook_bitboard = if to == C8_BIT {
-        position.black_king_bitboard = 1 << C8_BIT;
+        position.black_king_square = C8_BIT;
         clear_bit(position.black_rook_bitboard, A8_BIT) | bit(D8_BIT)
     } else {
-        position.black_king_bitboard = 1 << G8_BIT;
+        position.black_king_square = G8_BIT;
         clear_bit(position.black_rook_bitboard, H8_BIT) | bit(F8_BIT)
     };
 
-    let bpb = position.black_rook_bitboard | position.black_king_bitboard | position.black_queen_bitboard | position.black_knight_bitboard | position.black_bishop_bitboard | position.black_pawn_bitboard;
+    let bpb = position.black_rook_bitboard | bit(position.black_king_square) | position.black_queen_bitboard | position.black_knight_bitboard | position.black_bishop_bitboard | position.black_pawn_bitboard;
     position.all_pieces_bitboard = bpb | position.white_pieces_bitboard;
     position.black_pieces_bitboard = bpb;
     unset_black_castles(position);
@@ -150,11 +150,8 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_queen_bitboard);
     let bq = if position.mover == BLACK && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
 
-    let wk = position.white_king_bitboard;
-    let bk = position.black_king_bitboard;
-
-    let wpb = wp | wn | wr | wk | wq | wb;
-    let bpb = bp | bn | br | bk | bq | bb;
+    let wpb = wp | wn | wr | bit(position.white_king_square) | wq | wb;
+    let bpb = bp | bn | br | bit(position.black_king_square) | bq | bb;
 
     position.white_pawn_bitboard = wp;
     position.black_pawn_bitboard = bp;
@@ -166,8 +163,6 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     position.black_rook_bitboard = br;
     position.white_queen_bitboard = wq;
     position.black_queen_bitboard = bq;
-    position.white_king_bitboard = wk;
-    position.black_king_bitboard = bk;
     position.all_pieces_bitboard = wpb | bpb;
     position.white_pieces_bitboard = wpb;
     position.black_pieces_bitboard = bpb;
@@ -260,8 +255,11 @@ pub fn make_simple_complex_white_move(position: &mut Position, from: Square, to:
     move_mover_white!(position.white_bishop_bitboard, from_mask, to_mask, position);
     move_mover_white!(position.white_rook_bitboard, from_mask, to_mask, position);
     move_mover_white!(position.white_queen_bitboard, from_mask, to_mask, position);
-    move_mover_white!(position.white_king_bitboard, from_mask, to_mask, position);
 
+    if position.white_king_square == from {
+        position.white_king_square = to;
+        position.white_pieces_bitboard ^= from_mask | to_mask;
+    }
     position.half_moves = if test_bit(position.all_pieces_bitboard, to) || is_pawn_move { 0 } else { position.half_moves + 1 };
 
     position.all_pieces_bitboard = position.white_pieces_bitboard | position.black_pieces_bitboard;
@@ -301,7 +299,10 @@ pub fn make_simple_complex_black_move(position: &mut Position, from: Square, to:
     move_mover_black!(position.black_bishop_bitboard, from_mask, to_mask, position);
     move_mover_black!(position.black_rook_bitboard, from_mask, to_mask, position);
     move_mover_black!(position.black_queen_bitboard, from_mask, to_mask, position);
-    move_mover_black!(position.black_king_bitboard, from_mask, to_mask, position);
+    if position.black_king_square == from { 
+        position.black_king_square = to;
+        position.black_pieces_bitboard ^= from_mask | to_mask;
+    }
 
     position.half_moves = if test_bit(position.all_pieces_bitboard, to) || is_pawn_move { 0 } else { position.half_moves + 1 };
 
@@ -355,7 +356,7 @@ pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square,
                 position.white_queen_bitboard = clear_bit(position.white_queen_bitboard, from) | bit(to);
             },
             King => {
-                position.white_king_bitboard = bit(to);
+                position.white_king_square = to;
             },
             _ => {
                 panic!("Piece panic")
@@ -390,7 +391,7 @@ pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square,
                 position.black_queen_bitboard = clear_bit(position.black_queen_bitboard, from) | bit(to);
             }
             King => {
-                position.black_king_bitboard = bit(to);
+                position.black_king_square = to;
             },
             _ => {
                 panic!("Piece panic")
@@ -436,13 +437,13 @@ pub fn default_position_history() -> PositionHistory {
             white_knight_bitboard: 0,
             white_bishop_bitboard: 0,
             white_queen_bitboard: 0,
-            white_king_bitboard: 0,
+            white_king_square: 0,
             white_rook_bitboard: 0,
             black_pawn_bitboard: 0,
             black_knight_bitboard: 0,
             black_bishop_bitboard: 0,
             black_queen_bitboard: 0,
-            black_king_bitboard: 0,
+            black_king_square: 0,
             black_rook_bitboard: 0,
             all_pieces_bitboard: 0,
             white_pieces_bitboard: 0,

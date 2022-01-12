@@ -13,13 +13,13 @@ pub fn bitboard_for_mover(position: &Position, piece: Piece) -> Bitboard {
 #[inline(always)]
 pub fn bitboard_for_colour(position: &Position, mover: Mover, piece: Piece) -> Bitboard {
     match (mover, piece) {
-        (WHITE, Piece::King) => position.white_king_bitboard,
+        (WHITE, Piece::King) => bit(position.white_king_square),
         (WHITE, Piece::Queen) => position.white_queen_bitboard,
         (WHITE, Piece::Rook) => position.white_rook_bitboard,
         (WHITE, Piece::Knight) => position.white_knight_bitboard,
         (WHITE, Piece::Bishop) => position.white_bishop_bitboard,
         (WHITE, Piece::Pawn) => position.white_pawn_bitboard,
-        (BLACK, Piece::King) => position.black_king_bitboard,
+        (BLACK, Piece::King) => bit(position.black_king_square),
         (BLACK, Piece::Queen) => position.black_queen_bitboard,
         (BLACK, Piece::Rook) => position.black_rook_bitboard,
         (BLACK, Piece::Knight) => position.black_knight_bitboard,

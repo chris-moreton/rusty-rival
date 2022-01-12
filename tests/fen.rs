@@ -116,13 +116,13 @@ fn it_creates_a_position_from_a_fen() {
     assert_eq!(position.mover, BLACK);
     assert_eq!(position.white_pawn_bitboard, 5404360704);
     assert_eq!(position.white_knight_bitboard, 2048);
-    assert_eq!(position.white_king_bitboard, 1048576);
+    assert_eq!(position.white_king_square, 20);
     assert_eq!(position.white_bishop_bitboard, 262144);
     assert_eq!(position.white_queen_bitboard, 0);
     assert_eq!(position.white_rook_bitboard, 67108864);
     assert_eq!(position.black_pawn_bitboard, 634693087133696);
     assert_eq!(position.black_knight_bitboard, 0);
-    assert_eq!(position.black_king_bitboard, 144115188075855872);
+    assert_eq!(position.black_king_square, 57);
     assert_eq!(position.black_bishop_bitboard, 0);
     assert_eq!(position.black_queen_bitboard, 8796093022208);
     assert_eq!(position.black_rook_bitboard, 16384);
