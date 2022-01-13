@@ -1,4 +1,4 @@
-use crate::bitboards::{bit, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, clear_bit, EMPTY_CASTLE_SQUARES_BLACK_KING, EMPTY_CASTLE_SQUARES_BLACK_QUEEN, EMPTY_CASTLE_SQUARES_WHITE_KING, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES_BLACK_KING, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, NO_CHECK_CASTLE_SQUARES_WHITE_KING, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, test_bit, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
+use crate::bitboards::{bit, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, EMPTY_CASTLE_SQUARES_BLACK_KING, EMPTY_CASTLE_SQUARES_BLACK_QUEEN, EMPTY_CASTLE_SQUARES_WHITE_KING, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES_BLACK_KING, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, NO_CHECK_CASTLE_SQUARES_WHITE_KING, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, test_bit, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use crate::magic_bitboards::{magic_bishop, magic_index_for_bishop, magic_index_for_rook, MAGIC_NUMBER_BISHOP, MAGIC_NUMBER_ROOK, MAGIC_NUMBER_SHIFTS_BISHOP, MAGIC_NUMBER_SHIFTS_ROOK, magic_rook, OCCUPANCY_MASK_BISHOP, OCCUPANCY_MASK_ROOK};
 use crate::magic_moves_bishop::MAGIC_MOVES_BISHOP;
 use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
@@ -182,14 +182,13 @@ pub fn generate_black_pawn_moves(mut from_squares: Bitboard, position: &Position
 }
 
 #[inline(always)]
-pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, bitboard: Bitboard, magic_box: &MagicBox) -> bool {
-    if bitboard == 0 {
-        false
-    } else {
+pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, mut bitboard: Bitboard, magic_box: &MagicBox) -> bool {
+    while bitboard != 0 {
         let square = bitboard.trailing_zeros() as Square;
-        is_square_attacked_by(position, square, attacker, magic_box) ||
-            any_squares_in_bitboard_attacked(position, attacker, clear_bit(bitboard, square), magic_box)
+        if is_square_attacked_by(position, square, attacker, magic_box) { return true }
+        unset_lsb!(bitboard);
     }
+    return false;
 }
 
 #[inline(always)]
@@ -253,25 +252,23 @@ pub fn is_square_attacked_by_any_pawn(pawns: Bitboard, pawn_attacks: Bitboard) -
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by_any_bishop(all_pieces: Bitboard, attacking_bishops: Bitboard, attacked_square: Square, magic_box: &MagicBox) -> bool {
-    if attacking_bishops == 0 {
-        false
-    } else {
+pub fn is_square_attacked_by_any_bishop(all_pieces: Bitboard, mut attacking_bishops: Bitboard, attacked_square: Square, magic_box: &MagicBox) -> bool {
+    while attacking_bishops != 0 {
         let bishop_square = attacking_bishops.trailing_zeros();
-        is_bishop_attacking_square(attacked_square, bishop_square as Square, all_pieces, magic_box) ||
-            is_square_attacked_by_any_bishop(all_pieces, clear_bit(attacking_bishops, bishop_square as Square), attacked_square, magic_box)
+        if is_bishop_attacking_square(attacked_square, bishop_square as Square, all_pieces, magic_box) { return true };
+        unset_lsb!(attacking_bishops)
     }
+    return false;
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by_any_rook(all_pieces: Bitboard, attacking_rooks: Bitboard, attacked_square: Square, magic_box: &MagicBox) -> bool {
-    if attacking_rooks == 0 {
-        false
-    } else {
+pub fn is_square_attacked_by_any_rook(all_pieces: Bitboard, mut attacking_rooks: Bitboard, attacked_square: Square, magic_box: &MagicBox) -> bool {
+    while attacking_rooks != 0 {
         let rook_square = attacking_rooks.trailing_zeros();
-        is_rook_attacking_square(attacked_square, rook_square as Square, all_pieces, magic_box) ||
-            is_square_attacked_by_any_rook(all_pieces, clear_bit(attacking_rooks, rook_square as Square), attacked_square, magic_box)
+        if is_rook_attacking_square(attacked_square, rook_square as Square, all_pieces, magic_box) { return true };
+        unset_lsb!(attacking_rooks)
     }
+    return false;
 }
 
 #[inline(always)]

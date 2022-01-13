@@ -379,8 +379,7 @@ pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square,
                 position.black_knight_bitboard = clear_bit(position.black_knight_bitboard, from) | bit(to);
             }
             Bishop => {
-                let bb = position.black_bishop_bitboard;
-                position.black_bishop_bitboard = clear_bit(bb, from) | bit(to);
+                position.black_bishop_bitboard = clear_bit(position.black_bishop_bitboard, from) | bit(to);
             }
             Rook => {
                 position.black_rook_bitboard = clear_bit(position.black_rook_bitboard, from) | bit(to);
