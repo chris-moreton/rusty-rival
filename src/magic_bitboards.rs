@@ -1,4 +1,4 @@
-use crate::types::{Bitboard, MagicBox, Square};
+use crate::types::{Bitboard, MagicBox, MagicVars, Square};
 
 #[inline(always)]
 pub fn magic_bishop(from_square: Square, to_squares_magic_index: u64, magic_box: &MagicBox) -> Bitboard {
@@ -11,23 +11,11 @@ pub fn magic_rook(from_square: Square, to_squares_magic_index: u64, magic_box: &
 }
 
 #[inline(always)]
-pub fn magic_index_for_rook(piece_square: Square, all_piece_bitboard: Bitboard, magic_box: &MagicBox) -> u64 {
-    let number_magic = magic_box.rook.magic_number[piece_square as usize];
-    let shift_magic = magic_box.rook.magic_number_shifts[piece_square as usize];
-    let mask_magic = magic_box.rook.occupancy_mask[piece_square as usize];
-    let occupancy = all_piece_bitboard & mask_magic;
-    let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
-    raw_index >> shift_magic as u64
-}
-
-#[inline(always)]
-pub fn magic_index_for_bishop(piece_square: Square, all_piece_bitboard: Bitboard, magic_box: &MagicBox) -> u64 {
-    let number_magic = magic_box.bishop.magic_number[piece_square as usize];
-    let shift_magic = magic_box.bishop.magic_number_shifts[piece_square as usize];
-    let mask_magic = magic_box.bishop.occupancy_mask[piece_square as usize];
-    let occupancy = all_piece_bitboard & mask_magic;
-    let raw_index: u64 = (0b1111111111111111111111111111111111111111111111111111111111111111 & ((occupancy as u128 * number_magic as u128) as u128)) as u64;
-    raw_index >> shift_magic as u64
+pub fn magic_index(piece_square: Square, all_piece_bitboard: Bitboard, m: &Box<MagicVars>) -> u64 {
+    let number_magic = m.magic_number[piece_square as usize];
+    let shift_magic = m.magic_number_shifts[piece_square as usize];
+    let occupancy = all_piece_bitboard & m.occupancy_mask[piece_square as usize];
+    occupancy.wrapping_mul(number_magic) >> shift_magic
 }
 
 pub const MAGIC_NUMBER_ROOK: [Bitboard; 64] = [
