@@ -2,11 +2,12 @@ use crate::types::{Bitboard, MagicVars, Square};
 
 #[inline(always)]
 pub fn magic_moves(from_square: Square, all_piece_bitboard: Bitboard, magic_vars: &Box<MagicVars>) -> Bitboard {
-    let number_magic = magic_vars.magic_number[from_square as usize];
-    let shift_magic = magic_vars.magic_number_shifts[from_square as usize];
-    let occupancy = all_piece_bitboard & magic_vars.occupancy_mask[from_square as usize];
+    let fs = from_square as usize;
+    let number_magic = magic_vars.magic_number[fs];
+    let shift_magic = magic_vars.magic_number_shifts[fs];
+    let occupancy = all_piece_bitboard & magic_vars.occupancy_mask[fs];
     let magic_index = occupancy.wrapping_mul(number_magic) >> shift_magic;
-    magic_vars.magic_moves[from_square as usize][magic_index as usize]
+    magic_vars.magic_moves[fs][magic_index as usize]
 }
 
 pub const MAGIC_NUMBER_ROOK: [Bitboard; 64] = [
