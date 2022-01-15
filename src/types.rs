@@ -62,8 +62,8 @@ pub struct MagicVars {
 }
 
 pub struct MagicBox {
-    pub(crate) bishop: Box<MagicVars>,
-    pub(crate) rook: Box<MagicVars>,
+    pub bishop: Box<MagicVars>,
+    pub rook: Box<MagicVars>,
 }
 
 #[inline(always)]
