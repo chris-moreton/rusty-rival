@@ -55,7 +55,11 @@ pub fn make_complex_move(position: &mut Position, from: Square, to: Square, mv: 
     } else if from == E8_BIT && (to == G8_BIT || to == C8_BIT) && is_any_black_castle_available(position) {
         make_black_castle_move(position, to);
     } else {
-        make_simple_complex_move(position, from, to);
+        if position.mover == WHITE {
+            make_simple_complex_white_move(position, from, to)
+        } else {
+            make_simple_complex_black_move(position, from, to)
+        }
     }
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
@@ -192,34 +196,6 @@ pub fn en_passant_captured_piece_square(square: Square) -> Square {
 }
 
 #[inline(always)]
-pub fn remove_piece_from_bitboard(square: Square, bitboard: Bitboard) -> Bitboard {
-    !bit(square) & bitboard
-}
-
-#[inline(always)]
-pub fn move_mover(from: Square, to: Square, bb: Bitboard) -> Bitboard {
-    if test_bit(bb, from) {
-        clear_bit(bb, from) | bit(to)
-    } else {
-        bb
-    }
-}
-
-#[inline(always)]
-pub fn remove_captured(to: Square, bb: Bitboard) -> Bitboard {
-    clear_bit(bb, to)
-}
-
-#[inline(always)]
-pub fn move_mover_or_remove_captured(from: Square, to: Square, bb: Bitboard) -> Bitboard {
-    if test_bit(bb, from) {
-        clear_bit(bb, from) | bit(to)
-    } else {
-        clear_bit(bb, to)
-    }
-}
-
-#[inline(always)]
 pub fn make_simple_complex_white_move(position: &mut Position, from: Square, to: Square) {
 
     let to_mask = bit(to);
@@ -305,17 +281,6 @@ pub fn make_simple_complex_black_move(position: &mut Position, from: Square, to:
     if from == E8_BIT || from == A8_BIT { unset_bq_castle(position) }
     if to == H1_BIT { unset_wk_castle(position) }
     if to == A1_BIT { unset_wq_castle(position) }
-
-}
-
-#[inline(always)]
-pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Square) {
-
-    if position.mover == WHITE {
-        make_simple_complex_white_move(position, from, to)
-    } else {
-        make_simple_complex_black_move(position, from, to)
-    }
 
 }
 
