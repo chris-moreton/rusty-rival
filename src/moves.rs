@@ -1,5 +1,5 @@
 use crate::bitboards::{bit, bitboard_for_mover, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, EMPTY_CASTLE_SQUARES_BLACK_KING, EMPTY_CASTLE_SQUARES_BLACK_QUEEN, EMPTY_CASTLE_SQUARES_WHITE_KING, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES_BLACK_KING, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, NO_CHECK_CASTLE_SQUARES_WHITE_KING, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, slider_bitboard_for_colour, test_bit, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
-use crate::magic_bitboards::{magic_bishop, magic_index, MAGIC_NUMBER_BISHOP, MAGIC_NUMBER_ROOK, MAGIC_NUMBER_SHIFTS_BISHOP, MAGIC_NUMBER_SHIFTS_ROOK, magic_rook, OCCUPANCY_MASK_BISHOP, OCCUPANCY_MASK_ROOK};
+use crate::magic_bitboards::{MAGIC_NUMBER_BISHOP, MAGIC_NUMBER_ROOK, MAGIC_NUMBER_SHIFTS_BISHOP, MAGIC_NUMBER_SHIFTS_ROOK, magic_moves, OCCUPANCY_MASK_BISHOP, OCCUPANCY_MASK_ROOK};
 use crate::magic_moves_bishop::MAGIC_MOVES_BISHOP;
 use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
 use crate::move_constants::{BLACK_KING_CASTLE_MOVE, BLACK_QUEEN_CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE, WHITE_QUEEN_CASTLE_MOVE};
@@ -66,9 +66,9 @@ pub fn generate_slider_moves(position: &Position, piece: Piece, move_list: &mut 
         let fsm = from_square_mask(from_square as Square);
 
         let mut to_bitboard = if piece == Bishop {
-            magic_bishop(from_square as Square, magic_index(from_square as Square, position.all_pieces_bitboard, &magic_box.bishop), magic_box)
+            magic_moves(from_square as Square, position.all_pieces_bitboard, &magic_box.bishop)
         } else {
-            magic_rook(from_square as Square, magic_index(from_square as Square, position.all_pieces_bitboard, &magic_box.rook), magic_box)
+            magic_moves(from_square as Square, position.all_pieces_bitboard, &magic_box.rook)
         } & valid_destinations;
 
         while to_bitboard != 0 {
@@ -254,8 +254,7 @@ pub fn is_square_attacked_by_any_pawn(pawns: Bitboard, pawn_attacks: Bitboard) -
 #[inline(always)]
 pub fn is_square_attacked_by_any_bishop(all_pieces: Bitboard, mut attacking_bishops: Bitboard, attacked_square: Square, magic_box: &MagicBox) -> bool {
     while attacking_bishops != 0 {
-        let bishop_square = attacking_bishops.trailing_zeros();
-        if is_bishop_attacking_square(attacked_square, bishop_square as Square, all_pieces, magic_box) { return true };
+        if is_bishop_attacking_square(attacked_square, attacking_bishops.trailing_zeros() as Square, all_pieces, magic_box) { return true };
         unset_lsb!(attacking_bishops)
     }
     return false;
@@ -264,8 +263,7 @@ pub fn is_square_attacked_by_any_bishop(all_pieces: Bitboard, mut attacking_bish
 #[inline(always)]
 pub fn is_square_attacked_by_any_rook(all_pieces: Bitboard, mut attacking_rooks: Bitboard, attacked_square: Square, magic_box: &MagicBox) -> bool {
     while attacking_rooks != 0 {
-        let rook_square = attacking_rooks.trailing_zeros();
-        if is_rook_attacking_square(attacked_square, rook_square as Square, all_pieces, magic_box) { return true };
+        if is_rook_attacking_square(attacked_square, attacking_rooks.trailing_zeros() as Square, all_pieces, magic_box) { return true };
         unset_lsb!(attacking_rooks)
     }
     return false;
@@ -273,12 +271,12 @@ pub fn is_square_attacked_by_any_rook(all_pieces: Bitboard, mut attacking_rooks:
 
 #[inline(always)]
 pub fn is_bishop_attacking_square(attacked_square: Square, piece_square: Square, all_pieces_bitboard: Bitboard, magic_box: &MagicBox) -> bool {
-    test_bit(magic_bishop(piece_square,magic_index(piece_square, all_pieces_bitboard, &magic_box.bishop), magic_box), attacked_square)
+    test_bit(magic_moves(piece_square,all_pieces_bitboard, &magic_box.bishop), attacked_square)
 }
 
 #[inline(always)]
 pub fn is_rook_attacking_square(attacked_square: Square, piece_square: Square, all_pieces_bitboard: Bitboard, magic_box: &MagicBox) -> bool {
-    test_bit(magic_rook(piece_square,magic_index(piece_square, all_pieces_bitboard, &magic_box.rook), magic_box), attacked_square)
+    test_bit(magic_moves(piece_square, all_pieces_bitboard, &magic_box.rook), attacked_square)
 }
 
 #[inline(always)]

@@ -12,9 +12,7 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
     let to_mask = bit(to);
     let from_mask = bit(from);
 
-    let piece = if position.mover == WHITE {
-        if position.white_pawn_bitboard & from_mask != 0 { Pawn } else if position.white_knight_bitboard & from_mask != 0 { Knight } else if position.white_bishop_bitboard & from_mask != 0 { Bishop } else if position.white_rook_bitboard & from_mask != 0 { Rook } else if position.white_queen_bitboard & from_mask != 0 { Queen } else { King }
-    } else if position.black_pawn_bitboard & from_mask != 0 { Pawn } else if position.black_knight_bitboard & from_mask != 0 { Knight } else if position.black_bishop_bitboard & from_mask != 0 { Bishop } else if position.black_rook_bitboard & from_mask != 0 { Rook } else if position.black_queen_bitboard & from_mask != 0 { Queen } else { King };
+    let piece = moving_piece(&position, from);
 
     store_history(position, history);
     if position.all_pieces_bitboard & to_mask != 0 ||
