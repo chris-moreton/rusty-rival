@@ -2,7 +2,7 @@ use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_square
 use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
 use rusty_rival::make_move::{default_position_history, make_move, switch_side};
 use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::{all_bits_except_friendly_pieces, allocate_magic_boxes, any_squares_in_bitboard_attacked, generate_castle_moves, generate_slider_moves, is_bishop_attacking_square, is_check, is_square_attacked_by, moves, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
+use rusty_rival::moves::{all_bits_except_friendly_pieces, allocate_magic_boxes, any_squares_in_bitboard_attacked, generate_slider_moves, is_check, is_slider_attacking_square, is_square_attacked_by, moves, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
 use rusty_rival::types::{BLACK, MoveList, Square, WHITE};
 
 #[test]
@@ -98,8 +98,8 @@ fn it_determines_if_a_given_square_is_attacked_by_a_given_colour_in_a_given_posi
 
     let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(2) | bit(3), magic_box), true);
-    assert_eq!(is_bishop_attacking_square(4, 22, position.all_pieces_bitboard, magic_box), true);
-    assert_eq!(is_bishop_attacking_square(5, 22, position.all_pieces_bitboard, magic_box), false);
+    assert_eq!(is_slider_attacking_square(4, 22, position.all_pieces_bitboard, &magic_box.bishop), true);
+    assert_eq!(is_slider_attacking_square(5, 22, position.all_pieces_bitboard, &magic_box.bishop), false);
     assert_eq!(is_square_attacked_by(&position, bitref_from_algebraic_squareref("d1".to_string()) as Square, BLACK, magic_box), true);
     assert_eq!(is_square_attacked_by(&position, 58, WHITE, magic_box), true);
     assert_eq!(is_square_attacked_by(&position, 60, WHITE, magic_box), true);
@@ -199,46 +199,6 @@ fn sort_moves(move_list: MoveList) -> Vec<String> {
     return algebraic;
 }
 
-#[test]
-fn it_generates_castle_moves_for_a_given_mover() {
-    let magic_box = &allocate_magic_boxes();
-
-    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 w Q - 0 1".to_string());
-    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
-    assert_eq!(sort_moves(move_list).len(), 0);
-
-    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R w KQ - 0 1".to_string());
-    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
-    assert_eq!(sort_moves(move_list), vec!["e1c1", "e1g1"]);
-
-    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/3rN2P/R3K2R w KQ - 0 1".to_string());
-    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
-    assert_eq!(sort_moves(move_list), vec!["e1g1"]);
-
-    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/4Nr1P/R3K2R w Q - 0 1".to_string());
-    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
-    assert_eq!(sort_moves(move_list), vec!["e1c1"]);
-
-    let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
-    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
-    assert_eq!(sort_moves(move_list).len(), 0);
-
-    let position = get_position(&"r3k1R1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 b Q - 0 1".to_string());
-    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
-    assert_eq!(sort_moves(move_list).len(), 0);
-
-    let position = get_position(&"r3k2r/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R b Q - 0 1".to_string());
-    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
-    assert_eq!(sort_moves(move_list).len(), 0);
-
-    let position = get_position(&"r3k2r/1P2PRn1/1n2q2p/P1pP4/8/5B2/1r2N2P/R3K2R b Q - 0 1".to_string());
-    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
-    assert_eq!(sort_moves(move_list).len(), 0);
-
-    let position = get_position(&"r3k2r/1P3Rn1/1n2q2p/P1pP2P1/8/5B2/1r2N2P/R3K2R b qQ - 0 1".to_string());
-    let mut move_list = Vec::new(); generate_castle_moves(&position, &mut move_list, magic_box);
-    assert_eq!(sort_moves(move_list), vec!["e8c8"]);
-}
 
 #[test]
 pub fn it_checks_for_check() {
