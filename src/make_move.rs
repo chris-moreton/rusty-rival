@@ -114,61 +114,56 @@ pub fn is_promotion_square(square: Square) -> bool {
 }
 
 #[inline(always)]
-pub fn remove_pawn_if_promotion(bitboard: Bitboard) -> Bitboard {
-    bitboard & NON_PROMOTION_SQUARES
-}
-
-#[inline(always)]
 pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Square, promotion_piece: Piece) {
 
-    let wp = remove_pawn_if_promotion(move_mover_or_remove_captured(from, to, position.white_pawn_bitboard));
-    let bp = remove_pawn_if_promotion(move_mover_or_remove_captured(from, to, position.black_pawn_bitboard));
+    let bit_to = bit(to);
+    let not_bit_to = !bit_to;
+    let not_bit_from = !bit(from);
 
-    let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_knight_bitboard);
-    let wn = if position.mover == WHITE && promotion_piece == Knight { piece_bitboard | bit(to) } else { piece_bitboard };
+    if position.mover == WHITE {
+        match promotion_piece {
+            Knight => position.white_knight_bitboard |= bit_to,
+            Bishop => position.white_bishop_bitboard |= bit_to,
+            Rook => position.white_rook_bitboard |= bit_to,
+            Queen => position.white_queen_bitboard |= bit_to,
+            _ => panic!("Invalid promotion piece")
+        }
+        position.white_pawn_bitboard &= not_bit_from;
+        position.white_pieces_bitboard &= not_bit_from;
+        position.white_pieces_bitboard |= bit_to;
 
-    let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_knight_bitboard);
-    let bn = if position.mover == BLACK && promotion_piece == Knight { piece_bitboard | bit(to) } else { piece_bitboard };
+        position.black_knight_bitboard &= not_bit_to;
+        position.black_rook_bitboard &= not_bit_to;
+        position.black_bishop_bitboard &= not_bit_to;
+        position.black_queen_bitboard &= not_bit_to;
+        position.black_pieces_bitboard &= not_bit_to;
 
-    let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_bishop_bitboard);
-    let wb = if position.mover == WHITE && promotion_piece == Bishop { piece_bitboard | bit(to) } else { piece_bitboard };
+        if to == H8_BIT { unset_bk_castle(position) }
+        if to == A8_BIT { unset_bq_castle(position) }
 
-    let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_bishop_bitboard);
-    let bb = if position.mover == BLACK && promotion_piece == Bishop { piece_bitboard | bit(to) } else { piece_bitboard };
+    } else {
+        match promotion_piece {
+            Knight => position.black_knight_bitboard |= bit_to,
+            Bishop => position.black_bishop_bitboard |= bit_to,
+            Rook => position.black_rook_bitboard |= bit_to,
+            Queen => position.black_queen_bitboard |= bit_to,
+            _ => panic!("Invalid promotion piece")
+        }
+        position.black_pawn_bitboard &= not_bit_from;
+        position.black_pieces_bitboard &= not_bit_from;
+        position.black_pieces_bitboard |= bit_to;
 
-    let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_rook_bitboard);
-    let wr = if position.mover == WHITE && promotion_piece == Rook { piece_bitboard | bit(to) } else { piece_bitboard };
+        position.white_knight_bitboard &= not_bit_to;
+        position.white_rook_bitboard &= not_bit_to;
+        position.white_bishop_bitboard &= not_bit_to;
+        position.white_queen_bitboard &= not_bit_to;
+        position.white_pieces_bitboard &= not_bit_to;
 
-    let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_rook_bitboard);
-    let br = if position.mover == BLACK && promotion_piece == Rook { piece_bitboard | bit(to) } else { piece_bitboard };
+        if to == H1_BIT { unset_wk_castle(position) }
+        if to == A1_BIT { unset_wq_castle(position) }
+    }
 
-    let piece_bitboard = move_mover_or_remove_captured(from, to, position.white_queen_bitboard);
-    let wq = if position.mover == WHITE && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
-
-    let piece_bitboard = move_mover_or_remove_captured(from, to, position.black_queen_bitboard);
-    let bq = if position.mover == BLACK && promotion_piece == Queen { piece_bitboard | bit(to) } else { piece_bitboard };
-
-    let wpb = wp | wn | wr | bit(position.white_king_square) | wq | wb;
-    let bpb = bp | bn | br | bit(position.black_king_square) | bq | bb;
-
-    position.white_pawn_bitboard = wp;
-    position.black_pawn_bitboard = bp;
-    position.white_knight_bitboard = wn;
-    position.black_knight_bitboard = bn;
-    position.white_bishop_bitboard = wb;
-    position.black_bishop_bitboard = bb;
-    position.white_rook_bitboard = wr;
-    position.black_rook_bitboard = br;
-    position.white_queen_bitboard = wq;
-    position.black_queen_bitboard = bq;
-    position.all_pieces_bitboard = wpb | bpb;
-    position.white_pieces_bitboard = wpb;
-    position.black_pieces_bitboard = bpb;
-
-    if to == H1_BIT { unset_wk_castle(position) }
-    if to == A1_BIT { unset_wq_castle(position) }
-    if to == H8_BIT { unset_bk_castle(position) }
-    if to == A8_BIT { unset_bq_castle(position) }
+    position.all_pieces_bitboard = position.white_pieces_bitboard | position.black_pieces_bitboard;
 
     position.half_moves = 0;
 }
@@ -339,26 +334,16 @@ pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square,
         position.half_moves += 1;
         position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         match piece {
-            Knight => {
-                position.white_knight_bitboard = clear_bit(position.white_knight_bitboard, from) | bit(to);
-            },
-            Bishop => {
-                position.white_bishop_bitboard = clear_bit(position.white_bishop_bitboard, from) | bit(to);
-            },
+            Knight => position.white_knight_bitboard = clear_bit(position.white_knight_bitboard, from) | bit(to),
+            Bishop => position.white_bishop_bitboard = clear_bit(position.white_bishop_bitboard, from) | bit(to),
             Rook => {
                 position.white_rook_bitboard = clear_bit(position.white_rook_bitboard, from) | bit(to);
                 if from == H1_BIT { unset_wk_castle(position) }
                 if from == A1_BIT { unset_wq_castle(position) }
             },
-            Queen => {
-                position.white_queen_bitboard = clear_bit(position.white_queen_bitboard, from) | bit(to);
-            },
-            King => {
-                position.white_king_square = to;
-            },
-            _ => {
-                panic!("Piece panic")
-            }
+            Queen => position.white_queen_bitboard = clear_bit(position.white_queen_bitboard, from) | bit(to),
+            King => position.white_king_square = to,
+            _ => panic!("Piece panic")
         }
     }
 }
@@ -373,26 +358,16 @@ pub fn make_simple_black_move(position: &mut Position, from: Square, to: Square,
         position.half_moves += 1;
         position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         match piece {
-            Knight => {
-                position.black_knight_bitboard = clear_bit(position.black_knight_bitboard, from) | bit(to);
-            }
-            Bishop => {
-                position.black_bishop_bitboard = clear_bit(position.black_bishop_bitboard, from) | bit(to);
-            }
+            Knight => position.black_knight_bitboard = clear_bit(position.black_knight_bitboard, from) | bit(to),
+            Bishop => position.black_bishop_bitboard = clear_bit(position.black_bishop_bitboard, from) | bit(to),
             Rook => {
                 position.black_rook_bitboard = clear_bit(position.black_rook_bitboard, from) | bit(to);
                 if from == H8_BIT { unset_bk_castle(position) }
                 if from == A8_BIT { unset_bq_castle(position) }
             }
-            Queen => {
-                position.black_queen_bitboard = clear_bit(position.black_queen_bitboard, from) | bit(to);
-            }
-            King => {
-                position.black_king_square = to;
-            },
-            _ => {
-                panic!("Piece panic")
-            }
+            Queen => position.black_queen_bitboard = clear_bit(position.black_queen_bitboard, from) | bit(to),
+            King => position.black_king_square = to,
+            _ => panic!("Piece panic")
         }
     }
 }
