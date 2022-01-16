@@ -97,100 +97,98 @@ fn it_determines_if_a_given_square_is_attacked_by_a_given_colour_in_a_given_posi
     let magic_box = &allocate_magic_boxes();
 
     let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
-    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(2) | bit(3), magic_box), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(2) | bit(3)), true);
     assert_eq!(is_slider_attacking_square(4, 22, position.all_pieces_bitboard, &magic_box.bishop), true);
     assert_eq!(is_slider_attacking_square(5, 22, position.all_pieces_bitboard, &magic_box.bishop), false);
-    assert_eq!(is_square_attacked_by(&position, bitref_from_algebraic_squareref("d1".to_string()) as Square, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 58, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 60, WHITE, magic_box), true);
+    assert_eq!(is_square_attacked_by(&position, bitref_from_algebraic_squareref("d1".to_string()) as Square, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 58, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 60, WHITE), true);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 w Q - 0 1".to_string());
 
-    assert_eq!(is_square_attacked_by(&position, 0, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 0, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 1, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 1, BLACK, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 2, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 2, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 3, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 3, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 4, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 4, BLACK, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 5, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 5, BLACK, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 6, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 6, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 7, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 7, BLACK, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 8, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 8, BLACK, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 9, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 9, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 10, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 10, BLACK, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 11, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 11, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 12, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 12, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 13, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 13, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 14, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 14, BLACK, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 15, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 15, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 16, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 16, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 17, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 17, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 18, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 18, BLACK, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 19, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 19, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 40, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 40, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 41, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 41, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 42, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 42, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 43, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 43, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 44, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 44, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 45, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 45, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 61, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 61, BLACK, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 62, WHITE, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 62, BLACK, magic_box), false);
-    assert_eq!(is_square_attacked_by(&position, 63, WHITE, magic_box), true);
-    assert_eq!(is_square_attacked_by(&position, 63, BLACK, magic_box), true);
+    assert_eq!(is_square_attacked_by(&position, 0, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 0, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 1, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 1, BLACK), false);
+    assert_eq!(is_square_attacked_by(&position, 2, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 2, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 3, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 3, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 4, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 4, BLACK), false);
+    assert_eq!(is_square_attacked_by(&position, 5, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 5, BLACK), false);
+    assert_eq!(is_square_attacked_by(&position, 6, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 6, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 7, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 7, BLACK), false);
+    assert_eq!(is_square_attacked_by(&position, 8, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 8, BLACK), false);
+    assert_eq!(is_square_attacked_by(&position, 9, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 9, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 10, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 10, BLACK), false);
+    assert_eq!(is_square_attacked_by(&position, 11, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 11, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 12, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 12, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 13, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 13, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 14, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 14, BLACK), false);
+    assert_eq!(is_square_attacked_by(&position, 15, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 15, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 16, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 16, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 17, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 17, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 18, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 18, BLACK), false);
+    assert_eq!(is_square_attacked_by(&position, 19, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 19, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 40, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 40, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 41, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 41, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 42, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 42, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 43, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 43, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 44, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 44, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 45, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 45, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 61, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 61, BLACK), true);
+    assert_eq!(is_square_attacked_by(&position, 62, WHITE), false);
+    assert_eq!(is_square_attacked_by(&position, 62, BLACK), false);
+    assert_eq!(is_square_attacked_by(&position, 63, WHITE), true);
+    assert_eq!(is_square_attacked_by(&position, 63, BLACK), true);
 }
 
 #[test]
 fn it_returns_true_if_any_squares_set_in_the_bitboard_are_attacked_by_the_given_attacker() {
-    let magic_box = &allocate_magic_boxes();
-
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K1r1 w Q - 0 1".to_string());
     let bitboard = 0b0000000000000000000000000000000000000000010110000000000000000000;
-    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bitboard, magic_box), false);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bitboard), false);
 
     let bitboard = 0b0000000000000000000000000000000000000000111110000000000000000000;
-    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bitboard, magic_box), true);
-    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(60) | bit (61), magic_box), true);
-    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, magic_box), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bitboard), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(60) | bit (61)), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, EMPTY_CASTLE_SQUARES_WHITE_QUEEN), true);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R w Q - 0 1".to_string());
-    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(3) | bit (2), magic_box), false);
-    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(3) | bit (4), magic_box), false);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(3) | bit (2)), false);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(3) | bit (4)), false);
 
     let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
-    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(3) | bit (2), magic_box), true);
-    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, 0b0000000000000000000000000000000000000000000000000000000000011000, magic_box), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(3) | bit (2)), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, 0b0000000000000000000000000000000000000000000000000000000000011000), true);
 
     let position = get_position(&"r3k2r/1P2P1n1/1n2q2p/P1pP4/5R2/5B2/1r2N2P/R3K2R b Q - 0 1".to_string());
-    assert_eq!(is_square_attacked_by(&position, 60, WHITE, magic_box), true);
-    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, 0b0001100000000000000000000000000000000000000000000000000000000000, magic_box), true);
-    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(59) | bit (60), magic_box), true);
+    assert_eq!(is_square_attacked_by(&position, 60, WHITE), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, 0b0001100000000000000000000000000000000000000000000000000000000000), true);
+    assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(59) | bit (60)), true);
 }
 
 fn sort_moves(move_list: MoveList) -> Vec<String> {
@@ -202,54 +200,51 @@ fn sort_moves(move_list: MoveList) -> Vec<String> {
 
 #[test]
 pub fn it_checks_for_check() {
-    let magic_box = &allocate_magic_boxes();
+    assert_eq!(is_check(&get_position(&"5k2/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK), true);
+    assert_eq!(is_check(&get_position(&"8/4k3/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK), true);
+    assert_eq!(is_check(&get_position(&"3k4/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK), false);
+    assert_eq!(is_check(&get_position(&"8/3k4/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK), false);
+    assert_eq!(is_check(&get_position(&"8/5k2/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK), false);
 
-    assert_eq!(is_check(&get_position(&"5k2/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK, magic_box), true);
-    assert_eq!(is_check(&get_position(&"8/4k3/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK, magic_box), true);
-    assert_eq!(is_check(&get_position(&"3k4/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK, magic_box), false);
-    assert_eq!(is_check(&get_position(&"8/3k4/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK, magic_box), false);
-    assert_eq!(is_check(&get_position(&"8/5k2/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK, magic_box), false);
+    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), WHITE), false);
+    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), BLACK), false);
 
-    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), WHITE, magic_box), false);
-    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), BLACK, magic_box), false);
+    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), WHITE), false);
+    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), BLACK), true);
 
-    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), WHITE, magic_box), false);
-    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string()), BLACK, magic_box), true);
+    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1".to_string()), WHITE), true);
+    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1".to_string()), BLACK), true);
 
-    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1".to_string()), WHITE, magic_box), true);
-    assert_eq!(is_check(&get_position(&"n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1".to_string()), BLACK, magic_box), true);
+    assert_eq!(is_check(&get_position(&"n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1".to_string()), WHITE), false);
+    assert_eq!(is_check(&get_position(&"n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1".to_string()), BLACK), true);
 
-    assert_eq!(is_check(&get_position(&"n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1".to_string()), WHITE, magic_box), false);
-    assert_eq!(is_check(&get_position(&"n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1".to_string()), BLACK, magic_box), true);
+    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1".to_string()), WHITE), true);
+    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1".to_string()), BLACK), false);
 
-    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1".to_string()), WHITE, magic_box), true);
-    assert_eq!(is_check(&get_position(&"n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1".to_string()), BLACK, magic_box), false);
-
-    assert_eq!(is_check(&get_position(&"r2k3r/p6p/8/B7/1p2p3/2pb4/P4K1P/R6R w - - 0 1".to_string()), BLACK, magic_box), true);
+    assert_eq!(is_check(&get_position(&"r2k3r/p6p/8/B7/1p2p3/2pb4/P4K1P/R6R w - - 0 1".to_string()), BLACK), true);
 
 }
 
 #[test]
 pub fn it_gets_all_moves_for_a_position() {
-    let magic_box = &allocate_magic_boxes();
     let mut history = default_position_history();
 
-    assert_eq!(sort_moves(moves(&get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), magic_box)), vec!["e8d7", "e8d8", "e8e7", "e8f7", "e8f8"]);
+    assert_eq!(sort_moves(moves(&get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()))), vec!["e8d7", "e8d8", "e8e7", "e8f7", "e8f8"]);
 
     let position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
-    let no_checks = moves(&position, magic_box).into_iter().filter(| m| {
+    let no_checks = moves(&position).into_iter().filter(| m| {
         let mut position = get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
         make_move(&mut position, *m, &mut history);
-        !is_check(&position, switch_side(position.mover), magic_box)
+        !is_check(&position, switch_side(position.mover))
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["e8d7","e8d8","e8f7"]);
 
-    assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/1R2K2R b Kkq - 0 1".to_string()), magic_box)), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
-    assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P4K1P/R6R b kq - 0 1".to_string()), magic_box)), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
-    assert_eq!(sort_moves(moves(&get_position(&"5k2/7p/p3B1p1/P4pP1/3K1P1P/8/8/8 w - f6 0 1".to_string()), magic_box)), vec!["d4c3","d4c4","d4c5","d4d3","d4d5","d4e3","d4e4","d4e5","e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g8","g5f6","h4h5"]);
-    assert_eq!(sort_moves(moves(&get_position(&"6k1/5p1p/p3B1p1/P5P1/3K1P1P/8/8/8 w - - 0 1".to_string()), magic_box)), vec!["d4c3","d4c4","d4c5","d4d3","d4d5","d4e3","d4e4","d4e5","e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g4","e6h3","f4f5","h4h5"]);
+    assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/1R2K2R b Kkq - 0 1".to_string()))), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
+    assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P4K1P/R6R b kq - 0 1".to_string()))), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
+    assert_eq!(sort_moves(moves(&get_position(&"5k2/7p/p3B1p1/P4pP1/3K1P1P/8/8/8 w - f6 0 1".to_string()))), vec!["d4c3","d4c4","d4c5","d4d3","d4d5","d4e3","d4e4","d4e5","e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g8","g5f6","h4h5"]);
+    assert_eq!(sort_moves(moves(&get_position(&"6k1/5p1p/p3B1p1/P5P1/3K1P1P/8/8/8 w - - 0 1".to_string()))), vec!["d4c3","d4c4","d4c5","d4d3","d4d5","d4e3","d4e4","d4e5","e6a2","e6b3","e6c4","e6c8","e6d5","e6d7","e6f5","e6f7","e6g4","e6h3","f4f5","h4h5"]);
 
-    assert_eq!(sort_moves(moves(&get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/3K1B2/1r2N2P/6r1 w - c6 0 1".to_string()), magic_box)),
+    assert_eq!(sort_moves(moves(&get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/3K1B2/1r2N2P/6r1 w - c6 0 1".to_string()))),
                vec!["a5a6","a5b6","b7a8b","b7a8n","b7a8q","b7a8r","b7b8b","b7b8n","b7b8q","b7b8r",
                     "d3c2","d3c3","d3c4","d3d2","d3d4","d3e3","d3e4",
                     "d5c6","d5d6","d5e6",
@@ -260,7 +255,7 @@ pub fn it_gets_all_moves_for_a_position() {
                     "h2h3","h2h4",
                ]);
 
-    assert_eq!(sort_moves(moves(&get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/3p1R2/2p2B2/1rPPN2P/R3K1r1 w Q - 0 1".to_string()), magic_box)),
+    assert_eq!(sort_moves(moves(&get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/3p1R2/2p2B2/1rPPN2P/R3K1r1 w Q - 0 1".to_string()))),
                vec![
                    "a1a2","a1a3","a1a4","a1b1","a1c1","a1d1"
                  , "a5a6","a5b6"
@@ -276,18 +271,18 @@ pub fn it_gets_all_moves_for_a_position() {
                ]);
 
     let position = get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string());
-    let no_checks = moves(&position, magic_box).into_iter().filter(| m| {
+    let no_checks = moves(&position).into_iter().filter(| m| {
         let mut position = get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string());
         make_move(&mut position, *m, &mut history);
-        !is_check(&position, switch_side(position.mover), magic_box)
+        !is_check(&position, switch_side(position.mover))
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["a1b1", "a1c1", "a1d1", "a2a3", "a2a4", "a5b4", "a5b6", "a5c7", "a5d8", "e1c1", "e1d1", "e1d2", "e1f2", "h1f1", "h1g1", "h2h3", "h2h4"]);
 
     let position = get_position(&"8/8/p7/1P6/K1k3pP/6P1/8/8 b - - 0 1".to_string());
-    let no_checks = moves(&position, magic_box).into_iter().filter(| m| {
+    let no_checks = moves(&position).into_iter().filter(| m| {
         let mut position = get_position(&"8/8/p7/1P6/K1k3pP/6P1/8/8 b - - 0 1".to_string());
         make_move(&mut position, *m, &mut history);
-        !is_check(&position, switch_side(position.mover), magic_box)
+        !is_check(&position, switch_side(position.mover))
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["a6a5", "a6b5", "c4c3", "c4c5", "c4d3", "c4d4", "c4d5"]);
 
