@@ -1,4 +1,10 @@
-use crate::types::{Bitboard, MagicVars, Square};
+use lazy_static::lazy_static;
+use crate::moves::allocate_magic_boxes;
+use crate::types::{Bitboard, MagicVars, Square, MagicBox};
+
+lazy_static! {
+    pub static ref MAGIC_BOX: MagicBox = allocate_magic_boxes();
+}
 
 #[inline(always)]
 pub fn magic_moves(from_square: Square, all_piece_bitboard: Bitboard, magic_vars: &Box<MagicVars>) -> Bitboard {
