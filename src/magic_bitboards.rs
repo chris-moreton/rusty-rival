@@ -1,9 +1,23 @@
 use lazy_static::lazy_static;
-use crate::moves::allocate_magic_boxes;
 use crate::types::{Bitboard, MagicVars, Square, MagicBox};
+use crate::magic_moves_bishop::MAGIC_MOVES_BISHOP;
+use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
 
 lazy_static! {
-    pub static ref MAGIC_BOX: MagicBox = allocate_magic_boxes();
+    pub static ref MAGIC_BOX: MagicBox = MagicBox {
+        bishop: Box::new(MagicVars {
+            occupancy_mask: OCCUPANCY_MASK_BISHOP,
+            magic_number: MAGIC_NUMBER_BISHOP,
+            magic_moves: MAGIC_MOVES_BISHOP,
+            magic_number_shifts: MAGIC_NUMBER_SHIFTS_BISHOP
+        }),
+        rook: Box::new(MagicVars {
+            occupancy_mask: OCCUPANCY_MASK_ROOK,
+            magic_number: MAGIC_NUMBER_ROOK,
+            magic_moves: MAGIC_MOVES_ROOK,
+            magic_number_shifts: MAGIC_NUMBER_SHIFTS_ROOK
+        })
+    };
 }
 
 #[inline(always)]

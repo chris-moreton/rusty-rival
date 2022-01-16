@@ -1,9 +1,7 @@
 use crate::bitboards::{bit, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, EMPTY_CASTLE_SQUARES_BLACK_KING, EMPTY_CASTLE_SQUARES_BLACK_QUEEN, EMPTY_CASTLE_SQUARES_WHITE_KING, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES_BLACK_KING, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, NO_CHECK_CASTLE_SQUARES_WHITE_KING, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, test_bit, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
-use crate::magic_bitboards::{MAGIC_NUMBER_BISHOP, MAGIC_NUMBER_ROOK, MAGIC_NUMBER_SHIFTS_BISHOP, MAGIC_NUMBER_SHIFTS_ROOK, magic_moves, OCCUPANCY_MASK_BISHOP, OCCUPANCY_MASK_ROOK, MAGIC_BOX};
-use crate::magic_moves_bishop::MAGIC_MOVES_BISHOP;
-use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
+use crate::magic_bitboards::{magic_moves, MAGIC_BOX};
 use crate::move_constants::{BLACK_KING_CASTLE_MOVE, BLACK_QUEEN_CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, WHITE_KING_CASTLE_MOVE, WHITE_QUEEN_CASTLE_MOVE};
-use crate::types::{Bitboard, BLACK, is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, MagicBox, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
+use crate::types::{Bitboard, BLACK, is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
 use crate::{opponent, unset_lsb};
 use crate::utils::from_square_mask;
 
@@ -271,22 +269,4 @@ pub fn king_square(position: &Position, mover: Mover) -> Square {
 #[inline(always)]
 pub fn is_check(position: &Position, mover: Mover) -> bool {
     is_square_attacked_by(position, king_square(position, mover), opponent!(mover))
-}
-
-#[inline(always)]
-pub fn allocate_magic_boxes() -> MagicBox {
-    MagicBox {
-        bishop: Box::new(MagicVars {
-            occupancy_mask: OCCUPANCY_MASK_BISHOP,
-            magic_number: MAGIC_NUMBER_BISHOP,
-            magic_moves: MAGIC_MOVES_BISHOP,
-            magic_number_shifts: MAGIC_NUMBER_SHIFTS_BISHOP
-        }),
-        rook: Box::new(MagicVars {
-            occupancy_mask: OCCUPANCY_MASK_ROOK,
-            magic_number: MAGIC_NUMBER_ROOK,
-            magic_moves: MAGIC_MOVES_ROOK,
-            magic_number_shifts: MAGIC_NUMBER_SHIFTS_ROOK
-        })
-    }
 }
