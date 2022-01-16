@@ -18,7 +18,7 @@ pub fn moves(position: &Position, magic_box: &MagicBox) -> MoveList {
 
 #[inline(always)]
 pub fn white_moves(position: &Position, magic_box: &MagicBox) -> MoveList {
-    let mut move_list = Vec::with_capacity(40);
+    let mut move_list = Vec::with_capacity(140);
     let valid_destinations = !position.white_pieces_bitboard;
     let all_pieces = position.all_pieces_bitboard;
 
