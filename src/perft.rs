@@ -8,7 +8,7 @@ pub fn perft(position: &mut Position, depth: u8) -> u64 {
         let mut count = 0;
         let mover = position.mover;
 
-        moves(position).into_iter().for_each(|m| {
+        for m in moves(position) {
             make_move(position, m, history);
             if !is_check(position, mover) {
                 count += if depth == 0 {
@@ -18,7 +18,7 @@ pub fn perft(position: &mut Position, depth: u8) -> u64 {
                 }
             }
             unmake_move(position, history)
-        });
+        };
 
         count
     }
