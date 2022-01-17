@@ -137,25 +137,18 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard:
 }
 
 #[inline(always)]
-pub fn pawn_captures(lookup: &[Bitboard], square: Square, enemy_bitboard: Bitboard) -> Bitboard {
-    lookup[square as usize] & enemy_bitboard
-}
-
-#[inline(always)]
-pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn_moves: &[Bitboard], non_captures: Bitboard, position: &Position) -> Bitboard {
+pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn_moves: &[Bitboard], position: &Position) -> Bitboard {
     let eps = position.en_passant_square;
-    let captures = if eps != EN_PASSANT_NOT_AVAILABLE && bit(eps) & en_passant_capture_rank(&position.mover) != 0 {
+    if eps != EN_PASSANT_NOT_AVAILABLE && bit(eps) & en_passant_capture_rank(&position.mover) != 0 {
         pawn_captures_plus_en_passant_square(capture_pawn_moves, from_square, position)
     } else {
-        pawn_captures(capture_pawn_moves, from_square, enemy_bitboard(position))
-    };
-    non_captures | captures
+        capture_pawn_moves[from_square as usize] & enemy_bitboard(position)
+    }
 }
 
 #[inline(always)]
 pub fn pawn_captures_plus_en_passant_square(capture_pawn_moves: &[Bitboard], square: Square, position: &Position) -> Bitboard {
-    let eps = position.en_passant_square;
-    pawn_captures(capture_pawn_moves, square, enemy_bitboard(position) | if eps == EN_PASSANT_NOT_AVAILABLE { 0 } else { bit(eps) })
+    capture_pawn_moves[square as usize] & (enemy_bitboard(position) | if position.en_passant_square == EN_PASSANT_NOT_AVAILABLE { 0 } else { bit(position.en_passant_square) })
 }
 
 #[inline(always)]
@@ -172,13 +165,11 @@ pub fn generate_white_pawn_moves(position: &Position, move_list: &mut MoveList) 
     while from_squares != 0 {
         let from_square = from_squares.trailing_zeros();
         let pawn_moves = WHITE_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares;
-        let bb = pawn_moves;
         let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
             from_square as Square,
             WHITE_PAWN_MOVES_CAPTURE,
-            pawn_moves | ((bb << 8) & RANK_4_BITS & !position.all_pieces_bitboard),
             position
-        );
+        ) | pawn_moves | ((pawn_moves << 8) & RANK_4_BITS & empty_squares);
         generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves, move_list);
         unset_lsb!(from_squares);
     };
@@ -193,13 +184,11 @@ pub fn generate_black_pawn_moves(position: &Position, move_list: &mut MoveList) 
     while from_squares != 0 {
         let from_square = from_squares.trailing_zeros();
         let pawn_moves = BLACK_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares;
-        let bb = pawn_moves;
         let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
             from_square as Square,
             BLACK_PAWN_MOVES_CAPTURE,
-            pawn_moves | ((bb >> 8) & RANK_5_BITS & !position.all_pieces_bitboard),
             position
-        );
+        ) | pawn_moves | ((pawn_moves >> 8) & RANK_5_BITS & empty_squares);
         generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves, move_list);
         unset_lsb!(from_squares);
     };

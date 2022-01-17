@@ -3,7 +3,7 @@ use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref
 use rusty_rival::magic_bitboards::MAGIC_BOX;
 use rusty_rival::make_move::{default_position_history, make_move, switch_side};
 use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_slider_moves, is_check, is_square_attacked_by, moves, pawn_captures, pawn_forward_and_capture_moves_bitboard};
+use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_slider_moves, is_check, is_square_attacked_by, moves, pawn_forward_and_capture_moves_bitboard};
 use rusty_rival::types::{BLACK, MoveList, Square, WHITE};
 
 #[test]
@@ -44,16 +44,17 @@ fn it_generates_rook_moves_including_horizontal_queen_moves_from_a_given_fen_ign
 #[test]
 fn it_returns_a_bitboard_showing_target_squares_for_pawn_captures_from_a_given_square_and_an_enemy_piece_bitboard() {
     let position = get_position(&"n5k1/1P4n1/1n2q2p/Pp3P2/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
-    assert_eq!(pawn_captures(WHITE_PAWN_MOVES_CAPTURE, 29, enemy_bitboard(&position)), 0b0000000000000000000000000100000000000000000000000000000000000000);
+
+    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[29] & enemy_bitboard(&position), 0b0000000000000000000000000100000000000000000000000000000000000000);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp1pP3/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
-    assert_eq!(pawn_captures(WHITE_PAWN_MOVES_CAPTURE, 51, enemy_bitboard(&position)), 0b0000000000000000000000000000000000000000000000000000000000000000);
+    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[51] & enemy_bitboard(&position), 0b0000000000000000000000000000000000000000000000000000000000000000);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp1pP3/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
-    assert_eq!(pawn_captures(WHITE_PAWN_MOVES_CAPTURE, 54, enemy_bitboard(&position)), 0b1000000000000000000000000000000000000000000000000000000000000000);
+    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[54] & enemy_bitboard(&position), 0b1000000000000000000000000000000000000000000000000000000000000000);
 
     let position = get_position(&"n5k1/4P1n1/1n2q2p/1p1p4/5R2/3K1B2/1r2N3/6r1 w - - 0 1".to_string());
-    assert_eq!(pawn_captures(WHITE_PAWN_MOVES_CAPTURE, 51, enemy_bitboard(&position)), 0b0000000000000000000000000000000000000000000000000000000000000000);
+    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[51] & enemy_bitboard(&position), 0b0000000000000000000000000000000000000000000000000000000000000000);
 }
 
 #[test]
@@ -84,7 +85,7 @@ fn it_returns_a_bitboard_showing_available_landing_squares_capture_and_non_captu
     let position = position_argument;
     let pfmb = pawn_moves | ((bb << 8) & RANK_4_BITS & !position_argument.all_pieces_bitboard);
     assert_eq!(pfmb, 0b0000100000000000000000000000000000000000000000000000000000000000);
-    assert_eq!(pawn_forward_and_capture_moves_bitboard(from_square as Square, WHITE_PAWN_MOVES_CAPTURE, pfmb, &position), 0b0000100000000000000000000000000000000000000000000000000000000000);
+    assert_eq!(pawn_forward_and_capture_moves_bitboard(from_square as Square, WHITE_PAWN_MOVES_CAPTURE, &position) | pfmb, 0b0000100000000000000000000000000000000000000000000000000000000000);
 }
 
 #[test]
