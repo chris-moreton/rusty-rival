@@ -1,16 +1,10 @@
-use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, empty_squares_bitboard, enemy_bitboard, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
+use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, enemy_bitboard, RANK_4_BITS, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
 use rusty_rival::magic_bitboards::MAGIC_BOX;
 use rusty_rival::make_move::{default_position_history, make_move, switch_side};
 use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::{all_bits_except_friendly_pieces, any_squares_in_bitboard_attacked, generate_slider_moves, is_check, is_slider_attacking_square, is_square_attacked_by, moves, pawn_captures, pawn_forward_and_capture_moves_bitboard, pawn_forward_moves_bitboard, potential_pawn_jump_moves};
+use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_slider_moves, is_check, is_square_attacked_by, moves, pawn_captures, pawn_forward_and_capture_moves_bitboard};
 use rusty_rival::types::{BLACK, MoveList, Square, WHITE};
-
-#[test]
-fn it_gets_all_bits_except_friendly_pieces() {
-    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
-    assert_eq!(all_bits_except_friendly_pieces(&position), 0b0111110111111101101101101011111111111111111111111011111111111111);
-}
 
 #[test]
 fn it_gets_all_pieces_bitboard() {
@@ -64,8 +58,8 @@ fn it_returns_a_bitboard_showing_target_squares_for_pawn_captures_from_a_given_s
 
 #[test]
 fn it_returns_a_bitboard_showing_target_squares_for_pawn_moves_that_would_land_on_the_two_move_rank_if_moved_one_more_rank() {
-    let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp6/3P1R2/3K1B2/1r2N2P/6r1 w - d5 0 1".to_string());
-    assert_eq!(potential_pawn_jump_moves(0b0101000000000100010000011000000001000000010101010000001100010001, &position), 0b0000000000000000000000000000000001010101000000000000000000000000);
+    let bb = 0b0101000000000100010000011000000001000000010101010000001100010001;
+    assert_eq!((bb << 8) & RANK_4_BITS, 0b0000000000000000000000000000000001010101000000000000000000000000);
 }
 
 #[test]
@@ -80,11 +74,15 @@ fn it_identifies_the_en_passant_square_from_a_fen() {
 #[test]
 fn it_returns_a_bitboard_showing_available_landing_squares_capture_and_non_capture_for_a_pawn_on_a_given_square() {
     let position = get_position(&"n5k1/4P1n1/1n2q2p/1p1p4/5R2/3K1B2/1r2N3/6r1 w - - 0 1".to_string());
-    let empty_squares = empty_squares_bitboard(&position);
+    let empty_squares = !position.all_pieces_bitboard;
     let from_square = 51;
     let forward_moves_for_square = WHITE_PAWN_MOVES_FORWARD.iter().nth(from_square).unwrap();
     assert_eq!(*forward_moves_for_square, 0b0000100000000000000000000000000000000000000000000000000000000000);
-    let pfmb = pawn_forward_moves_bitboard (forward_moves_for_square & empty_squares, &position);
+    let pawn_moves = forward_moves_for_square & empty_squares;
+    let position_argument = &position;
+    let bb = pawn_moves;
+    let position = position_argument;
+    let pfmb = pawn_moves | ((bb << 8) & RANK_4_BITS & !position_argument.all_pieces_bitboard);
     assert_eq!(pfmb, 0b0000100000000000000000000000000000000000000000000000000000000000);
     assert_eq!(pawn_forward_and_capture_moves_bitboard(from_square as Square, WHITE_PAWN_MOVES_CAPTURE, pfmb, &position), 0b0000100000000000000000000000000000000000000000000000000000000000);
 }
@@ -93,8 +91,6 @@ fn it_returns_a_bitboard_showing_available_landing_squares_capture_and_non_captu
 fn it_determines_if_a_given_square_is_attacked_by_a_given_colour_in_a_given_position() {
     let position = get_position(&"n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1".to_string());
     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(2) | bit(3)), true);
-    assert_eq!(is_slider_attacking_square(4, 22, position.all_pieces_bitboard, &MAGIC_BOX.bishop), true);
-    assert_eq!(is_slider_attacking_square(5, 22, position.all_pieces_bitboard, &MAGIC_BOX.bishop), false);
     assert_eq!(is_square_attacked_by(&position, bitref_from_algebraic_squareref("d1".to_string()) as Square, BLACK), true);
     assert_eq!(is_square_attacked_by(&position, 58, WHITE), true);
     assert_eq!(is_square_attacked_by(&position, 60, WHITE), true);

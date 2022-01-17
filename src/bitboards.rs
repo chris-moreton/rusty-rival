@@ -69,11 +69,6 @@ pub fn north_fill(bb: Bitboard) -> Bitboard {
     b | (b << 32)
 }
 
-#[inline(always)]
-pub fn empty_squares_bitboard(position: &Position) -> Bitboard {
-    !position.all_pieces_bitboard
-}
-
 const fn every_eighth_bit_from(i: Square) -> Bitboard {
     if i < 8 {
         1 << i
