@@ -356,8 +356,7 @@ pub fn is_complex_pawn_move(from: Square, to: Square) -> bool {
 }
 
 pub fn default_position_history() -> PositionHistory {
-    PositionHistory {
-        history: [Position {
+        [Position {
             white_pawn_bitboard: 0,
             white_knight_bitboard: 0,
             white_bishop_bitboard: 0,
@@ -379,7 +378,6 @@ pub fn default_position_history() -> PositionHistory {
             half_moves: 0,
             move_number: 1
         }; MAX_MOVE_HISTORY as usize]
-    }
 }
 
 #[inline(always)]
@@ -389,11 +387,11 @@ pub fn get_move_index(move_number: u16, mover: Mover) -> usize {
 
 #[inline(always)]
 pub fn store_history(position: &mut Position, history: &mut PositionHistory) {
-    history.history[get_move_index(position.move_number, position.mover)] = *position
+    history[get_move_index(position.move_number, position.mover)] = *position
 }
 
 #[inline(always)]
 pub fn unmake_move(position: &mut Position, history: &PositionHistory) {
-    *position = history.history[get_move_index(position.move_number, position.mover) - 1];
+    *position = history[get_move_index(position.move_number, position.mover) - 1];
 }
 

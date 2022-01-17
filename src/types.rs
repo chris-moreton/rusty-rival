@@ -7,6 +7,7 @@ pub type MoveList = Vec<Move>;
 pub type Path = Vec<Move>;
 pub type MagicMovesArray = [[Bitboard; 4096]; 64];
 pub type Mover = i8;
+pub type PositionHistory = [Position; MAX_MOVE_HISTORY as usize];
 
 #[macro_export]
 macro_rules! switch_side {
@@ -117,11 +118,6 @@ pub struct Position {
     pub castle_flags: u8,
     pub half_moves: u16,
     pub move_number: u16,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct PositionHistory {
-    pub history: [Position; MAX_MOVE_HISTORY as usize]
 }
 
 impl PartialEq for Position {
