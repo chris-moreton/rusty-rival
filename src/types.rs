@@ -110,7 +110,6 @@ pub struct Position {
     pub black_queen_bitboard: Bitboard,
     pub black_king_square: Square,
     pub black_rook_bitboard: Bitboard,
-    pub all_pieces_bitboard: Bitboard,
     pub white_pieces_bitboard: Bitboard,
     pub black_pieces_bitboard: Bitboard,
     pub mover: Mover,
@@ -134,7 +133,6 @@ impl PartialEq for Position {
         self.black_queen_bitboard == other.black_queen_bitboard &&
         self.black_king_square == other.black_king_square &&
         self.black_rook_bitboard == other.black_rook_bitboard &&
-        self.all_pieces_bitboard == other.all_pieces_bitboard &&
         self.white_pieces_bitboard == other.white_pieces_bitboard &&
         self.black_pieces_bitboard == other.black_pieces_bitboard &&
         self.mover == other.mover &&

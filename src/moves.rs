@@ -18,7 +18,7 @@ pub fn moves(position: &Position) -> MoveList {
 pub fn white_moves(position: &Position) -> MoveList {
     let mut move_list = Vec::with_capacity(140);
     let valid_destinations = !position.white_pieces_bitboard;
-    let all_pieces = position.all_pieces_bitboard;
+    let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
 
     generate_white_pawn_moves(position, &mut move_list);
 
@@ -52,8 +52,8 @@ pub fn white_moves(position: &Position) -> MoveList {
         unset_lsb!(from_squares_bitboard);
     }
 
-    generate_slider_moves(position.white_rook_bitboard | position.white_queen_bitboard, position.all_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
-    generate_slider_moves(position.white_bishop_bitboard | position.white_queen_bitboard, position.all_pieces_bitboard, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
+    generate_slider_moves(position.white_rook_bitboard | position.white_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
+    generate_slider_moves(position.white_bishop_bitboard | position.white_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
 
     move_list
 }
@@ -62,7 +62,7 @@ pub fn white_moves(position: &Position) -> MoveList {
 pub fn black_moves(position: &Position) -> MoveList {
     let mut move_list = Vec::with_capacity(80);
     let valid_destinations = !position.black_pieces_bitboard;
-    let all_pieces = position.all_pieces_bitboard;
+    let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
 
     generate_black_pawn_moves(position, &mut move_list);
 
@@ -96,8 +96,8 @@ pub fn black_moves(position: &Position) -> MoveList {
         unset_lsb!(from_squares_bitboard);
     }
 
-    generate_slider_moves(position.black_rook_bitboard | position.black_queen_bitboard, position.all_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
-    generate_slider_moves(position.black_bishop_bitboard | position.black_queen_bitboard, position.all_pieces_bitboard, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
+    generate_slider_moves(position.black_rook_bitboard | position.black_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
+    generate_slider_moves(position.black_bishop_bitboard | position.black_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
 
     move_list
 }
@@ -160,7 +160,7 @@ pub fn en_passant_capture_rank(mover: &Mover) -> Bitboard {
 pub fn generate_white_pawn_moves(position: &Position, move_list: &mut MoveList) {
 
     let mut from_squares = position.white_pawn_bitboard;
-    let empty_squares = !position.all_pieces_bitboard;
+    let empty_squares = !(position.white_pieces_bitboard | position.black_pieces_bitboard);
 
     while from_squares != 0 {
         let from_square = from_squares.trailing_zeros();
@@ -179,7 +179,7 @@ pub fn generate_white_pawn_moves(position: &Position, move_list: &mut MoveList) 
 pub fn generate_black_pawn_moves(position: &Position, move_list: &mut MoveList) {
 
     let mut from_squares = position.black_pawn_bitboard;
-    let empty_squares = !position.all_pieces_bitboard;
+    let empty_squares = !(position.white_pieces_bitboard | position.black_pieces_bitboard);
 
     while from_squares != 0 {
         let from_square = from_squares.trailing_zeros();
@@ -205,7 +205,7 @@ pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, mu
 
 #[inline(always)]
 pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover: Mover) -> bool {
-    let all_pieces = position.all_pieces_bitboard;
+    let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
     if mover == WHITE {
         position.white_pawn_bitboard & BLACK_PAWN_MOVES_CAPTURE[attacked_square as usize] != 0 ||
             position.white_knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
