@@ -17,26 +17,28 @@ pub fn moves(position: &Position) -> MoveList {
 #[inline(always)]
 pub fn white_moves(position: &Position) -> MoveList {
     let mut move_list = Vec::with_capacity(140);
-    let valid_destinations = !position.white_pieces_bitboard;
-    let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
 
-    generate_white_pawn_moves(position, &mut move_list);
+    let white_pieces_bitboard = position.white_pawn_bitboard | position.white_bishop_bitboard | position.white_knight_bitboard | position.white_queen_bitboard | position.white_rook_bitboard | bit(position.white_king_square);
+    let black_pieces_bitboard = position.black_pawn_bitboard | position.black_bishop_bitboard | position.black_knight_bitboard | position.black_queen_bitboard | position.black_rook_bitboard | bit(position.black_king_square);
+    let valid_destinations = !white_pieces_bitboard;
+    let all_pieces = white_pieces_bitboard | black_pieces_bitboard;
+
+    generate_white_pawn_moves(position, &mut move_list, !(white_pieces_bitboard | black_pieces_bitboard));
 
     let from_square = position.white_king_square;
     let fsm = from_square_mask(from_square as Square);
     let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
     while to_bitboard != 0 {
-        let sq = to_bitboard.trailing_zeros() as Square;
-        move_list.push(fsm | sq as Move);
+        move_list.push(fsm | to_bitboard.trailing_zeros() as Move);
         unset_lsb!(to_bitboard);
     };
 
     if is_wk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 &&
-        !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_KING) {
+        !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_KING, all_pieces) {
         move_list.push(WHITE_KING_CASTLE_MOVE);
     }
     if is_wq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_QUEEN == 0 &&
-        !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN) {
+        !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, all_pieces) {
         move_list.push(WHITE_QUEEN_CASTLE_MOVE);
     }
 
@@ -52,8 +54,8 @@ pub fn white_moves(position: &Position) -> MoveList {
         unset_lsb!(from_squares_bitboard);
     }
 
-    generate_slider_moves(position.white_rook_bitboard | position.white_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
-    generate_slider_moves(position.white_bishop_bitboard | position.white_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
+    generate_slider_moves(position.white_rook_bitboard | position.white_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
+    generate_slider_moves(position.white_bishop_bitboard | position.white_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
 
     move_list
 }
@@ -61,26 +63,27 @@ pub fn white_moves(position: &Position) -> MoveList {
 #[inline(always)]
 pub fn black_moves(position: &Position) -> MoveList {
     let mut move_list = Vec::with_capacity(80);
-    let valid_destinations = !position.black_pieces_bitboard;
-    let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
+    let white_pieces_bitboard = position.white_pawn_bitboard | position.white_bishop_bitboard | position.white_knight_bitboard | position.white_queen_bitboard | position.white_rook_bitboard | bit(position.white_king_square);
+    let black_pieces_bitboard = position.black_pawn_bitboard | position.black_bishop_bitboard | position.black_knight_bitboard | position.black_queen_bitboard | position.black_rook_bitboard | bit(position.black_king_square);
+    let valid_destinations = !black_pieces_bitboard;
+    let all_pieces = white_pieces_bitboard | black_pieces_bitboard;
 
-    generate_black_pawn_moves(position, &mut move_list);
+    generate_black_pawn_moves(position, &mut move_list, !(white_pieces_bitboard | black_pieces_bitboard));
 
     let from_square = position.black_king_square;
     let fsm = from_square_mask(from_square as Square);
     let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
     while to_bitboard != 0 {
-        let sq = to_bitboard.trailing_zeros() as Square;
-        move_list.push(fsm | sq as Move);
+        move_list.push(fsm | to_bitboard.trailing_zeros() as Move);
         unset_lsb!(to_bitboard);
     };
 
     if is_bk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_KING == 0 &&
-        !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_KING) {
+        !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_KING, all_pieces) {
         move_list.push(BLACK_KING_CASTLE_MOVE);
     }
     if is_bq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_QUEEN == 0 &&
-        !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN) {
+        !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN, all_pieces) {
         move_list.push(BLACK_QUEEN_CASTLE_MOVE);
     }
 
@@ -96,8 +99,8 @@ pub fn black_moves(position: &Position) -> MoveList {
         unset_lsb!(from_squares_bitboard);
     }
 
-    generate_slider_moves(position.black_rook_bitboard | position.black_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
-    generate_slider_moves(position.black_bishop_bitboard | position.black_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
+    generate_slider_moves(position.black_rook_bitboard | position.black_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
+    generate_slider_moves(position.black_bishop_bitboard | position.black_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
 
     move_list
 }
@@ -157,10 +160,9 @@ pub fn en_passant_capture_rank(mover: &Mover) -> Bitboard {
 }
 
 #[inline(always)]
-pub fn generate_white_pawn_moves(position: &Position, move_list: &mut MoveList) {
+pub fn generate_white_pawn_moves(position: &Position, move_list: &mut MoveList, empty_squares: Bitboard) {
 
     let mut from_squares = position.white_pawn_bitboard;
-    let empty_squares = !(position.white_pieces_bitboard | position.black_pieces_bitboard);
 
     while from_squares != 0 {
         let from_square = from_squares.trailing_zeros();
@@ -176,10 +178,9 @@ pub fn generate_white_pawn_moves(position: &Position, move_list: &mut MoveList) 
 }
 
 #[inline(always)]
-pub fn generate_black_pawn_moves(position: &Position, move_list: &mut MoveList) {
+pub fn generate_black_pawn_moves(position: &Position, move_list: &mut MoveList, empty_squares: Bitboard) {
 
     let mut from_squares = position.black_pawn_bitboard;
-    let empty_squares = !(position.white_pieces_bitboard | position.black_pieces_bitboard);
 
     while from_squares != 0 {
         let from_square = from_squares.trailing_zeros();
@@ -195,17 +196,16 @@ pub fn generate_black_pawn_moves(position: &Position, move_list: &mut MoveList) 
 }
 
 #[inline(always)]
-pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, mut bitboard: Bitboard) -> bool {
+pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, mut bitboard: Bitboard, all_pieces: Bitboard) -> bool {
     while bitboard != 0 {
-        if is_square_attacked_by(position, bitboard.trailing_zeros() as Square, attacker) { return true }
+        if is_square_attacked_by(position, bitboard.trailing_zeros() as Square, attacker, all_pieces) { return true }
         unset_lsb!(bitboard);
     }
     return false;
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover: Mover) -> bool {
-    let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
+pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover: Mover, all_pieces: Bitboard) -> bool {
     if mover == WHITE {
         position.white_pawn_bitboard & BLACK_PAWN_MOVES_CAPTURE[attacked_square as usize] != 0 ||
             position.white_knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
@@ -241,5 +241,7 @@ pub fn king_square(position: &Position, mover: Mover) -> Square {
 
 #[inline(always)]
 pub fn is_check(position: &Position, mover: Mover) -> bool {
-    is_square_attacked_by(position, king_square(position, mover), opponent!(mover))
+    let white_pieces_bitboard = position.white_pawn_bitboard | position.white_bishop_bitboard | position.white_knight_bitboard | position.white_queen_bitboard | position.white_rook_bitboard | bit(position.white_king_square);
+    let black_pieces_bitboard = position.black_pawn_bitboard | position.black_bishop_bitboard | position.black_knight_bitboard | position.black_queen_bitboard | position.black_rook_bitboard | bit(position.black_king_square);
+    is_square_attacked_by(position, king_square(position, mover), opponent!(mover), white_pieces_bitboard | black_pieces_bitboard)
 }

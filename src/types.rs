@@ -1,3 +1,4 @@
+use crate::bitboards::bit;
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, MAX_MOVE_HISTORY, WK_CASTLE, WQ_CASTLE};
 
 pub type Square = i8;
@@ -30,7 +31,6 @@ macro_rules! move_mover_white {
         if $bitboard & $from_mask != 0 {
             let switch = $from_mask | $to_mask;
             $bitboard ^= switch;
-            $position.white_pieces_bitboard ^= switch;
         }
     }
 }
@@ -41,7 +41,6 @@ macro_rules! move_mover_black {
         if $bitboard & $from_mask != 0 {
             let switch = $from_mask | $to_mask;
             $bitboard ^= switch;
-            $position.black_pieces_bitboard ^= switch;
         }
     }
 }
@@ -110,8 +109,6 @@ pub struct Position {
     pub black_queen_bitboard: Bitboard,
     pub black_king_square: Square,
     pub black_rook_bitboard: Bitboard,
-    pub white_pieces_bitboard: Bitboard,
-    pub black_pieces_bitboard: Bitboard,
     pub mover: Mover,
     pub en_passant_square: Square,
     pub castle_flags: u8,
@@ -133,12 +130,25 @@ impl PartialEq for Position {
         self.black_queen_bitboard == other.black_queen_bitboard &&
         self.black_king_square == other.black_king_square &&
         self.black_rook_bitboard == other.black_rook_bitboard &&
-        self.white_pieces_bitboard == other.white_pieces_bitboard &&
-        self.black_pieces_bitboard == other.black_pieces_bitboard &&
         self.mover == other.mover &&
         self.en_passant_square == other.en_passant_square &&
         self.castle_flags == other.castle_flags &&
         self.half_moves == other.half_moves &&
         self.move_number == other.move_number
     }
+}
+
+#[inline(always)]
+pub fn white_pieces(position: &Position) -> Bitboard {
+    position.white_rook_bitboard | position.white_pawn_bitboard | position.white_queen_bitboard | position.white_knight_bitboard | position.white_bishop_bitboard | bit(position.white_king_square)
+}
+
+#[inline(always)]
+pub fn black_pieces(position: &Position) -> Bitboard {
+    position.black_rook_bitboard | position.black_pawn_bitboard | position.black_queen_bitboard | position.black_knight_bitboard | position.black_bishop_bitboard | bit(position.black_king_square)
+}
+
+#[inline(always)]
+pub fn all_pieces(position: &Position) -> Bitboard {
+    white_pieces(position) | black_pieces(position)
 }

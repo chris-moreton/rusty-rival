@@ -52,7 +52,11 @@ pub fn test_bit(bitboard: Bitboard, square: Square) -> bool {
 
 #[inline(always)]
 pub fn enemy_bitboard(position: &Position) -> Bitboard {
-    if position.mover == WHITE { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
+    if position.mover == WHITE { 
+        position.black_pawn_bitboard | position.black_queen_bitboard | position.black_bishop_bitboard | position.black_rook_bitboard | position.black_knight_bitboard | bit(position.black_king_square)
+    } else {
+        position.white_pawn_bitboard | position.white_queen_bitboard | position.white_bishop_bitboard | position.white_rook_bitboard | position.white_knight_bitboard | bit(position.white_king_square)
+    }
 }
 
 #[inline(always)]
