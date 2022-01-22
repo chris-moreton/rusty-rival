@@ -2,7 +2,7 @@ use crate::bitboards::{bit, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, 
 use crate::magic_bitboards::{magic_moves, MAGIC_BOX};
 use crate::move_constants::{BLACK_KING_CASTLE_MOVE, BLACK_QUEEN_CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, WHITE_KING_CASTLE_MOVE, WHITE_QUEEN_CASTLE_MOVE};
 use crate::types::{Bitboard, BLACK, is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
-use crate::{opponent, unset_lsb};
+use crate::{get_and_unset_lsb, opponent, unset_lsb};
 use crate::utils::from_square_mask;
 
 #[inline(always)]
@@ -16,7 +16,7 @@ pub fn moves(position: &Position) -> MoveList {
 
 #[inline(always)]
 pub fn white_moves(position: &Position) -> MoveList {
-    let mut move_list = Vec::with_capacity(140);
+    let mut move_list = Vec::with_capacity(80);
     let valid_destinations = !position.white_pieces_bitboard;
     let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
 
@@ -42,14 +42,12 @@ pub fn white_moves(position: &Position) -> MoveList {
 
     let mut from_squares_bitboard = position.white_knight_bitboard;
     while from_squares_bitboard != 0 {
-        let from_square = from_squares_bitboard.trailing_zeros() as Square;
+        let from_square = get_and_unset_lsb!(from_squares_bitboard);
         let fsm = from_square_mask(from_square);
         let mut to_bitboard = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
         while to_bitboard != 0 {
-            move_list.push(fsm | to_bitboard.trailing_zeros() as Move);
-            unset_lsb!(to_bitboard);
+            move_list.push(fsm | get_and_unset_lsb!(to_bitboard) as Move);
         }
-        unset_lsb!(from_squares_bitboard);
     }
 
     generate_slider_moves(position.white_rook_bitboard | position.white_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
@@ -60,7 +58,7 @@ pub fn white_moves(position: &Position) -> MoveList {
 
 #[inline(always)]
 pub fn black_moves(position: &Position) -> MoveList {
-    let mut move_list = Vec::with_capacity(140);
+    let mut move_list = Vec::with_capacity(80);
     let valid_destinations = !position.black_pieces_bitboard;
     let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
 
@@ -70,9 +68,8 @@ pub fn black_moves(position: &Position) -> MoveList {
     let fsm = from_square_mask(from_square as Square);
     let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
     while to_bitboard != 0 {
-        let sq = to_bitboard.trailing_zeros() as Square;
+        let sq = get_and_unset_lsb!(to_bitboard);
         move_list.push(fsm | sq as Move);
-        unset_lsb!(to_bitboard);
     };
 
     if is_bk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_KING == 0 &&
