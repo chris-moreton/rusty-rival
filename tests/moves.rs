@@ -218,7 +218,6 @@ pub fn it_checks_for_check() {
 }
 
 #[test]
-#[ignore]
 pub fn it_gets_all_moves_for_a_position() {
     let mut history = default_position_history();
 
