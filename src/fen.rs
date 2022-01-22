@@ -175,7 +175,6 @@ pub fn get_position(fen: &str) -> Position {
         black_queen_bitboard: bq,
         white_king_square: wk.trailing_zeros() as Square,
         black_king_square: bk.trailing_zeros() as Square,
-        all_pieces_bitboard: wp | bp | wn | bn | wb | bb | wr | br | wq | bq | wk | bk,
         white_pieces_bitboard: wp | wn | wb | wr | wq | wk,
         black_pieces_bitboard: bp | bn | bb | br | bq | bk,
         mover: get_mover(fen),
