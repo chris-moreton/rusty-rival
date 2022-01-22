@@ -25,6 +25,17 @@ macro_rules! unset_lsb {
 }
 
 #[macro_export]
+macro_rules! get_and_unset_lsb {
+    ($a:expr) => {
+        {
+            let lsb = $a.trailing_zeros() as Square;
+            $a &= $a - 1;
+            lsb
+        }
+    }
+}
+
+#[macro_export]
 macro_rules! move_mover_white {
     ($bitboard:expr, $from_mask:expr, $to_mask:expr, $position:expr) => {
         if $bitboard & $from_mask != 0 {
