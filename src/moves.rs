@@ -88,17 +88,11 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard:
 
 #[inline(always)]
 pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn_moves: [Bitboard; 64], position: &Position) -> Bitboard {
-    let eps = position.en_passant_square;
-    if eps != EN_PASSANT_NOT_AVAILABLE && bit(eps) & EN_PASSANT_CAPTURE_RANK[if position.mover == WHITE { WHITE_INDEX } else { BLACK_INDEX }] != 0 {
-        pawn_captures_plus_en_passant_square(capture_pawn_moves, from_square, position)
+    if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE && bit(position.en_passant_square) & EN_PASSANT_CAPTURE_RANK[if position.mover == WHITE { WHITE_INDEX } else { BLACK_INDEX }] != 0 {
+        capture_pawn_moves[from_square as usize] & (enemy_bitboard(position) | bit(position.en_passant_square))
     } else {
         capture_pawn_moves[from_square as usize] & enemy_bitboard(position)
     }
-}
-
-#[inline(always)]
-pub fn pawn_captures_plus_en_passant_square(capture_pawn_moves: [Bitboard; 64], square: Square, position: &Position) -> Bitboard {
-    capture_pawn_moves[square as usize] & (enemy_bitboard(position) | if position.en_passant_square == EN_PASSANT_NOT_AVAILABLE { 0 } else { bit(position.en_passant_square) })
 }
 
 #[inline(always)]
@@ -132,15 +126,6 @@ pub fn is_square_attacked_by_slider_of_type(all_pieces: Bitboard, mut attacking_
 }
 
 #[inline(always)]
-pub fn king_square(position: &Position, mover: Mover) -> Square {
-    if mover == WHITE {
-        position.white.king_square
-    } else {
-        position.black.king_square
-    }
-}
-
-#[inline(always)]
 pub fn is_check(position: &Position, mover: Mover) -> bool {
-    is_square_attacked_by(position, king_square(position, mover), opponent!(mover))
+    is_square_attacked_by(position, if mover == WHITE { position.white.king_square } else { position.black.king_square }, opponent!(mover))
 }
