@@ -26,9 +26,7 @@ pub fn white_moves(position: &Position) -> MoveList {
     let fsm = from_square_mask(from_square as Square);
     let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
     while to_bitboard != 0 {
-        let sq = to_bitboard.trailing_zeros() as Square;
-        move_list.push(fsm | sq as Move);
-        unset_lsb!(to_bitboard);
+        move_list.push(fsm | get_and_unset_lsb!(to_bitboard) as Move);
     };
 
     if is_wk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 &&
@@ -83,14 +81,12 @@ pub fn black_moves(position: &Position) -> MoveList {
 
     let mut from_squares_bitboard = position.black_knight_bitboard;
     while from_squares_bitboard != 0 {
-        let from_square = from_squares_bitboard.trailing_zeros() as Square;
+        let from_square = get_and_unset_lsb!(from_squares_bitboard) as Square;
         let fsm = from_square_mask(from_square);
         let mut to_bitboard = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
         while to_bitboard != 0 {
-            move_list.push(fsm | to_bitboard.trailing_zeros() as Move);
-            unset_lsb!(to_bitboard);
+            move_list.push(fsm | get_and_unset_lsb!(to_bitboard) as Move);
         }
-        unset_lsb!(from_squares_bitboard);
     }
 
     generate_slider_moves(position.black_rook_bitboard | position.black_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
@@ -103,25 +99,24 @@ pub fn black_moves(position: &Position) -> MoveList {
 pub fn generate_slider_moves(slider_bitboard: Bitboard, all_pieces_bitboard: Bitboard, move_list: &mut MoveList, magic_vars: &Box<MagicVars>, valid_destinations: Bitboard) {
     let mut from_bitboard = slider_bitboard;
     while from_bitboard != 0 {
-        let from_square = from_bitboard.trailing_zeros() as Square;
+        let from_square = get_and_unset_lsb!(from_bitboard) as Square;
         let fsm = from_square_mask(from_square);
 
         let mut to_bitboard = magic_moves(from_square,all_pieces_bitboard, magic_vars) & valid_destinations;
 
         while to_bitboard != 0 {
-            move_list.push(fsm | to_bitboard.trailing_zeros() as Move);
-            unset_lsb!(to_bitboard);
+            move_list.push(fsm | get_and_unset_lsb!(to_bitboard) as Move);
         }
-        unset_lsb!(from_bitboard);
     };
 }
 
 #[inline(always)]
 pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard: Bitboard, move_list: &mut MoveList) {
     let mask = from_square_mask(from_square);
+    let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
     while to_bitboard != 0 {
-        let base_move = mask | to_bitboard.trailing_zeros() as Move;
-        if to_bitboard & PROMOTION_SQUARES != 0 {
+        let base_move = mask | get_and_unset_lsb!(to_bitboard) as Move;
+        if is_promotion {
             move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
             move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
             move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
@@ -129,7 +124,6 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard:
         } else {
             move_list.push(base_move);
         }
-        unset_lsb!(to_bitboard);
     };
 }
 
@@ -160,15 +154,14 @@ pub fn generate_white_pawn_moves(position: &Position, move_list: &mut MoveList) 
     let empty_squares = !(position.white_pieces_bitboard | position.black_pieces_bitboard);
 
     while from_squares != 0 {
-        let from_square = from_squares.trailing_zeros();
+        let from_square = get_and_unset_lsb!(from_squares);
         let pawn_moves = WHITE_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares;
         let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
             from_square as Square,
             WHITE_PAWN_MOVES_CAPTURE,
             position
         ) | pawn_moves | ((pawn_moves << 8) & RANK_4_BITS & empty_squares);
-        generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves, move_list);
-        unset_lsb!(from_squares);
+        generate_pawn_moves_from_to_squares(from_square, pawn_forward_and_capture_moves, move_list);
     };
 }
 
@@ -179,15 +172,14 @@ pub fn generate_black_pawn_moves(position: &Position, move_list: &mut MoveList) 
     let empty_squares = !(position.white_pieces_bitboard | position.black_pieces_bitboard);
 
     while from_squares != 0 {
-        let from_square = from_squares.trailing_zeros();
+        let from_square = get_and_unset_lsb!(from_squares);
         let pawn_moves = BLACK_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares;
         let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
             from_square as Square,
             BLACK_PAWN_MOVES_CAPTURE,
             position
         ) | pawn_moves | ((pawn_moves >> 8) & RANK_5_BITS & empty_squares);
-        generate_pawn_moves_from_to_squares(from_square as Square, pawn_forward_and_capture_moves, move_list);
-        unset_lsb!(from_squares);
+        generate_pawn_moves_from_to_squares(from_square, pawn_forward_and_capture_moves, move_list);
     };
 }
 
