@@ -60,7 +60,7 @@ pub fn white_moves(position: &Position) -> MoveList {
 
 #[inline(always)]
 pub fn black_moves(position: &Position) -> MoveList {
-    let mut move_list = Vec::with_capacity(80);
+    let mut move_list = Vec::with_capacity(140);
     let valid_destinations = !position.black_pieces_bitboard;
     let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
 
