@@ -48,8 +48,8 @@ pub fn white_moves(position: &Position) -> MoveList {
         }
     }
 
-    generate_slider_moves(position.white_rook_bitboard | position.white_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
-    generate_slider_moves(position.white_bishop_bitboard | position.white_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
+    generate_slider_moves(position.white_rook_bitboard | position.white_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
+    generate_slider_moves(position.white_bishop_bitboard | position.white_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
 
     move_list
 }
@@ -89,8 +89,8 @@ pub fn black_moves(position: &Position) -> MoveList {
         }
     }
 
-    generate_slider_moves(position.black_rook_bitboard | position.black_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
-    generate_slider_moves(position.black_bishop_bitboard | position.black_queen_bitboard, position.white_pieces_bitboard | position.black_pieces_bitboard, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
+    generate_slider_moves(position.black_rook_bitboard | position.black_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
+    generate_slider_moves(position.black_bishop_bitboard | position.black_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
 
     move_list
 }
