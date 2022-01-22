@@ -10,11 +10,6 @@ pub type Mover = i8;
 pub type PositionHistory = [Position; MAX_MOVE_HISTORY as usize];
 
 #[macro_export]
-macro_rules! switch_side {
-    ($a:expr) => { $a *= -1 }
-}
-
-#[macro_export]
 macro_rules! opponent {
     ($a:expr) => { $a * -1 }
 }

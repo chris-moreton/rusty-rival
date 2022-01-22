@@ -1,7 +1,7 @@
-use crate::bitboards::{bit, BLACK_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_FORWARD, EMPTY_CASTLE_SQUARES, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, test_bit, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
+use crate::bitboards::{bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, EN_PASSANT_CAPTURE_RANK, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, test_bit };
 use crate::magic_bitboards::{magic_moves, MAGIC_BOX};
 use crate::move_constants::{BLACK_INDEX, CASTLE_FLAG, CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, KING_INDEX, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX, WHITE_INDEX };
-use crate::types::{Bitboard, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
+use crate::types::{Bitboard, BLACK, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
 use crate::utils::from_square_mask;
 
@@ -20,6 +20,7 @@ pub fn moves(position: &Position) -> MoveList {
     let mut move_list = Vec::with_capacity(80);
 
     let all_pieces = position.white.all_pieces_bitboard | position.black.all_pieces_bitboard;
+    let empty_squares = !all_pieces;
     let colour_index = if position.mover == WHITE { WHITE_INDEX } else { BLACK_INDEX };
     let friendly = if position.mover == WHITE { position.white } else { position.black };
     let valid_destinations = !friendly.all_pieces_bitboard;
@@ -42,11 +43,19 @@ pub fn moves(position: &Position) -> MoveList {
     generate_slider_moves(friendly.rook_bitboard | friendly.queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
     generate_slider_moves(friendly.bishop_bitboard | friendly.queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
 
-    if position.mover == WHITE {
-        generate_white_pawn_moves(position, &mut move_list, !all_pieces);
-    } else {
-        generate_black_pawn_moves(position, &mut move_list, !all_pieces);
-    }
+    let mut from_squares = friendly.pawn_bitboard;
+
+    while from_squares != 0 {
+        let from_square = get_and_unset_lsb!(from_squares);
+        let pawn_moves = PAWN_MOVES_FORWARD[colour_index][from_square as usize] & empty_squares;
+        let shifted = if colour_index == WHITE_INDEX { pawn_moves << 8 } else { pawn_moves >> 8 };
+        let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
+            from_square as Square,
+            PAWN_MOVES_CAPTURE[colour_index],
+            position
+        ) | pawn_moves | (shifted & DOUBLE_MOVE_RANK_BITS[colour_index] & empty_squares);
+        generate_pawn_moves_from_to_squares(from_square, pawn_forward_and_capture_moves, &mut move_list);
+    };
 
     move_list
 }
@@ -78,9 +87,9 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard:
 }
 
 #[inline(always)]
-pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn_moves: &[Bitboard], position: &Position) -> Bitboard {
+pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn_moves: [Bitboard; 64], position: &Position) -> Bitboard {
     let eps = position.en_passant_square;
-    if eps != EN_PASSANT_NOT_AVAILABLE && bit(eps) & en_passant_capture_rank(&position.mover) != 0 {
+    if eps != EN_PASSANT_NOT_AVAILABLE && bit(eps) & EN_PASSANT_CAPTURE_RANK[if position.mover == WHITE { WHITE_INDEX } else { BLACK_INDEX }] != 0 {
         pawn_captures_plus_en_passant_square(capture_pawn_moves, from_square, position)
     } else {
         capture_pawn_moves[from_square as usize] & enemy_bitboard(position)
@@ -88,47 +97,8 @@ pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn
 }
 
 #[inline(always)]
-pub fn pawn_captures_plus_en_passant_square(capture_pawn_moves: &[Bitboard], square: Square, position: &Position) -> Bitboard {
+pub fn pawn_captures_plus_en_passant_square(capture_pawn_moves: [Bitboard; 64], square: Square, position: &Position) -> Bitboard {
     capture_pawn_moves[square as usize] & (enemy_bitboard(position) | if position.en_passant_square == EN_PASSANT_NOT_AVAILABLE { 0 } else { bit(position.en_passant_square) })
-}
-
-#[inline(always)]
-pub fn en_passant_capture_rank(mover: &Mover) -> Bitboard {
-    if *mover == WHITE { RANK_6_BITS } else { RANK_3_BITS }
-}
-
-#[inline(always)]
-pub fn generate_white_pawn_moves(position: &Position, move_list: &mut MoveList, empty_squares: Bitboard) {
-
-    let mut from_squares = position.white.pawn_bitboard;
-
-    while from_squares != 0 {
-        let from_square = get_and_unset_lsb!(from_squares);
-        let pawn_moves = WHITE_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares;
-        let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
-            from_square as Square,
-            WHITE_PAWN_MOVES_CAPTURE,
-            position
-        ) | pawn_moves | ((pawn_moves << 8) & RANK_4_BITS & empty_squares);
-        generate_pawn_moves_from_to_squares(from_square, pawn_forward_and_capture_moves, move_list);
-    };
-}
-
-#[inline(always)]
-pub fn generate_black_pawn_moves(position: &Position, move_list: &mut MoveList, empty_squares: Bitboard) {
-
-    let mut from_squares = position.black.pawn_bitboard;
-
-    while from_squares != 0 {
-        let from_square = get_and_unset_lsb!(from_squares);
-        let pawn_moves = BLACK_PAWN_MOVES_FORWARD[from_square as usize] & empty_squares;
-        let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
-            from_square as Square,
-            BLACK_PAWN_MOVES_CAPTURE,
-            position
-        ) | pawn_moves | ((pawn_moves >> 8) & RANK_5_BITS & empty_squares);
-        generate_pawn_moves_from_to_squares(from_square, pawn_forward_and_capture_moves, move_list);
-    };
 }
 
 #[inline(always)]
@@ -143,19 +113,13 @@ pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, mu
 #[inline(always)]
 pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover: Mover) -> bool {
     let all_pieces = position.white.all_pieces_bitboard | position.black.all_pieces_bitboard;
-    if mover == WHITE {
-        position.white.pawn_bitboard & BLACK_PAWN_MOVES_CAPTURE[attacked_square as usize] != 0 ||
-            position.white.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
-            is_square_attacked_by_slider_of_type(all_pieces, position.white.rook_bitboard | position.white.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
-            is_square_attacked_by_slider_of_type(all_pieces, position.white.bishop_bitboard | position.white.queen_bitboard, attacked_square, &MAGIC_BOX.bishop) ||
-            bit(position.white.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
-    } else {
-        position.black.pawn_bitboard & WHITE_PAWN_MOVES_CAPTURE[attacked_square as usize] != 0 ||
-            position.black.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
-            is_square_attacked_by_slider_of_type(all_pieces, position.black.rook_bitboard | position.black.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
-            is_square_attacked_by_slider_of_type(all_pieces, position.black.bishop_bitboard | position.black.queen_bitboard, attacked_square, &MAGIC_BOX.bishop) ||
-            bit(position.black.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
-    }
+    let friendly = if mover == WHITE { position.white } else { position.black };
+
+    friendly.pawn_bitboard & PAWN_MOVES_CAPTURE[if mover == BLACK { WHITE_INDEX } else { BLACK_INDEX }][attacked_square as usize] != 0 ||
+        friendly.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
+        is_square_attacked_by_slider_of_type(all_pieces, friendly.rook_bitboard | friendly.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
+        is_square_attacked_by_slider_of_type(all_pieces, friendly.bishop_bitboard | friendly.queen_bitboard, attacked_square, &MAGIC_BOX.bishop) ||
+        bit(friendly.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
 }
 
 #[inline(always)]
