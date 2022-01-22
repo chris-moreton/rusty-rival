@@ -13,18 +13,18 @@ pub fn bitboard_for_mover(position: &Position, piece: Piece) -> Bitboard {
 #[inline(always)]
 pub fn bitboard_for_colour(position: &Position, mover: Mover, piece: Piece) -> Bitboard {
     match (mover, piece) {
-        (WHITE, Piece::King) => bit(position.white_king_square),
-        (WHITE, Piece::Queen) => position.white_queen_bitboard,
-        (WHITE, Piece::Rook) => position.white_rook_bitboard,
-        (WHITE, Piece::Knight) => position.white_knight_bitboard,
-        (WHITE, Piece::Bishop) => position.white_bishop_bitboard,
-        (WHITE, Piece::Pawn) => position.white_pawn_bitboard,
-        (BLACK, Piece::King) => bit(position.black_king_square),
-        (BLACK, Piece::Queen) => position.black_queen_bitboard,
-        (BLACK, Piece::Rook) => position.black_rook_bitboard,
-        (BLACK, Piece::Knight) => position.black_knight_bitboard,
-        (BLACK, Piece::Bishop) => position.black_bishop_bitboard,
-        (BLACK, Piece::Pawn) => position.black_pawn_bitboard,
+        (WHITE, Piece::King) => bit(position.white.king_square),
+        (WHITE, Piece::Queen) => position.white.queen_bitboard,
+        (WHITE, Piece::Rook) => position.white.rook_bitboard,
+        (WHITE, Piece::Knight) => position.white.knight_bitboard,
+        (WHITE, Piece::Bishop) => position.white.bishop_bitboard,
+        (WHITE, Piece::Pawn) => position.white.pawn_bitboard,
+        (BLACK, Piece::King) => bit(position.black.king_square),
+        (BLACK, Piece::Queen) => position.black.queen_bitboard,
+        (BLACK, Piece::Rook) => position.black.rook_bitboard,
+        (BLACK, Piece::Knight) => position.black.knight_bitboard,
+        (BLACK, Piece::Bishop) => position.black.bishop_bitboard,
+        (BLACK, Piece::Pawn) => position.black.pawn_bitboard,
         _ => panic!("Can't handle piece")
     }
 }
@@ -32,10 +32,10 @@ pub fn bitboard_for_colour(position: &Position, mover: Mover, piece: Piece) -> B
 #[inline(always)]
 pub fn slider_bitboard_for_colour(position: &Position, mover: Mover, piece: &Piece) -> Bitboard {
     match (mover, piece) {
-        (WHITE, Piece::Rook) => position.white_rook_bitboard | position.white_queen_bitboard,
-        (WHITE, Piece::Bishop) => position.white_bishop_bitboard | position.white_queen_bitboard,
-        (BLACK, Piece::Rook) => position.black_rook_bitboard | position.black_queen_bitboard,
-        (BLACK, Piece::Bishop) => position.black_bishop_bitboard | position.black_queen_bitboard,
+        (WHITE, Piece::Rook) => position.white.rook_bitboard | position.white.queen_bitboard,
+        (WHITE, Piece::Bishop) => position.white.bishop_bitboard | position.white.queen_bitboard,
+        (BLACK, Piece::Rook) => position.black.rook_bitboard | position.black.queen_bitboard,
+        (BLACK, Piece::Bishop) => position.black.bishop_bitboard | position.black.queen_bitboard,
         _ => panic!("Can't handle piece")
     }
 }
@@ -52,7 +52,7 @@ pub fn test_bit(bitboard: Bitboard, square: Square) -> bool {
 
 #[inline(always)]
 pub fn enemy_bitboard(position: &Position) -> Bitboard {
-    if position.mover == WHITE { position.black_pieces_bitboard } else { position.white_pieces_bitboard }
+    if position.mover == WHITE { position.black.all_pieces_bitboard } else { position.white.all_pieces_bitboard }
 }
 
 #[inline(always)]

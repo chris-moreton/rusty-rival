@@ -114,18 +114,18 @@ fn it_creates_a_position_from_a_fen() {
     let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b q g3 5 56";
     let position = get_position(&fen.to_string());
     assert_eq!(position.mover, BLACK);
-    assert_eq!(position.white_pawn_bitboard, 5404360704);
-    assert_eq!(position.white_knight_bitboard, 2048);
-    assert_eq!(position.white_king_square, 20);
-    assert_eq!(position.white_bishop_bitboard, 262144);
-    assert_eq!(position.white_queen_bitboard, 0);
-    assert_eq!(position.white_rook_bitboard, 67108864);
-    assert_eq!(position.black_pawn_bitboard, 634693087133696);
-    assert_eq!(position.black_knight_bitboard, 0);
-    assert_eq!(position.black_king_square, 57);
-    assert_eq!(position.black_bishop_bitboard, 0);
-    assert_eq!(position.black_queen_bitboard, 8796093022208);
-    assert_eq!(position.black_rook_bitboard, 16384);
+    assert_eq!(position.white.pawn_bitboard, 5404360704);
+    assert_eq!(position.white.knight_bitboard, 2048);
+    assert_eq!(position.white.king_square, 20);
+    assert_eq!(position.white.bishop_bitboard, 262144);
+    assert_eq!(position.white.queen_bitboard, 0);
+    assert_eq!(position.white.rook_bitboard, 67108864);
+    assert_eq!(position.black.pawn_bitboard, 634693087133696);
+    assert_eq!(position.black.knight_bitboard, 0);
+    assert_eq!(position.black.king_square, 57);
+    assert_eq!(position.black.bishop_bitboard, 0);
+    assert_eq!(position.black.queen_bitboard, 8796093022208);
+    assert_eq!(position.black.rook_bitboard, 16384);
     assert_eq!(position.en_passant_square, 17);
 }
 
