@@ -5,93 +5,71 @@ use crate::types::{Bitboard, BLACK, is_bk_castle_available, is_bq_castle_availab
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
 use crate::utils::from_square_mask;
 
+#[macro_export]
+macro_rules! add_moves {
+    ($move_list:expr, $fsm:expr, $to_bitboard:expr) => {
+        let mut bb = $to_bitboard;
+        while bb != 0 {
+            $move_list.push($fsm | get_and_unset_lsb!(bb) as Move);
+        }
+    }
+}
+
 #[inline(always)]
 pub fn moves(position: &Position) -> MoveList {
+    let mut move_list = Vec::with_capacity(80);
+    let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
+
     if position.mover == WHITE {
-        white_moves(position)
+        let valid_destinations = !position.white_pieces_bitboard;
+
+        generate_white_pawn_moves(position, &mut move_list);
+
+        add_moves!(move_list, from_square_mask(position.white_king_square), KING_MOVES_BITBOARDS[position.white_king_square as usize] & valid_destinations);
+
+        if is_wk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 &&
+            !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_KING) {
+            move_list.push(WHITE_KING_CASTLE_MOVE);
+        }
+        if is_wq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_QUEEN == 0 &&
+            !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN) {
+            move_list.push(WHITE_QUEEN_CASTLE_MOVE);
+        }
+
+        let mut from_squares_bitboard = position.white_knight_bitboard;
+        while from_squares_bitboard != 0 {
+            let from_square = get_and_unset_lsb!(from_squares_bitboard);
+            add_moves!(move_list, from_square_mask(from_square), KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
+        }
+
+        generate_slider_moves(position.white_rook_bitboard | position.white_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
+        generate_slider_moves(position.white_bishop_bitboard | position.white_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
+
     } else {
-        black_moves(position)
-    }
-}
+        let valid_destinations = !position.black_pieces_bitboard;
 
-#[inline(always)]
-pub fn white_moves(position: &Position) -> MoveList {
-    let mut move_list = Vec::with_capacity(80);
-    let valid_destinations = !position.white_pieces_bitboard;
-    let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
+        generate_black_pawn_moves(position, &mut move_list);
 
-    generate_white_pawn_moves(position, &mut move_list);
+        add_moves!(move_list, from_square_mask(position.black_king_square), KING_MOVES_BITBOARDS[position.black_king_square as usize] & valid_destinations);
 
-    let from_square = position.white_king_square;
-    let fsm = from_square_mask(from_square as Square);
-    let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
-    while to_bitboard != 0 {
-        move_list.push(fsm | get_and_unset_lsb!(to_bitboard) as Move);
-    };
-
-    if is_wk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_KING == 0 &&
-        !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_KING) {
-        move_list.push(WHITE_KING_CASTLE_MOVE);
-    }
-    if is_wq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_WHITE_QUEEN == 0 &&
-        !any_squares_in_bitboard_attacked(position, BLACK, NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN) {
-        move_list.push(WHITE_QUEEN_CASTLE_MOVE);
-    }
-
-    let mut from_squares_bitboard = position.white_knight_bitboard;
-    while from_squares_bitboard != 0 {
-        let from_square = get_and_unset_lsb!(from_squares_bitboard);
-        let fsm = from_square_mask(from_square);
-        let mut to_bitboard = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
-        while to_bitboard != 0 {
-            move_list.push(fsm | get_and_unset_lsb!(to_bitboard) as Move);
+        if is_bk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_KING == 0 &&
+            !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_KING) {
+            move_list.push(BLACK_KING_CASTLE_MOVE);
         }
-    }
-
-    generate_slider_moves(position.white_rook_bitboard | position.white_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
-    generate_slider_moves(position.white_bishop_bitboard | position.white_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
-
-    move_list
-}
-
-#[inline(always)]
-pub fn black_moves(position: &Position) -> MoveList {
-    let mut move_list = Vec::with_capacity(80);
-    let valid_destinations = !position.black_pieces_bitboard;
-    let all_pieces = position.white_pieces_bitboard | position.black_pieces_bitboard;
-
-    generate_black_pawn_moves(position, &mut move_list);
-
-    let from_square = position.black_king_square;
-    let fsm = from_square_mask(from_square as Square);
-    let mut to_bitboard = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
-    while to_bitboard != 0 {
-        let sq = get_and_unset_lsb!(to_bitboard);
-        move_list.push(fsm | sq as Move);
-    };
-
-    if is_bk_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_KING == 0 &&
-        !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_KING) {
-        move_list.push(BLACK_KING_CASTLE_MOVE);
-    }
-    if is_bq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_QUEEN == 0 &&
-        !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN) {
-        move_list.push(BLACK_QUEEN_CASTLE_MOVE);
-    }
-
-    let mut from_squares_bitboard = position.black_knight_bitboard;
-    while from_squares_bitboard != 0 {
-        let from_square = get_and_unset_lsb!(from_squares_bitboard) as Square;
-        let fsm = from_square_mask(from_square);
-        let mut to_bitboard = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
-        while to_bitboard != 0 {
-            move_list.push(fsm | get_and_unset_lsb!(to_bitboard) as Move);
+        if is_bq_castle_available(position) && all_pieces & EMPTY_CASTLE_SQUARES_BLACK_QUEEN == 0 &&
+            !any_squares_in_bitboard_attacked(position, WHITE, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN) {
+            move_list.push(BLACK_QUEEN_CASTLE_MOVE);
         }
+
+        let mut from_squares_bitboard = position.black_knight_bitboard;
+        while from_squares_bitboard != 0 {
+            let from_square = get_and_unset_lsb!(from_squares_bitboard) as Square;
+            add_moves!(move_list, from_square_mask(from_square), KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
+        }
+
+        generate_slider_moves(position.black_rook_bitboard | position.black_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
+        generate_slider_moves(position.black_bishop_bitboard | position.black_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
     }
-
-    generate_slider_moves(position.black_rook_bitboard | position.black_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
-    generate_slider_moves(position.black_bishop_bitboard | position.black_queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations);
-
     move_list
 }
 
@@ -100,13 +78,7 @@ pub fn generate_slider_moves(slider_bitboard: Bitboard, all_pieces_bitboard: Bit
     let mut from_bitboard = slider_bitboard;
     while from_bitboard != 0 {
         let from_square = get_and_unset_lsb!(from_bitboard) as Square;
-        let fsm = from_square_mask(from_square);
-
-        let mut to_bitboard = magic_moves(from_square,all_pieces_bitboard, magic_vars) & valid_destinations;
-
-        while to_bitboard != 0 {
-            move_list.push(fsm | get_and_unset_lsb!(to_bitboard) as Move);
-        }
+        add_moves!(move_list, from_square_mask(from_square), magic_moves(from_square,all_pieces_bitboard, magic_vars) & valid_destinations);
     };
 }
 
