@@ -31,23 +31,12 @@ macro_rules! get_and_unset_lsb {
 }
 
 #[macro_export]
-macro_rules! move_mover_white {
-    ($bitboard:expr, $from_mask:expr, $to_mask:expr, $position:expr) => {
+macro_rules! move_mover {
+    ($bitboard:expr, $from_mask:expr, $to_mask:expr, $friendly:expr) => {
         if $bitboard & $from_mask != 0 {
             let switch = $from_mask | $to_mask;
             $bitboard ^= switch;
-            $position.pieces[WHITE as usize].all_pieces_bitboard ^= switch;
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! move_mover_black {
-    ($bitboard:expr, $from_mask:expr, $to_mask:expr, $position:expr) => {
-        if $bitboard & $from_mask != 0 {
-            let switch = $from_mask | $to_mask;
-            $bitboard ^= switch;
-            $position.pieces[BLACK as usize].all_pieces_bitboard ^= switch;
+            $friendly.all_pieces_bitboard ^= switch;
         }
     }
 }
