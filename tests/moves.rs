@@ -3,7 +3,7 @@ use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref
 use rusty_rival::magic_bitboards::MAGIC_BOX;
 use rusty_rival::make_move::{default_position_history, make_move};
 use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_slider_moves, is_check, is_square_attacked, moves, pawn_forward_and_capture_moves_bitboard};
+use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_slider_moves, is_check, is_square_attacked, moves};
 use rusty_rival::opponent;
 use rusty_rival::types::{BLACK, MoveList, Square, WHITE};
 
@@ -84,7 +84,6 @@ fn it_returns_a_bitboard_showing_available_landing_squares_capture_and_non_captu
     let bb = pawn_moves;
     let pfmb = pawn_moves | ((bb << 8) & RANK_4_BITS & !(position.white.all_pieces_bitboard | position.black.all_pieces_bitboard));
     assert_eq!(pfmb, 0b0000100000000000000000000000000000000000000000000000000000000000);
-    assert_eq!(pawn_forward_and_capture_moves_bitboard(from_square as Square, WHITE_PAWN_MOVES_CAPTURE, &position) | pfmb, 0b0000100000000000000000000000000000000000000000000000000000000000);
 }
 
 #[test]
