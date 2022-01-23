@@ -48,9 +48,12 @@ pub fn moves(position: &Position) -> MoveList {
     while from_squares != 0 {
         let from_square = get_and_unset_lsb!(from_squares);
         let pawn_moves = PAWN_MOVES_FORWARD[colour_index][from_square as usize] & empty_squares;
-        let shifted = if position.mover == WHITE { pawn_moves << 8 } else { pawn_moves >> 8 };
-        let pawn_forward_and_capture_moves = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] &
-            enemy_pawns_capture_bitboard(position) | pawn_moves | (shifted & DOUBLE_MOVE_RANK_BITS[colour_index] & empty_squares);
+
+        // If you can move one square, maybe you can move two
+        let shifted = if position.mover == WHITE { pawn_moves << 8 } else { pawn_moves >> 8 } & DOUBLE_MOVE_RANK_BITS[colour_index] & empty_squares;
+
+        let pawn_forward_and_capture_moves = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & enemy_pawns_capture_bitboard(position) | pawn_moves | shifted;
+
         generate_pawn_moves_from_to_squares(from_square, pawn_forward_and_capture_moves, &mut move_list);
     };
 
@@ -67,10 +70,10 @@ pub fn generate_slider_moves(mut slider_bitboard: Bitboard, all_pieces_bitboard:
 
 #[inline(always)]
 pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard: Bitboard, move_list: &mut MoveList) {
-    let mask = from_square_mask(from_square);
+    let fsm = from_square_mask(from_square);
     let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
     while to_bitboard != 0 {
-        let base_move = mask | get_and_unset_lsb!(to_bitboard) as Move;
+        let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
         if is_promotion {
             move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
             move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
