@@ -1,4 +1,4 @@
-use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, enemy_bitboard, RANK_4_BITS, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
+use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, RANK_4_BITS, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
 use rusty_rival::magic_bitboards::MAGIC_BOX;
 use rusty_rival::make_move::{default_position_history, make_move};
@@ -46,16 +46,16 @@ fn it_generates_rook_moves_including_horizontal_queen_moves_from_a_given_fen_ign
 fn it_returns_a_bitboard_showing_target_squares_for_pawn_captures_from_a_given_square_and_an_enemy_piece_bitboard() {
     let position = get_position(&"n5k1/1P4n1/1n2q2p/Pp3P2/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
 
-    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[29] & enemy_bitboard(&position), 0b0000000000000000000000000100000000000000000000000000000000000000);
+    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[29] & position.black.all_pieces_bitboard, 0b0000000000000000000000000100000000000000000000000000000000000000);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp1pP3/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
-    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[51] & enemy_bitboard(&position), 0b0000000000000000000000000000000000000000000000000000000000000000);
+    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[51] & position.black.all_pieces_bitboard, 0b0000000000000000000000000000000000000000000000000000000000000000);
 
     let position = get_position(&"n5k1/1P2P1n1/1n2q2p/Pp1pP3/3P1R2/3K1B2/1r2N2P/6r1 w - - 0 1".to_string());
-    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[54] & enemy_bitboard(&position), 0b1000000000000000000000000000000000000000000000000000000000000000);
+    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[54] & position.black.all_pieces_bitboard, 0b1000000000000000000000000000000000000000000000000000000000000000);
 
     let position = get_position(&"n5k1/4P1n1/1n2q2p/1p1p4/5R2/3K1B2/1r2N3/6r1 w - - 0 1".to_string());
-    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[51] & enemy_bitboard(&position), 0b0000000000000000000000000000000000000000000000000000000000000000);
+    assert_eq!(WHITE_PAWN_MOVES_CAPTURE[51] & position.black.all_pieces_bitboard, 0b0000000000000000000000000000000000000000000000000000000000000000);
 }
 
 #[test]

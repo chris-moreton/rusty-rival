@@ -51,11 +51,6 @@ pub fn test_bit(bitboard: Bitboard, square: Square) -> bool {
 }
 
 #[inline(always)]
-pub fn enemy_bitboard(position: &Position) -> Bitboard {
-    if position.mover == WHITE { position.black.all_pieces_bitboard } else { position.white.all_pieces_bitboard }
-}
-
-#[inline(always)]
 pub fn south_fill(bb: Bitboard) -> Bitboard {
     let a = bb | (bb >> 8);
     let b = a | (a >> 16);

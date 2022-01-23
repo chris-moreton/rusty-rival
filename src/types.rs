@@ -62,9 +62,7 @@ pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook, Empty }
 pub enum Bound { Exact, Lower, Upper }
 
 pub struct MagicVars {
-    pub(crate) occupancy_mask: [Bitboard; 64],
-    pub(crate) magic_number: [Bitboard; 64],
-    pub(crate) magic_number_shifts: [u8; 64],
+    pub(crate) number_mask_shifts: [[Bitboard; 3]; 64],
     pub(crate) magic_moves: [[Bitboard; 4096]; 64]
 }
 
