@@ -1,4 +1,4 @@
-use crate::bitboards::{bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, EN_PASSANT_CAPTURE_RANK, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, test_bit };
+use crate::bitboards::{bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, test_bit };
 use crate::magic_bitboards::{magic_moves, MAGIC_BOX};
 use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, KING_INDEX, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
 use crate::types::{Bitboard, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
@@ -58,10 +58,9 @@ pub fn moves(position: &Position) -> MoveList {
 }
 
 #[inline(always)]
-pub fn generate_slider_moves(slider_bitboard: Bitboard, all_pieces_bitboard: Bitboard, move_list: &mut MoveList, magic_vars: &Box<MagicVars>, valid_destinations: Bitboard) {
-    let mut from_bitboard = slider_bitboard;
-    while from_bitboard != 0 {
-        let from_square = get_and_unset_lsb!(from_bitboard) as Square;
+pub fn generate_slider_moves(mut slider_bitboard: Bitboard, all_pieces_bitboard: Bitboard, move_list: &mut MoveList, magic_vars: &Box<MagicVars>, valid_destinations: Bitboard) {
+    while slider_bitboard != 0 {
+        let from_square = get_and_unset_lsb!(slider_bitboard) as Square;
         add_moves!(move_list, from_square_mask(from_square), magic_moves(from_square,all_pieces_bitboard, magic_vars) & valid_destinations);
     };
 }
@@ -85,7 +84,7 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard:
 
 #[inline(always)]
 pub fn enemy_pawns_capture_bitboard(position: &Position) -> Bitboard {
-    if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE && bit(position.en_passant_square) & EN_PASSANT_CAPTURE_RANK[position.mover as usize] != 0 {
+    if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         enemy_bitboard(position) | bit(position.en_passant_square)
     } else {
         enemy_bitboard(position)
