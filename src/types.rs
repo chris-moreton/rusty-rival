@@ -36,7 +36,7 @@ macro_rules! move_mover_white {
         if $bitboard & $from_mask != 0 {
             let switch = $from_mask | $to_mask;
             $bitboard ^= switch;
-            $position.white.all_pieces_bitboard ^= switch;
+            $position.pieces[WHITE as usize].all_pieces_bitboard ^= switch;
         }
     }
 }
@@ -47,13 +47,13 @@ macro_rules! move_mover_black {
         if $bitboard & $from_mask != 0 {
             let switch = $from_mask | $to_mask;
             $bitboard ^= switch;
-            $position.black.all_pieces_bitboard ^= switch;
+            $position.pieces[BLACK as usize].all_pieces_bitboard ^= switch;
         }
     }
 }
 
-pub const WHITE: i8 = 0;
-pub const BLACK: i8 = 1;
+pub const WHITE: Mover = 0;
+pub const BLACK: Mover = 1;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook, Empty }
@@ -111,10 +111,21 @@ pub struct Pieces {
     pub all_pieces_bitboard: Bitboard
 }
 
+impl PartialEq for Pieces {
+    fn eq(&self, other: &Self) -> bool {
+        self.pawn_bitboard == other.pawn_bitboard &&
+        self.knight_bitboard == other.knight_bitboard &&
+        self.bishop_bitboard == other.bishop_bitboard &&
+        self.queen_bitboard == other.queen_bitboard &&
+        self.king_square == other.king_square &&
+        self.rook_bitboard == other.rook_bitboard &&
+        self.all_pieces_bitboard == other.all_pieces_bitboard
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct Position {
-    pub white: Pieces,
-    pub black: Pieces,
+    pub pieces: [Pieces; 2],
     pub mover: Mover,
     pub en_passant_square: Square,
     pub castle_flags: u8,
@@ -124,20 +135,8 @@ pub struct Position {
 
 impl PartialEq for Position {
     fn eq(&self, other: &Self) -> bool {
-        self.white.pawn_bitboard == other.white.pawn_bitboard &&
-        self.white.knight_bitboard == other.white.knight_bitboard &&
-        self.white.bishop_bitboard == other.white.bishop_bitboard &&
-        self.white.queen_bitboard == other.white.queen_bitboard &&
-        self.white.king_square == other.white.king_square &&
-        self.white.rook_bitboard == other.white.rook_bitboard &&
-        self.black.pawn_bitboard == other.black.pawn_bitboard &&
-        self.black.knight_bitboard == other.black.knight_bitboard &&
-        self.black.bishop_bitboard == other.black.bishop_bitboard &&
-        self.black.queen_bitboard == other.black.queen_bitboard &&
-        self.black.king_square == other.black.king_square &&
-        self.black.rook_bitboard == other.black.rook_bitboard &&
-        self.white.all_pieces_bitboard == other.white.all_pieces_bitboard &&
-        self.black.all_pieces_bitboard == other.black.all_pieces_bitboard &&
+        self.pieces[0] == other.pieces[0] &&
+        self.pieces[1] == other.pieces[1] &&
         self.mover == other.mover &&
         self.en_passant_square == other.en_passant_square &&
         self.castle_flags == other.castle_flags &&

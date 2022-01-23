@@ -73,8 +73,10 @@ fn it_gets_the_rank_bits_for_a_piece() {
 #[test]
 fn it_returns_the_correct_bitboard_for_mover() {
     let p1 = Position {
-        white: Pieces { pawn_bitboard: 1, knight_bitboard: 2, bishop_bitboard: 3, queen_bitboard: 4, king_square: 5, rook_bitboard: 6, all_pieces_bitboard: 14 },
-        black: Pieces { pawn_bitboard: 7, knight_bitboard: 8, bishop_bitboard: 9, queen_bitboard: 10, king_square: 11, rook_bitboard: 12, all_pieces_bitboard: 15 },
+        pieces: [
+            Pieces { pawn_bitboard: 1, knight_bitboard: 2, bishop_bitboard: 3, queen_bitboard: 4, king_square: 5, rook_bitboard: 6, all_pieces_bitboard: 14 },
+            Pieces { pawn_bitboard: 7, knight_bitboard: 8, bishop_bitboard: 9, queen_bitboard: 10, king_square: 11, rook_bitboard: 12, all_pieces_bitboard: 15 },
+        ],
         mover: WHITE,
         en_passant_square: 1,
         castle_flags: ALL_CASTLE_FLAGS,
@@ -90,8 +92,10 @@ fn it_returns_the_correct_bitboard_for_mover() {
     assert_eq!(6, bitboard_for_mover(&p1, Piece::Rook));
 
     let p2 = Position {
-        white: Pieces { pawn_bitboard: 1, knight_bitboard: 2, bishop_bitboard: 3, queen_bitboard: 4, king_square: 5, rook_bitboard: 6, all_pieces_bitboard: 14 },
-        black: Pieces { pawn_bitboard: 7, knight_bitboard: 8, bishop_bitboard: 9, queen_bitboard: 10, king_square: 11, rook_bitboard: 12, all_pieces_bitboard: 15 },
+        pieces: [
+            Pieces { pawn_bitboard: 1, knight_bitboard: 2, bishop_bitboard: 3, queen_bitboard: 4, king_square: 5, rook_bitboard: 6, all_pieces_bitboard: 14 },
+            Pieces { pawn_bitboard: 7, knight_bitboard: 8, bishop_bitboard: 9, queen_bitboard: 10, king_square: 11, rook_bitboard: 12, all_pieces_bitboard: 15 },
+        ],
         mover: BLACK,
         en_passant_square: 1,
         castle_flags: ALL_CASTLE_FLAGS,

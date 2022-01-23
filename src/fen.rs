@@ -163,8 +163,10 @@ pub fn get_position(fen: &str) -> Position {
     if castle_part.contains('q') { castle_flags |= BQ_CASTLE };
 
     Position {
-        white: Pieces { pawn_bitboard: wp, knight_bitboard: wn, bishop_bitboard: wb, rook_bitboard: wr, queen_bitboard: wq, king_square: wk.trailing_zeros() as Square, all_pieces_bitboard: wp | wn | wb | wr | wq | wk },
-        black: Pieces { pawn_bitboard: bp, knight_bitboard: bn, bishop_bitboard: bb, rook_bitboard: br, queen_bitboard: bq, king_square: bk.trailing_zeros() as Square, all_pieces_bitboard: bp | bn | bb | br | bq | bk },
+        pieces: [
+            Pieces { pawn_bitboard: wp, knight_bitboard: wn, bishop_bitboard: wb, rook_bitboard: wr, queen_bitboard: wq, king_square: wk.trailing_zeros() as Square, all_pieces_bitboard: wp | wn | wb | wr | wq | wk },
+            Pieces { pawn_bitboard: bp, knight_bitboard: bn, bishop_bitboard: bb, rook_bitboard: br, queen_bitboard: bq, king_square: bk.trailing_zeros() as Square, all_pieces_bitboard: bp | bn | bb | br | bq | bk },
+        ],
         mover: get_mover(fen),
         en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square,
         castle_flags,
