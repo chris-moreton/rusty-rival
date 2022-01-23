@@ -1,8 +1,14 @@
+use crate::move_constants::EN_PASSANT_NOT_AVAILABLE;
 use crate::types::{Bitboard, Mover, Piece, Position, Square, WHITE, BLACK};
 
 #[inline(always)]
 pub const fn bit(i: Square) -> Bitboard {
     1 << i
+}
+
+#[inline(always)]
+pub const fn epsbit(i: Square) -> Bitboard {
+    if i == EN_PASSANT_NOT_AVAILABLE { 0 } else { 1 << i }
 }
 
 #[inline(always)]

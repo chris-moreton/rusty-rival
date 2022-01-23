@@ -1,6 +1,6 @@
-use crate::bitboards::{bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, test_bit };
+use crate::bitboards::{bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, epsbit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, test_bit};
 use crate::magic_bitboards::{magic_moves, MAGIC_BOX};
-use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, KING_INDEX, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
+use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
 use crate::types::{Bitboard, BLACK, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
 use crate::utils::from_square_mask;
@@ -20,7 +20,7 @@ pub fn moves(position: &Position) -> MoveList {
     let mut move_list = Vec::with_capacity(80);
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    let friendly = if position.mover == WHITE { position.pieces[WHITE as usize] } else { position.pieces[BLACK as usize] };
+    let friendly = position.pieces[position.mover as usize];
     let valid_destinations = !friendly.all_pieces_bitboard;
 
     if position.castle_flags != 0 { generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize) }
@@ -42,11 +42,7 @@ fn generate_pawn_moves(position: &Position, move_list: &mut Vec<Move>, empty_squ
         // If you can move one square, maybe you can move two
         let shifted = if position.mover == WHITE { pawn_moves << 8 } else { pawn_moves >> 8 } & DOUBLE_MOVE_RANK_BITS[colour_index] & empty_squares;
 
-        let enemy_pawns_capture_bitboard = if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
-            position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | bit(position.en_passant_square)
-        } else {
-            position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard
-        };
+        let enemy_pawns_capture_bitboard = position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | epsbit(position.en_passant_square);
 
         let mut to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & enemy_pawns_capture_bitboard | pawn_moves | shifted;
 

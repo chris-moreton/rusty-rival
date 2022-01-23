@@ -349,7 +349,7 @@ pub fn default_position_history() -> PositionHistory {
                 Pieces { pawn_bitboard: 0, knight_bitboard: 0, bishop_bitboard: 0, queen_bitboard: 0, king_square: 0, rook_bitboard: 0, all_pieces_bitboard: 0 },
             ],
             mover: WHITE,
-            en_passant_square: 0,
+            en_passant_square: EN_PASSANT_NOT_AVAILABLE,
             castle_flags: 0,
             half_moves: 0,
             move_number: 1
