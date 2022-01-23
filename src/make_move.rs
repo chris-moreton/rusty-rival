@@ -266,11 +266,6 @@ pub fn make_simple_complex_black_move(position: &mut Position, from: Square, to:
 }
 
 #[inline(always)]
-pub fn switch_side(mover: Mover) -> Mover {
-    mover * -1
-}
-
-#[inline(always)]
 pub fn make_simple_white_move(position: &mut Position, from: Square, to: Square, piece: Piece) {
     if piece == Pawn {
         position.white.pawn_bitboard = clear_bit(position.white.pawn_bitboard, from) | bit(to);

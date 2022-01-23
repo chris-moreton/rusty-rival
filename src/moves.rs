@@ -1,8 +1,8 @@
 use crate::bitboards::{bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, EN_PASSANT_CAPTURE_RANK, enemy_bitboard, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, test_bit };
 use crate::magic_bitboards::{magic_moves, MAGIC_BOX};
-use crate::move_constants::{BLACK_INDEX, CASTLE_FLAG, CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, KING_INDEX, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX, WHITE_INDEX };
-use crate::types::{Bitboard, BLACK, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
-use crate::{get_and_unset_lsb, opponent, unset_lsb};
+use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, KING_INDEX, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
+use crate::types::{Bitboard, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
+use crate::{get_and_unset_lsb, unset_lsb};
 use crate::utils::from_square_mask;
 
 #[macro_export]
@@ -21,13 +21,13 @@ pub fn moves(position: &Position) -> MoveList {
 
     let all_pieces = position.white.all_pieces_bitboard | position.black.all_pieces_bitboard;
     let empty_squares = !all_pieces;
-    let colour_index = if position.mover == WHITE { WHITE_INDEX } else { BLACK_INDEX };
+    let colour_index = position.mover as usize;
     let friendly = if position.mover == WHITE { position.white } else { position.black };
     let valid_destinations = !friendly.all_pieces_bitboard;
 
     for side in [KING_INDEX, QUEEN_INDEX] {
         if position.castle_flags & CASTLE_FLAG[side][colour_index] != 0 && all_pieces & EMPTY_CASTLE_SQUARES[side][colour_index] == 0 &&
-            !any_squares_in_bitboard_attacked(position, opponent!(position.mover), NO_CHECK_CASTLE_SQUARES[side][colour_index]) {
+            !any_squares_in_bitboard_attacked(position, position.mover, NO_CHECK_CASTLE_SQUARES[side][colour_index]) {
             move_list.push(CASTLE_MOVE[side][colour_index]);
         }
     }
@@ -48,7 +48,7 @@ pub fn moves(position: &Position) -> MoveList {
     while from_squares != 0 {
         let from_square = get_and_unset_lsb!(from_squares);
         let pawn_moves = PAWN_MOVES_FORWARD[colour_index][from_square as usize] & empty_squares;
-        let shifted = if colour_index == WHITE_INDEX { pawn_moves << 8 } else { pawn_moves >> 8 };
+        let shifted = if position.mover == WHITE { pawn_moves << 8 } else { pawn_moves >> 8 };
         let pawn_forward_and_capture_moves = pawn_forward_and_capture_moves_bitboard(
             from_square as Square,
             PAWN_MOVES_CAPTURE[colour_index],
@@ -88,32 +88,32 @@ pub fn generate_pawn_moves_from_to_squares(from_square: Square, mut to_bitboard:
 
 #[inline(always)]
 pub fn pawn_forward_and_capture_moves_bitboard(from_square: Square, capture_pawn_moves: [Bitboard; 64], position: &Position) -> Bitboard {
-    if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE && bit(position.en_passant_square) & EN_PASSANT_CAPTURE_RANK[if position.mover == WHITE { WHITE_INDEX } else { BLACK_INDEX }] != 0 {
-        capture_pawn_moves[from_square as usize] & (enemy_bitboard(position) | bit(position.en_passant_square))
+    capture_pawn_moves[from_square as usize] & if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE && bit(position.en_passant_square) & EN_PASSANT_CAPTURE_RANK[position.mover as usize] != 0 {
+        enemy_bitboard(position) | bit(position.en_passant_square)
     } else {
-        capture_pawn_moves[from_square as usize] & enemy_bitboard(position)
+        enemy_bitboard(position)
     }
 }
 
 #[inline(always)]
-pub fn any_squares_in_bitboard_attacked(position: &Position, attacker: Mover, mut bitboard: Bitboard) -> bool {
+pub fn any_squares_in_bitboard_attacked(position: &Position, attacked: Mover, mut bitboard: Bitboard) -> bool {
     while bitboard != 0 {
-        if is_square_attacked_by(position, bitboard.trailing_zeros() as Square, attacker) { return true }
+        if is_square_attacked(position, bitboard.trailing_zeros() as Square, attacked) { return true }
         unset_lsb!(bitboard);
     }
     return false;
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by(position: &Position, attacked_square: Square, mover: Mover) -> bool {
+pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked: Mover) -> bool {
     let all_pieces = position.white.all_pieces_bitboard | position.black.all_pieces_bitboard;
-    let friendly = if mover == WHITE { position.white } else { position.black };
+    let enemy = if attacked == WHITE { position.black } else { position.white };
 
-    friendly.pawn_bitboard & PAWN_MOVES_CAPTURE[if mover == BLACK { WHITE_INDEX } else { BLACK_INDEX }][attacked_square as usize] != 0 ||
-        friendly.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
-        is_square_attacked_by_slider_of_type(all_pieces, friendly.rook_bitboard | friendly.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
-        is_square_attacked_by_slider_of_type(all_pieces, friendly.bishop_bitboard | friendly.queen_bitboard, attacked_square, &MAGIC_BOX.bishop) ||
-        bit(friendly.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
+    enemy.pawn_bitboard & PAWN_MOVES_CAPTURE[attacked as usize][attacked_square as usize] != 0 ||
+        enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
+        is_square_attacked_by_slider_of_type(all_pieces, enemy.rook_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
+        is_square_attacked_by_slider_of_type(all_pieces, enemy.bishop_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.bishop) ||
+        bit(enemy.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
 }
 
 #[inline(always)]
@@ -127,5 +127,5 @@ pub fn is_square_attacked_by_slider_of_type(all_pieces: Bitboard, mut attacking_
 
 #[inline(always)]
 pub fn is_check(position: &Position, mover: Mover) -> bool {
-    is_square_attacked_by(position, if mover == WHITE { position.white.king_square } else { position.black.king_square }, opponent!(mover))
+    is_square_attacked(position, if mover == WHITE { position.white.king_square } else { position.black.king_square }, mover)
 }

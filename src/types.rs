@@ -11,7 +11,7 @@ pub type PositionHistory = [Position; MAX_MOVE_HISTORY as usize];
 
 #[macro_export]
 macro_rules! opponent {
-    ($a:expr) => { $a * -1 }
+    ($a:expr) => { ($a-1).abs() }
 }
 
 #[macro_export]
@@ -52,7 +52,7 @@ macro_rules! move_mover_black {
     }
 }
 
-pub const WHITE: i8 = -1;
+pub const WHITE: i8 = 0;
 pub const BLACK: i8 = 1;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
