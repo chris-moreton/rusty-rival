@@ -61,15 +61,6 @@ pub struct MagicBox {
 }
 
 #[inline(always)]
-pub fn unset_wk_castle(position: &mut Position) { position.castle_flags &= !WK_CASTLE }
-#[inline(always)]
-pub fn unset_wq_castle(position: &mut Position) { position.castle_flags &= !WQ_CASTLE }
-#[inline(always)]
-pub fn unset_bk_castle(position: &mut Position) { position.castle_flags &= !BK_CASTLE }
-#[inline(always)]
-pub fn unset_bq_castle(position: &mut Position) { position.castle_flags &= !BQ_CASTLE }
-
-#[inline(always)]
 pub fn unset_white_castles(position: &mut Position) { position.castle_flags &= !(WK_CASTLE | WQ_CASTLE) }
 #[inline(always)]
 pub fn unset_black_castles(position: &mut Position) { position.castle_flags &= !(BK_CASTLE | BQ_CASTLE) }

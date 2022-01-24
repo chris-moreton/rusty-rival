@@ -1,7 +1,7 @@
-use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, D8_BIT, E1_BIT, E8_BIT, F1_BIT, F8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
+use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, E1_BIT, E8_BIT, F1_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::{move_mover, opponent};
-use crate::types::{Bitboard, BLACK, is_any_black_castle_available, is_any_white_castle_available, Move, Mover, Pieces, Piece, Position, PositionHistory, Square, unset_bk_castle, unset_black_castles, unset_bq_castle, unset_white_castles, unset_wk_castle, unset_wq_castle, WHITE};
+use crate::types::{Bitboard, BLACK, is_any_black_castle_available, is_any_white_castle_available, Move, Mover, Pieces, Piece, Position, PositionHistory, Square, WHITE};
 use crate::types::Piece::{Bishop, Empty, King, Knight, Pawn, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
 
@@ -18,17 +18,18 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
     if (position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & to_mask != 0 ||
         (piece == Pawn && ((from - to) % 8 != 0 || PROMOTION_SQUARES & to_mask != 0)) ||
         (piece == King && KING_START_POSITIONS & from_mask != 0) {
+
         let promoted_piece = promotion_piece_from_move(mv);
         if promoted_piece != Empty {
             make_move_with_promotion(position, from, to, promoted_piece);
-        } else if from == E1_BIT && (to == G1_BIT || to == C1_BIT) && is_any_white_castle_available(position) {
-            make_castle_move(position, to);
-        } else if from == E8_BIT && (to == G8_BIT || to == C8_BIT) && is_any_black_castle_available(position) {
+        } else if (from == E1_BIT && (to == G1_BIT || to == C1_BIT) && is_any_white_castle_available(position)) ||
+            (from == E8_BIT && (to == G8_BIT || to == C8_BIT) && is_any_black_castle_available(position)) {
             make_castle_move(position, to);
         } else {
-            make_simple_complex_move(position, from, to)
+            make_capture_or_king_move_when_castles_available(position, from, to)
         }
         position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+
     } else {
         make_simple_move(position, from, to, piece)
     };
@@ -64,10 +65,10 @@ fn make_simple_move(position: &mut Position, from: Square, to: Square, piece: Pi
             Bishop => friendly.bishop_bitboard = clear_bit(friendly.bishop_bitboard, from) | bit(to),
             Rook => {
                 friendly.rook_bitboard = clear_bit(friendly.rook_bitboard, from) | bit(to);
-                if from == H1_BIT { unset_wk_castle(position) }
-                if from == A1_BIT { unset_wq_castle(position) }
-                if from == H8_BIT { unset_bk_castle(position) }
-                if from == A8_BIT { unset_bq_castle(position) }
+                if from == H1_BIT { position.castle_flags &= !WK_CASTLE }
+                if from == A1_BIT { position.castle_flags &= !WQ_CASTLE }
+                if from == H8_BIT { position.castle_flags &= !BK_CASTLE }
+                if from == A8_BIT { position.castle_flags &= !BQ_CASTLE }
             },
             Queen => friendly.queen_bitboard = clear_bit(friendly.queen_bitboard, from) | bit(to),
             King => friendly.king_square = to,
@@ -80,7 +81,7 @@ fn make_simple_move(position: &mut Position, from: Square, to: Square, piece: Pi
 pub fn make_castle_move(position: &mut Position, to: Square) {
     let offset = if position.mover == WHITE { 0 } else { 56 };
     let friendly = &mut position.pieces[position.mover as usize];
-    
+
     friendly.rook_bitboard = if to == C1_BIT + offset {
         friendly.king_square = C1_BIT + offset;
         clear_bit(friendly.rook_bitboard, A1_BIT + offset) | bit(D1_BIT + offset)
@@ -147,39 +148,16 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
         enemy.all_pieces_bitboard &= not_bit_to;
     }
 
-    if to == H8_BIT { unset_bk_castle(position) }
-    if to == A8_BIT { unset_bq_castle(position) }
-    if to == H1_BIT { unset_wk_castle(position) }
-    if to == A1_BIT { unset_wq_castle(position) }
+    if to == H8_BIT { position.castle_flags &= !BK_CASTLE }
+    if to == A8_BIT { position.castle_flags &= !BQ_CASTLE }
+    if to == H1_BIT { position.castle_flags &= !WK_CASTLE }
+    if to == A1_BIT { position.castle_flags &= !WQ_CASTLE }
 
     position.half_moves = 0;
 }
 
 #[inline(always)]
-pub fn en_passant_captured_piece_square(square: Square) -> Square {
-    match square {
-        16 => 24,
-        17 => 25,
-        18 => 26,
-        19 => 27,
-        20 => 28,
-        21 => 29,
-        22 => 30,
-        23 => 31,
-        40 => 32,
-        41 => 33,
-        42 => 34,
-        43 => 35,
-        44 => 36,
-        45 => 37,
-        46 => 38,
-        47 => 39,
-        _ => panic!("{} is not an option", square)
-    }
-}
-
-#[inline(always)]
-pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Square) {
+pub fn make_capture_or_king_move_when_castles_available(position: &mut Position, from: Square, to: Square) {
 
     let to_mask = bit(to);
     let from_mask = bit(from);
@@ -188,21 +166,21 @@ pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Squar
     let friendly = position.pieces[position.mover as usize];
     let enemy = &mut position.pieces[opponent!(position.mover) as usize];
 
-    if all_pieces & to_mask != 0 {
-        let to_mask_inverted = !to_mask;
-        enemy.pawn_bitboard &= to_mask_inverted;
-        enemy.knight_bitboard &= to_mask_inverted;
-        enemy.bishop_bitboard &= to_mask_inverted;
-        enemy.rook_bitboard &= to_mask_inverted;
-        enemy.queen_bitboard &= to_mask_inverted;
-        enemy.all_pieces_bitboard &= to_mask_inverted;
-    }
-
     let is_pawn_move = friendly.pawn_bitboard & from_mask != 0;
     if position.en_passant_square == to && is_pawn_move {
         let pawn_off = !bit(en_passant_captured_piece_square(to));
         enemy.pawn_bitboard &= pawn_off;
         enemy.all_pieces_bitboard &= pawn_off;
+    } else {
+        if all_pieces & to_mask != 0 {
+            let to_mask_inverted = !to_mask;
+            enemy.pawn_bitboard &= to_mask_inverted;
+            enemy.knight_bitboard &= to_mask_inverted;
+            enemy.bishop_bitboard &= to_mask_inverted;
+            enemy.rook_bitboard &= to_mask_inverted;
+            enemy.queen_bitboard &= to_mask_inverted;
+            enemy.all_pieces_bitboard &= to_mask_inverted;
+        }
     }
 
     let friendly = &mut position.pieces[position.mover as usize];
@@ -219,44 +197,25 @@ pub fn make_simple_complex_move(position: &mut Position, from: Square, to: Squar
     }
     position.half_moves = if all_pieces & to_mask != 0 || is_pawn_move { 0 } else { position.half_moves + 1 };
 
-    if from == E1_BIT || from == H1_BIT { unset_wk_castle(position) }
-    if from == E1_BIT || from == A1_BIT { unset_wq_castle(position) }
-    if to == H8_BIT { unset_bk_castle(position) }
-    if to == A8_BIT { unset_bq_castle(position) }
+    if from == E1_BIT || from == H1_BIT || to == H1_BIT { position.castle_flags &= !WK_CASTLE }
+    if from == E1_BIT || from == A1_BIT || to == A1_BIT { position.castle_flags &= !WQ_CASTLE }
+    if from == E8_BIT || from == H8_BIT || to == H8_BIT { position.castle_flags &= !BK_CASTLE }
+    if from == E8_BIT || from == A8_BIT || to == A8_BIT { position.castle_flags &= !BQ_CASTLE }
 
-    if from == E8_BIT || from == H8_BIT { unset_bk_castle(position) }
-    if from == E8_BIT || from == A8_BIT { unset_bq_castle(position) }
-    if to == H1_BIT { unset_wk_castle(position) }
-    if to == A1_BIT { unset_wq_castle(position) }
 }
 
 #[inline(always)]
 pub fn moving_piece(position: &Position, from_bb: Bitboard) -> Piece {
-    if position.mover == WHITE {
-        if position.pieces[WHITE as usize].pawn_bitboard & from_bb != 0 { Pawn }
-        else if position.pieces[WHITE as usize].knight_bitboard & from_bb != 0 { Knight }
-        else if position.pieces[WHITE as usize].bishop_bitboard & from_bb != 0 { Bishop }
-        else if position.pieces[WHITE as usize].rook_bitboard & from_bb != 0  { Rook }
-        else if position.pieces[WHITE as usize].queen_bitboard & from_bb != 0  { Queen }
-        else { King }
-    } else if position.pieces[BLACK as usize].pawn_bitboard & from_bb != 0 { Pawn }
-        else if position.pieces[BLACK as usize].knight_bitboard & from_bb != 0 { Knight }
-        else if position.pieces[BLACK as usize].bishop_bitboard & from_bb != 0 { Bishop }
-        else if position.pieces[BLACK as usize].rook_bitboard & from_bb != 0 { Rook }
-        else if position.pieces[BLACK as usize].queen_bitboard & from_bb != 0 { Queen }
-        else { King }
-}
 
-#[inline(always)]
-pub fn is_complex_move(position: &mut Position, from: Square, to: Square, piece: Piece) -> bool {
-    test_bit(position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard, to) ||
-        (piece == Pawn && is_complex_pawn_move(from, to)) ||
-            (piece == King && test_bit(KING_START_POSITIONS, from))
-}
+    let friendly = position.pieces[position.mover as usize];
 
-#[inline(always)]
-pub fn is_complex_pawn_move(from: Square, to: Square) -> bool {
-    (from - to).abs() % 8 != 0 || test_bit(PROMOTION_SQUARES, to)
+    if friendly.pawn_bitboard & from_bb != 0 { Pawn }
+    else if friendly.knight_bitboard & from_bb != 0 { Knight }
+    else if friendly.bishop_bitboard & from_bb != 0 { Bishop }
+    else if friendly.rook_bitboard & from_bb != 0  { Rook }
+    else if friendly.queen_bitboard & from_bb != 0  { Queen }
+    else { King }
+
 }
 
 pub fn default_position_history() -> PositionHistory {
@@ -286,5 +245,28 @@ pub fn store_history(position: &mut Position, history: &mut PositionHistory) {
 #[inline(always)]
 pub fn unmake_move(position: &mut Position, history: &PositionHistory) {
     *position = history[get_move_index(position.move_number, position.mover) - 1];
+}
+
+#[inline(always)]
+pub fn en_passant_captured_piece_square(square: Square) -> Square {
+    match square {
+        16 => 24,
+        17 => 25,
+        18 => 26,
+        19 => 27,
+        20 => 28,
+        21 => 29,
+        22 => 30,
+        23 => 31,
+        40 => 32,
+        41 => 33,
+        42 => 34,
+        43 => 35,
+        44 => 36,
+        45 => 37,
+        46 => 38,
+        47 => 39,
+        _ => panic!("{} is not an option", square)
+    }
 }
 
