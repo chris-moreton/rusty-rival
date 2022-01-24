@@ -1,4 +1,5 @@
-use crate::types::{Bitboard, Move};
+use crate::bitboards::{A1_BIT, A8_BIT, E1_BIT, E8_BIT, H1_BIT, H8_BIT};
+use crate::types::{Bitboard, Move, Square};
 use crate::utils::from_square_mask;
 
 pub const PROMOTION_QUEEN_MOVE_MASK: Move = 192;
@@ -34,3 +35,6 @@ pub const BLACK_KING_CASTLE_MOVE: Move = from_square_mask(59) | 57;
 pub const BLACK_QUEEN_CASTLE_MOVE: Move = from_square_mask(59) | 61;
 
 pub const CASTLE_MOVE: [[Move; 2]; 2] = [[WHITE_KING_CASTLE_MOVE, BLACK_KING_CASTLE_MOVE], [WHITE_QUEEN_CASTLE_MOVE, BLACK_QUEEN_CASTLE_MOVE]];
+pub const KING_ROOK_START: [Square; 2] = [H1_BIT, H8_BIT];
+pub const QUEEN_ROOK_START: [Square; 2] = [A1_BIT, A8_BIT];
+pub const KING_START: [Square; 2] = [E1_BIT, E8_BIT];
