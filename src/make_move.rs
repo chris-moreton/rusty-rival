@@ -34,32 +34,26 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
         make_simple_move(position, from, to, piece)
     };
 
-    if position.mover == WHITE {
-        position.mover = BLACK;
-    } else {
-        position.move_number += 1;
-        position.mover = WHITE;
-    }
+    position.move_number += [0,1][position.mover as usize];
+    position.mover = opponent!(position.mover);
 }
 
 fn make_simple_move(position: &mut Position, from: Square, to: Square, piece: Piece) {
     let switch_bitboard = bit(from) | bit(to);
     let friendly = &mut position.pieces[position.mover as usize];
     friendly.all_pieces_bitboard ^= switch_bitboard;
+    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
     if piece == Pawn {
         friendly.pawn_bitboard = clear_bit(friendly.pawn_bitboard, from) | bit(to);
 
-        position.en_passant_square = if position.mover == WHITE {
-            if to - from == 16 { from + 8 } else { EN_PASSANT_NOT_AVAILABLE }
-        } else {
-            if from - to == 16 { from - 8 } else { EN_PASSANT_NOT_AVAILABLE }
-        };
+        if (to-from).abs() == 16 {
+            position.en_passant_square = if position.mover == WHITE { from + 8 } else { from - 8 }
+        }
 
         position.half_moves = 0;
     } else {
         position.half_moves += 1;
-        position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         match piece {
             Knight => friendly.knight_bitboard = clear_bit(friendly.knight_bitboard, from) | bit(to),
             Bishop => friendly.bishop_bitboard = clear_bit(friendly.bishop_bitboard, from) | bit(to),
@@ -249,24 +243,6 @@ pub fn unmake_move(position: &mut Position, history: &PositionHistory) {
 
 #[inline(always)]
 pub fn en_passant_captured_piece_square(square: Square) -> Square {
-    match square {
-        16 => 24,
-        17 => 25,
-        18 => 26,
-        19 => 27,
-        20 => 28,
-        21 => 29,
-        22 => 30,
-        23 => 31,
-        40 => 32,
-        41 => 33,
-        42 => 34,
-        43 => 35,
-        44 => 36,
-        45 => 37,
-        46 => 38,
-        47 => 39,
-        _ => panic!("{} is not an option", square)
-    }
+    if square < 40 { square + 8 } else { square - 8 }
 }
 
