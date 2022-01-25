@@ -98,20 +98,23 @@ pub fn any_squares_in_bitboard_attacked(position: &Position, attacked: Mover, mu
 
 #[inline(always)]
 pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked: Mover) -> bool {
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let enemy = if attacked == WHITE { position.pieces[BLACK as usize] } else { position.pieces[WHITE as usize] };
 
     enemy.pawn_bitboard & PAWN_MOVES_CAPTURE[attacked as usize][attacked_square as usize] != 0 ||
         enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
-        is_square_attacked_by_slider_of_type(all_pieces, enemy.rook_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
-        is_square_attacked_by_slider_of_type(all_pieces, enemy.bishop_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.bishop) ||
-        bit(enemy.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
+        bit(enemy.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0 || {
+            let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+            is_square_attacked_by_slider_of_type(all_pieces, enemy.rook_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
+            is_square_attacked_by_slider_of_type(all_pieces, enemy.bishop_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.bishop)
+        }
 }
 
 #[inline(always)]
 pub fn is_square_attacked_by_slider_of_type(all_pieces: Bitboard, mut attacking_sliders: Bitboard, attacked_square: Square, magic_vars: &Box<MagicVars>) -> bool {
     while attacking_sliders != 0 {
-        if test_bit(magic_moves(attacking_sliders.trailing_zeros() as Square,all_pieces, magic_vars), attacked_square) { return true };
+        if test_bit(magic_moves(attacking_sliders.trailing_zeros() as Square,all_pieces, magic_vars), attacked_square) {
+            return true
+        };
         unset_lsb!(attacking_sliders)
     }
     return false;

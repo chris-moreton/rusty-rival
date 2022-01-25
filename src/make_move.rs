@@ -17,7 +17,7 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
     store_history(position, history);
     if (position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & to_mask != 0 ||
         (piece == Pawn && ((from - to) % 8 != 0 || PROMOTION_SQUARES & to_mask != 0)) ||
-        (piece == King && KING_START_POSITIONS & from_mask != 0) {
+        (piece == King && KING_START_POSITIONS & from_mask != 0 && position.castle_flags != 0) {
 
         let promoted_piece = promotion_piece_from_move(mv);
         if promoted_piece != Empty {
@@ -26,7 +26,7 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
             (from == E8_BIT && (to == G8_BIT || to == C8_BIT) && is_any_black_castle_available(position)) {
             make_castle_move(position, to);
         } else {
-            make_capture_or_king_move_when_castles_available(position, from, to)
+            make_capture_or_king_move_with_castles_available(position, from, to)
         }
         position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
@@ -86,11 +86,7 @@ pub fn make_castle_move(position: &mut Position, to: Square) {
 
     friendly.all_pieces_bitboard = friendly.rook_bitboard | bit(friendly.king_square) | friendly.queen_bitboard | friendly.knight_bitboard | friendly.bishop_bitboard | friendly.pawn_bitboard;
 
-    if position.mover == WHITE {
-        position.castle_flags &= !(WK_CASTLE | WQ_CASTLE)
-    } else {
-        position.castle_flags &= !(BK_CASTLE | BQ_CASTLE)
-    }
+    position.castle_flags &= [!(WK_CASTLE | WQ_CASTLE), !(BK_CASTLE | BQ_CASTLE)][position.mover as usize];
 
     position.half_moves += 1;
 }
@@ -151,7 +147,7 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
 }
 
 #[inline(always)]
-pub fn make_capture_or_king_move_when_castles_available(position: &mut Position, from: Square, to: Square) {
+pub fn make_capture_or_king_move_with_castles_available(position: &mut Position, from: Square, to: Square) {
 
     let to_mask = bit(to);
     let from_mask = bit(from);
@@ -228,7 +224,7 @@ pub fn default_position_history() -> PositionHistory {
 
 #[inline(always)]
 pub fn get_move_index(move_number: u16, mover: Mover) -> usize {
-    (move_number * 2 - if mover == WHITE { 1 } else { 0 }) as usize
+    (move_number * 2 - [1,0][mover as usize]) as usize
 }
 
 #[inline(always)]
