@@ -7,13 +7,13 @@ use rusty_rival::types::{BLACK, WHITE};
 #[test]
 pub fn it_determines_the_moving_piece() {
     let position = get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
-    assert_eq!(moving_piece(&position, bit(bitref_from_algebraic_squareref("e2".to_string()))), Pawn);
-    assert_eq!(moving_piece(&position, bit(bitref_from_algebraic_squareref("a1".to_string()))), Rook);
-    assert_eq!(moving_piece(&position, bit(bitref_from_algebraic_squareref("b1".to_string()))), Knight);
-    assert_eq!(moving_piece(&position, bit(bitref_from_algebraic_squareref("c1".to_string()))), Bishop);
-    assert_eq!(moving_piece(&position, bit(bitref_from_algebraic_squareref("d1".to_string()))), Queen);
-    assert_eq!(moving_piece(&position, bit(bitref_from_algebraic_squareref("e1".to_string()))), King);
-    assert_eq!(moving_piece(&position, bit(bitref_from_algebraic_squareref("e5".to_string()))), King);
+    assert_eq!(moving_piece(&position.pieces[position.mover as usize], bit(bitref_from_algebraic_squareref("e2".to_string()))), Pawn);
+    assert_eq!(moving_piece(&position.pieces[position.mover as usize], bit(bitref_from_algebraic_squareref("a1".to_string()))), Rook);
+    assert_eq!(moving_piece(&position.pieces[position.mover as usize], bit(bitref_from_algebraic_squareref("b1".to_string()))), Knight);
+    assert_eq!(moving_piece(&position.pieces[position.mover as usize], bit(bitref_from_algebraic_squareref("c1".to_string()))), Bishop);
+    assert_eq!(moving_piece(&position.pieces[position.mover as usize], bit(bitref_from_algebraic_squareref("d1".to_string()))), Queen);
+    assert_eq!(moving_piece(&position.pieces[position.mover as usize], bit(bitref_from_algebraic_squareref("e1".to_string()))), King);
+    assert_eq!(moving_piece(&position.pieces[position.mover as usize], bit(bitref_from_algebraic_squareref("e5".to_string()))), King);
 }
 
 #[test]

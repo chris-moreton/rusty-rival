@@ -1,6 +1,6 @@
 use crate::bitboards::{bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, epsbit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, test_bit};
 use crate::magic_bitboards::{magic_moves, MAGIC_BOX};
-use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
+use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
 use crate::types::{Bitboard, BLACK, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
 use crate::utils::from_square_mask;
@@ -24,7 +24,7 @@ pub fn moves(position: &Position) -> MoveList {
     let valid_destinations = !friendly.all_pieces_bitboard;
 
     if position.castle_flags != 0 { generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize) }
-    add_moves!(move_list, from_square_mask(friendly.king_square), KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations);
+    add_moves!(move_list, from_square_mask(friendly.king_square) | PIECE_MASK_KING, KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations);
 
     generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
     generate_slider_moves(friendly.rook_bitboard | friendly.queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations);
@@ -75,7 +75,7 @@ fn generate_castle_moves(position: &Position, move_list: &mut Vec<Move>, all_pie
 fn generate_knight_moves(move_list: &mut Vec<Move>, valid_destinations: Bitboard, mut from_squares_bitboard: Bitboard) {
     while from_squares_bitboard != 0 {
         let from_square = get_and_unset_lsb!(from_squares_bitboard);
-        add_moves!(move_list, from_square_mask(from_square), KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
+        add_moves!(move_list, from_square_mask(from_square) | PIECE_MASK_KNIGHT, KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
     }
 }
 

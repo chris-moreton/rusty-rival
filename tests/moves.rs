@@ -2,7 +2,7 @@ use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, RANK_4_BITS,
 use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
 use rusty_rival::magic_bitboards::MAGIC_BOX;
 use rusty_rival::make_move::{default_position_history, make_move};
-use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
+use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL};
 use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_slider_moves, is_check, is_square_attacked, moves};
 use rusty_rival::opponent;
 use rusty_rival::types::{BLACK, MoveList, Square, WHITE};
@@ -182,7 +182,7 @@ fn it_returns_true_if_any_squares_set_in_the_bitboard_are_attacked_by_the_given_
 }
 
 fn sort_moves(move_list: MoveList) -> Vec<String> {
-    let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m) }).collect();
+    let mut algebraic: Vec<String> = move_list.iter().map(|m| { algebraic_move_from_move(*m & !PIECE_MASK_FULL) }).collect();
     algebraic.sort();
     return algebraic;
 }
