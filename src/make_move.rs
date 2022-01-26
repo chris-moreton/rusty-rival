@@ -12,7 +12,7 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
     let to_mask = bit(to);
     let from_mask = bit(from);
 
-    let piece = moving_piece(&position.pieces[position.mover as usize], from_mask);
+    let piece = moving_piece(&position.pieces[position.mover as usize], from_mask, mv & PIECE_MASK_FULL);
 
     store_history(position, history);
     if (position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & to_mask != 0 ||
@@ -198,15 +198,17 @@ pub fn make_capture_or_king_move_when_castles_available(position: &mut Position,
 }
 
 #[inline(always)]
-pub fn moving_piece(friendly: &Pieces, from_bb: Bitboard) -> Piece {
+pub fn moving_piece(friendly: &Pieces, from_bb: Bitboard, piece_mask: Move) -> Piece {
 
-    if friendly.pawn_bitboard & from_bb != 0 { Pawn }
-    else if friendly.knight_bitboard & from_bb != 0 { Knight }
-    else if friendly.bishop_bitboard & from_bb != 0 { Bishop }
-    else if friendly.rook_bitboard & from_bb != 0  { Rook }
-    else if friendly.queen_bitboard & from_bb != 0  { Queen }
-    else { King }
-
+    match piece_mask {
+        PIECE_MASK_QUEEN => Queen,
+        PIECE_MASK_PAWN => Pawn,
+        PIECE_MASK_ROOK => Rook,
+        PIECE_MASK_BISHOP => Bishop,
+        PIECE_MASK_KNIGHT => Knight,
+        PIECE_MASK_KING => King,
+        _ => panic!("Don't know this piece mask")
+    }
 }
 
 pub fn default_position_history() -> PositionHistory {
