@@ -47,7 +47,7 @@ fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mas
     if piece_mask == PIECE_MASK_PAWN {
         friendly.pawn_bitboard = clear_bit(friendly.pawn_bitboard, from) | bit(to);
 
-        if (to-from).abs() == 16 {
+        if from ^ to == 16 {
             position.en_passant_square = if position.mover == WHITE { from + 8 } else { from - 8 }
         }
 

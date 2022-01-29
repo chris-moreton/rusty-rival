@@ -103,11 +103,15 @@ pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let enemy = if attacked == WHITE { position.pieces[BLACK as usize] } else { position.pieces[WHITE as usize] };
 
-    enemy.pawn_bitboard & PAWN_MOVES_CAPTURE[attacked as usize][attacked_square as usize] != 0 ||
-        enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
-        is_square_attacked_by_slider_of_type(all_pieces, enemy.rook_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
-        is_square_attacked_by_slider_of_type(all_pieces, enemy.bishop_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.bishop) ||
-        bit(enemy.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
+    if enemy.pawn_bitboard & PAWN_MOVES_CAPTURE[attacked as usize][attacked_square as usize] != 0 ||
+       enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
+       bit(enemy.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0 {
+        return true
+    }
+
+    is_square_attacked_by_slider_of_type(all_pieces, enemy.rook_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
+    is_square_attacked_by_slider_of_type(all_pieces, enemy.bishop_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.bishop)
+
 }
 
 #[inline(always)]

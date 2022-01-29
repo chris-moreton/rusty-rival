@@ -1,6 +1,7 @@
 /target
 .idea/*
 .idea
-perf.data
+perf.data*
+
 
 
