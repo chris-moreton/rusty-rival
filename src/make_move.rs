@@ -1,11 +1,13 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, E1_BIT, E8_BIT, F1_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::{move_mover, opponent};
-use crate::types::{BLACK, is_any_black_castle_available, is_any_white_castle_available, Move, Mover, Pieces, Piece, Position, PositionHistory, Square, WHITE};
+use crate::types::{BLACK, is_any_black_castle_available, is_any_white_castle_available, Move, Piece, Position, Square, WHITE};
 use crate::types::Piece::{Bishop, Empty, Knight, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
 
-pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistory) {
+pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
+
+    *new_position = *position;
 
     let from = from_square_part(mv);
     let to = to_square_part(mv);
@@ -14,28 +16,27 @@ pub fn make_move(position: &mut Position, mv: Move, history: &mut PositionHistor
 
     let piece_mask = mv & PIECE_MASK_FULL;
 
-    store_history(position, history);
     if (position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & to_mask != 0 ||
         (piece_mask == PIECE_MASK_PAWN && ((from - to) % 8 != 0 || PROMOTION_SQUARES & to_mask != 0)) ||
         (piece_mask == PIECE_MASK_KING && KING_START_POSITIONS & from_mask != 0) {
 
         let promoted_piece = promotion_piece_from_move(mv);
         if promoted_piece != Empty {
-            make_move_with_promotion(position, from, to, promoted_piece);
+            make_move_with_promotion(new_position, from, to, promoted_piece);
         } else if (from == E1_BIT && (to == G1_BIT || to == C1_BIT) && is_any_white_castle_available(position)) ||
             (from == E8_BIT && (to == G8_BIT || to == C8_BIT) && is_any_black_castle_available(position)) {
-            make_castle_move(position, to);
+            make_castle_move(new_position, to);
         } else {
-            make_capture_or_king_move_when_castles_available(position, from, to, piece_mask)
+            make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask)
         }
-        position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+        new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
     } else {
-        make_simple_move(position, from, to, piece_mask)
+        make_simple_move(new_position, from, to, piece_mask)
     };
 
-    position.move_number += [0,1][position.mover as usize];
-    position.mover = opponent!(position.mover);
+    new_position.move_number += [0,1][position.mover as usize];
+    new_position.mover = opponent!(position.mover);
 }
 
 fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
@@ -195,35 +196,6 @@ pub fn make_capture_or_king_move_when_castles_available(position: &mut Position,
     if from == E8_BIT || from == H8_BIT || to == H8_BIT { position.castle_flags &= !BK_CASTLE }
     if from == E8_BIT || from == A8_BIT || to == A8_BIT { position.castle_flags &= !BQ_CASTLE }
 
-}
-
-pub fn default_position_history() -> PositionHistory {
-        [Position {
-            pieces: [
-                Pieces { pawn_bitboard: 0, knight_bitboard: 0, bishop_bitboard: 0, queen_bitboard: 0, king_square: 0, rook_bitboard: 0, all_pieces_bitboard: 0 },
-                Pieces { pawn_bitboard: 0, knight_bitboard: 0, bishop_bitboard: 0, queen_bitboard: 0, king_square: 0, rook_bitboard: 0, all_pieces_bitboard: 0 },
-            ],
-            mover: WHITE,
-            en_passant_square: EN_PASSANT_NOT_AVAILABLE,
-            castle_flags: 0,
-            half_moves: 0,
-            move_number: 1
-        }; MAX_MOVE_HISTORY as usize]
-}
-
-#[inline(always)]
-pub fn get_move_index(move_number: u16, mover: Mover) -> usize {
-    (move_number * 2 - if mover == WHITE { 1 } else { 0 }) as usize
-}
-
-#[inline(always)]
-pub fn store_history(position: &mut Position, history: &mut PositionHistory) {
-    history[get_move_index(position.move_number, position.mover)] = *position
-}
-
-#[inline(always)]
-pub fn unmake_move(position: &mut Position, history: &PositionHistory) {
-    *position = history[get_move_index(position.move_number, position.mover) - 1];
 }
 
 #[inline(always)]

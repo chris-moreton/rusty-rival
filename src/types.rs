@@ -1,4 +1,4 @@
-use crate::move_constants::{BK_CASTLE, BQ_CASTLE, MAX_MOVE_HISTORY, WK_CASTLE, WQ_CASTLE};
+use crate::move_constants::{BK_CASTLE, BQ_CASTLE, WK_CASTLE, WQ_CASTLE};
 
 pub type Square = i8;
 pub type Bitboard = u64;
@@ -7,7 +7,6 @@ pub type MoveList = Vec<Move>;
 pub type Path = Vec<Move>;
 pub type MagicMovesArray = [[Bitboard; 4096]; 64];
 pub type Mover = i8;
-pub type PositionHistory = [Position; MAX_MOVE_HISTORY as usize];
 
 #[macro_export]
 macro_rules! opponent {

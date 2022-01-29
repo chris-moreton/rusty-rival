@@ -1,29 +1,28 @@
-use crate::make_move::{default_position_history, make_move, unmake_move};
+use std::mem;
+use crate::make_move::{make_move};
 use crate::moves::{is_check, moves};
-use crate::types::{Position, PositionHistory};
+use crate::types::{Position};
 
-pub fn perft(position: &mut Position, depth: u8) -> u64 {
+pub unsafe fn perft(position: &Position, depth: u8) -> u64 {
 
-    pub fn perft(position: &mut Position, depth: u8, history: &mut PositionHistory) -> u64 {
+    pub unsafe fn perft(position: &Position, depth: u8) -> u64 {
         let mut count = 0;
         let mover = position.mover;
 
         for m in moves(position) {
-            make_move(position, m, history);
-            if !is_check(position, mover) {
+            let mut new_position = mem::MaybeUninit::<Position>::uninit();
+            make_move(position, m, &mut *new_position.as_mut_ptr());
+            if !is_check(&*new_position.as_ptr(), mover) {
                 count += if depth == 0 {
                     1
                 } else {
-                    perft(position, depth - 1, history)
+                    perft(&*new_position.as_ptr(), depth - 1)
                 }
             }
-            unmake_move(position, history)
         };
 
         count
     }
 
-    let mut history = default_position_history();
-
-    perft(position, depth, &mut history)
+    perft(position, depth)
 }

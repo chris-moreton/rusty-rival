@@ -39,8 +39,6 @@ pub const WQ_CASTLE: u8 = 2;
 pub const BK_CASTLE: u8 = 4;
 pub const BQ_CASTLE: u8 = 8;
 
-pub const MAX_MOVE_HISTORY: u16 = 1024;
-
 pub const WHITE_KING_CASTLE_MOVE: Move = from_square_mask(3) | 1 | PIECE_MASK_KING;
 pub const WHITE_QUEEN_CASTLE_MOVE: Move = from_square_mask(3) | 5 | PIECE_MASK_KING;
 pub const BLACK_KING_CASTLE_MOVE: Move = from_square_mask(59) | 57 | PIECE_MASK_KING;
