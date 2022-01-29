@@ -18,8 +18,11 @@ lazy_static! {
 
 #[inline(always)]
 pub fn magic_moves(from_square: Square, all_piece_bitboard: Bitboard, magic_vars: &Box<MagicVars>) -> Bitboard {
-    let nms = magic_vars.number_mask_shifts[from_square as usize];
-    magic_vars.magic_moves[from_square as usize][((all_piece_bitboard & nms[1]).wrapping_mul(nms[0]) >> nms[2]) as usize]
+    unsafe {
+        let nms = magic_vars.number_mask_shifts.get_unchecked(from_square as usize);
+        magic_vars.magic_moves.get_unchecked(from_square as usize)
+            [((all_piece_bitboard & nms.get_unchecked(1)) * nms.get_unchecked(0) >> nms.get_unchecked(2)) as usize]
+    }
 }
 
 pub const NUMBER_MASKS_SHIFTS_ROOK: [[Bitboard; 3]; 64] = [

@@ -12,13 +12,12 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     let from = from_square_part(mv);
     let to = to_square_part(mv);
     let to_mask = bit(to);
-    let from_mask = bit(from);
 
     let piece_mask = mv & PIECE_MASK_FULL;
 
     if (position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & to_mask != 0 ||
         (piece_mask == PIECE_MASK_PAWN && ((from - to) % 8 != 0 || PROMOTION_SQUARES & to_mask != 0)) ||
-        (piece_mask == PIECE_MASK_KING && KING_START_POSITIONS & from_mask != 0) {
+        (piece_mask == PIECE_MASK_KING && KING_START_POSITIONS & bit(from) != 0) {
 
         let promoted_piece = promotion_piece_from_move(mv);
         if promoted_piece != Empty {
@@ -40,9 +39,8 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 }
 
 fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
-    let switch_bitboard = bit(from) | bit(to);
     let friendly = &mut position.pieces[position.mover as usize];
-    friendly.all_pieces_bitboard ^= switch_bitboard;
+    friendly.all_pieces_bitboard ^= bit(from) | bit(to);
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
     if piece_mask == PIECE_MASK_PAWN {
