@@ -49,16 +49,6 @@ pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook, Empty }
 #[derive(Debug, PartialEq)]
 pub enum Bound { Exact, Lower, Upper }
 
-pub struct MagicVars {
-    pub(crate) number_mask_shifts: [[Bitboard; 3]; 64],
-    pub(crate) magic_moves: [[Bitboard; 4096]; 64]
-}
-
-pub struct MagicBox {
-    pub bishop: Box<MagicVars>,
-    pub rook: Box<MagicVars>,
-}
-
 #[inline(always)]
 pub fn unset_white_castles(position: &mut Position) { position.castle_flags &= !(WK_CASTLE | WQ_CASTLE) }
 #[inline(always)]

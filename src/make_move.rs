@@ -34,7 +34,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
         make_simple_move(new_position, from, to, piece_mask)
     };
 
-    new_position.move_number += [0,1][position.mover as usize];
+    new_position.move_number += if position.mover == WHITE { 0 } else { 1 };
     new_position.mover = opponent!(position.mover);
 }
 
@@ -154,7 +154,9 @@ pub fn make_capture_or_king_move_when_castles_available(position: &mut Position,
 
     let to_mask = bit(to);
     let from_mask = bit(from);
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let all_pieces = unsafe {
+        position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard
+    };
 
     let enemy = &mut position.pieces[opponent!(position.mover) as usize];
 

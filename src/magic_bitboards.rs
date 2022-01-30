@@ -1,26 +1,21 @@
-use lazy_static::lazy_static;
-use crate::types::{Bitboard, MagicVars, Square, MagicBox};
+use crate::types::{Bitboard, Square};
 use crate::magic_moves_bishop::MAGIC_MOVES_BISHOP;
 use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
 
-lazy_static! {
-    pub static ref MAGIC_BOX: MagicBox = MagicBox {
-        bishop: Box::new(MagicVars {
-            number_mask_shifts: NUMBER_MASKS_SHIFTS_BISHOP,
-            magic_moves: MAGIC_MOVES_BISHOP,
-        }),
-        rook: Box::new(MagicVars {
-            number_mask_shifts: NUMBER_MASKS_SHIFTS_ROOK,
-            magic_moves: MAGIC_MOVES_ROOK,
-        })
-    };
+#[inline(always)]
+pub fn magic_moves_rook(from_square: Square, all_piece_bitboard: Bitboard) -> Bitboard {
+    unsafe {
+        let nms = NUMBER_MASKS_SHIFTS_ROOK.get_unchecked(from_square as usize);
+        MAGIC_MOVES_ROOK.get_unchecked(from_square as usize)
+            [((all_piece_bitboard & nms.get_unchecked(1)) * nms.get_unchecked(0) >> nms.get_unchecked(2)) as usize]
+    }
 }
 
 #[inline(always)]
-pub fn magic_moves(from_square: Square, all_piece_bitboard: Bitboard, magic_vars: &Box<MagicVars>) -> Bitboard {
+pub fn magic_moves_bishop(from_square: Square, all_piece_bitboard: Bitboard) -> Bitboard {
     unsafe {
-        let nms = magic_vars.number_mask_shifts.get_unchecked(from_square as usize);
-        magic_vars.magic_moves.get_unchecked(from_square as usize)
+        let nms = NUMBER_MASKS_SHIFTS_BISHOP.get_unchecked(from_square as usize);
+        MAGIC_MOVES_BISHOP.get_unchecked(from_square as usize)
             [((all_piece_bitboard & nms.get_unchecked(1)) * nms.get_unchecked(0) >> nms.get_unchecked(2)) as usize]
     }
 }

@@ -1,7 +1,7 @@
 use crate::bitboards::{bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, epsbit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, test_bit};
-use crate::magic_bitboards::{magic_moves, MAGIC_BOX};
+use crate::magic_bitboards::{magic_moves_rook, magic_moves_bishop};
 use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
-use crate::types::{Bitboard, BLACK, MagicVars, Move, MoveList, Mover, Position, Square, WHITE};
+use crate::types::{Bitboard, BLACK, Move, MoveList, Mover, Position, Square, WHITE};
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
 use crate::utils::from_square_mask;
 
@@ -19,19 +19,21 @@ macro_rules! add_moves {
 pub fn moves(position: &Position) -> MoveList {
     let mut move_list = Vec::with_capacity(80);
 
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    let friendly = position.pieces[position.mover as usize];
-    let valid_destinations = !friendly.all_pieces_bitboard;
+    unsafe {
+        let all_pieces = position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard;
+        let friendly = position.pieces.get_unchecked(position.mover as usize);
+        let valid_destinations = !friendly.all_pieces_bitboard;
 
-    if position.castle_flags != 0 { generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize) }
-    add_moves!(move_list, from_square_mask(friendly.king_square) | PIECE_MASK_KING, KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations);
+        if position.castle_flags != 0 { generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize) }
+        add_moves!(move_list, from_square_mask(friendly.king_square) | PIECE_MASK_KING, KING_MOVES_BITBOARDS.get_unchecked(friendly.king_square as usize) & valid_destinations);
 
-    generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
-    generate_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations, PIECE_MASK_ROOK);
-    generate_slider_moves(friendly.bishop_bitboard , all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations, PIECE_MASK_BISHOP);
-    generate_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.rook, valid_destinations, PIECE_MASK_QUEEN);
-    generate_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, &MAGIC_BOX.bishop, valid_destinations, PIECE_MASK_QUEEN);
-    generate_pawn_moves(position, &mut move_list, !all_pieces, position.mover as usize, friendly.pawn_bitboard);
+        generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_ROOK);
+        generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
+        generate_diagonal_slider_moves(friendly.bishop_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_BISHOP);
+        generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN);
+        generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN);
+        generate_pawn_moves(position, &mut move_list, !all_pieces, position.mover as usize, friendly.pawn_bitboard);
+    }
 
     move_list
 }
@@ -87,10 +89,18 @@ fn generate_knight_moves(move_list: &mut Vec<Move>, valid_destinations: Bitboard
 }
 
 #[inline(always)]
-pub fn generate_slider_moves(mut slider_bitboard: Bitboard, all_pieces_bitboard: Bitboard, move_list: &mut MoveList, magic_vars: &Box<MagicVars>, valid_destinations: Bitboard, piece_mask: Move) {
+pub fn generate_diagonal_slider_moves(mut slider_bitboard: Bitboard, all_pieces_bitboard: Bitboard, move_list: &mut MoveList, valid_destinations: Bitboard, piece_mask: Move) {
     while slider_bitboard != 0 {
         let from_square = get_and_unset_lsb!(slider_bitboard) as Square;
-        add_moves!(move_list, from_square_mask(from_square) | piece_mask, magic_moves(from_square, all_pieces_bitboard, magic_vars) & valid_destinations);
+        add_moves!(move_list, from_square_mask(from_square) | piece_mask, magic_moves_bishop(from_square, all_pieces_bitboard) & valid_destinations);
+    };
+}
+
+#[inline(always)]
+pub fn generate_straight_slider_moves(mut slider_bitboard: Bitboard, all_pieces_bitboard: Bitboard, move_list: &mut MoveList, valid_destinations: Bitboard, piece_mask: Move) {
+    while slider_bitboard != 0 {
+        let from_square = get_and_unset_lsb!(slider_bitboard) as Square;
+        add_moves!(move_list, from_square_mask(from_square) | piece_mask, magic_moves_rook(from_square, all_pieces_bitboard) & valid_destinations);
     };
 }
 
@@ -112,15 +122,23 @@ pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked
         enemy.pawn_bitboard & PAWN_MOVES_CAPTURE.get_unchecked(attacked as usize).get_unchecked(attacked_square as usize) != 0 ||
         enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS.get_unchecked(attacked_square as usize) != 0 ||
         bit(enemy.king_square) & KING_MOVES_BITBOARDS.get_unchecked(attacked_square as usize) != 0 ||
-        is_square_attacked_by_slider_of_type(all_pieces, enemy.rook_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.rook) ||
-        is_square_attacked_by_slider_of_type(all_pieces, enemy.bishop_bitboard | enemy.queen_bitboard, attacked_square, &MAGIC_BOX.bishop)
+        is_square_attacked_by_straight_slider(all_pieces, enemy.rook_bitboard | enemy.queen_bitboard, attacked_square) ||
+        is_square_attacked_by_diagonal_slider(all_pieces, enemy.bishop_bitboard | enemy.queen_bitboard, attacked_square)
     }
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by_slider_of_type(all_pieces: Bitboard, mut attacking_sliders: Bitboard, attacked_square: Square, magic_vars: &Box<MagicVars>) -> bool {
+pub fn is_square_attacked_by_straight_slider(all_pieces: Bitboard, mut attacking_sliders: Bitboard, attacked_square: Square) -> bool {
     while attacking_sliders != 0 {
-        if test_bit(magic_moves(attacking_sliders.trailing_zeros() as Square,all_pieces, magic_vars), attacked_square) { return true };
+        if test_bit(magic_moves_rook(attacking_sliders.trailing_zeros() as Square,all_pieces), attacked_square) { return true };
+        unset_lsb!(attacking_sliders)
+    }
+    return false;
+}
+#[inline(always)]
+pub fn is_square_attacked_by_diagonal_slider(all_pieces: Bitboard, mut attacking_sliders: Bitboard, attacked_square: Square) -> bool {
+    while attacking_sliders != 0 {
+        if test_bit(magic_moves_bishop(attacking_sliders.trailing_zeros() as Square,all_pieces), attacked_square) { return true };
         unset_lsb!(attacking_sliders)
     }
     return false;
@@ -128,5 +146,7 @@ pub fn is_square_attacked_by_slider_of_type(all_pieces: Bitboard, mut attacking_
 
 #[inline(always)]
 pub fn is_check(position: &Position, mover: Mover) -> bool {
-    is_square_attacked(position, position.pieces[mover as usize].king_square, mover)
+    unsafe {
+        is_square_attacked(position, position.pieces.get_unchecked(mover as usize).king_square, mover)
+    }
 }
