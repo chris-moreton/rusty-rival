@@ -47,7 +47,7 @@ fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mas
         friendly.pawn_bitboard = clear_bit(friendly.pawn_bitboard, from) | bit(to);
 
         if from ^ to == 16 {
-            position.en_passant_square = if position.mover == WHITE { from + 8 } else { from - 8 }
+            position.en_passant_square = from + if position.mover == WHITE { 8 } else { -8 }
         }
 
         position.half_moves = 0;
@@ -198,6 +198,6 @@ pub fn make_capture_or_king_move_when_castles_available(position: &mut Position,
 
 #[inline(always)]
 pub fn en_passant_captured_piece_square(square: Square) -> Square {
-    if square < 40 { square + 8 } else { square - 8 }
+    square + if square < 40 {  8 } else { -8 }
 }
 

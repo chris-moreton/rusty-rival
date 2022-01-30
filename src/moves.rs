@@ -37,39 +37,42 @@ pub fn moves(position: &Position) -> MoveList {
 }
 
 fn generate_pawn_moves(position: &Position, move_list: &mut Vec<Move>, empty_squares: Bitboard, colour_index: usize, mut from_squares: Bitboard) {
-    while from_squares != 0 {
-        let from_square = get_and_unset_lsb!(from_squares);
-        let pawn_moves = PAWN_MOVES_FORWARD[colour_index][from_square as usize] & empty_squares;
+    unsafe {
+        while from_squares != 0 {
+            let from_square = get_and_unset_lsb!(from_squares);
+            let pawn_moves = PAWN_MOVES_FORWARD.get_unchecked(colour_index).get_unchecked(from_square as usize) & empty_squares;
 
-        // If you can move one square, maybe you can move two
-        let shifted = if position.mover == WHITE { pawn_moves << 8 } else { pawn_moves >> 8 } & DOUBLE_MOVE_RANK_BITS[colour_index] & empty_squares;
+            // If you can move one square, maybe you can move two
+            let shifted = if position.mover == WHITE { pawn_moves << 8 } else { pawn_moves >> 8 } & DOUBLE_MOVE_RANK_BITS.get_unchecked(colour_index) & empty_squares;
 
-        let enemy_pawns_capture_bitboard = position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | epsbit(position.en_passant_square);
+            let enemy_pawns_capture_bitboard = position.pieces.get_unchecked(opponent!(position.mover) as usize).all_pieces_bitboard | epsbit(position.en_passant_square);
 
-        let mut to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & enemy_pawns_capture_bitboard | pawn_moves | shifted;
+            let mut to_bitboard = PAWN_MOVES_CAPTURE.get_unchecked(colour_index).get_unchecked(from_square as usize) & enemy_pawns_capture_bitboard | pawn_moves | shifted;
 
-        let fsm = from_square_mask(from_square);
-        let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
-        while to_bitboard != 0 {
-            let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
-            if is_promotion {
-                move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
-                move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
-                move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
-                move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
-            } else {
-                move_list.push(base_move);
-            }
+            let fsm = from_square_mask(from_square);
+            let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
+            while to_bitboard != 0 {
+                let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
+                if is_promotion {
+                    move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
+                    move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
+                    move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
+                    move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
+                } else {
+                    move_list.push(base_move);
+                }
+            };
         };
-
-    };
+    }
 }
 
 fn generate_castle_moves(position: &Position, move_list: &mut Vec<Move>, all_pieces: Bitboard, colour_index: usize) {
     for side in [KING_INDEX, QUEEN_INDEX] {
-        if position.castle_flags & CASTLE_FLAG[side][colour_index] != 0 && all_pieces & EMPTY_CASTLE_SQUARES[side][colour_index] == 0 &&
-            !any_squares_in_bitboard_attacked(position, position.mover, NO_CHECK_CASTLE_SQUARES[side][colour_index]) {
-            move_list.push(CASTLE_MOVE[side][colour_index]);
+        unsafe {
+            if position.castle_flags & CASTLE_FLAG.get_unchecked(side).get_unchecked(colour_index) != 0 && all_pieces & EMPTY_CASTLE_SQUARES.get_unchecked(side).get_unchecked(colour_index) == 0 &&
+                !any_squares_in_bitboard_attacked(position, position.mover, *NO_CHECK_CASTLE_SQUARES.get_unchecked(side).get_unchecked(colour_index)) {
+                move_list.push(*CASTLE_MOVE.get_unchecked(side).get_unchecked(colour_index));
+            }
         }
     }
 }
@@ -77,7 +80,9 @@ fn generate_castle_moves(position: &Position, move_list: &mut Vec<Move>, all_pie
 fn generate_knight_moves(move_list: &mut Vec<Move>, valid_destinations: Bitboard, mut from_squares_bitboard: Bitboard) {
     while from_squares_bitboard != 0 {
         let from_square = get_and_unset_lsb!(from_squares_bitboard);
-        add_moves!(move_list, from_square_mask(from_square) | PIECE_MASK_KNIGHT, KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations);
+        unsafe {
+            add_moves!(move_list, from_square_mask(from_square) | PIECE_MASK_KNIGHT, KNIGHT_MOVES_BITBOARDS.get_unchecked(from_square as usize) & valid_destinations);
+        }
     }
 }
 
