@@ -1,8 +1,7 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::{opponent};
-use crate::types::{BLACK, Move, Piece, Position, Square, WHITE};
-use crate::types::Piece::{Bishop, Empty, Knight, Queen, Rook};
+use crate::types::{BLACK, Move, Position, Square, WHITE};
 use crate::utils::{from_square_part, to_square_part};
 
 #[inline(always)]
@@ -21,7 +20,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
         match piece_mask {
             PIECE_MASK_PAWN => {
                 if mv & PROMOTION_FULL_MOVE_MASK != 0 {
-                    make_move_with_promotion(new_position, from, to, promotion_piece_from_move(mv));
+                    make_move_with_promotion(new_position, from, to, mv & PROMOTION_FULL_MOVE_MASK);
                     new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
                 } else if (position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard) & to_mask != 0 || (piece_mask == PIECE_MASK_PAWN && (from - to) % 8 != 0) {
                     make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask);
@@ -135,23 +134,12 @@ pub fn make_castle_move(position: &mut Position, to: Square) {
 }
 
 #[inline(always)]
-pub fn promotion_piece_from_move(mv: Move) -> Piece {
-    match PROMOTION_FULL_MOVE_MASK & mv {
-        PROMOTION_QUEEN_MOVE_MASK => Queen,
-        PROMOTION_ROOK_MOVE_MASK => Rook,
-        PROMOTION_BISHOP_MOVE_MASK => Bishop,
-        PROMOTION_KNIGHT_MOVE_MASK => Knight,
-        _ => Empty
-    }
-}
-
-#[inline(always)]
 pub fn is_promotion_square(square: Square) -> bool {
     test_bit(PROMOTION_SQUARES, square)
 }
 
 #[inline(always)]
-pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Square, promotion_piece: Piece) {
+pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Square, promotion_mask: Move) {
 
     let bit_to = bit(to);
     let bit_from = bit(from);
@@ -164,11 +152,11 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
         &mut position.pieces.get_unchecked_mut(position.mover as usize)
     };
 
-    match promotion_piece {
-        Knight => friendly.knight_bitboard |= bit_to,
-        Bishop => friendly.bishop_bitboard |= bit_to,
-        Rook => friendly.rook_bitboard |= bit_to,
-        Queen => friendly.queen_bitboard |= bit_to,
+    match promotion_mask {
+        PROMOTION_KNIGHT_MOVE_MASK => friendly.knight_bitboard |= bit_to,
+        PROMOTION_BISHOP_MOVE_MASK => friendly.bishop_bitboard |= bit_to,
+        PROMOTION_ROOK_MOVE_MASK => friendly.rook_bitboard |= bit_to,
+        PROMOTION_QUEEN_MOVE_MASK => friendly.queen_bitboard |= bit_to,
         _ => panic!("Invalid promotion piece")
     }
 

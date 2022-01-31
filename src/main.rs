@@ -5,8 +5,13 @@ use std::io::{self, BufRead};
 use std::process::exit;
 
 fn main() {
+
+    // Everything here is hacked together at the moment
+
     let stdin = io::stdin();
+    let mut fen = "".to_string();
     println!("Rusty Rival");
+    println!("READY");
     for line in stdin.lock().lines() {
         match line {
             Ok(l) => {
@@ -14,15 +19,33 @@ fn main() {
                 match parts.get(0).unwrap() {
                     &"bench" => {
                         let depth: u8 = parts.get(1).unwrap().to_string().parse().unwrap();
-                        let start = Instant::now();
-
-                        let nodes = perft(&get_position(&"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".to_string()), depth - 1);
-                        let duration = start.elapsed();
-                        println!("Time elapsed in perft is: {:?}", duration);
-                        println!("{} nodes {} nps", nodes, (nodes as f64 / (duration.as_millis() as f64)) * 1000.0);
+                        cmd_perft(depth, &"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".to_string());
+                    },
+                    &"go" => {
+                        let t = parts.get(1).unwrap();
+                        let depth = parts.get(2).unwrap().to_string().parse().unwrap();
+                        match t {
+                            &"perft" => {
+                                cmd_perft(depth, &fen)
+                            },
+                            _ => {
+                                println!("Unknown go command")
+                            }
+                        }
                     },
                     &"quit" => {
                         exit(0);
+                    },
+                    &"position" => {
+                        let t = parts.get(1).unwrap();
+                        match t {
+                            &"fen" => {
+                                fen = l.replace("position fen", "").to_string();
+                            },
+                            _ => {
+                                println!("Unknown position command")
+                            }
+                        }
                     }
                     _ => {}
                 }
@@ -33,4 +56,12 @@ fn main() {
         }
 
     }
+}
+
+fn cmd_perft(depth: u8, fen: &String) {
+    let start = Instant::now();
+    let nodes = perft(&get_position(&fen.trim()), depth - 1);
+    let duration = start.elapsed();
+    println!("Time elapsed in perft is: {:?}", duration);
+    println!("{} nodes {} nps", nodes, (nodes as f64 / (duration.as_millis() as f64)) * 1000.0);
 }
