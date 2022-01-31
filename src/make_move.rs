@@ -1,4 +1,4 @@
-use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, E1_BIT, E8_BIT, F1_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
+use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, E1_BIT, E8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::{opponent};
 use crate::types::{BLACK, is_any_black_castle_available, is_any_white_castle_available, Move, Piece, Position, Square, WHITE};
@@ -50,66 +50,61 @@ fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mas
     friendly.all_pieces_bitboard ^= switch;
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
-    if piece_mask == PIECE_MASK_PAWN {
-        friendly.pawn_bitboard = clear_bit(friendly.pawn_bitboard, from) | bit(to);
+    position.half_moves += 1;
+    match piece_mask {
+        PIECE_MASK_PAWN => {
+            friendly.pawn_bitboard = clear_bit(friendly.pawn_bitboard, from) | bit(to);
 
-        if from ^ to == 16 {
-            position.en_passant_square = from + if position.mover == WHITE { 8 } else { -8 }
-        }
+            if from ^ to == 16 {
+                position.en_passant_square = from + if position.mover == WHITE { 8 } else { -8 }
+            }
 
-        position.half_moves = 0;
-    } else {
-        position.half_moves += 1;
-        match piece_mask {
-            PIECE_MASK_KNIGHT => friendly.knight_bitboard ^= switch,
-            PIECE_MASK_BISHOP => friendly.bishop_bitboard ^= switch,
-            PIECE_MASK_ROOK => {
-                friendly.rook_bitboard ^= switch;
-                if position.castle_flags != 0 {
-                    if from == H1_BIT { position.castle_flags &= !WK_CASTLE }
-                    if from == A1_BIT { position.castle_flags &= !WQ_CASTLE }
-                    if from == H8_BIT { position.castle_flags &= !BK_CASTLE }
-                    if from == A8_BIT { position.castle_flags &= !BQ_CASTLE }
-                }
-            },
-            PIECE_MASK_QUEEN => friendly.queen_bitboard ^= switch,
-            PIECE_MASK_KING => friendly.king_square = to,
-            _ => panic!("Piece panic")
-        }
+            position.half_moves = 0;
+        },
+        PIECE_MASK_KNIGHT => friendly.knight_bitboard ^= switch,
+        PIECE_MASK_BISHOP => friendly.bishop_bitboard ^= switch,
+        PIECE_MASK_ROOK => {
+            friendly.rook_bitboard ^= switch;
+            if position.castle_flags != 0 {
+                if from == H1_BIT { position.castle_flags &= !WK_CASTLE }
+                if from == A1_BIT { position.castle_flags &= !WQ_CASTLE }
+                if from == H8_BIT { position.castle_flags &= !BK_CASTLE }
+                if from == A8_BIT { position.castle_flags &= !BQ_CASTLE }
+            }
+        },
+        PIECE_MASK_QUEEN => friendly.queen_bitboard ^= switch,
+        PIECE_MASK_KING => friendly.king_square = to,
+        _ => panic!("Piece panic")
     }
 }
 
 #[inline(always)]
 pub fn make_castle_move(position: &mut Position, to: Square) {
-    let offset = if position.mover == WHITE { 0 } else { 56 };
     let friendly = unsafe {
         &mut position.pieces.get_unchecked_mut(position.mover as usize)
     };
 
-    friendly.rook_bitboard = if to == C1_BIT + offset {
-        friendly.king_square = C1_BIT + offset;
+    friendly.king_square = to;
 
-        friendly.all_pieces_bitboard ^= if position.mover == WHITE {
-            position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
-            0b0000000000000000000000000000000000000000000000000000000010111000
+    if position.mover == WHITE {
+        position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
+        if to == C1_BIT {
+            friendly.rook_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000010010000;
+            friendly.all_pieces_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000010111000
         } else {
-            position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
-            0b1011100000000000000000000000000000000000000000000000000000000000
+            friendly.rook_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000000000101;
+            friendly.all_pieces_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000000001111
         };
-
-        clear_bit(friendly.rook_bitboard, A1_BIT + offset) | bit(D1_BIT + offset)
     } else {
-        friendly.king_square = G1_BIT + offset;
-        friendly.all_pieces_bitboard ^= if position.mover == WHITE {
-            position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
-            0b0000000000000000000000000000000000000000000000000000000000001111
+        position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
+        if to == C8_BIT {
+            friendly.rook_bitboard ^= 0b1001000000000000000000000000000000000000000000000000000000000000;
+            friendly.all_pieces_bitboard ^= 0b1011100000000000000000000000000000000000000000000000000000000000
         } else {
-            position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
-            0b0000111100000000000000000000000000000000000000000000000000000000
+            friendly.rook_bitboard ^= 0b0000010100000000000000000000000000000000000000000000000000000000;
+            friendly.all_pieces_bitboard ^= 0b0000111100000000000000000000000000000000000000000000000000000000
         };
-
-        clear_bit(friendly.rook_bitboard, H1_BIT + offset) | bit(F1_BIT + offset)
-    };
+    }
 
     position.half_moves += 1;
 }
