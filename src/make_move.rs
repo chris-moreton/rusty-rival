@@ -5,6 +5,7 @@ use crate::types::{BLACK, is_any_black_castle_available, is_any_white_castle_ava
 use crate::types::Piece::{Bishop, Empty, Knight, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
 
+#[inline(always)]
 pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
     *new_position = *position;
@@ -38,6 +39,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     new_position.mover = opponent!(position.mover);
 }
 
+#[inline(always)]
 fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
 
     let friendly = unsafe {

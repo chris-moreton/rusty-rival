@@ -38,6 +38,7 @@ pub fn moves(position: &Position) -> MoveList {
     move_list
 }
 
+#[inline(always)]
 fn generate_pawn_moves(position: &Position, move_list: &mut Vec<Move>, empty_squares: Bitboard, colour_index: usize, mut from_squares: Bitboard) {
     unsafe {
         while from_squares != 0 {
@@ -68,6 +69,7 @@ fn generate_pawn_moves(position: &Position, move_list: &mut Vec<Move>, empty_squ
     }
 }
 
+#[inline(always)]
 fn generate_castle_moves(position: &Position, move_list: &mut Vec<Move>, all_pieces: Bitboard, colour_index: usize) {
     for side in [KING_INDEX, QUEEN_INDEX] {
         unsafe {
@@ -79,6 +81,7 @@ fn generate_castle_moves(position: &Position, move_list: &mut Vec<Move>, all_pie
     }
 }
 
+#[inline(always)]
 fn generate_knight_moves(move_list: &mut Vec<Move>, valid_destinations: Bitboard, mut from_squares_bitboard: Bitboard) {
     while from_squares_bitboard != 0 {
         let from_square = get_and_unset_lsb!(from_squares_bitboard);
