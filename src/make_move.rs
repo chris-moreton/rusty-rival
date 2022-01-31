@@ -85,8 +85,10 @@ pub fn make_castle_move(position: &mut Position, to: Square) {
         friendly.king_square = C1_BIT + offset;
 
         friendly.all_pieces_bitboard ^= if position.mover == WHITE {
+            position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
             0b0000000000000000000000000000000000000000000000000000000010111000
         } else {
+            position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
             0b1011100000000000000000000000000000000000000000000000000000000000
         };
 
@@ -94,19 +96,15 @@ pub fn make_castle_move(position: &mut Position, to: Square) {
     } else {
         friendly.king_square = G1_BIT + offset;
         friendly.all_pieces_bitboard ^= if position.mover == WHITE {
+            position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
             0b0000000000000000000000000000000000000000000000000000000000001111
         } else {
+            position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
             0b0000111100000000000000000000000000000000000000000000000000000000
         };
 
         clear_bit(friendly.rook_bitboard, H1_BIT + offset) | bit(F1_BIT + offset)
     };
-
-    if position.mover == WHITE {
-        position.castle_flags &= !(WK_CASTLE | WQ_CASTLE)
-    } else {
-        position.castle_flags &= !(BK_CASTLE | BQ_CASTLE)
-    }
 
     position.half_moves += 1;
 }
@@ -131,8 +129,7 @@ pub fn is_promotion_square(square: Square) -> bool {
 pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Square, promotion_piece: Piece) {
 
     let bit_to = bit(to);
-    let not_bit_to = !bit_to;
-    let not_bit_from = !bit(from);
+    let bit_from = bit(from);
 
     let is_capture = unsafe {
         position.pieces.get_unchecked(opponent!(position.mover) as usize).all_pieces_bitboard & bit_to != 0
@@ -150,14 +147,14 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
         _ => panic!("Invalid promotion piece")
     }
 
-    friendly.pawn_bitboard &= not_bit_from;
-    friendly.all_pieces_bitboard &= not_bit_from;
-    friendly.all_pieces_bitboard |= bit_to;
+    friendly.pawn_bitboard ^= bit_from;
+    friendly.all_pieces_bitboard ^= bit_from | bit_to;
 
     if is_capture {
         let enemy = unsafe {
             &mut position.pieces.get_unchecked_mut(opponent!(position.mover) as usize)
         };
+        let not_bit_to = !bit_to;
         enemy.knight_bitboard &= not_bit_to;
         enemy.rook_bitboard &= not_bit_to;
         enemy.bishop_bitboard &= not_bit_to;
