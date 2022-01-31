@@ -1,4 +1,4 @@
-use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
+use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT};
 use crate::move_constants::*;
 use crate::{opponent};
 use crate::types::{BLACK, Move, Position, Square, WHITE};
@@ -132,11 +132,6 @@ pub fn make_castle_move(position: &mut Position, to: Square) {
     }
 
     position.half_moves += 1;
-}
-
-#[inline(always)]
-pub fn is_promotion_square(square: Square) -> bool {
-    test_bit(PROMOTION_SQUARES, square)
 }
 
 #[inline(always)]

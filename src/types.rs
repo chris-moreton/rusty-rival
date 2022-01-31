@@ -10,7 +10,7 @@ pub type Mover = i8;
 
 #[macro_export]
 macro_rules! opponent {
-    ($a:expr) => { ($a-1).abs() }
+    ($a:expr) => { $a ^ 1 }
 }
 
 #[macro_export]
