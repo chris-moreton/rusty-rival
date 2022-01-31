@@ -1,4 +1,4 @@
-use crate::bitboards::{BISHOP_RAYS, bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, epsbit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, ROOK_RAYS, test_bit};
+use crate::bitboards::{BISHOP_RAYS, bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, epsbit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, ROOK_RAYS};
 use crate::magic_bitboards::{magic_moves_rook, magic_moves_bishop};
 use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
 use crate::types::{Bitboard, BLACK, Move, MoveList, Mover, Position, Square, WHITE};
@@ -127,34 +127,25 @@ pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by_straight_slider(all_pieces: Bitboard, mut attacking_sliders: Bitboard, attacked_square: Square) -> bool {
-    while attacking_sliders != 0 {
-        unsafe {
-            let attacker = attacking_sliders.trailing_zeros() as Square;
-            // quick check - doesn't consider blockers
-            if bit(attacker) & ROOK_RAYS.get_unchecked(attacked_square as usize) != 0 {
-                // consider blockers
-                if test_bit(magic_moves_rook(attacker, all_pieces), attacked_square) { return true };
-            }
-            unset_lsb!(attacking_sliders)
-        }
+pub fn is_square_attacked_by_straight_slider(all_pieces: Bitboard, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
+    if attacking_sliders == 0 { return false }
+    unsafe {
+        // quick check
+        if *ROOK_RAYS.get_unchecked(attacked_square as usize) & attacking_sliders == 0 { return false }
     }
-    false
+    // proper check, considering blockers
+    magic_moves_rook(attacked_square, all_pieces) & attacking_sliders != 0
 }
+
 #[inline(always)]
-pub fn is_square_attacked_by_diagonal_slider(all_pieces: Bitboard, mut attacking_sliders: Bitboard, attacked_square: Square) -> bool {
-    while attacking_sliders != 0 {
-        unsafe {
-            let attacker = attacking_sliders.trailing_zeros() as Square;
-            // quick check - doesn't consider blockers
-            if bit(attacker) & BISHOP_RAYS.get_unchecked(attacked_square as usize) != 0 {
-                // consider blockers
-                if test_bit(magic_moves_bishop(attacker, all_pieces), attacked_square) { return true };
-            }
-            unset_lsb!(attacking_sliders)
-        }
+pub fn is_square_attacked_by_diagonal_slider(all_pieces: Bitboard, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
+    if attacking_sliders == 0 { return false }
+    unsafe {
+        // quick check
+        if *BISHOP_RAYS.get_unchecked(attacked_square as usize) & attacking_sliders == 0 { return false }
     }
-    false
+    // proper check, considering blockers
+    magic_moves_bishop(attacked_square, all_pieces) & attacking_sliders != 0
 }
 
 #[inline(always)]
