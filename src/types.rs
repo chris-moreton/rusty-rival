@@ -52,12 +52,6 @@ pub fn is_bk_castle_available(position: &Position) -> bool { position.castle_fla
 #[inline(always)]
 pub fn is_bq_castle_available(position: &Position) -> bool { position.castle_flags & BQ_CASTLE != 0 }
 
-#[inline(always)]
-pub fn is_any_white_castle_available(position: &Position) -> bool { position.castle_flags & (WK_CASTLE | WQ_CASTLE) != 0 }
-
-#[inline(always)]
-pub fn is_any_black_castle_available(position: &Position) -> bool { position.castle_flags & (BK_CASTLE | BQ_CASTLE) != 0 }
-
 #[derive(Debug, Copy, Clone)]
 pub struct Pieces {
     pub pawn_bitboard: Bitboard,

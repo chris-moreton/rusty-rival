@@ -1,7 +1,7 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, E1_BIT, E8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::{opponent};
-use crate::types::{BLACK, is_any_black_castle_available, is_any_white_castle_available, Move, Piece, Position, Square, WHITE};
+use crate::types::{BLACK, Move, Piece, Position, Square, WHITE};
 use crate::types::Piece::{Bishop, Empty, Knight, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
 
@@ -16,24 +16,27 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
     let piece_mask = mv & PIECE_MASK_FULL;
 
-    if (position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & to_mask != 0 ||
-        (piece_mask == PIECE_MASK_PAWN && ((from - to) % 8 != 0 || PROMOTION_SQUARES & to_mask != 0)) ||
-        (piece_mask == PIECE_MASK_KING && KING_START_POSITIONS & bit(from) != 0) {
+    unsafe {
+        if (
+            // capture
+            position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard) & to_mask != 0 ||
+            // en passant or promotion
+            (piece_mask == PIECE_MASK_PAWN && ((from - to) % 8 != 0 || PROMOTION_SQUARES & to_mask != 0)) ||
+            // possible castle
+            (piece_mask == PIECE_MASK_KING && KING_START_POSITIONS & bit(from) != 0) {
 
-        let promoted_piece = promotion_piece_from_move(mv);
-        if promoted_piece != Empty {
-            make_move_with_promotion(new_position, from, to, promoted_piece);
-        } else if (from == E1_BIT && (to == G1_BIT || to == C1_BIT) && is_any_white_castle_available(position)) ||
-            (from == E8_BIT && (to == G8_BIT || to == C8_BIT) && is_any_black_castle_available(position)) {
-            make_castle_move(new_position, to);
+            if mv & PROMOTION_FULL_MOVE_MASK != 0 {
+                make_move_with_promotion(new_position, from, to, promotion_piece_from_move(mv));
+            } else if piece_mask == PIECE_MASK_KING && (from == E1_BIT && (to == G1_BIT || to == C1_BIT) || from == E8_BIT && (to == G8_BIT || to == C8_BIT)) {
+                make_castle_move(new_position, to);
+            } else {
+                make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask)
+            }
+            new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         } else {
-            make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask)
-        }
-        new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
-
-    } else {
-        make_simple_move(new_position, from, to, piece_mask)
-    };
+            make_simple_move(new_position, from, to, piece_mask)
+        };
+    }
 
     new_position.move_number += if position.mover == WHITE { 0 } else { 1 };
     new_position.mover = opponent!(position.mover);
@@ -235,6 +238,6 @@ pub fn make_capture_or_king_move_when_castles_available(position: &mut Position,
 
 #[inline(always)]
 pub fn en_passant_captured_piece_square(square: Square) -> Square {
-    square + if square < 40 {  8 } else { -8 }
+    square + if square < 40 { 8 } else { -8 }
 }
 
