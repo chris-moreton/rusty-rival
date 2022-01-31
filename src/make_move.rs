@@ -17,25 +17,36 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     let piece_mask = mv & PIECE_MASK_FULL;
 
     unsafe {
-        if (
-            // capture
-            position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard) & to_mask != 0 ||
-            // en passant or promotion
-            (piece_mask == PIECE_MASK_PAWN && ((from - to) % 8 != 0 || PROMOTION_SQUARES & to_mask != 0)) ||
-            // possible castle
-            (piece_mask == PIECE_MASK_KING && KING_START_POSITIONS & bit(from) != 0) {
 
-            if mv & PROMOTION_FULL_MOVE_MASK != 0 {
-                make_move_with_promotion(new_position, from, to, promotion_piece_from_move(mv));
-            } else if piece_mask == PIECE_MASK_KING && (from == E1_BIT && (to == G1_BIT || to == C1_BIT) || from == E8_BIT && (to == G8_BIT || to == C8_BIT)) {
-                make_castle_move(new_position, to);
-            } else {
-                make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask)
+        match piece_mask {
+            PIECE_MASK_PAWN => {
+                if mv & PROMOTION_FULL_MOVE_MASK != 0 {
+                    make_move_with_promotion(new_position, from, to, promotion_piece_from_move(mv));
+                    new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+                } else if (position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard) & to_mask != 0 || (piece_mask == PIECE_MASK_PAWN && (from - to) % 8 != 0) {
+                    make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask);
+                    new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+                } else {
+                    make_simple_move(new_position, from, to, piece_mask)
+                }
+            },
+            PIECE_MASK_KING => {
+                if from == E1_BIT && (to == G1_BIT || to == C1_BIT) || from == E8_BIT && (to == G8_BIT || to == C8_BIT) {
+                    make_castle_move(new_position, to);
+                } else {
+                    make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask)
+                }
+                new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+            },
+            _ => {
+                if (position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard) & to_mask != 0 {
+                    make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask);
+                    new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+                } else {
+                    make_simple_move(new_position, from, to, piece_mask)
+                };
             }
-            new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
-        } else {
-            make_simple_move(new_position, from, to, piece_mask)
-        };
+        }
     }
 
     new_position.move_number += if position.mover == WHITE { 0 } else { 1 };
