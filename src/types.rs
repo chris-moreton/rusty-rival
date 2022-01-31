@@ -29,17 +29,6 @@ macro_rules! get_and_unset_lsb {
     }
 }
 
-#[macro_export]
-macro_rules! move_mover {
-    ($bitboard:expr, $from_mask:expr, $to_mask:expr, $friendly:expr) => {
-        if $bitboard & $from_mask != 0 {
-            let switch = $from_mask | $to_mask;
-            $bitboard ^= switch;
-            $friendly.all_pieces_bitboard ^= switch;
-        }
-    }
-}
-
 pub const WHITE: Mover = 0;
 pub const BLACK: Mover = 1;
 

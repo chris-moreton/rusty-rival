@@ -116,36 +116,37 @@ pub fn any_squares_in_bitboard_attacked(position: &Position, attacked: Mover, mu
 #[inline(always)]
 pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked: Mover) -> bool {
     unsafe {
-        let all_pieces = position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard;
         let enemy = if attacked == WHITE { position.pieces.get_unchecked(BLACK as usize) } else { position.pieces.get_unchecked(WHITE as usize) };
         enemy.pawn_bitboard & PAWN_MOVES_CAPTURE.get_unchecked(attacked as usize).get_unchecked(attacked_square as usize) != 0 ||
         enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS.get_unchecked(attacked_square as usize) != 0 ||
         bit(enemy.king_square) & KING_MOVES_BITBOARDS.get_unchecked(attacked_square as usize) != 0 ||
-        is_square_attacked_by_straight_slider(all_pieces, enemy.rook_bitboard | enemy.queen_bitboard, attacked_square) ||
-        is_square_attacked_by_diagonal_slider(all_pieces, enemy.bishop_bitboard | enemy.queen_bitboard, attacked_square)
+        is_square_attacked_by_straight_slider(position, enemy.rook_bitboard | enemy.queen_bitboard, attacked_square) ||
+        is_square_attacked_by_diagonal_slider(position, enemy.bishop_bitboard | enemy.queen_bitboard, attacked_square)
     }
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by_straight_slider(all_pieces: Bitboard, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
+pub fn is_square_attacked_by_straight_slider(position: &Position, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
     if attacking_sliders == 0 { return false }
     unsafe {
-        // quick check
+        // quick look
         if *ROOK_RAYS.get_unchecked(attacked_square as usize) & attacking_sliders == 0 { return false }
+        // proper look, considering blockers
+        let all_pieces = position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard;
+        magic_moves_rook(attacked_square, all_pieces) & attacking_sliders != 0
     }
-    // proper check, considering blockers
-    magic_moves_rook(attacked_square, all_pieces) & attacking_sliders != 0
 }
 
 #[inline(always)]
-pub fn is_square_attacked_by_diagonal_slider(all_pieces: Bitboard, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
+pub fn is_square_attacked_by_diagonal_slider(position: &Position, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
     if attacking_sliders == 0 { return false }
     unsafe {
-        // quick check
+        // quick look
         if *BISHOP_RAYS.get_unchecked(attacked_square as usize) & attacking_sliders == 0 { return false }
+        // proper look, considering blockers
+        let all_pieces = position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard;
+        magic_moves_bishop(attacked_square, all_pieces) & attacking_sliders != 0
     }
-    // proper check, considering blockers
-    magic_moves_bishop(attacked_square, all_pieces) & attacking_sliders != 0
 }
 
 #[inline(always)]

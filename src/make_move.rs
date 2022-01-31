@@ -1,6 +1,6 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, D1_BIT, E1_BIT, E8_BIT, F1_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
-use crate::{move_mover, opponent};
+use crate::{opponent};
 use crate::types::{BLACK, is_any_black_castle_available, is_any_white_castle_available, Move, Piece, Position, Square, WHITE};
 use crate::types::Piece::{Bishop, Empty, Knight, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
@@ -44,7 +44,8 @@ fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mas
         &mut position.pieces.get_unchecked_mut(position.mover as usize)
     };
 
-    friendly.all_pieces_bitboard ^= bit(from) | bit(to);
+    let switch = bit(from) | bit(to);
+    friendly.all_pieces_bitboard ^= switch;
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
     if piece_mask == PIECE_MASK_PAWN {
@@ -58,16 +59,18 @@ fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mas
     } else {
         position.half_moves += 1;
         match piece_mask {
-            PIECE_MASK_KNIGHT => friendly.knight_bitboard = clear_bit(friendly.knight_bitboard, from) | bit(to),
-            PIECE_MASK_BISHOP => friendly.bishop_bitboard = clear_bit(friendly.bishop_bitboard, from) | bit(to),
+            PIECE_MASK_KNIGHT => friendly.knight_bitboard ^= switch,
+            PIECE_MASK_BISHOP => friendly.bishop_bitboard ^= switch,
             PIECE_MASK_ROOK => {
-                friendly.rook_bitboard = clear_bit(friendly.rook_bitboard, from) | bit(to);
-                if from == H1_BIT { position.castle_flags &= !WK_CASTLE }
-                if from == A1_BIT { position.castle_flags &= !WQ_CASTLE }
-                if from == H8_BIT { position.castle_flags &= !BK_CASTLE }
-                if from == A8_BIT { position.castle_flags &= !BQ_CASTLE }
+                friendly.rook_bitboard ^= switch;
+                if position.castle_flags != 0 {
+                    if from == H1_BIT { position.castle_flags &= !WK_CASTLE }
+                    if from == A1_BIT { position.castle_flags &= !WQ_CASTLE }
+                    if from == H8_BIT { position.castle_flags &= !BK_CASTLE }
+                    if from == A8_BIT { position.castle_flags &= !BQ_CASTLE }
+                }
             },
-            PIECE_MASK_QUEEN => friendly.queen_bitboard = clear_bit(friendly.queen_bitboard, from) | bit(to),
+            PIECE_MASK_QUEEN => friendly.queen_bitboard ^= switch,
             PIECE_MASK_KING => friendly.king_square = to,
             _ => panic!("Piece panic")
         }
@@ -173,8 +176,6 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
 #[inline(always)]
 pub fn make_capture_or_king_move_when_castles_available(position: &mut Position, from: Square, to: Square, piece: Move) {
 
-    let to_mask = bit(to);
-    let from_mask = bit(from);
     let all_pieces = unsafe {
         position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard
     };
@@ -183,11 +184,16 @@ pub fn make_capture_or_king_move_when_castles_available(position: &mut Position,
         &mut position.pieces.get_unchecked_mut(opponent!(position.mover) as usize)
     };
 
+    position.half_moves += 1;
+
+    let to_mask = bit(to);
+
     if position.en_passant_square == to && piece == PIECE_MASK_PAWN {
         let pawn_off = !bit(en_passant_captured_piece_square(to));
         enemy.pawn_bitboard &= pawn_off;
         enemy.all_pieces_bitboard &= pawn_off;
     } else if all_pieces & to_mask != 0 {
+        position.half_moves = 0;
         let to_mask_inverted = !to_mask;
         enemy.pawn_bitboard &= to_mask_inverted;
         enemy.knight_bitboard &= to_mask_inverted;
@@ -197,25 +203,36 @@ pub fn make_capture_or_king_move_when_castles_available(position: &mut Position,
         enemy.all_pieces_bitboard &= to_mask_inverted;
     }
 
-    let friendly = &mut position.pieces[position.mover as usize];
+    let friendly = unsafe {
+        &mut position.pieces.get_unchecked_mut(position.mover as usize)
+    };
+
+    let switch = bit(from) | to_mask;
+    friendly.all_pieces_bitboard ^= switch;
 
     match piece {
-        PIECE_MASK_PAWN => move_mover!(friendly.pawn_bitboard, from_mask, to_mask, friendly),
-        PIECE_MASK_KNIGHT => move_mover!(friendly.knight_bitboard, from_mask, to_mask, friendly),
-        PIECE_MASK_BISHOP => move_mover!(friendly.bishop_bitboard, from_mask, to_mask, friendly),
-        PIECE_MASK_ROOK => move_mover!(friendly.rook_bitboard, from_mask, to_mask, friendly),
-        PIECE_MASK_QUEEN => move_mover!(friendly.queen_bitboard, from_mask, to_mask, friendly),
+        PIECE_MASK_PAWN => {
+            position.half_moves = 0;
+            friendly.pawn_bitboard ^= switch;
+        },
+        PIECE_MASK_KNIGHT => friendly.knight_bitboard ^= switch,
+        PIECE_MASK_BISHOP => friendly.bishop_bitboard ^= switch,
+        PIECE_MASK_ROOK => friendly.rook_bitboard ^= switch,
+        PIECE_MASK_QUEEN => friendly.queen_bitboard ^= switch,
         _ => {
+            if position.mover == WHITE {
+                position.castle_flags &= !(WK_CASTLE | WQ_CASTLE)
+            } else {
+                position.castle_flags &= !(BK_CASTLE | BQ_CASTLE)
+            }
             friendly.king_square = to;
-            friendly.all_pieces_bitboard ^= from_mask | to_mask;
         }
     }
-    position.half_moves = if all_pieces & to_mask != 0 || piece == PIECE_MASK_PAWN { 0 } else { position.half_moves + 1 };
 
-    if from == E1_BIT || from == H1_BIT || to == H1_BIT { position.castle_flags &= !WK_CASTLE }
-    if from == E1_BIT || from == A1_BIT || to == A1_BIT { position.castle_flags &= !WQ_CASTLE }
-    if from == E8_BIT || from == H8_BIT || to == H8_BIT { position.castle_flags &= !BK_CASTLE }
-    if from == E8_BIT || from == A8_BIT || to == A8_BIT { position.castle_flags &= !BQ_CASTLE }
+    if switch & bit(H1_BIT) != 0 { position.castle_flags &= !WK_CASTLE }
+    if switch & bit(A1_BIT) != 0 { position.castle_flags &= !WQ_CASTLE }
+    if switch & bit(H8_BIT) != 0 { position.castle_flags &= !BK_CASTLE }
+    if switch & bit(A8_BIT) != 0 { position.castle_flags &= !BQ_CASTLE }
 
 }
 
