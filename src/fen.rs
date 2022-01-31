@@ -64,7 +64,7 @@ pub fn algebraic_squareref_from_bitref(bitref: u8) -> String {
 }
 
 pub fn algebraic_move_from_move(m: Move) -> String {
-    let from_square = (m >> 16) as u8;
+    let from_square = (m >> 16) as u8 & 63;
     let to_square = (m & 63) as u8;
     algebraic_squareref_from_bitref(from_square) + &*algebraic_squareref_from_bitref(to_square) + &*promotion_part(m)
 }

@@ -1,4 +1,4 @@
-use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, clear_bit, E1_BIT, E8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
+use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::{opponent};
 use crate::types::{BLACK, Move, Piece, Position, Square, WHITE};
@@ -27,7 +27,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
                     make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask);
                     new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
                 } else {
-                    make_simple_move(new_position, from, to, piece_mask)
+                    make_simple_pawn_move(new_position, from, to)
                 }
             },
             PIECE_MASK_KING => {
@@ -41,10 +41,10 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             _ => {
                 if (position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard) & to_mask != 0 {
                     make_capture_or_king_move_when_castles_available(new_position, from, to, piece_mask);
-                    new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
                 } else {
-                    make_simple_move(new_position, from, to, piece_mask)
+                    make_simple_non_pawn_move(new_position, from, to, piece_mask);
                 };
+                new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
             }
         }
     }
@@ -54,7 +54,28 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 }
 
 #[inline(always)]
-fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
+fn make_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
+
+    let friendly = unsafe {
+        &mut position.pieces.get_unchecked_mut(position.mover as usize)
+    };
+
+    let switch = bit(from) | bit(to);
+    friendly.pawn_bitboard ^= switch;
+    friendly.all_pieces_bitboard ^= switch;
+
+    position.en_passant_square = if from ^ to == 16 {
+        from + if position.mover == WHITE { 8 } else { -8 }
+    } else {
+        EN_PASSANT_NOT_AVAILABLE
+    };
+
+    position.half_moves = 0;
+
+}
+
+#[inline(always)]
+fn make_simple_non_pawn_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
 
     let friendly = unsafe {
         &mut position.pieces.get_unchecked_mut(position.mover as usize)
@@ -62,19 +83,9 @@ fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mas
 
     let switch = bit(from) | bit(to);
     friendly.all_pieces_bitboard ^= switch;
-    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
     position.half_moves += 1;
     match piece_mask {
-        PIECE_MASK_PAWN => {
-            friendly.pawn_bitboard = clear_bit(friendly.pawn_bitboard, from) | bit(to);
-
-            if from ^ to == 16 {
-                position.en_passant_square = from + if position.mover == WHITE { 8 } else { -8 }
-            }
-
-            position.half_moves = 0;
-        },
         PIECE_MASK_KNIGHT => friendly.knight_bitboard ^= switch,
         PIECE_MASK_BISHOP => friendly.bishop_bitboard ^= switch,
         PIECE_MASK_ROOK => {
