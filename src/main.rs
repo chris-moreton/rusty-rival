@@ -1,4 +1,3 @@
-use std::ops::Div;
 use std::time::Instant;
 use rusty_rival::fen::get_position;
 use rusty_rival::perft::perft;

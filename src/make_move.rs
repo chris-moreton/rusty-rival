@@ -39,7 +39,11 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 }
 
 fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
-    let friendly = &mut position.pieces[position.mover as usize];
+
+    let friendly = unsafe {
+        &mut position.pieces.get_unchecked_mut(position.mover as usize)
+    };
+
     friendly.all_pieces_bitboard ^= bit(from) | bit(to);
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
@@ -73,17 +77,30 @@ fn make_simple_move(position: &mut Position, from: Square, to: Square, piece_mas
 #[inline(always)]
 pub fn make_castle_move(position: &mut Position, to: Square) {
     let offset = if position.mover == WHITE { 0 } else { 56 };
-    let friendly = &mut position.pieces[position.mover as usize];
+    let friendly = unsafe {
+        &mut position.pieces.get_unchecked_mut(position.mover as usize)
+    };
 
     friendly.rook_bitboard = if to == C1_BIT + offset {
         friendly.king_square = C1_BIT + offset;
+
+        friendly.all_pieces_bitboard ^= if position.mover == WHITE {
+            0b0000000000000000000000000000000000000000000000000000000010111000
+        } else {
+            0b1011100000000000000000000000000000000000000000000000000000000000
+        };
+
         clear_bit(friendly.rook_bitboard, A1_BIT + offset) | bit(D1_BIT + offset)
     } else {
         friendly.king_square = G1_BIT + offset;
+        friendly.all_pieces_bitboard ^= if position.mover == WHITE {
+            0b0000000000000000000000000000000000000000000000000000000000001111
+        } else {
+            0b0000111100000000000000000000000000000000000000000000000000000000
+        };
+
         clear_bit(friendly.rook_bitboard, H1_BIT + offset) | bit(F1_BIT + offset)
     };
-
-    friendly.all_pieces_bitboard = friendly.rook_bitboard | bit(friendly.king_square) | friendly.queen_bitboard | friendly.knight_bitboard | friendly.bishop_bitboard | friendly.pawn_bitboard;
 
     if position.mover == WHITE {
         position.castle_flags &= !(WK_CASTLE | WQ_CASTLE)
@@ -117,8 +134,13 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     let not_bit_to = !bit_to;
     let not_bit_from = !bit(from);
 
-    let is_capture = position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard & bit_to != 0;
-    let friendly = &mut position.pieces[position.mover as usize];
+    let is_capture = unsafe {
+        position.pieces.get_unchecked(opponent!(position.mover) as usize).all_pieces_bitboard & bit_to != 0
+    };
+
+    let friendly = unsafe {
+        &mut position.pieces.get_unchecked_mut(position.mover as usize)
+    };
 
     match promotion_piece {
         Knight => friendly.knight_bitboard |= bit_to,
@@ -133,7 +155,9 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     friendly.all_pieces_bitboard |= bit_to;
 
     if is_capture {
-        let enemy = &mut position.pieces[opponent!(position.mover) as usize];
+        let enemy = unsafe {
+            &mut position.pieces.get_unchecked_mut(opponent!(position.mover) as usize)
+        };
         enemy.knight_bitboard &= not_bit_to;
         enemy.rook_bitboard &= not_bit_to;
         enemy.bishop_bitboard &= not_bit_to;
@@ -158,7 +182,9 @@ pub fn make_capture_or_king_move_when_castles_available(position: &mut Position,
         position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard
     };
 
-    let enemy = &mut position.pieces[opponent!(position.mover) as usize];
+    let enemy = unsafe {
+        &mut position.pieces.get_unchecked_mut(opponent!(position.mover) as usize)
+    };
 
     if position.en_passant_square == to && piece == PIECE_MASK_PAWN {
         let pawn_off = !bit(en_passant_captured_piece_square(to));

@@ -134,7 +134,7 @@ pub fn is_square_attacked_by_straight_slider(all_pieces: Bitboard, mut attacking
             // quick check - doesn't consider blockers
             if bit(attacker) & ROOK_RAYS.get_unchecked(attacked_square as usize) != 0 {
                 // consider blockers
-                if test_bit(magic_moves_rook(attacking_sliders.trailing_zeros() as Square, all_pieces), attacked_square) { return true };
+                if test_bit(magic_moves_rook(attacker, all_pieces), attacked_square) { return true };
             }
             unset_lsb!(attacking_sliders)
         }
