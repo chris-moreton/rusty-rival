@@ -79,9 +79,9 @@ pub fn promotion_mask(piece_char: String) -> Move {
 
 pub fn move_from_algebraic_move(a: String, piece_mask: Move) -> Move {
     let s = if a.len() == 4 { a + " " } else { a };
-    from_square_mask(bitref_from_algebraic_squareref(s[0..2].to_string())) | piece_mask +
+    from_square_mask(bitref_from_algebraic_squareref(s[0..2].to_string())) | (piece_mask +
         bitref_from_algebraic_squareref(s[2..4].to_string()) as Move +
-        promotion_mask(s[4..5].to_string())
+        promotion_mask(s[4..5].to_string()))
 }
 
 pub fn promotion_part(m: Move) -> String {

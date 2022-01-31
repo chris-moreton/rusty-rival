@@ -187,16 +187,14 @@ pub fn make_capture_or_king_move_when_castles_available(position: &mut Position,
         let pawn_off = !bit(en_passant_captured_piece_square(to));
         enemy.pawn_bitboard &= pawn_off;
         enemy.all_pieces_bitboard &= pawn_off;
-    } else {
-        if all_pieces & to_mask != 0 {
-            let to_mask_inverted = !to_mask;
-            enemy.pawn_bitboard &= to_mask_inverted;
-            enemy.knight_bitboard &= to_mask_inverted;
-            enemy.bishop_bitboard &= to_mask_inverted;
-            enemy.rook_bitboard &= to_mask_inverted;
-            enemy.queen_bitboard &= to_mask_inverted;
-            enemy.all_pieces_bitboard &= to_mask_inverted;
-        }
+    } else if all_pieces & to_mask != 0 {
+        let to_mask_inverted = !to_mask;
+        enemy.pawn_bitboard &= to_mask_inverted;
+        enemy.knight_bitboard &= to_mask_inverted;
+        enemy.bishop_bitboard &= to_mask_inverted;
+        enemy.rook_bitboard &= to_mask_inverted;
+        enemy.queen_bitboard &= to_mask_inverted;
+        enemy.all_pieces_bitboard &= to_mask_inverted;
     }
 
     let friendly = &mut position.pieces[position.mover as usize];

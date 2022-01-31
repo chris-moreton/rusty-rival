@@ -110,7 +110,7 @@ pub fn any_squares_in_bitboard_attacked(position: &Position, attacked: Mover, mu
         if is_square_attacked(position, bitboard.trailing_zeros() as Square, attacked) { return true }
         unset_lsb!(bitboard);
     }
-    return false;
+    false
 }
 
 #[inline(always)]
@@ -139,7 +139,7 @@ pub fn is_square_attacked_by_straight_slider(all_pieces: Bitboard, mut attacking
             unset_lsb!(attacking_sliders)
         }
     }
-    return false;
+    false
 }
 #[inline(always)]
 pub fn is_square_attacked_by_diagonal_slider(all_pieces: Bitboard, mut attacking_sliders: Bitboard, attacked_square: Square) -> bool {
@@ -154,7 +154,7 @@ pub fn is_square_attacked_by_diagonal_slider(all_pieces: Bitboard, mut attacking
             unset_lsb!(attacking_sliders)
         }
     }
-    return false;
+    false
 }
 
 #[inline(always)]

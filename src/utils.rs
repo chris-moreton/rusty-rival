@@ -8,7 +8,7 @@ pub const fn from_square_mask(square: Square) -> Move {
 
 #[inline(always)]
 pub const fn from_square_part(mv: Move) -> Square {
-    ((mv >> 16) & (63 as Move)) as Square
+    ((mv >> 16) & 63_u32) as Square
 }
 
 #[inline(always)]
