@@ -30,6 +30,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
                 }
             },
             PIECE_MASK_KING => {
+                // if ((bit(from) | to_mask) & 0b0010101000000000000000000000000000000000000000000000000000101010).count_ones() == 2 {
                 if from == E1_BIT && (to == G1_BIT || to == C1_BIT) || from == E8_BIT && (to == G8_BIT || to == C8_BIT) {
                     make_castle_move(new_position, to);
                 } else {
