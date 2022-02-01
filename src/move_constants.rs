@@ -44,6 +44,11 @@ pub const WQ_CASTLE: u8 = 2;
 pub const BK_CASTLE: u8 = 4;
 pub const BQ_CASTLE: u8 = 8;
 
+pub const CLEAR_CASTLE_FLAGS_MASK: [u8; 2] = [
+    !(WK_CASTLE | WQ_CASTLE),
+    !(BK_CASTLE | BQ_CASTLE),
+];
+
 pub const WHITE_KING_CASTLE_MOVE: Move = from_square_mask(3) | 1 | PIECE_MASK_KING | WHITE_KING_CASTLE_MOVE_MASK;
 pub const WHITE_QUEEN_CASTLE_MOVE: Move = from_square_mask(3) | 5 | PIECE_MASK_KING | WHITE_QUEEN_CASTLE_MOVE_MASK;
 pub const BLACK_KING_CASTLE_MOVE: Move = from_square_mask(59) | 57 | PIECE_MASK_KING | BLACK_KING_CASTLE_MOVE_MASK;

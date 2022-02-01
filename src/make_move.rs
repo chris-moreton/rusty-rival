@@ -1,7 +1,7 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT};
 use crate::move_constants::*;
 use crate::{opponent};
-use crate::types::{Bitboard, BLACK, Move, Position, Square, WHITE};
+use crate::types::{Bitboard, BLACK, Move, Mover, Position, Square, WHITE};
 use crate::utils::{from_square_part, to_square_part};
 
 #[inline(always)]
@@ -24,7 +24,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
                 make_simple_pawn_move(new_position, from, to)
             }
             new_position.move_number += position.mover as u16;
-            new_position.mover = opponent!(position.mover);
+            new_position.mover ^= 1;
         },
         PIECE_MASK_KING => {
             if mv >= BLACK_QUEEN_CASTLE_MOVE_MASK {
@@ -42,54 +42,83 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             };
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
             new_position.move_number += position.mover as u16;
-            new_position.mover = opponent!(position.mover);
+            new_position.mover ^= 1;
         }
     }
 
 }
 
+pub const CASTLE_INDEX_WHITE_KING: usize = 0;
+pub const CASTLE_INDEX_WHITE_QUEEN: usize = 1;
+pub const CASTLE_INDEX_BLACK_KING: usize = 2;
+pub const CASTLE_INDEX_BLACK_QUEEN: usize = 3;
+
+pub const CASTLE_VARS_ROOK_MASK: [Bitboard; 4] = [
+    0b0000000000000000000000000000000000000000000000000000000000000101,
+    0b0000000000000000000000000000000000000000000000000000000010010000,
+    0b0000010100000000000000000000000000000000000000000000000000000000,
+    0b1001000000000000000000000000000000000000000000000000000000000000,
+];
+
+pub const CASTLE_VARS_ALL_PIECES_MASK: [Bitboard; 4] = [
+    0b0000000000000000000000000000000000000000000000000000000000001111,
+    0b0000000000000000000000000000000000000000000000000000000010111000,
+    0b0000111100000000000000000000000000000000000000000000000000000000,
+    0b1011100000000000000000000000000000000000000000000000000000000000,
+];
+
+pub const CASTLE_VARS_KING_TO: [Square; 4] = [
+    G1_BIT, C1_BIT, G8_BIT, C8_BIT,
+];
+
+pub const CASTLE_VARS_CLEAR_FLAGS_MASK: [u8; 4] = [
+    !(WK_CASTLE | WQ_CASTLE),
+    !(WK_CASTLE | WQ_CASTLE),
+    !(BK_CASTLE | BQ_CASTLE),
+    !(BK_CASTLE | BQ_CASTLE),
+];
+
+pub const CASTLE_VARS_NEW_MOVER: [Mover; 4] = [
+    BLACK, BLACK, WHITE, WHITE,
+];
+
+pub const CASTLE_VARS_FULL_MOVE_INC: [u16; 4] = [
+    0, 0, 1, 1,
+];
+
 #[inline(always)]
 fn make_castle_move(mv: Move, position: &mut Position) {
 
-    match mv {
+    let index: usize = match mv {
         WHITE_KING_CASTLE_MOVE => {
-            position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
-            position.pieces[WHITE as usize].rook_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000000000101;
-            position.pieces[WHITE as usize].all_pieces_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000000001111;
-            position.pieces[WHITE as usize].king_square = G1_BIT;
-            position.mover = BLACK;
-            position.half_moves += 1;
+            CASTLE_INDEX_WHITE_KING
         },
         WHITE_QUEEN_CASTLE_MOVE => {
-            position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
-            position.pieces[WHITE as usize].rook_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000010010000;
-            position.pieces[WHITE as usize].all_pieces_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000010111000;
-            position.pieces[WHITE as usize].king_square = C1_BIT;
-            position.mover = BLACK;
-            position.half_moves += 1;
+            CASTLE_INDEX_WHITE_QUEEN
         },
         BLACK_KING_CASTLE_MOVE => {
-            position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
-            position.pieces[BLACK as usize].rook_bitboard ^= 0b0000010100000000000000000000000000000000000000000000000000000000;
-            position.pieces[BLACK as usize].all_pieces_bitboard ^= 0b0000111100000000000000000000000000000000000000000000000000000000;
-            position.pieces[BLACK as usize].king_square = G8_BIT;
-            position.mover = WHITE;
-            position.move_number += 1;
-            position.half_moves += 1;
+            CASTLE_INDEX_BLACK_KING
         },
         BLACK_QUEEN_CASTLE_MOVE => {
-            position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
-            position.pieces[BLACK as usize].rook_bitboard ^= 0b1001000000000000000000000000000000000000000000000000000000000000;
-            position.pieces[BLACK as usize].all_pieces_bitboard ^= 0b1011100000000000000000000000000000000000000000000000000000000000;
-            position.pieces[BLACK as usize].king_square = C8_BIT;
-            position.mover = WHITE;
-            position.move_number += 1;
-            position.half_moves += 1;
+            CASTLE_INDEX_BLACK_QUEEN
         },
         _ => {
-            panic!("Was expecting a castle move")
+            panic!("Was expecting a castle move");
         }
-    }
+    };
+
+    perform_castle(position, index);
+}
+
+#[inline(always)]
+pub fn perform_castle(position: &mut Position, index: usize) {
+    position.castle_flags &= CASTLE_VARS_CLEAR_FLAGS_MASK[index];
+    position.pieces[position.mover as usize].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[index];
+    position.pieces[position.mover as usize].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[index];
+    position.pieces[position.mover as usize].king_square = CASTLE_VARS_KING_TO[index];
+    position.mover = CASTLE_VARS_NEW_MOVER[index];
+    position.half_moves += 1;
+    position.move_number += CASTLE_VARS_FULL_MOVE_INC[index];
 }
 
 #[inline(always)]
@@ -249,11 +278,7 @@ pub fn make_king_move(position: &mut Position, from: Square, to: Square) {
     let switch = bit(from) | to_mask;
     friendly.all_pieces_bitboard ^= switch;
 
-    if position.mover == WHITE {
-        position.castle_flags &= !(WK_CASTLE | WQ_CASTLE)
-    } else {
-        position.castle_flags &= !(BK_CASTLE | BQ_CASTLE)
-    }
+    position.castle_flags &= CLEAR_CASTLE_FLAGS_MASK[position.mover as usize];
     friendly.king_square = to;
 
     position.move_number += position.mover as u16;
