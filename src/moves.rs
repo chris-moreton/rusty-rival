@@ -120,22 +120,22 @@ pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked
 
 #[inline(always)]
 pub fn is_square_attacked_by_straight_slider(position: &Position, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
-    if attacking_sliders == 0 { return false }
+    // anything to check?
+    attacking_sliders > 0 &&
     // quick look
-    if ROOK_RAYS[attacked_square as usize] & attacking_sliders == 0 { return false }
+    ROOK_RAYS[attacked_square as usize] & attacking_sliders > 0 &&
     // proper look, considering blockers
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    magic_moves_rook(attacked_square, all_pieces) & attacking_sliders != 0
+    magic_moves_rook(attacked_square, position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & attacking_sliders != 0
 }
 
 #[inline(always)]
 pub fn is_square_attacked_by_diagonal_slider(position: &Position, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
-    if attacking_sliders == 0 { return false }
+    // anything to check?
+    attacking_sliders > 0 &&
     // quick look
-    if BISHOP_RAYS[attacked_square as usize] & attacking_sliders == 0 { return false }
+    BISHOP_RAYS[attacked_square as usize] & attacking_sliders > 0 &&
     // proper look, considering blockers
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    magic_moves_bishop(attacked_square, all_pieces) & attacking_sliders != 0
+    magic_moves_bishop(attacked_square, position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & attacking_sliders != 0
 }
 
 #[inline(always)]

@@ -68,8 +68,6 @@ fn make_castle_move(mv: Move, position: &mut Position) {
             panic!("Was expecting a castle move");
         }
     };
-
-
 }
 
 #[inline(always)]
