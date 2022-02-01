@@ -1,7 +1,7 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT};
 use crate::move_constants::*;
 use crate::{opponent};
-use crate::types::{BLACK, Move, Position, Square, WHITE};
+use crate::types::{Bitboard, BLACK, Move, Position, Square, WHITE};
 use crate::utils::{from_square_part, to_square_part};
 
 #[inline(always)]
@@ -14,38 +14,33 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
     let piece_mask = mv & PIECE_MASK_FULL;
 
-    unsafe {
-
-        match piece_mask {
-            PIECE_MASK_PAWN => {
-                if mv & PROMOTION_FULL_MOVE_MASK != 0 {
-                    make_move_with_promotion(new_position, from, to, mv & PROMOTION_FULL_MOVE_MASK);
-                    new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
-                } else if (position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard) & bit(to) != 0 || (piece_mask == PIECE_MASK_PAWN && (from - to) % 8 != 0) {
-                    make_non_simple_pawn_move(new_position, from, to);
-                    new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
-                } else {
-                    make_simple_pawn_move(new_position, from, to)
-                }
-            },
-            PIECE_MASK_KING => {
-                if from == E1_BIT && (to == G1_BIT || to == C1_BIT) {
-                    make_white_castle_move(new_position, to);
-                } else if from == E8_BIT && (to == G8_BIT || to == C8_BIT) {
-                    make_black_castle_move(new_position, to);
-                } else {
-                    make_king_move(new_position, from, to)
-                }
-                new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
-            },
-            _ => {
-                if (position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard) & bit(to) != 0 {
-                    make_non_pawn_or_king_capture_move(new_position, from, to, piece_mask);
-                } else {
-                    make_simple_non_pawn_move(new_position, from, to, piece_mask);
-                };
-                new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+    match piece_mask {
+        PIECE_MASK_PAWN => {
+            if mv & PROMOTION_FULL_MOVE_MASK != 0 {
+                make_move_with_promotion(new_position, from, to, mv & PROMOTION_FULL_MOVE_MASK);
+            } else if all_pieces(position) & bit(to) != 0 || ((from - to) % 8 != 0) {
+                make_non_simple_pawn_move(new_position, from, to);
+            } else {
+                make_simple_pawn_move(new_position, from, to)
             }
+        },
+        PIECE_MASK_KING => {
+            if from == E1_BIT && (to == G1_BIT || to == C1_BIT) {
+                make_white_castle_move(new_position, to);
+            } else if from == E8_BIT && (to == G8_BIT || to == C8_BIT) {
+                make_black_castle_move(new_position, to);
+            } else {
+                make_king_move(new_position, from, to)
+            }
+            new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+        },
+        _ => {
+            if all_pieces(position) & bit(to) != 0 {
+                make_non_pawn_or_king_capture_move(new_position, from, to, piece_mask);
+            } else {
+                make_simple_non_pawn_move(new_position, from, to, piece_mask);
+            };
+            new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         }
     }
 
@@ -185,6 +180,8 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     if to == H1_BIT { position.castle_flags &= !WK_CASTLE }
     if to == A1_BIT { position.castle_flags &= !WQ_CASTLE }
 
+    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+
     position.half_moves = 0;
 }
 
@@ -273,6 +270,8 @@ pub fn make_non_simple_pawn_move(position: &mut Position, from: Square, to: Squa
     friendly.all_pieces_bitboard ^= switch;
     friendly.pawn_bitboard ^= switch;
 
+    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+
     if to == H1_BIT { position.castle_flags &= !WK_CASTLE }
     if to == A1_BIT { position.castle_flags &= !WQ_CASTLE }
     if to == H8_BIT { position.castle_flags &= !BK_CASTLE }
@@ -332,3 +331,9 @@ pub fn en_passant_captured_piece_square(square: Square) -> Square {
     square + if square < 40 { 8 } else { -8 }
 }
 
+#[inline(always)]
+pub fn all_pieces(position: &Position) -> Bitboard {
+    unsafe {
+        position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard
+    }
+}
