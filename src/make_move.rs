@@ -23,14 +23,21 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             } else {
                 make_simple_pawn_move(new_position, from, to)
             }
+            new_position.move_number += if position.mover == WHITE { 0 } else { 1 };
+            new_position.mover = opponent!(position.mover);
         },
         PIECE_MASK_KING => {
             if from == E1_BIT && (to == G1_BIT || to == C1_BIT) {
                 make_white_castle_move(new_position, to);
+                new_position.mover = BLACK;
             } else if from == E8_BIT && (to == G8_BIT || to == C8_BIT) {
                 make_black_castle_move(new_position, to);
+                new_position.move_number += 1;
+                new_position.mover = WHITE;
             } else {
-                make_king_move(new_position, from, to)
+                make_king_move(new_position, from, to);
+                new_position.move_number += if position.mover == WHITE { 0 } else { 1 };
+                new_position.mover = opponent!(position.mover);
             }
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         },
@@ -41,11 +48,11 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
                 make_simple_non_pawn_move(new_position, from, to, piece_mask);
             };
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+            new_position.move_number += if position.mover == WHITE { 0 } else { 1 };
+            new_position.mover = opponent!(position.mover);
         }
     }
 
-    new_position.move_number += if position.mover == WHITE { 0 } else { 1 };
-    new_position.mover = opponent!(position.mover);
 }
 
 #[inline(always)]
