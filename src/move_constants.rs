@@ -1,5 +1,5 @@
-use crate::bitboards::{A1_BIT, A8_BIT, bit, E1_BIT, E8_BIT, H1_BIT, H8_BIT};
-use crate::types::{Bitboard, Move, Square};
+use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT};
+use crate::types::{Bitboard, BLACK, Move, Mover, Square, WHITE};
 use crate::utils::from_square_mask;
 
 pub const PROMOTION_QUEEN_MOVE_MASK: Move = 192;
@@ -59,23 +59,47 @@ pub const KING_ROOK_START: [Square; 2] = [H1_BIT, H8_BIT];
 pub const QUEEN_ROOK_START: [Square; 2] = [A1_BIT, A8_BIT];
 pub const KING_START: [Square; 2] = [E1_BIT, E8_BIT];
 
+pub const CASTLE_INDEX_WHITE_KING: usize = 0;
+pub const CASTLE_INDEX_WHITE_QUEEN: usize = 1;
+pub const CASTLE_INDEX_BLACK_KING: usize = 2;
+pub const CASTLE_INDEX_BLACK_QUEEN: usize = 3;
+
+pub const CASTLE_VARS_ROOK_MASK: [Bitboard; 4] = [
+    0b0000000000000000000000000000000000000000000000000000000000000101,
+    0b0000000000000000000000000000000000000000000000000000000010010000,
+    0b0000010100000000000000000000000000000000000000000000000000000000,
+    0b1001000000000000000000000000000000000000000000000000000000000000,
+];
+
+pub const CASTLE_VARS_ALL_PIECES_MASK: [Bitboard; 4] = [
+    0b0000000000000000000000000000000000000000000000000000000000001111,
+    0b0000000000000000000000000000000000000000000000000000000010111000,
+    0b0000111100000000000000000000000000000000000000000000000000000000,
+    0b1011100000000000000000000000000000000000000000000000000000000000,
+];
+
+pub const CASTLE_VARS_KING_TO: [Square; 4] = [
+    G1_BIT, C1_BIT, G8_BIT, C8_BIT,
+];
+
+pub const CASTLE_VARS_CLEAR_FLAGS_MASK: [u8; 4] = [
+    !(WK_CASTLE | WQ_CASTLE),
+    !(WK_CASTLE | WQ_CASTLE),
+    !(BK_CASTLE | BQ_CASTLE),
+    !(BK_CASTLE | BQ_CASTLE),
+];
+
+pub const CASTLE_VARS_NEW_MOVER: [Mover; 4] = [
+    BLACK, BLACK, WHITE, WHITE,
+];
+
+pub const CASTLE_VARS_FULL_MOVE_INC: [u16; 4] = [
+    0, 0, 1, 1,
+];
+
 pub const EN_PASSANT_CAPTURE_MASK: [Bitboard; 64] = [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
     !(bit(16) << 8),
     !(bit(17) << 8),
     !(bit(18) << 8),
@@ -84,22 +108,8 @@ pub const EN_PASSANT_CAPTURE_MASK: [Bitboard; 64] = [
     !(bit(21) << 8),
     !(bit(22) << 8),
     !(bit(23) << 8),
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
     !(bit(40) >> 8),
     !(bit(41) >> 8),
     !(bit(42) >> 8),
@@ -108,20 +118,6 @@ pub const EN_PASSANT_CAPTURE_MASK: [Bitboard; 64] = [
     !(bit(45) >> 8),
     !(bit(46) >> 8),
     !(bit(47) >> 8),
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
 ];

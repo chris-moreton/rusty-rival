@@ -1,7 +1,7 @@
-use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT};
+use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT};
 use crate::move_constants::*;
 use crate::{opponent};
-use crate::types::{Bitboard, BLACK, Move, Mover, Position, Square, WHITE};
+use crate::types::{Bitboard, BLACK, Move, Position, Square, WHITE};
 use crate::utils::{from_square_part, to_square_part};
 
 #[inline(always)]
@@ -48,66 +48,28 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
 }
 
-pub const CASTLE_INDEX_WHITE_KING: usize = 0;
-pub const CASTLE_INDEX_WHITE_QUEEN: usize = 1;
-pub const CASTLE_INDEX_BLACK_KING: usize = 2;
-pub const CASTLE_INDEX_BLACK_QUEEN: usize = 3;
-
-pub const CASTLE_VARS_ROOK_MASK: [Bitboard; 4] = [
-    0b0000000000000000000000000000000000000000000000000000000000000101,
-    0b0000000000000000000000000000000000000000000000000000000010010000,
-    0b0000010100000000000000000000000000000000000000000000000000000000,
-    0b1001000000000000000000000000000000000000000000000000000000000000,
-];
-
-pub const CASTLE_VARS_ALL_PIECES_MASK: [Bitboard; 4] = [
-    0b0000000000000000000000000000000000000000000000000000000000001111,
-    0b0000000000000000000000000000000000000000000000000000000010111000,
-    0b0000111100000000000000000000000000000000000000000000000000000000,
-    0b1011100000000000000000000000000000000000000000000000000000000000,
-];
-
-pub const CASTLE_VARS_KING_TO: [Square; 4] = [
-    G1_BIT, C1_BIT, G8_BIT, C8_BIT,
-];
-
-pub const CASTLE_VARS_CLEAR_FLAGS_MASK: [u8; 4] = [
-    !(WK_CASTLE | WQ_CASTLE),
-    !(WK_CASTLE | WQ_CASTLE),
-    !(BK_CASTLE | BQ_CASTLE),
-    !(BK_CASTLE | BQ_CASTLE),
-];
-
-pub const CASTLE_VARS_NEW_MOVER: [Mover; 4] = [
-    BLACK, BLACK, WHITE, WHITE,
-];
-
-pub const CASTLE_VARS_FULL_MOVE_INC: [u16; 4] = [
-    0, 0, 1, 1,
-];
-
 #[inline(always)]
 fn make_castle_move(mv: Move, position: &mut Position) {
 
-    let index: usize = match mv {
+    match mv {
         WHITE_KING_CASTLE_MOVE => {
-            CASTLE_INDEX_WHITE_KING
+            perform_castle(position, CASTLE_INDEX_WHITE_KING);
         },
         WHITE_QUEEN_CASTLE_MOVE => {
-            CASTLE_INDEX_WHITE_QUEEN
+            perform_castle(position, CASTLE_INDEX_WHITE_QUEEN);
         },
         BLACK_KING_CASTLE_MOVE => {
-            CASTLE_INDEX_BLACK_KING
+            perform_castle(position, CASTLE_INDEX_BLACK_KING);
         },
         BLACK_QUEEN_CASTLE_MOVE => {
-            CASTLE_INDEX_BLACK_QUEEN
+            perform_castle(position, CASTLE_INDEX_BLACK_QUEEN);
         },
         _ => {
             panic!("Was expecting a castle move");
         }
     };
 
-    perform_castle(position, index);
+
 }
 
 #[inline(always)]
