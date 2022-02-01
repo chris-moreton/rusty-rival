@@ -19,7 +19,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             if mv & PROMOTION_FULL_MOVE_MASK != 0 {
                 make_move_with_promotion(new_position, from, to, mv & PROMOTION_FULL_MOVE_MASK);
             } else if (from - to) % 8 != 0 {
-                make_non_simple_pawn_move(new_position, from, to);
+                make_pawn_capture_move(new_position, from, to);
             } else {
                 make_simple_pawn_move(new_position, from, to)
             }
@@ -38,7 +38,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             if all_pieces(position) & bit(to) != 0 {
                 make_non_pawn_non_king_capture_move(new_position, from, to, piece_mask);
             } else {
-                make_simple_non_pawn_non_king_move(new_position, from, to, piece_mask);
+                make_non_pawn_non_king_non_capture_move(new_position, from, to, piece_mask);
             };
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
             new_position.move_number += position.mover as u16;
@@ -112,19 +112,17 @@ fn make_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
 }
 
 #[inline(always)]
-fn make_simple_non_pawn_non_king_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
-
-    let friendly = &mut position.pieces[position.mover as usize];
+fn make_non_pawn_non_king_non_capture_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
 
     let switch = bit(from) | bit(to);
-    friendly.all_pieces_bitboard ^= switch;
+    position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
 
     position.half_moves += 1;
     match piece_mask {
-        PIECE_MASK_KNIGHT => friendly.knight_bitboard ^= switch,
-        PIECE_MASK_BISHOP => friendly.bishop_bitboard ^= switch,
+        PIECE_MASK_KNIGHT => position.pieces[position.mover as usize].knight_bitboard ^= switch,
+        PIECE_MASK_BISHOP => position.pieces[position.mover as usize].bishop_bitboard ^= switch,
         PIECE_MASK_ROOK => {
-            friendly.rook_bitboard ^= switch;
+            position.pieces[position.mover as usize].rook_bitboard ^= switch;
             if position.castle_flags != 0 {
                 if from == H1_BIT { position.castle_flags &= !WK_CASTLE }
                 if from == A1_BIT { position.castle_flags &= !WQ_CASTLE }
@@ -132,7 +130,7 @@ fn make_simple_non_pawn_non_king_move(position: &mut Position, from: Square, to:
                 if from == A8_BIT { position.castle_flags &= !BQ_CASTLE }
             }
         },
-        PIECE_MASK_QUEEN => friendly.queen_bitboard ^= switch,
+        PIECE_MASK_QUEEN => position.pieces[position.mover as usize].queen_bitboard ^= switch,
         _ => panic!("Piece panic")
     }
 }
@@ -192,19 +190,7 @@ pub fn make_non_pawn_non_king_capture_move(position: &mut Position, from: Square
 
     let to_mask = bit(to);
 
-    if (position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & to_mask != 0 {
-        let enemy = &mut position.pieces[opponent!(position.mover) as usize];
-        position.half_moves = 0;
-        let to_mask_inverted = !to_mask;
-        enemy.pawn_bitboard &= to_mask_inverted;
-        enemy.knight_bitboard &= to_mask_inverted;
-        enemy.bishop_bitboard &= to_mask_inverted;
-        enemy.rook_bitboard &= to_mask_inverted;
-        enemy.queen_bitboard &= to_mask_inverted;
-        enemy.all_pieces_bitboard &= to_mask_inverted;
-    } else {
-        position.half_moves += 1;
-    }
+    remove_captured_piece(position, to_mask);
 
     let friendly = &mut position.pieces[position.mover as usize];
 
@@ -234,9 +220,8 @@ pub fn make_non_pawn_non_king_capture_move(position: &mut Position, from: Square
 }
 
 #[inline(always)]
-pub fn make_non_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
+pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square) {
 
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let enemy = &mut position.pieces[opponent!(position.mover) as usize];
 
     position.half_moves = 0;
@@ -247,7 +232,7 @@ pub fn make_non_simple_pawn_move(position: &mut Position, from: Square, to: Squa
         let pawn_off = EN_PASSANT_CAPTURE_MASK[to as usize];
         enemy.pawn_bitboard &= pawn_off;
         enemy.all_pieces_bitboard &= pawn_off;
-    } else if all_pieces & to_mask != 0 {
+    } else {
         let to_mask_inverted = !to_mask;
         enemy.pawn_bitboard &= to_mask_inverted;
         enemy.knight_bitboard &= to_mask_inverted;
@@ -257,11 +242,9 @@ pub fn make_non_simple_pawn_move(position: &mut Position, from: Square, to: Squa
         enemy.all_pieces_bitboard &= to_mask_inverted;
     }
 
-    let friendly = &mut position.pieces[position.mover as usize];
-
     let switch = bit(from) | to_mask;
-    friendly.all_pieces_bitboard ^= switch;
-    friendly.pawn_bitboard ^= switch;
+    position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
+    position.pieces[position.mover as usize].pawn_bitboard ^= switch;
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
@@ -272,23 +255,9 @@ pub fn make_non_simple_pawn_move(position: &mut Position, from: Square, to: Squa
 #[inline(always)]
 pub fn make_king_move(position: &mut Position, from: Square, to: Square) {
 
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    let enemy = &mut position.pieces[opponent!(position.mover) as usize];
-
     let to_mask = bit(to);
 
-    if all_pieces & to_mask != 0 {
-        position.half_moves = 0;
-        let to_mask_inverted = !to_mask;
-        enemy.pawn_bitboard &= to_mask_inverted;
-        enemy.knight_bitboard &= to_mask_inverted;
-        enemy.bishop_bitboard &= to_mask_inverted;
-        enemy.rook_bitboard &= to_mask_inverted;
-        enemy.queen_bitboard &= to_mask_inverted;
-        enemy.all_pieces_bitboard &= to_mask_inverted;
-    } else {
-        position.half_moves += 1;
-    }
+    remove_captured_piece(position, to_mask);
 
     let friendly = &mut position.pieces[position.mover as usize];
 
@@ -305,6 +274,23 @@ pub fn make_king_move(position: &mut Position, from: Square, to: Square) {
     position.move_number += position.mover as u16;
     position.mover = opponent!(position.mover);
 
+}
+
+#[inline(always)]
+fn remove_captured_piece(position: &mut Position, to_mask: Bitboard) {
+    if (position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & to_mask != 0 {
+        let enemy = &mut position.pieces[opponent!(position.mover) as usize];
+        position.half_moves = 0;
+        let to_mask_inverted = !to_mask;
+        enemy.pawn_bitboard &= to_mask_inverted;
+        enemy.knight_bitboard &= to_mask_inverted;
+        enemy.bishop_bitboard &= to_mask_inverted;
+        enemy.rook_bitboard &= to_mask_inverted;
+        enemy.queen_bitboard &= to_mask_inverted;
+        enemy.all_pieces_bitboard &= to_mask_inverted;
+    } else {
+        position.half_moves += 1;
+    }
 }
 
 #[inline(always)]
