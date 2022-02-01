@@ -1,7 +1,7 @@
 use std::mem;
 use rusty_rival::fen::{get_position, move_from_algebraic_move};
 use rusty_rival::make_move::{make_move};
-use rusty_rival::move_constants::{PIECE_MASK_KING, PIECE_MASK_PAWN, PIECE_MASK_ROOK};
+use rusty_rival::move_constants::{BLACK_QUEEN_CASTLE_MOVE, PIECE_MASK_KING, PIECE_MASK_PAWN, PIECE_MASK_ROOK, WHITE_KING_CASTLE_MOVE};
 use rusty_rival::types::{Position};
 
 #[test]
@@ -14,7 +14,7 @@ pub fn it_makes_a_move() {
         assert_eq!(get_position(&"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1".to_string()), *new_position.as_ptr());
 
         let original_position = &get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1".to_string());
-        make_move(original_position, move_from_algebraic_move("e1g1".to_string(), PIECE_MASK_KING), &mut *new_position.as_mut_ptr());
+        make_move(original_position, WHITE_KING_CASTLE_MOVE, &mut *new_position.as_mut_ptr());
         assert_eq!(get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQ1RK1 b kq - 1 1".to_string()), *new_position.as_ptr());
 
         let original_position = &get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1".to_string());
@@ -26,7 +26,7 @@ pub fn it_makes_a_move() {
         assert_eq!(get_position(&"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQK2R b KQkq - 0 1".to_string()), *new_position.as_ptr());
 
         let original_position = &get_position(&"r3k2r/pppppppp/2n1b3/2bn1q2/8/4P3/PPPP1PPP/RNBQK2R b KQq - 0 1".to_string());
-        make_move(original_position, move_from_algebraic_move("e8c8".to_string(), PIECE_MASK_KING), &mut *new_position.as_mut_ptr());
+        make_move(original_position, BLACK_QUEEN_CASTLE_MOVE, &mut *new_position.as_mut_ptr());
         assert_eq!(get_position(&"2kr3r/pppppppp/2n1b3/2bn1q2/8/4P3/PPPP1PPP/RNBQK2R w KQ - 1 2".to_string()), *new_position.as_ptr());
 
         let original_position = &get_position(&"r3k2r/pppppppp/2n1b3/2bn1q2/8/4P3/PPPP1PPP/RNBQK2R b KQq - 0 1".to_string());
