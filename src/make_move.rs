@@ -123,12 +123,7 @@ fn make_non_pawn_non_king_non_capture_move(position: &mut Position, from: Square
         PIECE_MASK_BISHOP => position.pieces[position.mover as usize].bishop_bitboard ^= switch,
         PIECE_MASK_ROOK => {
             position.pieces[position.mover as usize].rook_bitboard ^= switch;
-            if position.castle_flags != 0 {
-                if from == H1_BIT { position.castle_flags &= !WK_CASTLE }
-                if from == A1_BIT { position.castle_flags &= !WQ_CASTLE }
-                if from == H8_BIT { position.castle_flags &= !BK_CASTLE }
-                if from == A8_BIT { position.castle_flags &= !BQ_CASTLE }
-            }
+            update_castle_flags_if_square(position, from);
         },
         PIECE_MASK_QUEEN => position.pieces[position.mover as usize].queen_bitboard ^= switch,
         _ => panic!("Piece panic")
@@ -165,7 +160,7 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
         enemy.all_pieces_bitboard &= not_bit_to;
     }
 
-    update_castle_flags_on_capture(position, to);
+    update_castle_flags_if_square(position, to);
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
@@ -173,9 +168,9 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
 }
 
 #[inline(always)]
-fn update_castle_flags_on_capture(position: &mut Position, to: Square) {
+fn update_castle_flags_if_square(position: &mut Position, sq: Square) {
     if position.castle_flags != 0 {
-        match to {
+        match sq {
             H8_BIT => { position.castle_flags &= !BK_CASTLE },
             A8_BIT => { position.castle_flags &= !BQ_CASTLE },
             H1_BIT => { position.castle_flags &= !WK_CASTLE },
@@ -192,31 +187,21 @@ pub fn make_non_pawn_non_king_capture_move(position: &mut Position, from: Square
 
     remove_captured_piece(position, to_mask);
 
-    let friendly = &mut position.pieces[position.mover as usize];
-
     let switch = bit(from) | to_mask;
-    friendly.all_pieces_bitboard ^= switch;
+    position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
 
     match piece {
-        PIECE_MASK_KNIGHT => friendly.knight_bitboard ^= switch,
-        PIECE_MASK_BISHOP => friendly.bishop_bitboard ^= switch,
+        PIECE_MASK_KNIGHT => position.pieces[position.mover as usize].knight_bitboard ^= switch,
+        PIECE_MASK_BISHOP => position.pieces[position.mover as usize].bishop_bitboard ^= switch,
         PIECE_MASK_ROOK => {
-            if position.castle_flags != 0 {
-                match from {
-                    H8_BIT => { position.castle_flags &= !BK_CASTLE },
-                    A8_BIT => { position.castle_flags &= !BQ_CASTLE },
-                    H1_BIT => { position.castle_flags &= !WK_CASTLE },
-                    A1_BIT => { position.castle_flags &= !WQ_CASTLE },
-                    _ => {}
-                }
-            }
-            friendly.rook_bitboard ^= switch
+            update_castle_flags_if_square(position, from);
+            position.pieces[position.mover as usize].rook_bitboard ^= switch
         },
-        PIECE_MASK_QUEEN => friendly.queen_bitboard ^= switch,
+        PIECE_MASK_QUEEN => position.pieces[position.mover as usize].queen_bitboard ^= switch,
         _ => panic!("Unexpected piece")
     }
 
-    update_castle_flags_on_capture(position, to);
+    update_castle_flags_if_square(position, to);
 }
 
 #[inline(always)]
@@ -248,7 +233,7 @@ pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square)
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
-    update_castle_flags_on_capture(position, to);
+    update_castle_flags_if_square(position, to);
 
 }
 
@@ -272,7 +257,7 @@ pub fn make_king_move(position: &mut Position, from: Square, to: Square) {
     friendly.king_square = to;
 
     position.move_number += position.mover as u16;
-    position.mover = opponent!(position.mover);
+    position.mover ^= 1;
 
 }
 
