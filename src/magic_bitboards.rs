@@ -4,18 +4,14 @@ use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
 
 #[inline(always)]
 pub fn magic_moves_rook(from_square: Square, all_piece_bitboard: Bitboard) -> Bitboard {
-    unsafe {
-        let (number, mask, shifts) = NUMBER_MASKS_SHIFTS_ROOK.get_unchecked(from_square as usize);
-        MAGIC_MOVES_ROOK.get_unchecked(from_square as usize)[(((all_piece_bitboard & mask) * number) >> shifts) as usize]
-    }
+    let (number, mask, shifts) = NUMBER_MASKS_SHIFTS_ROOK[from_square as usize];
+    MAGIC_MOVES_ROOK[from_square as usize][(((all_piece_bitboard & mask) * number) >> shifts) as usize]
 }
 
 #[inline(always)]
 pub fn magic_moves_bishop(from_square: Square, all_piece_bitboard: Bitboard) -> Bitboard {
-    unsafe {
-        let (number, mask, shifts) = NUMBER_MASKS_SHIFTS_BISHOP.get_unchecked(from_square as usize);
-        MAGIC_MOVES_BISHOP.get_unchecked(from_square as usize)[(((all_piece_bitboard & mask) * number) >> shifts) as usize]
-    }
+    let (number, mask, shifts) = NUMBER_MASKS_SHIFTS_BISHOP[from_square as usize];
+    MAGIC_MOVES_BISHOP[from_square as usize][(((all_piece_bitboard & mask) * number) >> shifts) as usize]
 }
 
 pub const NUMBER_MASKS_SHIFTS_ROOK: [(Bitboard, Bitboard, u8); 64] = [
