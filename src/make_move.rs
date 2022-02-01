@@ -1,4 +1,4 @@
-use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT};
+use crate::bitboards::{A1_BIT, A8_BIT, bit, C1_BIT, C8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT};
 use crate::move_constants::*;
 use crate::{opponent};
 use crate::types::{Bitboard, BLACK, Move, Position, Square, WHITE};
@@ -27,52 +27,18 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             new_position.mover = opponent!(position.mover);
         },
         PIECE_MASK_KING => {
-            let friendly = unsafe {
-                &mut new_position.pieces.get_unchecked_mut(position.mover as usize)
-            };
-            friendly.king_square = to;
-            match mv {
-                WHITE_KING_CASTLE_MOVE => {
-                    new_position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
-                    friendly.rook_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000000000101;
-                    friendly.all_pieces_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000000001111;
-                    new_position.mover = BLACK;
-                    new_position.half_moves += 1;
-                },
-                WHITE_QUEEN_CASTLE_MOVE => {
-                    new_position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
-                    friendly.rook_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000010010000;
-                    friendly.all_pieces_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000010111000;
-                    new_position.mover = BLACK;
-                    new_position.half_moves += 1;
-                },
-                BLACK_KING_CASTLE_MOVE => {
-                    new_position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
-                    friendly.rook_bitboard ^= 0b0000010100000000000000000000000000000000000000000000000000000000;
-                    friendly.all_pieces_bitboard ^= 0b0000111100000000000000000000000000000000000000000000000000000000;
-                    new_position.mover = WHITE;
-                    new_position.move_number += 1;
-                    new_position.half_moves += 1;
-                },
-                BLACK_QUEEN_CASTLE_MOVE => {
-                    new_position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
-                    friendly.rook_bitboard ^= 0b1001000000000000000000000000000000000000000000000000000000000000;
-                    friendly.all_pieces_bitboard ^= 0b1011100000000000000000000000000000000000000000000000000000000000;
-                    new_position.mover = WHITE;
-                    new_position.move_number += 1;
-                    new_position.half_moves += 1;
-                },
-                _ => {
-                    make_king_move(new_position, from, to);
-                }
+            if mv >= BLACK_QUEEN_CASTLE_MOVE_MASK {
+                make_castle_move(mv, new_position)
+            } else {
+                make_king_move(new_position, from, to);
             }
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         },
         _ => {
             if all_pieces(position) & bit(to) != 0 {
-                make_non_pawn_or_king_capture_move(new_position, from, to, piece_mask);
+                make_non_pawn_non_king_capture_move(new_position, from, to, piece_mask);
             } else {
-                make_simple_non_pawn_or_king_move(new_position, from, to, piece_mask);
+                make_simple_non_pawn_non_king_move(new_position, from, to, piece_mask);
             };
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
             new_position.move_number += position.mover as u16;
@@ -80,6 +46,50 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
         }
     }
 
+}
+
+#[inline(always)]
+fn make_castle_move(mv: Move, position: &mut Position) {
+
+    match mv {
+        WHITE_KING_CASTLE_MOVE => {
+            position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
+            position.pieces[WHITE as usize].rook_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000000000101;
+            position.pieces[WHITE as usize].all_pieces_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000000001111;
+            position.pieces[WHITE as usize].king_square = G1_BIT;
+            position.mover = BLACK;
+            position.half_moves += 1;
+        },
+        WHITE_QUEEN_CASTLE_MOVE => {
+            position.castle_flags &= !(WK_CASTLE | WQ_CASTLE);
+            position.pieces[WHITE as usize].rook_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000010010000;
+            position.pieces[WHITE as usize].all_pieces_bitboard ^= 0b0000000000000000000000000000000000000000000000000000000010111000;
+            position.pieces[WHITE as usize].king_square = C1_BIT;
+            position.mover = BLACK;
+            position.half_moves += 1;
+        },
+        BLACK_KING_CASTLE_MOVE => {
+            position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
+            position.pieces[BLACK as usize].rook_bitboard ^= 0b0000010100000000000000000000000000000000000000000000000000000000;
+            position.pieces[BLACK as usize].all_pieces_bitboard ^= 0b0000111100000000000000000000000000000000000000000000000000000000;
+            position.pieces[BLACK as usize].king_square = G8_BIT;
+            position.mover = WHITE;
+            position.move_number += 1;
+            position.half_moves += 1;
+        },
+        BLACK_QUEEN_CASTLE_MOVE => {
+            position.castle_flags &= !(BK_CASTLE | BQ_CASTLE);
+            position.pieces[BLACK as usize].rook_bitboard ^= 0b1001000000000000000000000000000000000000000000000000000000000000;
+            position.pieces[BLACK as usize].all_pieces_bitboard ^= 0b1011100000000000000000000000000000000000000000000000000000000000;
+            position.pieces[BLACK as usize].king_square = C8_BIT;
+            position.mover = WHITE;
+            position.move_number += 1;
+            position.half_moves += 1;
+        },
+        _ => {
+            panic!("Was expecting a castle move")
+        }
+    }
 }
 
 #[inline(always)]
@@ -104,7 +114,7 @@ fn make_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
 }
 
 #[inline(always)]
-fn make_simple_non_pawn_or_king_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
+fn make_simple_non_pawn_non_king_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
 
     let friendly = unsafe {
         &mut position.pieces.get_unchecked_mut(position.mover as usize)
@@ -168,13 +178,7 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
         enemy.all_pieces_bitboard &= not_bit_to;
     }
 
-    match to {
-        H8_BIT => { position.castle_flags &= !BK_CASTLE },
-        A8_BIT => { position.castle_flags &= !BQ_CASTLE },
-        H1_BIT => { position.castle_flags &= !WK_CASTLE },
-        A1_BIT => { position.castle_flags &= !WQ_CASTLE },
-        _ => {}
-    }
+    update_castle_flags_on_capture(position, to);
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
@@ -182,7 +186,20 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
 }
 
 #[inline(always)]
-pub fn make_non_pawn_or_king_capture_move(position: &mut Position, from: Square, to: Square, piece: Move) {
+fn update_castle_flags_on_capture(position: &mut Position, to: Square) {
+    if position.castle_flags != 0 {
+        match to {
+            H8_BIT => { position.castle_flags &= !BK_CASTLE },
+            A8_BIT => { position.castle_flags &= !BQ_CASTLE },
+            H1_BIT => { position.castle_flags &= !WK_CASTLE },
+            A1_BIT => { position.castle_flags &= !WQ_CASTLE },
+            _ => {}
+        }
+    }
+}
+
+#[inline(always)]
+pub fn make_non_pawn_non_king_capture_move(position: &mut Position, from: Square, to: Square, piece: Move) {
 
     let all_pieces = unsafe {
         position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard
@@ -217,16 +234,23 @@ pub fn make_non_pawn_or_king_capture_move(position: &mut Position, from: Square,
     match piece {
         PIECE_MASK_KNIGHT => friendly.knight_bitboard ^= switch,
         PIECE_MASK_BISHOP => friendly.bishop_bitboard ^= switch,
-        PIECE_MASK_ROOK => friendly.rook_bitboard ^= switch,
+        PIECE_MASK_ROOK => {
+            if position.castle_flags != 0 {
+                match from {
+                    H8_BIT => { position.castle_flags &= !BK_CASTLE },
+                    A8_BIT => { position.castle_flags &= !BQ_CASTLE },
+                    H1_BIT => { position.castle_flags &= !WK_CASTLE },
+                    A1_BIT => { position.castle_flags &= !WQ_CASTLE },
+                    _ => {}
+                }
+            }
+            friendly.rook_bitboard ^= switch
+        },
         PIECE_MASK_QUEEN => friendly.queen_bitboard ^= switch,
         _ => panic!("Unexpected piece")
     }
 
-    if switch & bit(H1_BIT) != 0 { position.castle_flags &= !WK_CASTLE }
-    if switch & bit(A1_BIT) != 0 { position.castle_flags &= !WQ_CASTLE }
-    if switch & bit(H8_BIT) != 0 { position.castle_flags &= !BK_CASTLE }
-    if switch & bit(A8_BIT) != 0 { position.castle_flags &= !BQ_CASTLE }
-
+    update_castle_flags_on_capture(position, to);
 }
 
 #[inline(always)]
@@ -268,10 +292,7 @@ pub fn make_non_simple_pawn_move(position: &mut Position, from: Square, to: Squa
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
-    if to == H1_BIT { position.castle_flags &= !WK_CASTLE }
-    if to == A1_BIT { position.castle_flags &= !WQ_CASTLE }
-    if to == H8_BIT { position.castle_flags &= !BK_CASTLE }
-    if to == A8_BIT { position.castle_flags &= !BQ_CASTLE }
+    update_castle_flags_on_capture(position, to);
 
 }
 
