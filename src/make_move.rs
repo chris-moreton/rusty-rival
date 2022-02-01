@@ -201,17 +201,12 @@ fn update_castle_flags_on_capture(position: &mut Position, to: Square) {
 #[inline(always)]
 pub fn make_non_pawn_non_king_capture_move(position: &mut Position, from: Square, to: Square, piece: Move) {
 
-    let all_pieces = unsafe {
-        position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard
-    };
-
-    let enemy = unsafe {
-        &mut position.pieces.get_unchecked_mut(opponent!(position.mover) as usize)
-    };
-
     let to_mask = bit(to);
 
-    if all_pieces & to_mask != 0 {
+    if unsafe { position.pieces.get_unchecked(WHITE as usize).all_pieces_bitboard | position.pieces.get_unchecked(BLACK as usize).all_pieces_bitboard } & to_mask != 0 {
+        let enemy = unsafe {
+            &mut position.pieces.get_unchecked_mut(opponent!(position.mover) as usize)
+        };
         position.half_moves = 0;
         let to_mask_inverted = !to_mask;
         enemy.pawn_bitboard &= to_mask_inverted;
