@@ -13,10 +13,6 @@ pub fn it_makes_a_move() {
         make_move(original_position, move_from_algebraic_move("e2e3".to_string(), PIECE_MASK_PAWN), &mut *new_position.as_mut_ptr());
         assert_eq!(get_position(&"rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1".to_string()), *new_position.as_ptr());
 
-        let original_position = &get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string());
-        make_move(original_position, move_from_algebraic_move("e2e7".to_string(), PIECE_MASK_PAWN), &mut *new_position.as_mut_ptr());
-        assert_eq!(get_position(&"rnbqkbnr/ppppPppp/8/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1".to_string()), *new_position.as_ptr());
-
         let original_position = &get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQK2R w KQkq - 0 1".to_string());
         make_move(original_position, move_from_algebraic_move("e1g1".to_string(), PIECE_MASK_KING), &mut *new_position.as_mut_ptr());
         assert_eq!(get_position(&"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQ1RK1 b kq - 1 1".to_string()), *new_position.as_ptr());
