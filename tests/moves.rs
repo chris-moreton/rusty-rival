@@ -1,10 +1,9 @@
-use std::mem;
 use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, RANK_4_BITS, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
 use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
 use rusty_rival::make_move::{make_move};
 use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL};
 use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check, is_square_attacked, moves};
-use rusty_rival::types::{BLACK, MoveList, Position, Square, WHITE};
+use rusty_rival::types::{BLACK, MoveList, Square, WHITE};
 
 #[test]
 fn it_gets_all_pieces_bitboard() {
@@ -227,7 +226,6 @@ pub fn it_checks_for_check() {
 
 #[test]
 pub fn it_gets_all_moves_for_a_position() {
-    let mut new_position = mem::MaybeUninit::<Position>::uninit();
 
     assert_eq!(sort_moves(moves(&get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()))), vec!["e8d7", "e8d8", "e8e7", "e8f7", "e8f8"]);
     assert_eq!(sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/1R2K2R b Kkq - 0 1".to_string()))), vec!["a7a6","a8b8","a8c8","a8d8","b4b3","c4c3","d3b1","d3c2","d3e2","d3f1","e4e3","e8d7","e8d8","e8e7","e8f7","e8f8","e8g8","h7h5","h7h6","h8f8","h8g8"]);
@@ -262,23 +260,26 @@ pub fn it_gets_all_moves_for_a_position() {
                ]);
 
     let original_position = &get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
-    let no_checks = moves(original_position).into_iter().filter(| m| unsafe {
-        make_move(original_position, *m, &mut *new_position.as_mut_ptr());
-        !is_check(&*new_position.as_ptr(), original_position.mover)
+    let no_checks = moves(original_position).into_iter().filter(| m| {
+        let mut new_position = *original_position;
+        make_move(original_position, *m, &mut new_position);
+        !is_check(&new_position, original_position.mover)
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["e8d7","e8d8","e8f7"]);
 
     let original_position = &get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string());
-    let no_checks = moves(original_position).into_iter().filter(| m| unsafe {
-        make_move(original_position, *m, &mut *new_position.as_mut_ptr());
-        !is_check(&*new_position.as_ptr(), original_position.mover)
+    let no_checks = moves(original_position).into_iter().filter(| m| {
+        let mut new_position = *original_position;
+        make_move(original_position, *m, &mut new_position);
+        !is_check(&new_position, original_position.mover)
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["a1b1", "a1c1", "a1d1", "a2a3", "a2a4", "a5b4", "a5b6", "a5c7", "a5d8", "e1c1", "e1d1", "e1d2", "e1f2", "h1f1", "h1g1", "h2h3", "h2h4"]);
 
     let original_position = &get_position(&"8/8/p7/1P6/K1k3pP/6P1/8/8 b - - 0 1".to_string());
-    let no_checks = moves(original_position).into_iter().filter(| m| unsafe {
-        make_move(original_position, *m, &mut *new_position.as_mut_ptr());
-        !is_check(&*new_position.as_ptr(), original_position.mover)
+    let no_checks = moves(original_position).into_iter().filter(| m| {
+        let mut new_position = *original_position;
+        make_move(original_position, *m, &mut new_position);
+        !is_check(&new_position, original_position.mover)
     }).collect();
     assert_eq!(sort_moves(no_checks), vec!["a6a5", "a6b5", "c4c3", "c4c5", "c4d3", "c4d4", "c4d5"]);
 

@@ -1,10 +1,10 @@
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 use rusty_rival::fen::get_position;
 use rusty_rival::perft::perft;
 use std::io::{self, BufRead};
 use std::process::exit;
 use std::sync::mpsc;
-use std::{thread, time};
+use std::{thread};
 use rusty_rival::search::{search_zero};
 
 fn main() {

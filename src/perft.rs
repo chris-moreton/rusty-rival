@@ -1,4 +1,3 @@
-use std::mem;
 use std::time::Instant;
 use crate::fen::algebraic_move_from_move;
 use crate::make_move::{make_move};
