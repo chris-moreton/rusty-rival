@@ -17,20 +17,18 @@ pub fn perft(position: &Position, depth: u8) -> u64 {
         let mover = position.mover;
 
         for m in moves(position) {
-            unsafe {
-                let mut new_position = mem::MaybeUninit::<Position>::uninit();
-                make_move(position, m, &mut *new_position.as_mut_ptr());
-                if !is_check(&*new_position.as_ptr(), mover) {
-                    count += if depth == 0 {
-                        1
-                    } else {
-                        let nodes = perft(&*new_position.as_ptr(), depth - 1, start_depth, start_time, total_nodes);
-                        total_nodes += nodes;
-                        if depth == start_depth {
-                            show_for_move(start_time, total_nodes, m, nodes)
-                        }
-                        nodes
+            let mut new_position = *position;
+            make_move(position, m, &mut new_position);
+            if !is_check(&new_position, mover) {
+                count += if depth == 0 {
+                    1
+                } else {
+                    let nodes = perft(&new_position, depth - 1, start_depth, start_time, total_nodes);
+                    total_nodes += nodes;
+                    if depth == start_depth {
+                        show_for_move(start_time, total_nodes, m, nodes)
                     }
+                    nodes
                 }
             }
         };

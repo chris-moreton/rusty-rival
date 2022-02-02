@@ -5,7 +5,7 @@ use std::io::{self, BufRead};
 use std::process::exit;
 use std::sync::mpsc;
 use std::{thread, time};
-use rusty_rival::search::search;
+use rusty_rival::search::{search_zero};
 
 fn main() {
 
@@ -41,9 +41,10 @@ fn main() {
                     },
                     "test" => {
                         let (tx, rx) = mpsc::channel();
+                        let position = get_position(fen.trim());
 
                         thread::spawn(move || {
-                            search(tx);
+                            search_zero(&position, 0, tx);
                         });
 
                         let mut start = Instant::now();

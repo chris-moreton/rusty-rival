@@ -7,8 +7,6 @@ use crate::utils::{from_square_part, to_square_part};
 #[inline(always)]
 pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
-    *new_position = *position;
-
     let from = from_square_part(mv);
     let to = to_square_part(mv);
 
