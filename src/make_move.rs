@@ -28,7 +28,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
         },
         PIECE_MASK_KING => {
             if mv >= BLACK_QUEEN_CASTLE_MOVE_MASK {
-                make_castle_move(mv, new_position)
+                make_castle_move(new_position, mv)
             } else {
                 make_king_move(new_position, from, to);
             }
@@ -49,7 +49,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 }
 
 #[inline(always)]
-fn make_castle_move(mv: Move, position: &mut Position) {
+fn make_castle_move(position: &mut Position, mv: Move) {
 
     match mv {
         WHITE_KING_CASTLE_MOVE => {

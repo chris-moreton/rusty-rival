@@ -120,21 +120,15 @@ pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked
 
 #[inline(always)]
 pub fn is_square_attacked_by_straight_slider(position: &Position, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
-    // anything to check?
-    attacking_sliders > 0 &&
-    // quick look
-    ROOK_RAYS[attacked_square as usize] & attacking_sliders > 0 &&
-    // proper look, considering blockers
+    attacking_sliders > 0 && // anything to check?
+    ROOK_RAYS[attacked_square as usize] & attacking_sliders > 0 && // any sliders on the rays, worth checking properly?
     magic_moves_rook(attacked_square, position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & attacking_sliders != 0
 }
 
 #[inline(always)]
 pub fn is_square_attacked_by_diagonal_slider(position: &Position, attacking_sliders: Bitboard, attacked_square: Square) -> bool {
-    // anything to check?
-    attacking_sliders > 0 &&
-    // quick look
-    BISHOP_RAYS[attacked_square as usize] & attacking_sliders > 0 &&
-    // proper look, considering blockers
+    attacking_sliders > 0 && // anything to check?
+    BISHOP_RAYS[attacked_square as usize] & attacking_sliders > 0 && // any sliders on the rays, worth checking properly?
     magic_moves_bishop(attacked_square, position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard) & attacking_sliders != 0
 }
 
