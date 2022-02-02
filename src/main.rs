@@ -1,8 +1,11 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use rusty_rival::fen::get_position;
 use rusty_rival::perft::perft;
 use std::io::{self, BufRead};
 use std::process::exit;
+use std::sync::mpsc;
+use std::{thread, time};
+use rusty_rival::search::search;
 
 fn main() {
 
@@ -36,6 +39,26 @@ fn main() {
                     "quit" => {
                         exit(0);
                     },
+                    "test" => {
+                        let (tx, rx) = mpsc::channel();
+
+                        thread::spawn(move || {
+                            search(tx);
+                        });
+
+                        let mut start = Instant::now();
+
+                        loop {
+                            let received = rx.recv().unwrap();
+                            if start.elapsed().as_secs() >= 1 {
+                                println!("Got: {}", received);
+                                if received == "done" {
+                                    break;
+                                }
+                                start = Instant::now();
+                            }
+                        }
+                    }
                     "position" => {
                         let t = parts.get(1).unwrap();
                         match *t {
