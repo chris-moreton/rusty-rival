@@ -1,4 +1,4 @@
-use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT};
+use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::{opponent};
 use crate::types::{Bitboard, BLACK, Move, Position, Square, WHITE};
@@ -35,7 +35,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         },
         _ => {
-            if all_pieces(position) & bit(to) != 0 {
+            if test_bit(all_pieces(position), to) {
                 make_non_pawn_non_king_capture_move(new_position, from, to, piece_mask);
             } else {
                 make_non_pawn_non_king_non_capture_move(new_position, from, to, piece_mask);
@@ -50,23 +50,12 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
 #[inline(always)]
 fn make_castle_move(position: &mut Position, mv: Move) {
-
     match mv {
-        WHITE_KING_CASTLE_MOVE => {
-            perform_castle(position, CASTLE_INDEX_WHITE_KING);
-        },
-        WHITE_QUEEN_CASTLE_MOVE => {
-            perform_castle(position, CASTLE_INDEX_WHITE_QUEEN);
-        },
-        BLACK_KING_CASTLE_MOVE => {
-            perform_castle(position, CASTLE_INDEX_BLACK_KING);
-        },
-        BLACK_QUEEN_CASTLE_MOVE => {
-            perform_castle(position, CASTLE_INDEX_BLACK_QUEEN);
-        },
-        _ => {
-            panic!("Was expecting a castle move");
-        }
+        WHITE_KING_CASTLE_MOVE => { perform_castle(position, CASTLE_INDEX_WHITE_KING); },
+        WHITE_QUEEN_CASTLE_MOVE => { perform_castle(position, CASTLE_INDEX_WHITE_QUEEN); },
+        BLACK_KING_CASTLE_MOVE => { perform_castle(position, CASTLE_INDEX_BLACK_KING); },
+        BLACK_QUEEN_CASTLE_MOVE => { perform_castle(position, CASTLE_INDEX_BLACK_QUEEN); },
+        _ => { panic!("Was expecting a castle move"); }
     };
 }
 
@@ -84,11 +73,9 @@ pub fn perform_castle(position: &mut Position, index: usize) {
 #[inline(always)]
 fn make_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
 
-    let friendly = &mut position.pieces[position.mover as usize];
-
     let switch = bit(from) | bit(to);
-    friendly.pawn_bitboard ^= switch;
-    friendly.all_pieces_bitboard ^= switch;
+    position.pieces[position.mover as usize].pawn_bitboard ^= switch;
+    position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
 
     position.en_passant_square = if from ^ to == 16 {
         from + if position.mover == WHITE { 8 } else { -8 }
@@ -126,18 +113,17 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     let bit_from = bit(from);
 
     let is_capture = position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard & bit_to != 0;
-    let friendly = &mut position.pieces[position.mover as usize];
 
     match promotion_mask {
-        PROMOTION_KNIGHT_MOVE_MASK => friendly.knight_bitboard |= bit_to,
-        PROMOTION_BISHOP_MOVE_MASK => friendly.bishop_bitboard |= bit_to,
-        PROMOTION_ROOK_MOVE_MASK => friendly.rook_bitboard |= bit_to,
-        PROMOTION_QUEEN_MOVE_MASK => friendly.queen_bitboard |= bit_to,
+        PROMOTION_KNIGHT_MOVE_MASK => position.pieces[position.mover as usize].knight_bitboard |= bit_to,
+        PROMOTION_BISHOP_MOVE_MASK => position.pieces[position.mover as usize].bishop_bitboard |= bit_to,
+        PROMOTION_ROOK_MOVE_MASK => position.pieces[position.mover as usize].rook_bitboard |= bit_to,
+        PROMOTION_QUEEN_MOVE_MASK => position.pieces[position.mover as usize].queen_bitboard |= bit_to,
         _ => panic!("Invalid promotion piece")
     }
 
-    friendly.pawn_bitboard ^= bit_from;
-    friendly.all_pieces_bitboard ^= bit_from | bit_to;
+    position.pieces[position.mover as usize].pawn_bitboard ^= bit_from;
+    position.pieces[position.mover as usize].all_pieces_bitboard ^= bit_from | bit_to;
 
     if is_capture {
         let enemy = &mut position.pieces[opponent!(position.mover) as usize];
@@ -152,7 +138,6 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     update_castle_flags_if_square(position, to);
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
-
     position.half_moves = 0;
 }
 
