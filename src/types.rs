@@ -7,6 +7,9 @@ pub type MoveList = Vec<Move>;
 pub type Path = Vec<Move>;
 pub type MagicMovesArray = [[Bitboard; 4096]; 64];
 pub type Mover = i8;
+pub type Bound = i16;
+pub type Window = (Bound, Bound);
+pub type Score = i16;
 
 #[macro_export]
 macro_rules! opponent {
@@ -36,7 +39,7 @@ pub const BLACK: Mover = 1;
 pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook, Empty }
 
 #[derive(Debug, PartialEq)]
-pub enum Bound { Exact, Lower, Upper }
+pub enum BoundType { Exact, Lower, Upper }
 
 #[inline(always)]
 pub fn unset_white_castles(position: &mut Position) { position.castle_flags &= !(WK_CASTLE | WQ_CASTLE) }
