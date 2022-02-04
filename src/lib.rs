@@ -10,3 +10,4 @@ pub mod magic_moves_rook;
 pub mod make_move;
 pub mod perft;
 pub mod search;
+pub mod uci;
