@@ -15,9 +15,9 @@ pub type HashIndex = u32;
 pub type HashLock = u128;
 
 pub struct SearchState {
-    hash_table: HashMap<HashIndex, HashEntry>,
-    pv: Path,
-    pv_score: Score,
+    pub hash_table: HashMap<HashIndex, HashEntry>,
+    pub pv: Path,
+    pub pv_score: Score,
 }
 
 pub struct HashEntry {

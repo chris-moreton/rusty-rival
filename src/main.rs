@@ -1,18 +1,19 @@
 use std::time::{Instant};
-use rusty_rival::fen::get_position;
+use rusty_rival::fen::{algebraic_move_from_move, get_position};
 use rusty_rival::perft::perft;
 use std::io::{self, BufRead};
 use std::process::exit;
 use std::sync::mpsc;
 use std::{thread};
-use rusty_rival::search::{search_zero};
+use rusty_rival::search::{search_zero, start_search};
+use rusty_rival::types::SearchState;
 
 fn main() {
 
     // Everything here is hacked together at the moment
 
     let stdin = io::stdin();
-    let mut fen = "".to_string();
+    let mut fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string();
     println!("Rusty Rival");
     println!("READY");
     for line in stdin.lock().lines() {
@@ -30,6 +31,16 @@ fn main() {
                         match *t {
                             "perft" => {
                                 cmd_perft(depth, &fen)
+                            },
+                            "depth" => {
+                                let mut search_state = SearchState{
+                                    hash_table: Default::default(),
+                                    pv: vec![],
+                                    pv_score: 0
+                                };
+                                let position = get_position(fen.trim());
+                                let mv = start_search(&position, depth, Instant::now(), &mut search_state);
+                                println!("bestmove {}", algebraic_move_from_move(mv));
                             },
                             _ => {
                                 println!("Unknown go command")
