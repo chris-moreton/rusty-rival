@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, WK_CASTLE, WQ_CASTLE};
 
 pub type Square = i8;
@@ -10,6 +11,21 @@ pub type Mover = i8;
 pub type Bound = i16;
 pub type Window = (Bound, Bound);
 pub type Score = i16;
+pub type HashIndex = u32;
+pub type HashLock = u128;
+
+pub struct SearchState {
+    hash_table: HashMap<HashIndex, HashEntry>,
+    pv: Path,
+    pv_score: Score,
+}
+
+pub struct HashEntry {
+    score: Score,
+    path: Path,
+    bound: Bound,
+    lock: HashLock,
+}
 
 #[macro_export]
 macro_rules! opponent {
