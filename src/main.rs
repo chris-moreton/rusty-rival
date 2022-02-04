@@ -20,77 +20,98 @@ fn main() {
         match line {
             Ok(l) => {
                 let parts = l.split(' ').collect::<Vec<&str>>();
-                match *parts.get(0).unwrap() {
-                    "bench" => {
-                        let depth: u8 = parts.get(1).unwrap().to_string().parse().unwrap();
-                        cmd_perft(depth, &"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".to_string());
-                    },
-                    "go" => {
-                        let t = parts.get(1).unwrap();
-                        let depth = parts.get(2).unwrap().to_string().parse().unwrap();
-                        match *t {
-                            "perft" => {
-                                cmd_perft(depth, &fen)
-                            },
-                            "depth" => {
-                                let mut search_state = SearchState{
-                                    hash_table: Default::default(),
-                                    pv: vec![],
-                                    pv_score: 0
-                                };
-                                let position = get_position(fen.trim());
-                                let mv = start_search(&position, depth, Instant::now(), &mut search_state);
-                                println!("bestmove {}", algebraic_move_from_move(mv));
-                            },
-                            _ => {
-                                println!("Unknown go command")
-                            }
-                        }
-                    },
-                    "quit" => {
-                        exit(0);
-                    },
-                    "test" => {
-                        let (tx, rx) = mpsc::channel();
-                        let position = get_position(fen.trim());
-
-                        thread::spawn(move || {
-                            search_zero(&position, 0, tx);
-                        });
-
-                        let mut start = Instant::now();
-
-                        loop {
-                            let received = rx.recv().unwrap();
-                            if start.elapsed().as_secs() >= 1 {
-                                println!("Got: {}", received);
-                                if received == "done" {
-                                    break;
-                                }
-                                start = Instant::now();
-                            }
-                        }
-                    }
-                    "position" => {
-                        let t = parts.get(1).unwrap();
-                        match *t {
-                            "fen" => {
-                                fen = l.replace("position fen", "").to_string();
-                            },
-                            _ => {
-                                println!("Unknown position command")
-                            }
-                        }
-                    }
-                    _ => {}
-                }
+                run_command(&mut fen, parts)
             },
             Err(e) => {
                 panic!("{}", e)
             }
         }
-
     }
+}
+
+fn run_command(mut fen: &mut String, parts: Vec<&str>) {
+
+    match *parts.get(0).unwrap() {
+        "bench" => {
+            cmd_benchmark(parts);
+        },
+        "go" => {
+            cmd_go(fen, parts)
+        },
+        "quit" => {
+            exit(0);
+        },
+        "test" => {
+            cmd_msg_test(fen)
+        }
+        "position" => {
+            cmd_position(fen, parts)
+        }
+        _ => {}
+    }
+}
+
+fn cmd_position(fen: &mut String, parts: Vec<&str>) {
+    let t = parts.get(1).unwrap();
+    match *t {
+        "fen" => {
+            *fen = parts.join(" ").replace("position fen", "").to_string();
+            println!("{}", *fen)
+        },
+        _ => {
+            println!("Unknown position command")
+        }
+    }
+}
+
+fn cmd_msg_test(mut fen: &mut String) {
+    let (tx, rx) = mpsc::channel();
+    let position = get_position(fen.trim());
+
+    thread::spawn(move || {
+        search_zero(&position, 0, tx);
+    });
+
+    let mut start = Instant::now();
+
+    loop {
+        let received = rx.recv().unwrap();
+        if start.elapsed().as_secs() >= 1 {
+            println!("Got: {}", received);
+            if received == "done" {
+                break;
+            }
+            start = Instant::now();
+        }
+    }
+}
+
+fn cmd_go(mut fen: &mut String, parts: Vec<&str>) {
+    let t = parts.get(1).unwrap();
+    let depth = parts.get(2).unwrap().to_string().parse().unwrap();
+    match *t {
+        "perft" => {
+            cmd_perft(depth, &fen)
+        },
+        "depth" => {
+            let mut search_state = SearchState {
+                hash_table: Default::default(),
+                pv: vec![],
+                pv_score: 0
+            };
+            let position = get_position(fen.trim());
+            let mv = start_search(&position, depth, Instant::now(), &mut search_state);
+            println!("bestmove {}", algebraic_move_from_move(mv));
+        },
+        _ => {
+            println!("Unknown go command")
+        }
+    }
+}
+
+fn cmd_benchmark(parts: Vec<&str>) {
+    let depth: u8 = parts.get(1).unwrap().to_string().parse().unwrap();
+    cmd_perft(depth, &"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".to_string());
 }
 
 fn cmd_perft(depth: u8, fen: &str) {
