@@ -27,7 +27,7 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
             cmd_go(uci_state, parts)
         },
         "debug" => {
-            cmd_debug(parts)
+            cmd_debug(uci_state, parts)
         },
         "quit" => {
             exit(0)
@@ -113,10 +113,13 @@ fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some("id rustival\nuciok".parse().unwrap()))
 }
 
-fn cmd_debug(parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_debug(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
     if parts.len() != 2 || !["on", "off"].contains(&parts[1]) {
         return Left::<String, Option<String>> ("usage: debug [ on | off ]".parse().unwrap());
     }
+
+    uci_state.debug = parts[1] == "on";
+
     Right(None)
 }
 

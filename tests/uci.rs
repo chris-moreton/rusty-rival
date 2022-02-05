@@ -84,10 +84,17 @@ pub fn it_handles_the_debug_command() {
         debug: false,
     };
 
-    let result = run_command(&mut uci_state, "debug on");
-    assert_eq!(result, Right(None));
-
     let result = run_command(&mut uci_state, "debug onn");
     assert_eq!(result, Left("usage: debug [ on | off ]".to_string()));
+    assert_eq!(uci_state.debug, false);
+
+    let result = run_command(&mut uci_state, "debug on");
+    assert_eq!(result, Right(None));
+    assert_eq!(uci_state.debug, true);
+
+    let result = run_command(&mut uci_state, "debug off");
+    assert_eq!(result, Right(None));
+    assert_eq!(uci_state.debug, false);
+
 }
 
