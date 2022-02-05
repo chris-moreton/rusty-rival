@@ -1,4 +1,4 @@
-use either::Right;
+use either::{Left, Right};
 use rusty_rival::uci::run_command;
 
 #[test]
@@ -18,9 +18,8 @@ pub fn it_runs_a_perft_test() {
 }
 
 #[test]
-pub fn it_handles_a_reduced_fen() {
+pub fn it_handles_a_bad_fen() {
     let mut fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string();
     let command = "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0";
-    assert_eq!(run_command(&mut fen, command), Right(None));
-    //assert_eq!(run_command(&mut fen, "go perft 2"), Right(None))
+    assert_eq!(run_command(&mut fen, command), Left("Invalid FEN".to_string()));
 }

@@ -3,6 +3,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Instant;
 use either::{Either, Left, Right};
+use regex::Regex;
 use crate::fen::{algebraic_move_from_move, get_position};
 use crate::perft::perft;
 use crate::search::{search_zero, start_search};
@@ -41,8 +42,13 @@ fn cmd_position(fen: &mut String, parts: Vec<&str>) -> Either<String, Option<Str
     let t = parts.get(1).unwrap();
     match *t {
         "fen" => {
+            let re = Regex::new(r"\s*^(((?:[rnbqkpRNBQKP1-8]+/){7})[rnbqkpRNBQKP1-8]+)\s([b|w])\s([K|Q|k|q]{1,4}|-)\s(-|[a-h][1-8])\s(\d+\s\d+)$").unwrap();
             *fen = parts.join(" ").replace("position fen", "").trim().to_string();
-            Right(None)
+            if re.is_match(&**fen) {
+                Right(None)
+            } else {
+                Left("Invalid FEN".parse().unwrap())
+            }
         },
         _ => {
             Left("Unknown position command".parse().unwrap())
