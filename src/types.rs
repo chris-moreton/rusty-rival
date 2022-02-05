@@ -14,6 +14,11 @@ pub type Score = i16;
 pub type HashIndex = u32;
 pub type HashLock = u128;
 
+pub struct UciState {
+    pub fen: String,
+    pub debug: bool,
+}
+
 pub struct SearchState {
     pub hash_table: HashMap<HashIndex, HashEntry>,
     pub pv: Path,
