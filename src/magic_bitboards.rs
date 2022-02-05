@@ -5,13 +5,13 @@ use crate::magic_moves_rook::MAGIC_MOVES_ROOK;
 #[inline(always)]
 pub fn magic_moves_rook(from_square: Square, all_piece_bitboard: Bitboard) -> Bitboard {
     let (number, mask, shifts) = NUMBER_MASKS_SHIFTS_ROOK[from_square as usize];
-    MAGIC_MOVES_ROOK[from_square as usize][(((all_piece_bitboard & mask) * number) >> shifts) as usize]
+    MAGIC_MOVES_ROOK[from_square as usize][(((all_piece_bitboard & mask).wrapping_mul(number)) >> shifts) as usize]
 }
 
 #[inline(always)]
 pub fn magic_moves_bishop(from_square: Square, all_piece_bitboard: Bitboard) -> Bitboard {
     let (number, mask, shifts) = NUMBER_MASKS_SHIFTS_BISHOP[from_square as usize];
-    MAGIC_MOVES_BISHOP[from_square as usize][(((all_piece_bitboard & mask) * number) >> shifts) as usize]
+    MAGIC_MOVES_BISHOP[from_square as usize][(((all_piece_bitboard & mask).wrapping_mul(number)) >> shifts) as usize]
 }
 
 pub const NUMBER_MASKS_SHIFTS_ROOK: [(Bitboard, Bitboard, u8); 64] = [

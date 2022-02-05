@@ -1,5 +1,6 @@
 use std::io;
 use std::io::BufRead;
+use either::{Left, Right};
 use rusty_rival::uci::run_command;
 
 fn main() {
@@ -13,7 +14,20 @@ fn main() {
     for line in stdin.lock().lines() {
         match line {
             Ok(l) => {
-                run_command(&mut fen, l.as_str())
+                let result = run_command(&mut fen, l.as_str());
+                match result {
+                    Right(message) => {
+                        match message {
+                            Some(m) => {
+                                println!("{}", m);
+                            },
+                            None => { }
+                        }
+                    },
+                    Left(error) => {
+                        println!("Error: {}", error);
+                    }
+                }
             },
             Err(e) => {
                 panic!("{}", e)
