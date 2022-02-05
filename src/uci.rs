@@ -20,6 +20,9 @@ fn run_parts(mut fen: &mut String, parts: Vec<&str>) -> Either<String, Option<St
         "bench" => {
             cmd_benchmark(parts)
         },
+        "uci" => {
+            cmd_uci()
+        },
         "go" => {
             cmd_go(fen, parts)
         },
@@ -101,6 +104,10 @@ fn cmd_go(mut fen: &mut String, parts: Vec<&str>) -> Either<String, Option<Strin
             Left("Unknown go command".parse().unwrap())
         }
     }
+}
+
+fn cmd_uci() -> Either<String, Option<String>> {
+    Right(Some("id rustival".parse().unwrap()))
 }
 
 fn cmd_benchmark(parts: Vec<&str>) -> Either<String, Option<String>> {

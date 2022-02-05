@@ -1,4 +1,4 @@
-use either::{Left, Right};
+use either::{Either, Left, Right};
 use rusty_rival::uci::run_command;
 
 #[test]
@@ -23,19 +23,35 @@ pub fn it_handles_a_bad_fen() {
     assert_eq!(run_command(&mut fen, command), Left("Invalid FEN".to_string()));
 }
 
-#[test]
-pub fn it_returns_a_best_move() {
-    let mut fen = "".to_string();
-    assert_eq!(run_command(&mut fen, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
-    let result = run_command(&mut fen, "go depth 3");
+fn assert_message(result: Either<String, Option<String>>, f: fn(&str) -> bool) -> bool {
     match result {
         Left(error) => panic!("Fail"),
         Right(Some(message)) => {
-            assert!(message.contains("bestmove"))
+            assert!(f(&*message))
         },
         _ => {
             panic!("Fail")
         }
 
     }
+    true
+}
+
+#[test]
+pub fn it_returns_a_best_move() {
+    let mut fen = "".to_string();
+    assert_eq!(run_command(&mut fen, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
+    let result = run_command(&mut fen, "go depth 3");
+    assert_message(result, |message| {
+        message.contains("bestmove")
+    });
+}
+
+#[test]
+pub fn it_handles_the_uci_command() {
+    let mut fen = "".to_string();
+    let result = run_command(&mut fen, "uci");
+    assert_message(result, |message| {
+        message.contains("id rustival")
+    });
 }
