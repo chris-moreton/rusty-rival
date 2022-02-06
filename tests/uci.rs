@@ -27,12 +27,24 @@ pub fn it_handles_a_bad_fen() {
     assert_eq!(run_command(&mut uci_state, command), Left("Invalid FEN".to_string()));
 }
 
-fn assert_message(result: Either<String, Option<String>>, f: fn(&str) -> bool) -> bool {
+fn assert_success_message(result: Either<String, Option<String>>, f: fn(&str) -> bool) -> bool {
     match result {
         Left(error) => panic!("Fail"),
         Right(Some(message)) => {
             assert!(f(&*message))
         },
+        _ => {
+            panic!()
+        }
+
+    }
+    true
+}
+
+fn assert_error_message(result: Either<String, Option<String>>, f: fn(&str) -> bool) -> bool {
+    match result {
+        Left(error) => assert!(f(&*error)),
+        Right(Some(message)) => panic!(),
         _ => {
             panic!("Fail")
         }
@@ -47,7 +59,7 @@ pub fn it_returns_a_best_move() {
 
     assert_eq!(run_command(&mut uci_state, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
     let result = run_command(&mut uci_state, "go depth 3");
-    assert_message(result, |message| {
+    assert_success_message(result, |message| {
         message.contains("bestmove")
     });
 }
@@ -57,7 +69,7 @@ pub fn it_handles_the_uci_command() {
     let mut uci_state = default_uci_state();
 
     let result = run_command(&mut uci_state, "uci");
-    assert_message(result, |message| {
+    assert_success_message(result, |message| {
         message.starts_with("id rustival") && message.ends_with("uciok") && message.contains("option")
     });
 }
@@ -85,7 +97,7 @@ pub fn it_handles_the_isready_command() {
     let mut uci_state = default_uci_state();
 
     let result = run_command(&mut uci_state, "isready");
-    assert_message(result, |message| {
+    assert_success_message(result, |message| {
         message == "readyok"
     });
 }
@@ -114,4 +126,24 @@ pub fn it_handles_the_setoption_clear_hash_command() {
         None => {}
     }
 
+}
+
+#[test]
+pub fn it_handles_a_bad_setoption_name() {
+    let mut uci_state = default_uci_state();
+
+    let result = run_command(&mut uci_state, "setoption name asd");
+    assert_error_message(result, |message| {
+        message == "Unknown option"
+    });
+}
+
+#[test]
+pub fn it_handles_a_bad_setoption_cmd() {
+    let mut uci_state = default_uci_state();
+
+    let result = run_command(&mut uci_state, "setoption asd asd");
+    assert_error_message(result, |message| {
+        message == "usage: setoption name <name> [value <value>]"
+    });
 }

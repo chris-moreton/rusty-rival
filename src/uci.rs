@@ -163,7 +163,7 @@ fn cmd_setoption(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<Strin
                 Right(None)
             },
             _ => {
-                Left("usage: setoption name <name> [value <value>]".parse().unwrap())
+                Left("Unknown option".parse().unwrap())
             }
         }
     }
