@@ -17,6 +17,15 @@ pub type HashLock = u128;
 pub struct UciState {
     pub fen: String,
     pub debug: bool,
+    pub hash_table: HashMap<HashIndex, HashEntry>,
+}
+
+pub fn default_uci_state() -> UciState {
+    UciState {
+        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
+        debug: false,
+        hash_table: Default::default()
+    }
 }
 
 pub struct SearchState {
@@ -26,10 +35,10 @@ pub struct SearchState {
 }
 
 pub struct HashEntry {
-    score: Score,
-    path: Path,
-    bound: Bound,
-    lock: HashLock,
+    pub score: Score,
+    pub path: Path,
+    pub bound: Bound,
+    pub lock: HashLock,
 }
 
 #[macro_export]

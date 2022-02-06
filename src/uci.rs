@@ -29,6 +29,9 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
         "go" => {
             cmd_go(uci_state, parts)
         },
+        "setoption" => {
+            cmd_setoption(uci_state, parts)
+        },
         "debug" => {
             cmd_debug(uci_state, parts)
         },
@@ -113,7 +116,7 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id rustival\nuciok".parse().unwrap()))
+    Right(Some("id rustival\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -122,7 +125,7 @@ fn cmd_isready() -> Either<String, Option<String>> {
 
 fn cmd_debug(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
     if parts.len() != 2 || !["on", "off"].contains(&parts[1]) {
-        return Left::<String, Option<String>> ("usage: debug [ on | off ]".parse().unwrap());
+        return Left::<String, Option<String>> ("usage: debug [on|off]".parse().unwrap());
     }
 
     uci_state.debug = parts[1] == "on";
@@ -134,7 +137,9 @@ fn cmd_benchmark(parts: Vec<&str>) -> Either<String, Option<String>> {
     let depth: u8 = parts.get(1).unwrap().to_string().parse().unwrap();
     cmd_perft(depth, &UciState {
         debug: false,
-        fen: "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".parse().unwrap() }
+        fen: "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".parse().unwrap(),
+        hash_table: Default::default()
+    }
     );
     Right(None)
 }
@@ -146,4 +151,20 @@ fn cmd_perft(depth: u8, uci_state: &UciState) -> Either<String, Option<String>> 
     println!("Time elapsed in perft is: {:?}", duration);
     println!("{} nodes {} nps", nodes, (nodes as f64 / (duration.as_millis() as f64)) * 1000.0);
     Right(None)
+}
+
+fn cmd_setoption(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+    if parts.len() < 3 || parts[1] != "name" {
+        Left("usage: setoption name <name> [value <value>]".parse().unwrap())
+    } else {
+        match parts[2] {
+            "Clear" => {
+                uci_state.hash_table.clear();
+                Right(None)
+            },
+            _ => {
+                Left("usage: setoption name <name> [value <value>]".parse().unwrap())
+            }
+        }
+    }
 }

@@ -1,7 +1,7 @@
 use std::io;
 use std::io::BufRead;
 use either::{Left, Right};
-use rusty_rival::types::UciState;
+use rusty_rival::types::{default_uci_state, UciState};
 use rusty_rival::uci::run_command;
 
 fn main() {
@@ -9,10 +9,8 @@ fn main() {
     // Everything here is hacked together at the moment
 
     let stdin = io::stdin();
-    let mut uci_state = UciState {
-        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
-        debug: false,
-    };
+    let mut uci_state = default_uci_state();
+
     println!("Rusty Rival");
     println!("READY");
     for line in stdin.lock().lines() {

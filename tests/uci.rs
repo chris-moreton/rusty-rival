@@ -1,13 +1,10 @@
 use either::{Either, Left, Right};
-use rusty_rival::types::UciState;
+use rusty_rival::types::{default_uci_state, HashEntry, HashIndex, UciState};
 use rusty_rival::uci::run_command;
 
 #[test]
 pub fn it_sets_a_fen() {
-    let mut uci_state = UciState {
-        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
-        debug: false,
-    };
+    let mut uci_state = default_uci_state();
 
     assert_eq!(run_command(&mut uci_state, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
     assert_eq!(uci_state.fen.to_string(), "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1".to_string());
@@ -16,10 +13,7 @@ pub fn it_sets_a_fen() {
 
 #[test]
 pub fn it_runs_a_perft_test() {
-    let mut uci_state = UciState {
-        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
-        debug: false,
-    };
+    let mut uci_state = default_uci_state();
 
     assert_eq!(run_command(&mut uci_state, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
     assert_eq!(run_command(&mut uci_state, "go perft 2"), Right(None))
@@ -27,10 +21,7 @@ pub fn it_runs_a_perft_test() {
 
 #[test]
 pub fn it_handles_a_bad_fen() {
-    let mut uci_state = UciState {
-        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
-        debug: false,
-    };
+    let mut uci_state = default_uci_state();
 
     let command = "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0";
     assert_eq!(run_command(&mut uci_state, command), Left("Invalid FEN".to_string()));
@@ -52,10 +43,7 @@ fn assert_message(result: Either<String, Option<String>>, f: fn(&str) -> bool) -
 
 #[test]
 pub fn it_returns_a_best_move() {
-    let mut uci_state = UciState {
-        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
-        debug: false,
-    };
+    let mut uci_state = default_uci_state();
 
     assert_eq!(run_command(&mut uci_state, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
     let result = run_command(&mut uci_state, "go depth 3");
@@ -66,23 +54,17 @@ pub fn it_returns_a_best_move() {
 
 #[test]
 pub fn it_handles_the_uci_command() {
-    let mut uci_state = UciState {
-        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
-        debug: false,
-    };
+    let mut uci_state = default_uci_state();
 
     let result = run_command(&mut uci_state, "uci");
     assert_message(result, |message| {
-        message.contains("id rustival") && message.contains("uciok")
+        message.starts_with("id rustival") && message.ends_with("uciok") && message.contains("option")
     });
 }
 
 #[test]
 pub fn it_handles_the_debug_command() {
-    let mut uci_state = UciState {
-        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
-        debug: false,
-    };
+    let mut uci_state = default_uci_state();
 
     let result = run_command(&mut uci_state, "debug onn");
     assert_eq!(result, Left("usage: debug [ on | off ]".to_string()));
@@ -100,13 +82,36 @@ pub fn it_handles_the_debug_command() {
 
 #[test]
 pub fn it_handles_the_isready_command() {
-    let mut uci_state = UciState {
-        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
-        debug: false,
-    };
+    let mut uci_state = default_uci_state();
 
     let result = run_command(&mut uci_state, "isready");
     assert_message(result, |message| {
         message == "readyok"
     });
+}
+
+#[test]
+pub fn it_handles_the_setoption_clear_hash_command() {
+    let mut uci_state = default_uci_state();
+
+    let he = HashEntry{
+        score: 100,
+        path: vec![],
+        bound: 0,
+        lock: 0
+    };
+
+    uci_state.hash_table.insert(0, he);
+    match uci_state.hash_table.get(&0) {
+        Some(he) => assert_eq!(he.score, 100),
+        None => panic!()
+    }
+
+    let result = run_command(&mut uci_state, "setoption name Clear Hash");
+    assert_eq!(result, Right(None));
+    match uci_state.hash_table.get(&0) {
+        Some(he) => panic!(),
+        None => {}
+    }
+
 }
