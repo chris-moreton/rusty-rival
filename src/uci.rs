@@ -23,6 +23,9 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
         "uci" => {
             cmd_uci()
         },
+        "isready" => {
+            cmd_isready()
+        },
         "go" => {
             cmd_go(uci_state, parts)
         },
@@ -111,6 +114,10 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some("id rustival\nuciok".parse().unwrap()))
+}
+
+fn cmd_isready() -> Either<String, Option<String>> {
+    Right(Some("readyok".parse().unwrap()))
 }
 
 fn cmd_debug(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {

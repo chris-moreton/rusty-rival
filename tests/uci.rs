@@ -98,3 +98,15 @@ pub fn it_handles_the_debug_command() {
 
 }
 
+#[test]
+pub fn it_handles_the_isready_command() {
+    let mut uci_state = UciState {
+        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
+        debug: false,
+    };
+
+    let result = run_command(&mut uci_state, "isready");
+    assert_message(result, |message| {
+        message == "readyok"
+    });
+}
