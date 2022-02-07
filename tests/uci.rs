@@ -1,4 +1,5 @@
 use either::{Either, Left, Right};
+use rusty_rival::move_constants::START_POS;
 use rusty_rival::types::{default_uci_state, HashEntry, HashIndex, UciState};
 use rusty_rival::uci::run_command;
 
@@ -17,6 +18,16 @@ pub fn it_runs_a_perft_test() {
 
     assert_eq!(run_command(&mut uci_state, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
     assert_eq!(run_command(&mut uci_state, "go perft 2"), Right(None))
+}
+
+#[test]
+pub fn it_handles_startpos() {
+    let mut uci_state = default_uci_state();
+
+    assert_eq!(run_command(&mut uci_state, "position fen rnbqkbnr/pppppppp/8/8/8/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1"), Right(None));
+    assert_ne!(uci_state.fen, START_POS);
+    assert_eq!(run_command(&mut uci_state, "position startpos"), Right(None));
+    assert_eq!(uci_state.fen, START_POS);
 }
 
 #[test]
@@ -163,5 +174,13 @@ pub fn it_handles_the_register_command() {
     let mut uci_state = default_uci_state();
 
     let result = run_command(&mut uci_state, "register all of this is ignored");
+    assert_eq!(result, Right(None))
+}
+
+#[test]
+pub fn it_handles_the_ucinewgame_command() {
+    let mut uci_state = default_uci_state();
+
+    let result = run_command(&mut uci_state, "ucinewgame");
     assert_eq!(result, Right(None))
 }

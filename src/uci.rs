@@ -5,6 +5,7 @@ use std::time::Instant;
 use either::{Either, Left, Right};
 use regex::Regex;
 use crate::fen::{algebraic_move_from_move, get_position};
+use crate::move_constants::START_POS;
 use crate::perft::perft;
 use crate::search::{search_zero, start_search};
 use crate::types::{SearchState, UciState};
@@ -35,6 +36,9 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
         "register" => {
             cmd_register(uci_state, parts)
         },
+        "ucinewgame" => {
+            cmd_ucinewgame(uci_state, parts)
+        },
         "debug" => {
             cmd_debug(uci_state, parts)
         },
@@ -64,6 +68,10 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
             } else {
                 Left("Invalid FEN".parse().unwrap())
             }
+        },
+        "startpos" => {
+            uci_state.fen = START_POS.parse().unwrap();
+            Right(None)
         },
         _ => {
             Left("Unknown position command".parse().unwrap())
@@ -174,5 +182,9 @@ fn cmd_setoption(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<Strin
 }
 
 fn cmd_register(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+    Right(None)
+}
+
+fn cmd_ucinewgame(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
     Right(None)
 }

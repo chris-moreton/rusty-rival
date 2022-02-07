@@ -49,6 +49,8 @@ pub const CLEAR_CASTLE_FLAGS_MASK: [u8; 2] = [
     !(BK_CASTLE | BQ_CASTLE),
 ];
 
+pub const START_POS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 pub const WHITE_KING_CASTLE_MOVE: Move = from_square_mask(3) | 1 | PIECE_MASK_KING | WHITE_KING_CASTLE_MOVE_MASK;
 pub const WHITE_QUEEN_CASTLE_MOVE: Move = from_square_mask(3) | 5 | PIECE_MASK_KING | WHITE_QUEEN_CASTLE_MOVE_MASK;
 pub const BLACK_KING_CASTLE_MOVE: Move = from_square_mask(59) | 57 | PIECE_MASK_KING | BLACK_KING_CASTLE_MOVE_MASK;
