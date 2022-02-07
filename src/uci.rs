@@ -32,6 +32,9 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
         "setoption" => {
             cmd_setoption(uci_state, parts)
         },
+        "register" => {
+            cmd_register(uci_state, parts)
+        },
         "debug" => {
             cmd_debug(uci_state, parts)
         },
@@ -138,7 +141,8 @@ fn cmd_benchmark(parts: Vec<&str>) -> Either<String, Option<String>> {
     cmd_perft(depth, &UciState {
         debug: false,
         fen: "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".parse().unwrap(),
-        hash_table: Default::default()
+        hash_table: Default::default(),
+        registered_name: "".to_string()
     }
     );
     Right(None)
@@ -167,4 +171,8 @@ fn cmd_setoption(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<Strin
             }
         }
     }
+}
+
+fn cmd_register(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+    Right(None)
 }

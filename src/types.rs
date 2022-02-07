@@ -18,13 +18,15 @@ pub struct UciState {
     pub fen: String,
     pub debug: bool,
     pub hash_table: HashMap<HashIndex, HashEntry>,
+    pub registered_name: String,
 }
 
 pub fn default_uci_state() -> UciState {
     UciState {
         fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
         debug: false,
-        hash_table: Default::default()
+        hash_table: Default::default(),
+        registered_name: "Rustival".parse().unwrap(),
     }
 }
 

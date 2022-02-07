@@ -79,7 +79,7 @@ pub fn it_handles_the_debug_command() {
     let mut uci_state = default_uci_state();
 
     let result = run_command(&mut uci_state, "debug onn");
-    assert_eq!(result, Left("usage: debug [ on | off ]".to_string()));
+    assert_eq!(result, Left("usage: debug [on|off]".to_string()));
     assert_eq!(uci_state.debug, false);
 
     let result = run_command(&mut uci_state, "debug on");
@@ -146,4 +146,22 @@ pub fn it_handles_a_bad_setoption_cmd() {
     assert_error_message(result, |message| {
         message == "usage: setoption name <name> [value <value>]"
     });
+}
+
+#[test]
+pub fn it_handles_an_unknown_command() {
+    let mut uci_state = default_uci_state();
+
+    let result = run_command(&mut uci_state, "blah 123");
+    assert_error_message(result, |message| {
+        message == "Unknown command"
+    });
+}
+
+#[test]
+pub fn it_handles_the_register_command() {
+    let mut uci_state = default_uci_state();
+
+    let result = run_command(&mut uci_state, "register all of this is ignored");
+    assert_eq!(result, Right(None))
 }
