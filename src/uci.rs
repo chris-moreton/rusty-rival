@@ -4,6 +4,7 @@ use std::thread;
 use std::time::Instant;
 use either::{Either, Left, Right};
 use regex::Regex;
+
 use crate::fen::{algebraic_move_from_move, get_position, move_from_algebraic_move};
 use crate::move_constants::{PIECE_MASK_FULL, START_POS};
 use crate::perft::perft;
@@ -83,11 +84,20 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
         "fen" => {
             let re = Regex::new(r"\s*^(((?:[rnbqkpRNBQKP1-8]+/){7})[rnbqkpRNBQKP1-8]+)\s([b|w])\s([K|Q|k|q]{1,4}|-)\s(-|[a-h][1-8])\s(\d+\s\d+)$").unwrap();
             let (fen, moves) = fen_and_moves(parts);
+
             uci_state.fen = fen.parse().unwrap();
-            if re.is_match(&*uci_state.fen) {
-                Right(None)
+
+            if re.is_match(&*fen) {
+                uci_state.fen = fen;
+                let mut position = &get_position(&uci_state.fen);
+                if moves.len() > 0 {
+                    for m in moves {
+
+                    }
+                }
+                return Right(None)
             } else {
-                Left("Invalid FEN".parse().unwrap())
+                return Left("Invalid FEN".parse().unwrap())
             }
         },
         _ => {
