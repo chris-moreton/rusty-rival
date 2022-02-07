@@ -1,5 +1,5 @@
 use crate::bitboards::bit;
-use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
+use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_CASTLE_FLAGS, WK_CASTLE, WQ_CASTLE};
 use crate::types::{Bitboard, BLACK, Move, Mover, Pieces, Position, Square, WHITE};
 use crate::utils::from_square_mask;
 
@@ -56,17 +56,17 @@ pub fn rank_bits(rank: &str, piece: char) -> Vec<u8> {
     }
 }
 
-pub fn algebraic_squareref_from_bitref(bitref: u8) -> String {
+pub fn algebraic_squareref_from_bitref(bitref: Square) -> String {
     let rank = (bitref / 8) + 1;
     let file = 8 - (bitref % 8);
-    let rank_char = (rank + 48) as char;
-    let file_char = (file + 96) as char;
+    let rank_char = (rank + 48) as u8 as char;
+    let file_char = (file + 96) as u8 as char;
     file_char.to_string() + &*(rank_char.to_string())
 }
 
 pub fn algebraic_move_from_move(m: Move) -> String {
-    let from_square = (m >> 16) as u8 & 63;
-    let to_square = (m & 63) as u8;
+    let from_square = ((m >> 16) as u8 & 63) as Square;
+    let to_square = (m & 63) as u8 as Square;
     algebraic_squareref_from_bitref(from_square) + &*algebraic_squareref_from_bitref(to_square) + &*promotion_part(m)
 }
 
@@ -209,6 +209,52 @@ pub fn get_piece_on_square(position: &Position, sq: Square) -> char {
     }
 }
 
-pub fn get_fen(position: &Position) {
-
+pub fn get_fen(position: &Position) -> String {
+    let mut fen: String = "".to_string();
+    let mut blanks = 0;
+    for rank in (0..=7).rev() {
+        for file in (0..=7).rev() {
+            let sq = (rank * 8) + file;
+            assert!(sq >= 0 && sq <= 63);
+            let c = get_piece_on_square(position, sq);
+            if c == '-' {
+                blanks += 1;
+            } else {
+                if blanks > 0 {
+                    fen += &blanks.to_string()
+                }
+                blanks = 0;
+                fen += &c.to_string();
+            }
+        }
+        if blanks > 0 {
+            fen += &blanks.to_string()
+        }
+        if rank > 0 {
+            fen += "/";
+        }
+        blanks = 0;
+    }
+    fen += " ";
+    fen += if position.mover == WHITE { "w" } else { "b" };
+    fen += " ";
+    if position.castle_flags == 0 {
+        fen += "-";
+    } else {
+        if position.castle_flags & WK_CASTLE != 0 { fen += "K" }
+        if position.castle_flags & WQ_CASTLE != 0 { fen += "Q" }
+        if position.castle_flags & BK_CASTLE != 0 { fen += "k" }
+        if position.castle_flags & BQ_CASTLE != 0 { fen += "q" }
+    }
+    fen += " ";
+    if position.en_passant_square == EN_PASSANT_UNAVAILABLE {
+        fen += "-"
+    } else {
+        fen += &algebraic_squareref_from_bitref(position.en_passant_square);
+    }
+    fen += " ";
+    fen += &position.half_moves.to_string();
+    fen += " ";
+    fen += &position.move_number.to_string();
+    fen
 }
