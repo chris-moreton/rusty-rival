@@ -11,7 +11,8 @@ use crate::search::{search_zero, start_search};
 use crate::types::{SearchState, UciState};
 
 pub fn run_command(mut uci_state: &mut UciState, l: &str) -> Either<String, Option<String>> {
-    let parts = l.trim().split(' ').collect::<Vec<&str>>();
+    let mut trimmed_line = l.trim().clone().replace("  ", " ");
+    let parts = trimmed_line.split(' ').collect::<Vec<&str>>();
     run_parts(&mut uci_state, parts)
 }
 
@@ -57,12 +58,21 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
     }
 }
 
+fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<&str>) {
+    if !parts.contains(&"moves") {
+        let fen = parts.join(" ").replace("position fen", "");
+        return (fen.trim().parse().unwrap(), vec![])
+    }
+    ("".parse().unwrap(), vec![])
+}
+
 fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
     match *t {
         "fen" => {
             let re = Regex::new(r"\s*^(((?:[rnbqkpRNBQKP1-8]+/){7})[rnbqkpRNBQKP1-8]+)\s([b|w])\s([K|Q|k|q]{1,4}|-)\s(-|[a-h][1-8])\s(\d+\s\d+)$").unwrap();
-            uci_state.fen = parts.join(" ").replace("position fen", "").trim().to_string();
+            let (fen, moves) = fen_and_moves(parts);
+            uci_state.fen = fen.parse().unwrap();
             if re.is_match(&*uci_state.fen) {
                 Right(None)
             } else {
@@ -71,6 +81,16 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
         },
         "startpos" => {
             uci_state.fen = START_POS.parse().unwrap();
+            if parts.len() > 2 {
+                match parts[2] {
+                    "moves" => {
+
+                    },
+                    _ => {
+                        return Left("Bad position command".parse().unwrap())
+                    }
+                }
+            }
             Right(None)
         },
         _ => {

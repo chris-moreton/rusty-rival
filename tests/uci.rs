@@ -31,6 +31,26 @@ pub fn it_handles_startpos() {
 }
 
 #[test]
+pub fn it_handles_bad_startpos_command() {
+    let mut uci_state = default_uci_state();
+
+    let result = run_command(&mut uci_state, "position startpos blah blah blah");
+    assert_error_message(result, |message| {
+        message == "Bad position command"
+    });
+}
+
+#[test]
+#[ignore]
+pub fn it_handles_the_movelist() {
+    let mut uci_state = default_uci_state();
+
+    assert_eq!(run_command(&mut uci_state, "position startpos moves e2e4 e7e5 d2d4"), Right(None));
+    assert_eq!(uci_state.fen, "rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 2");
+}
+
+
+#[test]
 pub fn it_handles_a_bad_fen() {
     let mut uci_state = default_uci_state();
 
