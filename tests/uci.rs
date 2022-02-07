@@ -23,6 +23,9 @@ pub fn it_knows_legal_moves() {
     assert!(!is_legal_move(position, "a1a2"));
     assert!(!is_legal_move(position, "g2h3"));
     assert!(!is_legal_move(position, "a4a5"));
+    assert!(!is_legal_move(position, ""));
+    assert!(!is_legal_move(position, "aaaa"));
+    assert!(!is_legal_move(position, "!garbage__"));
 }
 
 #[test]

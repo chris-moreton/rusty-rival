@@ -12,6 +12,7 @@ use crate::moves::{is_check, moves};
 use crate::perft::perft;
 use crate::search::{search_zero, start_search};
 use crate::types::{Move, Position, SearchState, UciState};
+use crate::utils::hydrate_move_from_algebraic_move;
 
 pub fn run_command(mut uci_state: &mut UciState, l: &str) -> Either<String, Option<String>> {
     let mut trimmed_line = l.trim().clone().replace("  ", " ");
@@ -64,7 +65,7 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
     }
 }
 
-fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<Move>) {
+fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<String>) {
 
     if !parts.contains(&"moves") {
         let fen = parts.join(" ").replace("position fen", "");
@@ -74,7 +75,7 @@ fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<Move>) {
     let two_parts = fen_and_moves_string.split("moves").collect::<Vec<&str>>();
     let fen = two_parts[0];
     let moves = two_parts[1].split(' ').collect::<Vec<&str>>().into_iter().map(|move_string| {
-       move_from_algebraic_move(move_string.to_string(), PIECE_MASK_FULL)
+       move_string.to_string()
     }).collect();
 
     (fen.parse().unwrap(), moves)
@@ -106,11 +107,15 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
 
             if re.is_match(&*fen) {
                 uci_state.fen = fen;
-                let mut position = &get_position(&uci_state.fen);
+                let mut position = get_position(&uci_state.fen);
+                let mut new_position = position;
                 if moves.len() > 0 {
                     for m in moves {
-                        let mut new_position = *position;
-                        make_move(position, m, &mut new_position);
+                        if !is_legal_move(&new_position, &m) {
+                            return Left("Illegal move found".parse().unwrap());
+                        }
+                        make_move(&position, hydrate_move_from_algebraic_move(&position, m.to_string()), &mut new_position);
+                        position = new_position
                     }
                 }
                 return Right(None)

@@ -1,4 +1,5 @@
-use rusty_rival::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, get_position, move_from_algebraic_move, piece_bitboard, rank_bits};
+use rusty_rival::bitboards::{B2_BIT, C8_BIT, D8_BIT, E1_BIT, E2_BIT, F3_BIT, F4_BIT};
+use rusty_rival::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, get_fen_ranks, get_piece_on_square, get_position, move_from_algebraic_move, piece_bitboard, rank_bits};
 use rusty_rival::move_constants::EN_PASSANT_NOT_AVAILABLE;
 use rusty_rival::types::{BLACK, is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, WHITE};
 
@@ -96,6 +97,19 @@ fn it_converts_a_compact_move_to_an_algebraic_move() {
     assert_eq!(algebraic_move_from_move(458808), "a1h8");
     assert_eq!(algebraic_move_from_move(458872), "a1h8r");
     assert_eq!(algebraic_move_from_move(720947), "e2e7");
+}
+
+#[test]
+fn it_returns_a_char_representing_the_piece_on_a_square() {
+    let fen = "2nb2k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/5Q2 b - - 1 56";
+    let position = get_position(&fen.to_string());
+    assert_eq!(get_piece_on_square(&position, B2_BIT), 'r');
+    assert_eq!(get_piece_on_square(&position, F4_BIT), 'R');
+    assert_eq!(get_piece_on_square(&position, E2_BIT), 'N');
+    assert_eq!(get_piece_on_square(&position, C8_BIT), 'n');
+    assert_eq!(get_piece_on_square(&position, D8_BIT), 'b');
+    assert_eq!(get_piece_on_square(&position, F3_BIT), 'B');
+    assert_eq!(get_piece_on_square(&position, E1_BIT), '-');
 }
 
 #[test]

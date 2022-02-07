@@ -1,3 +1,4 @@
+use crate::bitboards::bit;
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
 use crate::types::{Bitboard, BLACK, Move, Mover, Pieces, Position, Square, WHITE};
 use crate::utils::from_square_mask;
@@ -173,5 +174,41 @@ pub fn get_position(fen: &str) -> Position {
         half_moves: fen_part(fen, 4).parse::<u16>().unwrap(),
         move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
     }
+
+}
+
+pub fn get_piece_on_square(position: &Position, sq: Square) -> char {
+    let bb = bit(sq);
+
+    if position.pieces[WHITE as usize].pawn_bitboard & bb != 0 {
+       'P'
+    } else if position.pieces[WHITE as usize].knight_bitboard & bb != 0 {
+        'N'
+    } else if position.pieces[WHITE as usize].queen_bitboard & bb != 0 {
+        'Q'
+    } else if position.pieces[WHITE as usize].rook_bitboard & bb != 0 {
+        'R'
+    } else if position.pieces[WHITE as usize].bishop_bitboard & bb != 0 {
+        'B'
+    } else if position.pieces[WHITE as usize].king_square == sq {
+        'K'
+    } else if position.pieces[BLACK as usize].pawn_bitboard & bb != 0 {
+        'p'
+    } else if position.pieces[BLACK as usize].knight_bitboard & bb != 0 {
+        'n'
+    } else if position.pieces[BLACK as usize].queen_bitboard & bb != 0 {
+        'q'
+    } else if position.pieces[BLACK as usize].rook_bitboard & bb != 0 {
+        'r'
+    } else if position.pieces[BLACK as usize].bishop_bitboard & bb != 0 {
+        'b'
+    } else if position.pieces[BLACK as usize].king_square == sq {
+        'k'
+    } else {
+        '-'
+    }
+}
+
+pub fn get_fen(position: &Position) {
 
 }
