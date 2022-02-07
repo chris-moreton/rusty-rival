@@ -5,7 +5,7 @@ use std::time::Instant;
 use either::{Either, Left, Right};
 use regex::Regex;
 
-use crate::fen::{algebraic_move_from_move, get_position, move_from_algebraic_move};
+use crate::fen::{algebraic_move_from_move, get_fen, get_position, move_from_algebraic_move};
 use crate::make_move::make_move;
 use crate::move_constants::{PIECE_MASK_FULL, START_POS};
 use crate::moves::{is_check, moves};
@@ -17,7 +17,7 @@ use crate::utils::hydrate_move_from_algebraic_move;
 pub fn run_command(mut uci_state: &mut UciState, l: &str) -> Either<String, Option<String>> {
     let mut trimmed_line = l.trim().clone().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
-        trimmed_line = trimmed_line.replace("startpos", &*("fen ".to_string() + START_POS))
+        trimmed_line = trimmed_line.replace("startpos", &*("fen ".to_string() + START_POS));
     }
     let parts = trimmed_line.split(' ').collect::<Vec<&str>>();
     run_parts(&mut uci_state, parts)
@@ -74,11 +74,11 @@ fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<String>) {
     let fen_and_moves_string = parts.join(" ").replace("position fen", "");
     let two_parts = fen_and_moves_string.split("moves").collect::<Vec<&str>>();
     let fen = two_parts[0];
-    let moves = two_parts[1].split(' ').collect::<Vec<&str>>().into_iter().map(|move_string| {
+    let moves = two_parts[1].trim().split(' ').collect::<Vec<&str>>().into_iter().map(|move_string| {
        move_string.to_string()
     }).collect();
 
-    (fen.parse().unwrap(), moves)
+    (fen.trim().parse().unwrap(), moves)
 }
 
 pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
@@ -112,12 +112,13 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
                 if moves.len() > 0 {
                     for m in moves {
                         if !is_legal_move(&new_position, &m) {
-                            return Left("Illegal move found".parse().unwrap());
+                            return Left("Illegal move found".parse::<String>().unwrap() + " " + &*m);
                         }
                         make_move(&position, hydrate_move_from_algebraic_move(&position, m.to_string()), &mut new_position);
                         position = new_position
                     }
                 }
+                uci_state.fen = get_fen(&position);
                 return Right(None)
             } else {
                 return Left("Invalid FEN".parse().unwrap())
