@@ -4,14 +4,17 @@ use std::thread;
 use std::time::Instant;
 use either::{Either, Left, Right};
 use regex::Regex;
-use crate::fen::{algebraic_move_from_move, get_position};
-use crate::move_constants::START_POS;
+use crate::fen::{algebraic_move_from_move, get_position, move_from_algebraic_move};
+use crate::move_constants::{PIECE_MASK_FULL, START_POS};
 use crate::perft::perft;
 use crate::search::{search_zero, start_search};
-use crate::types::{SearchState, UciState};
+use crate::types::{Move, SearchState, UciState};
 
 pub fn run_command(mut uci_state: &mut UciState, l: &str) -> Either<String, Option<String>> {
     let mut trimmed_line = l.trim().clone().replace("  ", " ");
+    if trimmed_line.starts_with("position startpos") {
+        trimmed_line = trimmed_line.replace("startpos", &*("fen ".to_string() + START_POS))
+    }
     let parts = trimmed_line.split(' ').collect::<Vec<&str>>();
     run_parts(&mut uci_state, parts)
 }
@@ -58,12 +61,20 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
     }
 }
 
-fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<&str>) {
+fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<Move>) {
+
     if !parts.contains(&"moves") {
         let fen = parts.join(" ").replace("position fen", "");
         return (fen.trim().parse().unwrap(), vec![])
     }
-    ("".parse().unwrap(), vec![])
+    let fen_and_moves_string = parts.join(" ").replace("position fen", "");
+    let two_parts = fen_and_moves_string.split("moves").collect::<Vec<&str>>();
+    let fen = two_parts[0];
+    let moves = two_parts[1].split(' ').collect::<Vec<&str>>().into_iter().map(|move_string| {
+       move_from_algebraic_move(move_string.to_string(), PIECE_MASK_FULL)
+    }).collect();
+
+    (fen.parse().unwrap(), moves)
 }
 
 fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
@@ -78,20 +89,6 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
             } else {
                 Left("Invalid FEN".parse().unwrap())
             }
-        },
-        "startpos" => {
-            uci_state.fen = START_POS.parse().unwrap();
-            if parts.len() > 2 {
-                match parts[2] {
-                    "moves" => {
-
-                    },
-                    _ => {
-                        return Left("Bad position command".parse().unwrap())
-                    }
-                }
-            }
-            Right(None)
         },
         _ => {
             Left("Unknown position command".parse().unwrap())

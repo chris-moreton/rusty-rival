@@ -104,7 +104,6 @@ fn it_converts_an_algebraic_move_to_a_move() {
     assert_eq!(algebraic_move_from_move(move_from_algebraic_move("h7g8b".to_string(), 0)), "h7g8b");
     assert_eq!(algebraic_move_from_move(move_from_algebraic_move("h1a8".to_string(), 0)), "h1a8");
 
-
     assert_eq!(458808, move_from_algebraic_move("a1h8".to_string(), 0));
     assert_eq!(458872, move_from_algebraic_move("a1h8r".to_string(), 0));
 }
