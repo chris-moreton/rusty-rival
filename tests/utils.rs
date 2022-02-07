@@ -1,6 +1,8 @@
+use rusty_rival::bitboards::{H2_BIT, H4_BIT};
 use rusty_rival::fen::{get_position, move_from_algebraic_move};
 use rusty_rival::make_move::make_move;
 use rusty_rival::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, START_POS, WHITE_KING_CASTLE_MOVE, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
+use rusty_rival::types::Move;
 use rusty_rival::types::Piece::{Knight, Pawn};
 use rusty_rival::utils::{castle_mask, from_square_mask, from_square_part, hydrate_move_from_algebraic_move, moving_piece_mask, to_square_part};
 
@@ -40,4 +42,6 @@ pub fn it_can_figure_out_the_castle_mask() {
 pub fn it_can_hydrate_a_move() {
     let position = &get_position(&"r3k2r/pppp1ppp/1bnb1n2/4p1q1/3PP3/1BNB1N2/PPP1QPPP/R3K2R w KQkq - 0 1".to_string());
     assert_eq!(hydrate_move_from_algebraic_move(position, "e1g1".to_string()), WHITE_KING_CASTLE_MOVE);
+    assert_eq!(hydrate_move_from_algebraic_move(position, "h2h4".to_string()), from_square_mask(H2_BIT) | H4_BIT as Move | PIECE_MASK_PAWN);
 }
+

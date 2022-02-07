@@ -1,7 +1,8 @@
 use either::{Either, Left, Right};
+use rusty_rival::fen::get_position;
 use rusty_rival::move_constants::START_POS;
 use rusty_rival::types::{default_uci_state, HashEntry, HashIndex, UciState};
-use rusty_rival::uci::run_command;
+use rusty_rival::uci::{is_legal_move, run_command};
 
 #[test]
 pub fn it_sets_a_fen() {
@@ -10,6 +11,18 @@ pub fn it_sets_a_fen() {
     assert_eq!(run_command(&mut uci_state, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
     assert_eq!(uci_state.fen.to_string(), "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1".to_string());
     assert_eq!(run_command(&mut uci_state, "go perft 1"), Right(None))
+}
+
+#[test]
+pub fn it_knows_legal_moves() {
+    let mut uci_state = default_uci_state();
+
+    let position = &get_position("r3k1nr/pppp1ppp/1bn5/4p1q1/3PP3/1BNB1N1b/PPP1QPPP/R4RK1 w kq - 0 1");
+    assert!(is_legal_move(position, "a1b1"));
+    assert!(is_legal_move(position, "f3g5"));
+    assert!(!is_legal_move(position, "a1a2"));
+    assert!(!is_legal_move(position, "g2h3"));
+    assert!(!is_legal_move(position, "a4a5"));
 }
 
 #[test]

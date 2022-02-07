@@ -6,10 +6,12 @@ use either::{Either, Left, Right};
 use regex::Regex;
 
 use crate::fen::{algebraic_move_from_move, get_position, move_from_algebraic_move};
+use crate::make_move::make_move;
 use crate::move_constants::{PIECE_MASK_FULL, START_POS};
+use crate::moves::{is_check, moves};
 use crate::perft::perft;
 use crate::search::{search_zero, start_search};
-use crate::types::{Move, SearchState, UciState};
+use crate::types::{Move, Position, SearchState, UciState};
 
 pub fn run_command(mut uci_state: &mut UciState, l: &str) -> Either<String, Option<String>> {
     let mut trimmed_line = l.trim().clone().replace("  ", " ");
@@ -78,6 +80,21 @@ fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<Move>) {
     (fen.parse().unwrap(), moves)
 }
 
+pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
+    let moves = moves(position);
+    for m in moves {
+        let am = algebraic_move_from_move(m);
+        if am == algebraic_move {
+            let mut new_position = *position;
+            make_move(position, m, &mut new_position);
+            if !is_check(&new_position, position.mover) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
     match *t {
@@ -92,7 +109,8 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
                 let mut position = &get_position(&uci_state.fen);
                 if moves.len() > 0 {
                     for m in moves {
-
+                        let mut new_position = *position;
+                        make_move(position, m, &mut new_position);
                     }
                 }
                 return Right(None)
