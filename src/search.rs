@@ -10,8 +10,7 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
     let legal_moves: MoveList = moves(position).into_iter().filter(|m| {
         let mut new_position = *position;
         make_move(position, *m, &mut new_position);
-        !is_check(&new_position, position.mover);
-        true
+        !is_check(&new_position, position.mover)
     }).collect();
 
     let mut rng = rand::thread_rng();

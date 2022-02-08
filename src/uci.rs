@@ -114,6 +114,9 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
                         if !is_legal_move(&new_position, &m) {
                             return Left("Illegal move found".parse::<String>().unwrap() + " " + &*m);
                         }
+                        if m == "f8c8" {
+
+                        }
                         make_move(&position, hydrate_move_from_algebraic_move(&position, m.to_string()), &mut new_position);
                         position = new_position
                     }
@@ -153,26 +156,61 @@ fn cmd_msg_test(mut uci_state: &mut UciState) -> Either<String, Option<String>> 
     Right(None)
 }
 
+pub fn extract_go_param(needle: &str, haystack: &str) -> u64 {
+    let re = r"".to_string() + &*needle.to_string() + &*" ([0-9]*)".to_string();
+    let regex = Regex::new(&*re).unwrap();
+    let caps = regex.captures(&*haystack);
+    match caps {
+        Some(x) => {
+            let s = x.get(1).unwrap().as_str();
+            s.parse::<u64>().unwrap()
+        },
+        None => {
+            0
+        }
+    }
+}
+
 fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
     let depth = parts.get(2).unwrap().to_string().parse().unwrap();
+
+    let mut search_state = SearchState {
+        hash_table: Default::default(),
+        pv: vec![],
+        pv_score: 0
+    };
+
     match *t {
         "perft" => {
             cmd_perft(depth, &uci_state);
             Right(None)
         },
-        "depth" => {
-            let mut search_state = SearchState {
-                hash_table: Default::default(),
-                pv: vec![],
-                pv_score: 0
-            };
+        "infinite" => {
+            let position = get_position(uci_state.fen.trim());
+            let mv = start_search(&position, depth, Instant::now(), &mut search_state);
+            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
+        },
+        "mate" => {
             let position = get_position(uci_state.fen.trim());
             let mv = start_search(&position, depth, Instant::now(), &mut search_state);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         _ => {
-            Left("Unknown go command".parse().unwrap())
+            let line = parts.join(" ").to_string();
+            uci_state.wtime = extract_go_param("wtime", &line);
+            uci_state.btime = extract_go_param("btime", &line);
+            uci_state.winc = extract_go_param("winc", &line);
+            uci_state.binc = extract_go_param("binc", &line);
+            uci_state.moves_to_go = extract_go_param("movestogo", &line);
+            uci_state.depth = extract_go_param("depth", &line);
+            uci_state.nodes = extract_go_param("nodes", &line);
+            uci_state.move_time = extract_go_param("movetime", &line);
+
+            let position = get_position(uci_state.fen.trim());
+            let mv = start_search(&position, depth, Instant::now(), &mut search_state);
+
+            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         }
     }
 }
@@ -201,7 +239,17 @@ fn cmd_benchmark(parts: Vec<&str>) -> Either<String, Option<String>> {
         debug: false,
         fen: "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".parse().unwrap(),
         hash_table: Default::default(),
-        registered_name: "".to_string()
+        registered_name: "".to_string(),
+        wtime: 0,
+        btime: 0,
+        winc: 0,
+        binc: 0,
+        moves_to_go: 0,
+        depth: 0,
+        nodes: 0,
+        mate: false,
+        move_time: 0,
+        infinite: false
     }
     );
     Right(None)

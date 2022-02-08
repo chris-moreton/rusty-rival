@@ -1,4 +1,4 @@
-use crate::bitboards::{bit, G1_BIT, C1_BIT, G8_BIT, C8_BIT};
+use crate::bitboards::{bit, G1_BIT, C1_BIT, G8_BIT, C8_BIT, E8_BIT, E1_BIT};
 use crate::fen::move_from_algebraic_move;
 use crate::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
 use crate::types::{Bitboard, BLACK, Move, Piece, Pieces, Position, Square, WHITE};
@@ -56,16 +56,16 @@ pub fn castle_mask(position: &Position, mv: Move) -> Move {
     let from = from_square_part(mv);
     let to = to_square_part(mv);
 
-    if from == position.pieces[WHITE as usize].king_square {
+    if from == position.pieces[WHITE as usize].king_square && from == E1_BIT {
         match to {
-            G1_BIT=> WHITE_KING_CASTLE_MOVE_MASK,
-            C1_BIT=> WHITE_QUEEN_CASTLE_MOVE_MASK,
+            G1_BIT => WHITE_KING_CASTLE_MOVE_MASK,
+            C1_BIT => WHITE_QUEEN_CASTLE_MOVE_MASK,
             _ => 0
         }
-    } else if from == position.pieces[BLACK as usize].king_square {
+    } else if from == position.pieces[BLACK as usize].king_square && from == E8_BIT {
         match to {
-            G8_BIT=> BLACK_KING_CASTLE_MOVE_MASK,
-            C8_BIT=> BLACK_QUEEN_CASTLE_MOVE_MASK,
+            G8_BIT => BLACK_KING_CASTLE_MOVE_MASK,
+            C8_BIT => BLACK_QUEEN_CASTLE_MOVE_MASK,
             _ => 0
         }
     } else {

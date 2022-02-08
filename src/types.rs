@@ -19,6 +19,16 @@ pub struct UciState {
     pub debug: bool,
     pub hash_table: HashMap<HashIndex, HashEntry>,
     pub registered_name: String,
+    pub wtime: u64,
+    pub btime: u64,
+    pub winc: u64,
+    pub binc: u64,
+    pub moves_to_go: u64,
+    pub depth: u64,
+    pub nodes: u64,
+    pub mate: bool,
+    pub move_time: u64,
+    pub infinite: bool,
 }
 
 pub fn default_uci_state() -> UciState {
@@ -27,6 +37,16 @@ pub fn default_uci_state() -> UciState {
         debug: false,
         hash_table: Default::default(),
         registered_name: "Rustival".parse().unwrap(),
+        wtime: 0,
+        btime: 0,
+        winc: 0,
+        binc: 0,
+        moves_to_go: 0,
+        depth: 0,
+        nodes: 0,
+        mate: false,
+        move_time: 0,
+        infinite: false
     }
 }
 
