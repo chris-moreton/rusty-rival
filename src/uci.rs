@@ -180,6 +180,7 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
         pv: vec![],
         pv_score: 0
     };
+    let (tx, rx) = mpsc::channel();
 
     match *t {
         "perft" => {
@@ -188,12 +189,12 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
         },
         "infinite" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, depth, Instant::now(), &mut search_state);
+            let mv = start_search(&position, depth, Instant::now(), &mut search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         "mate" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, depth, Instant::now(), &mut search_state);
+            let mv = start_search(&position, depth, Instant::now(), &mut search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         _ => {
@@ -208,7 +209,7 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
             uci_state.move_time = extract_go_param("movetime", &line);
 
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, depth, Instant::now(), &mut search_state);
+            let mv = start_search(&position, depth, Instant::now(), &mut search_state, tx);
 
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         }

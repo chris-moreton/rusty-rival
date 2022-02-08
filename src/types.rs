@@ -13,6 +13,8 @@ pub type Window = (Bound, Bound);
 pub type Score = i16;
 pub type HashIndex = u32;
 pub type HashLock = u128;
+pub type MoveScore = (Move, Score);
+pub type MoveScoreList = Vec<MoveScore>;
 
 pub struct UciState {
     pub fen: String,

@@ -196,7 +196,6 @@ fn sort_moves(move_list: MoveList) -> Vec<String> {
     return algebraic;
 }
 
-
 #[test]
 pub fn it_checks_for_check() {
     assert_eq!(is_check(&get_position(&"5k2/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()), BLACK), true);

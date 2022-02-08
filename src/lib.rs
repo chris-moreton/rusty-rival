@@ -11,3 +11,4 @@ pub mod make_move;
 pub mod perft;
 pub mod search;
 pub mod uci;
+pub mod evaluate;
