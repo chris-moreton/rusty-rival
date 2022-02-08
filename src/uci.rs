@@ -10,7 +10,7 @@ use crate::make_move::make_move;
 use crate::move_constants::{PIECE_MASK_FULL, START_POS};
 use crate::moves::{is_check, moves};
 use crate::perft::perft;
-use crate::search::{search_zero, start_search};
+use crate::search::{start_search};
 use crate::types::{Move, Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
@@ -53,9 +53,6 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
         "quit" => {
             exit(0)
         },
-        "test" => {
-            cmd_msg_test(uci_state)
-        }
         "position" => {
             cmd_position(uci_state, parts)
         }
@@ -133,28 +130,28 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
     }
 }
 
-fn cmd_msg_test(mut uci_state: &mut UciState) -> Either<String, Option<String>> {
-    let (tx, rx) = mpsc::channel();
-    let position = get_position(uci_state.fen.trim());
-
-    thread::spawn(move || {
-        search_zero(&position, 0, tx);
-    });
-
-    let mut start = Instant::now();
-
-    loop {
-        let received = rx.recv().unwrap();
-        if start.elapsed().as_secs() >= 1 {
-            println!("Got: {}", received);
-            if received == "done" {
-                break;
-            }
-            start = Instant::now();
-        }
-    }
-    Right(None)
-}
+// fn cmd_msg_test(mut uci_state: &mut UciState) -> Either<String, Option<String>> {
+//     let (tx, rx) = mpsc::channel();
+//     let position = get_position(uci_state.fen.trim());
+//
+//     thread::spawn(move || {
+//         start_search(&position, 0, tx, &mut SearchState {}, ());
+//     });
+//
+//     let mut start = Instant::now();
+//
+//     loop {
+//         let received = rx.recv().unwrap();
+//         if start.elapsed().as_secs() >= 1 {
+//             println!("Got: {}", received);
+//             if received == "done" {
+//                 break;
+//             }
+//             start = Instant::now();
+//         }
+//     }
+//     Right(None)
+// }
 
 pub fn extract_go_param(needle: &str, haystack: &str) -> u64 {
     let re = r"".to_string() + &*needle.to_string() + &*" ([0-9]*)".to_string();
@@ -173,7 +170,6 @@ pub fn extract_go_param(needle: &str, haystack: &str) -> u64 {
 
 fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
-    let depth = parts.get(2).unwrap().to_string().parse().unwrap();
 
     let mut search_state = SearchState {
         hash_table: Default::default(),
@@ -184,17 +180,18 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
 
     match *t {
         "perft" => {
+            let depth = parts.get(2).unwrap().to_string().parse().unwrap();
             cmd_perft(depth, &uci_state);
             Right(None)
         },
         "infinite" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, depth, Instant::now(), &mut search_state, tx);
+            let mv = start_search(&position, 200, Instant::now(), &mut search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         "mate" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, depth, Instant::now(), &mut search_state, tx);
+            let mv = start_search(&position, 200, Instant::now(), &mut search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         _ => {
@@ -209,7 +206,7 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
             uci_state.move_time = extract_go_param("movetime", &line);
 
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, depth, Instant::now(), &mut search_state, tx);
+            let mv = start_search(&position, uci_state.depth as u8, Instant::now(), &mut search_state, tx);
 
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         }

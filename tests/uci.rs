@@ -59,7 +59,7 @@ pub fn it_handles_the_movelist() {
     let result = run_command(&mut uci_state, "isready");
     assert_success_message(result, |message| { message.contains("readyok") });
 
-    let result = run_command(&mut uci_state, "go depth 3");
+    let result = run_command(&mut uci_state, "go depth 1");
     assert_success_message(result, |message| { message.contains("bestmove") });
 
 }
@@ -103,7 +103,7 @@ pub fn it_returns_a_best_move() {
     let mut uci_state = default_uci_state();
 
     assert_eq!(run_command(&mut uci_state, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
-    let result = run_command(&mut uci_state, "go depth 3");
+    let result = run_command(&mut uci_state, "go depth 1");
     assert_success_message(result, |message| {
         message.contains("bestmove")
     });
@@ -223,7 +223,7 @@ pub fn it_handles_the_ucinewgame_command() {
 pub fn it_parses_params_from_a_go_command() {
     let mut uci_state = default_uci_state();
 
-    let result = run_command(&mut uci_state, "go blah 123 wtime 728 btime 182");
+    run_command(&mut uci_state, "go blah 123 wtime 728 btime 182 depth 1");
     assert_eq!(uci_state.wtime, 728);
     assert_eq!(uci_state.btime, 182)
 }

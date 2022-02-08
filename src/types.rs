@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::move_constants::{BK_CASTLE, BQ_CASTLE, WK_CASTLE, WQ_CASTLE};
+use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 
 pub type Square = i8;
 pub type Bitboard = u64;
@@ -35,7 +35,7 @@ pub struct UciState {
 
 pub fn default_uci_state() -> UciState {
     UciState {
-        fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string(),
+        fen: START_POS.to_string(),
         debug: false,
         hash_table: Default::default(),
         registered_name: "Rustival".parse().unwrap(),

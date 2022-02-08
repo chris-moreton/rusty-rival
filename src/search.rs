@@ -2,9 +2,12 @@ use std::sync::mpsc::Sender;
 use std::time::Instant;
 use rand::Rng;
 use crate::evaluate::evaluate;
+use crate::fen::algebraic_move_from_move;
 use crate::make_move::make_move;
 use crate::moves::{is_check, moves};
 use crate::types::{Bound, Move, Position, MoveList, Score, SearchState, Window, WHITE, MoveScoreList};
+
+pub const MAX_SCORE: Score = 30000;
 
 pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: Sender<String>) -> Move {
 
@@ -18,7 +21,7 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
 
     let aspiration_window: Window = (-30000, 30000);
 
-    for iterative_depth in 1..=1 {
+    for iterative_depth in max_depth..=max_depth {
         for move_num in 1..legal_moves.len() {
             let mut new_position = *position;
             make_move(position, legal_moves[move_num].0, &mut new_position);
@@ -31,15 +34,22 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
 
 }
 
-
-pub fn search_zero(position: &Position, depth: u8, tx: Sender<String>) {
-}
-
-pub fn search(position: &Position, depth: u8, window: Window, _tx: &Sender<String>) -> Score {
-    evaluate(position)
-}
-
-pub fn is_book_move_available(position: &Position) -> bool {
-    false
+pub fn search(position: &Position, depth: u8, window: Window, tx: &Sender<String>) -> Score {
+    if depth == 0 {
+        evaluate(position)
+    } else {
+        let mut best_score = -MAX_SCORE;
+        for m in moves(position) {
+            let mut new_position = *position;
+            make_move(position, m, &mut new_position);
+            if !is_check(&new_position, position.mover) {
+                let score = -search(&new_position, depth-1, window, tx);
+                if score > best_score {
+                    best_score = score
+                }
+            }
+        }
+        best_score
+    }
 }
 
