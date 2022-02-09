@@ -55,6 +55,7 @@ pub struct SearchState {
     pub pv: Path,
     pub pv_score: Score,
     pub nodes: u64,
+    pub hash_hits_exact: u64,
 }
 
 pub fn default_search_state() -> SearchState {
@@ -62,7 +63,8 @@ pub fn default_search_state() -> SearchState {
         hash_table: Default::default(),
         pv: vec![],
         pv_score: 0,
-        nodes: 0
+        nodes: 0,
+        hash_hits_exact: 0
     }
 }
 

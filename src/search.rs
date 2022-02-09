@@ -73,6 +73,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         match hash_entry {
             Some(x) => {
                 if x.lock == lock && x.bound == BoundType::Exact && x.height >= depth {
+                    search_state.hash_hits_exact += 1;
                     return x.score;
                 }
             },
