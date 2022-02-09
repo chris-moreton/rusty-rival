@@ -216,7 +216,7 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id rustival\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {

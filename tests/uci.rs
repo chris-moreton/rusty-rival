@@ -115,7 +115,7 @@ pub fn it_handles_the_uci_command() {
 
     let result = run_command(&mut uci_state, "uci");
     assert_success_message(result, |message| {
-        message.starts_with("id rustival") && message.ends_with("uciok") && message.contains("option")
+        message.starts_with("id name Rusty Rival") && message.ends_with("uciok") && message.contains("option") && message.contains("Chris Moreton")
     });
 }
 
