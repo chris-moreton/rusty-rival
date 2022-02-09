@@ -26,6 +26,7 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
             let mut new_position = *position;
             make_move(position, legal_moves[move_num].0, &mut new_position);
             legal_moves[move_num].1 = -search(&new_position, iterative_depth, aspiration_window, &tx);
+            println!("{} {}", algebraic_move_from_move(legal_moves[move_num].0), legal_moves[move_num].1)
         }
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a))
     }
@@ -43,13 +44,15 @@ pub fn search(position: &Position, depth: u8, window: Window, tx: &Sender<String
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
-                let score = -search(&new_position, depth-1, window, tx);
+                let score = -search(&new_position, depth-1, (-window.1, -best_score), tx);
                 if score > best_score {
-                    best_score = score
+                    best_score = score;
+                    if best_score >= window.1 {
+                        return best_score;
+                    }
                 }
             }
         }
         best_score
     }
 }
-
