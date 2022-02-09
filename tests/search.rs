@@ -24,7 +24,7 @@ fn it_returns_the_best_move_at_depth_1() {
 
 }
 
-fn assert_mate(fen: &str, depth: u16, bestmove: &str) {
+fn assert_mate(fen: &str, depth: u8, bestmove: &str) {
     let mut search_state = SearchState {
         hash_table: Default::default(),
         pv: vec![],
@@ -32,16 +32,19 @@ fn assert_mate(fen: &str, depth: u16, bestmove: &str) {
     };
     let (tx, rx) = mpsc::channel();
     let position = get_position(&fen.to_string());
-    let mv = start_search(&position, 5, Instant::now().add(Duration::from_millis(250)), &mut search_state, tx);
+    let mv = start_search(&position, depth, Instant::now().add(Duration::from_millis(250)), &mut search_state, tx);
     assert_eq!(algebraic_move_from_move(mv), bestmove);
 }
 
 #[test]
 fn it_finds_a_mate_in_3() {
-
     assert_mate("1k5r/pP3ppp/3p2b1/1BN1n3/1Q2P3/P1B5/KP3P1P/7q w - - 1 0", 5, "c5a6");
     assert_mate("3r4/pR2N3/2pkb3/5p2/8/2B5/qP3PPP/4R1K1 w - - 1 0", 5, "c3e5");
     assert_mate("R6R/1r3pp1/4p1kp/3pP3/1r2qPP1/7P/1P1Q3K/8 w - - 1 0", 5, "f4f5");
     assert_mate("4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1", 5, "e5e1");
+}
 
+#[test]
+fn it_finds_a_mate_in_4() {
+    assert_mate("7R/r1p1q1pp/3k4/1p1n1Q2/3N4/8/1PP2PPP/2B3K1 w - - 1 0", 7, "h8d8");
 }

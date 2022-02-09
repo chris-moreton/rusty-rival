@@ -40,14 +40,19 @@ pub fn search(position: &Position, depth: u8, window: Window, tx: &Sender<String
         evaluate(position)
     } else {
         let mut best_score = -MAX_SCORE;
+        let mut alpha = window.0;
+        let beta = window.1;
         for m in moves(position) {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
-                let score = -search(&new_position, depth-1, (-window.1, -best_score), tx);
+                let score = -search(&new_position, depth-1, (-beta, -alpha), tx);
+                if score > alpha {
+                    alpha = score
+                }
                 if score > best_score {
                     best_score = score;
-                    if best_score >= window.1 {
+                    if best_score >= beta {
                         return best_score;
                     }
                 }
