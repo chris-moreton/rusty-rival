@@ -1,7 +1,8 @@
+use std::ops::Add;
 use std::process::exit;
 use std::sync::mpsc;
 use std::thread;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use either::{Either, Left, Right};
 use regex::Regex;
 
@@ -174,7 +175,8 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
     let mut search_state = SearchState {
         hash_table: Default::default(),
         pv: vec![],
-        pv_score: 0
+        pv_score: 0,
+        nodes: 0
     };
     let (tx, rx) = mpsc::channel();
 
@@ -206,7 +208,7 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
             uci_state.move_time = extract_go_param("movetime", &line);
 
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, uci_state.depth as u8, Instant::now(), &mut search_state, tx);
+            let mv = start_search(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), &mut search_state, tx);
 
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         }

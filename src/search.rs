@@ -1,11 +1,12 @@
+use std::ops::Add;
 use std::sync::mpsc::Sender;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use rand::Rng;
 use crate::evaluate::evaluate;
 use crate::fen::algebraic_move_from_move;
 use crate::make_move::make_move;
 use crate::moves::{is_check, moves};
-use crate::types::{Bound, Move, Position, MoveList, Score, SearchState, Window, WHITE, MoveScoreList};
+use crate::types::{Bound, Move, Position, MoveList, Score, SearchState, Window, WHITE, MoveScoreList, MoveScore};
 
 pub const MAX_SCORE: Score = 30000;
 
@@ -21,12 +22,20 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
 
     let aspiration_window: Window = (-30000, 30000);
 
-    for iterative_depth in max_depth..=max_depth {
-        for move_num in 1..legal_moves.len() {
+    for iterative_depth in 1..=max_depth {
+        let mut current_best: MoveScore = legal_moves[0];
+            for move_num in 1..legal_moves.len() {
+            if end_time < Instant::now() {
+                return legal_moves[0].0;
+            }
             let mut new_position = *position;
             make_move(position, legal_moves[move_num].0, &mut new_position);
-            legal_moves[move_num].1 = -search(&new_position, iterative_depth, aspiration_window, &tx);
-            println!("{} {}", algebraic_move_from_move(legal_moves[move_num].0), legal_moves[move_num].1)
+            let score = -search(&new_position, iterative_depth, aspiration_window, end_time, search_state, &tx);
+            legal_moves[move_num].1 = score;
+            if score > current_best.1 {
+                current_best = legal_moves[move_num];
+            }
+
         }
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a))
     }
@@ -35,7 +44,20 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
 
 }
 
-pub fn search(position: &Position, depth: u8, window: Window, tx: &Sender<String>) -> Score {
+#[macro_export]
+macro_rules! check_time {
+    ($nodes:expr, $end_time:expr) => {
+        if $nodes % 100000 == 0 {
+            if $end_time < Instant::now() {
+                return 0;
+            }
+        }
+    }
+}
+
+pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Score {
+    search_state.nodes += 1;
+    check_time!(search_state.nodes, end_time);
     if depth == 0 {
         evaluate(position)
     } else {
@@ -46,7 +68,8 @@ pub fn search(position: &Position, depth: u8, window: Window, tx: &Sender<String
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
-                let score = -search(&new_position, depth-1, (-beta, -alpha), tx);
+                let score = -search(&new_position, depth-1, (-beta, -alpha), end_time, search_state, tx);
+                check_time!(search_state.nodes, end_time);
                 if score > alpha {
                     alpha = score
                 }

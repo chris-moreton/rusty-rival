@@ -39,15 +39,15 @@ pub fn default_uci_state() -> UciState {
         debug: false,
         hash_table: Default::default(),
         registered_name: "Rustival".parse().unwrap(),
-        wtime: 0,
-        btime: 0,
+        wtime: u64::MAX,
+        btime: u64::MAX,
         winc: 0,
         binc: 0,
         moves_to_go: 0,
-        depth: 0,
+        depth: u64::MAX,
         nodes: 0,
         mate: false,
-        move_time: 0,
+        move_time: u64::MAX,
         infinite: false
     }
 }
@@ -56,6 +56,7 @@ pub struct SearchState {
     pub hash_table: HashMap<HashIndex, HashEntry>,
     pub pv: Path,
     pub pv_score: Score,
+    pub nodes: u64,
 }
 
 pub struct HashEntry {
