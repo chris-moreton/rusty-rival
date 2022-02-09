@@ -68,25 +68,35 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
     } else {
         let lock = zobrist_lock(position);
         let index = zobrist_index(lock);
-
-        let hash_entry = search_state.hash_table.get(&index);
-        match hash_entry {
-            Some(x) => {
-                if x.lock == lock && x.bound == BoundType::Exact && x.height >= depth {
-                    search_state.hash_hits_exact += 1;
-                    return x.score;
-                }
-            },
-            None => {
-
-            }
-        }
+        let mut hash_move = 0;
 
         let mut best_score = -MAX_SCORE;
         let mut best_move = 0;
         let mut alpha = window.0;
         let beta = window.1;
-        for m in moves(position) {
+        let mut moves = moves(position);
+
+        let hash_entry = search_state.hash_table.get(&index);
+        match hash_entry {
+            Some(x) => {
+                if x.lock == lock && x.height >= depth {
+                    if x.bound == BoundType::Exact  {
+                        search_state.hash_hits_exact += 1;
+                        return x.score;
+                    }
+                    if x.bound == BoundType::Lower  {
+                        search_state.hash_hits_exact += 1;
+                        if x.score > beta {
+                            return x.score
+                        }
+                    }
+                }
+
+            },
+            None => { }
+        }
+
+        for m in moves {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
@@ -98,6 +108,9 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                         best_score = score;
                         best_move = m;
                         if best_score >= beta {
+                            if best_score > -MAX_SCORE {
+                                store_hash_entry(index, lock, depth, BoundType::Lower, best_move, best_score, search_state);
+                            }
                             return best_score;
                         }
                     }
