@@ -164,6 +164,7 @@ pub fn it_handles_the_setoption_clear_hash_command() {
 
     let he = HashEntry{
         score: 100,
+        height: 0,
         mv: 0,
         bound: BoundType::Exact,
         lock: 0

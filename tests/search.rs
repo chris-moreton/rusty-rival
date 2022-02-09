@@ -47,7 +47,6 @@ fn it_finds_a_mate_in_3() {
 }
 
 #[test]
-#[ignore]
 fn it_finds_a_mate_in_4() {
     assert_move("7R/r1p1q1pp/3k4/1p1n1Q2/3N4/8/1PP2PPP/2B3K1 w - - 1 0", 7, 100000, "h8d8");
 }

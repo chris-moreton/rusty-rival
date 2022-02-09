@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 use rand::Rng;
 use crate::evaluate::evaluate;
 use crate::fen::algebraic_move_from_move;
+use crate::hash::{zobrist_index, zobrist_lock};
 use crate::make_move::make_move;
 use crate::moves::{is_check, moves};
 use crate::types::{Bound, Move, Position, MoveList, Score, SearchState, Window, WHITE, MoveScoreList, MoveScore, UciState, HashIndex, HashLock, HashEntry, BoundType};
@@ -55,13 +56,8 @@ macro_rules! check_time {
     }
 }
 
-pub fn zobrist(position: &Position) -> (HashIndex, HashLock) {
-    (0,0)
-}
-
-pub fn store_hash_entry(position: &Position, height: u8, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
-    let (index, lock) = zobrist(position);
-    search_state.hash_table.insert(index, HashEntry { score, mv, bound, lock, });
+pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
+    search_state.hash_table.insert(index, HashEntry { score, height, mv, bound, lock, });
 }
 
 pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Score {
@@ -70,6 +66,21 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
     if depth == 0 {
         evaluate(position)
     } else {
+        let lock = zobrist_lock(position);
+        let index = zobrist_index(lock);
+
+        let hash_entry = search_state.hash_table.get(&index);
+        match hash_entry {
+            Some(x) => {
+                if x.lock == lock && x.bound == BoundType::Exact && x.height >= depth {
+                    return x.score;
+                }
+            },
+            None => {
+
+            }
+        }
+
         let mut best_score = -MAX_SCORE;
         let mut best_move = 0;
         let mut alpha = window.0;
@@ -93,7 +104,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
             }
         }
         if best_score > -MAX_SCORE {
-            store_hash_entry(position, depth, BoundType::Exact, best_move, best_score, search_state);
+            store_hash_entry(index, lock, depth, BoundType::Exact, best_move, best_score, search_state);
         }
         best_score
     }

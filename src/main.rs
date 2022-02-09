@@ -1,12 +1,16 @@
 use std::io;
 use std::io::BufRead;
 use either::{Left, Right};
+use rand::Rng;
 use rusty_rival::types::{default_search_state, default_uci_state, SearchState, UciState};
 use rusty_rival::uci::run_command;
 
 fn main() {
 
-    // Everything here is hacked together at the moment
+    let mut rng = rand::thread_rng();
+    for i in 1..=16 {
+        print!("{},", rng.gen_range(0..u64::MAX));
+    }
 
     let stdin = io::stdin();
     let mut uci_state = default_uci_state();

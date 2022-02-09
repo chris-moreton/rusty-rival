@@ -68,6 +68,7 @@ pub fn default_search_state() -> SearchState {
 
 pub struct HashEntry {
     pub score: Score,
+    pub height: u8,
     pub mv: Move,
     pub bound: BoundType,
     pub lock: HashLock,
