@@ -19,7 +19,6 @@ pub type MoveScoreList = Vec<MoveScore>;
 pub struct UciState {
     pub fen: String,
     pub debug: bool,
-    pub hash_table: HashMap<HashIndex, HashEntry>,
     pub registered_name: String,
     pub wtime: u64,
     pub btime: u64,
@@ -37,7 +36,6 @@ pub fn default_uci_state() -> UciState {
     UciState {
         fen: START_POS.to_string(),
         debug: false,
-        hash_table: Default::default(),
         registered_name: "Rustival".parse().unwrap(),
         wtime: u64::MAX,
         btime: u64::MAX,
@@ -59,10 +57,19 @@ pub struct SearchState {
     pub nodes: u64,
 }
 
+pub fn default_search_state() -> SearchState {
+    SearchState {
+        hash_table: Default::default(),
+        pv: vec![],
+        pv_score: 0,
+        nodes: 0
+    }
+}
+
 pub struct HashEntry {
     pub score: Score,
-    pub path: Path,
-    pub bound: Bound,
+    pub mv: Move,
+    pub bound: BoundType,
     pub lock: HashLock,
 }
 

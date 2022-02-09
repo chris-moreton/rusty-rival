@@ -15,16 +15,16 @@ use crate::search::{start_search};
 use crate::types::{Move, Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
-pub fn run_command(mut uci_state: &mut UciState, l: &str) -> Either<String, Option<String>> {
+pub fn run_command(mut uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
     let mut trimmed_line = l.trim().clone().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
         trimmed_line = trimmed_line.replace("startpos", &*("fen ".to_string() + START_POS));
     }
     let parts = trimmed_line.split(' ').collect::<Vec<&str>>();
-    run_parts(&mut uci_state, parts)
+    run_parts(&mut uci_state, search_state, parts)
 }
 
-fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn run_parts(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
 
     match *parts.get(0).unwrap() {
         "bench" => {
@@ -37,10 +37,10 @@ fn run_parts(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
             cmd_isready()
         },
         "go" => {
-            cmd_go(uci_state, parts)
+            cmd_go(uci_state, search_state, parts)
         },
         "setoption" => {
-            cmd_setoption(uci_state, parts)
+            cmd_setoption(search_state, parts)
         },
         "register" => {
             cmd_register(uci_state, parts)
@@ -169,15 +169,9 @@ pub fn extract_go_param(needle: &str, haystack: &str) -> u64 {
     }
 }
 
-fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
 
-    let mut search_state = SearchState {
-        hash_table: Default::default(),
-        pv: vec![],
-        pv_score: 0,
-        nodes: 0
-    };
     let (tx, rx) = mpsc::channel();
 
     match *t {
@@ -188,12 +182,12 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
         },
         "infinite" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, 200, Instant::now(), &mut search_state, tx);
+            let mv = start_search(&position, 200, Instant::now(), search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         "mate" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, 200, Instant::now(), &mut search_state, tx);
+            let mv = start_search(&position, 200, Instant::now(), search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         _ => {
@@ -208,7 +202,7 @@ fn cmd_go(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Opti
             uci_state.move_time = extract_go_param("movetime", &line);
 
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), &mut search_state, tx);
+            let mv = start_search(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), search_state, tx);
 
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         }
@@ -238,7 +232,6 @@ fn cmd_benchmark(parts: Vec<&str>) -> Either<String, Option<String>> {
     cmd_perft(depth, &UciState {
         debug: false,
         fen: "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".parse().unwrap(),
-        hash_table: Default::default(),
         registered_name: "".to_string(),
         wtime: 0,
         btime: 0,
@@ -264,13 +257,13 @@ fn cmd_perft(depth: u8, uci_state: &UciState) -> Either<String, Option<String>> 
     Right(None)
 }
 
-fn cmd_setoption(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_setoption(mut search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
     if parts.len() < 3 || parts[1] != "name" {
         Left("usage: setoption name <name> [value <value>]".parse().unwrap())
     } else {
         match parts[2] {
             "Clear" => {
-                uci_state.hash_table.clear();
+                search_state.hash_table.clear();
                 Right(None)
             },
             _ => {
