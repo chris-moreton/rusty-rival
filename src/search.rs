@@ -158,7 +158,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
     }
 }
 
-fn score_move(position: &Position, mut hash_move: Move, enemy: &Pieces, m: Move, tsp: Square) -> Score {
+fn score_move(position: &Position, hash_move: Move, enemy: &Pieces, m: Move, tsp: Square) -> Score {
     let score = if m == hash_move {
         10000
     } else if enemy.all_pieces_bitboard & bit(tsp) != 0 {
