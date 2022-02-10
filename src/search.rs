@@ -78,11 +78,6 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
     search_state.nodes += 1;
     check_time!(search_state.nodes, end_time);
 
-    // if search_state.nodes % 1000000 == 0 {
-    //     let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
-    //     tx.send();
-    // }
-
     if depth == 0 {
         evaluate(position)
     } else {

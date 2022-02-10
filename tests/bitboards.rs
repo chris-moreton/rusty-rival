@@ -82,6 +82,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         castle_flags: ALL_CASTLE_FLAGS,
         half_moves: 0,
         move_number: 1,
+        zobrist_lock: 0
     };
 
     assert_eq!(1, bitboard_for_mover(&p1, Piece::Pawn));
@@ -101,6 +102,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         castle_flags: ALL_CASTLE_FLAGS,
         half_moves: 0,
         move_number: 1,
+        zobrist_lock: 0
     };
 
     assert_eq!(7, bitboard_for_mover(&p2, Piece::Pawn));

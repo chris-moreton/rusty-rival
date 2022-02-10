@@ -1,4 +1,5 @@
 use crate::bitboards::bit;
+use crate::hash::zobrist_lock;
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
 use crate::types::{Bitboard, BLACK, Move, Mover, Pieces, Position, Square, WHITE};
 use crate::utils::from_square_mask;
@@ -163,7 +164,7 @@ pub fn get_position(fen: &str) -> Position {
     if castle_part.contains('k') { castle_flags |= BK_CASTLE };
     if castle_part.contains('q') { castle_flags |= BQ_CASTLE };
 
-    Position {
+    let mut position = Position {
         pieces: [
             Pieces { pawn_bitboard: wp, knight_bitboard: wn, bishop_bitboard: wb, rook_bitboard: wr, queen_bitboard: wq, king_square: wk.trailing_zeros() as Square, all_pieces_bitboard: wp | wn | wb | wr | wq | wk },
             Pieces { pawn_bitboard: bp, knight_bitboard: bn, bishop_bitboard: bb, rook_bitboard: br, queen_bitboard: bq, king_square: bk.trailing_zeros() as Square, all_pieces_bitboard: bp | bn | bb | br | bq | bk },
@@ -173,8 +174,13 @@ pub fn get_position(fen: &str) -> Position {
         castle_flags,
         half_moves: fen_part(fen, 4).parse::<u16>().unwrap(),
         move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
-    }
+        zobrist_lock: 0,
+    };
 
+    let lock = zobrist_lock(&position);
+
+    position.zobrist_lock = lock;
+    position
 }
 
 pub fn get_piece_on_square(position: &Position, sq: Square) -> char {

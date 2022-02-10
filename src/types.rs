@@ -151,6 +151,7 @@ pub struct Position {
     pub castle_flags: u8,
     pub half_moves: u16,
     pub move_number: u16,
+    pub zobrist_lock: u128,
 }
 
 impl PartialEq for Position {

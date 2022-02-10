@@ -180,7 +180,6 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
             uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
             uci_state.move_time = extract_go_param("movetime", &line, u64::MAX);
 
-            println!("{} {}", uci_state.move_time, uci_state.depth);
             let position = get_position(uci_state.fen.trim());
             let mv = start_search(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), search_state, tx);
 

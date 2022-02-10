@@ -52,8 +52,3 @@ fn repl(tx: Sender<String>) {
         }
     }
 }
-
-
-// fn cmd_msg_test(mut uci_state: &mut UciState) -> Either<String, Option<String>> {
-
-// }
