@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::sync::mpsc::{Sender};
 use std::time::{Instant};
 use crate::bitboards::bit;
@@ -93,6 +92,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         let mut alpha = window.0;
         let mut beta = window.1;
         let mut move_list: MoveList;
+        let mut hash_move: Move = 0;
 
         let hash_entry = search_state.hash_table.get(&index);
         match hash_entry {
@@ -112,19 +112,21 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                         return x.score
                     }
                 }
-                move_list = moves(position);
-                move_list.sort_by(|a, _b| if *a == x.mv { Ordering::Less } else { Ordering::Equal } )
+                hash_move = x.mv;
             },
             None => {
-                move_list = moves(position);
             }
         }
+
+        move_list = moves(position);
 
         let enemy = position.pieces[opponent!(position.mover) as usize];
         let mut move_scores: Vec<(Move, Score)> = move_list.into_iter().map(|m| {
             let tsp = to_square_part(m);
-            if enemy.all_pieces_bitboard & bit(tsp) != 0 {
-                (m,piece_value(&enemy, tsp))
+            let score = if m == hash_move {
+                10000
+            } else if enemy.all_pieces_bitboard & bit(tsp) != 0 {
+                piece_value(&enemy, tsp)
             } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
                 let mask = m & PROMOTION_FULL_MOVE_MASK;
                 let score = if mask == PROMOTION_ROOK_MOVE_MASK {
@@ -136,12 +138,13 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                 } else  {
                     QUEEN_VALUE
                 };
-                (m, score)
+                score
             } else if tsp == position.en_passant_square {
-                (m,PAWN_VALUE)
+                PAWN_VALUE
             } else {
-                (m,0)
-            }
+                0
+            };
+            (m,score)
         }).collect();
         move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
         move_list = move_scores.into_iter().map(|(m,_)| { m }).collect();
