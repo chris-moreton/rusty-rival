@@ -3,7 +3,7 @@ use std::sync::mpsc::{Sender};
 use std::time::{Instant};
 use crate::evaluate::evaluate;
 use crate::fen::algebraic_move_from_move;
-use crate::hash::{zobrist_index, zobrist_lock};
+use crate::hash::{zobrist_index};
 use crate::make_move::make_move;
 use crate::moves::{is_check, moves};
 use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType};
@@ -93,7 +93,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         let hash_entry = search_state.hash_table.get(&index);
         match hash_entry {
             Some(x) => {
-                if x.lock == lock && x.height >= depth {
+                if x.lock == position.zobrist_lock && x.height >= depth {
                     if x.bound == BoundType::Exact  {
                         search_state.hash_hits_exact += 1;
                         return x.score;

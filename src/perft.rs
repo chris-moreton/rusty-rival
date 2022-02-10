@@ -1,10 +1,9 @@
 use std::time::Instant;
-use crate::fen::{algebraic_move_from_move, get_fen};
+use crate::fen::{algebraic_move_from_move};
 use crate::make_move::{make_move};
 use crate::moves::{is_check, moves};
 use crate::types::{Move, Position};
 use num_format::{Locale, ToFormattedString};
-use crate::hash::zobrist_lock;
 
 pub fn perft(position: &Position, depth: u8) -> u64 {
 
