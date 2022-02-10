@@ -42,6 +42,11 @@ fn it_finds_a_mate_in_4() {
 }
 
 #[test]
+fn it_finds_a_mate_in_5() {
+//    assert_move("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 9, 1000000, "h4f4");
+}
+
+#[test]
 fn it_returns_the_best_move_when_time_runs_out() {
     assert_move("rnb1kbnr/pppppppp/8/2q4R/8/8/PPPPPPPP/RNBQKBN1 w Qkq - 0 1", 20, 100, "h5c5");
     assert_move("rnb1kbnr/pppppppp/8/2q4R/8/8/PPPPPPPP/RNBQKBN1 w Qkq - 0 1", 20, 500, "h5c5");

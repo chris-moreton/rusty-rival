@@ -7,11 +7,6 @@ use rusty_rival::uci::run_command;
 
 fn main() {
 
-    let mut rng = rand::thread_rng();
-    for i in 1..=16 {
-        print!("{},", rng.gen_range(0..u64::MAX));
-    }
-
     let stdin = io::stdin();
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();

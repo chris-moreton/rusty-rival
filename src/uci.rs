@@ -43,10 +43,10 @@ fn run_parts(mut uci_state: &mut UciState, search_state: &mut SearchState, parts
             cmd_setoption(search_state, parts)
         },
         "register" => {
-            cmd_register(uci_state, parts)
+            cmd_register()
         },
         "ucinewgame" => {
-            cmd_ucinewgame(uci_state, parts)
+            cmd_ucinewgame()
         },
         "debug" => {
             cmd_debug(uci_state, parts)
@@ -154,7 +154,7 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
 //     Right(None)
 // }
 
-pub fn extract_go_param(needle: &str, haystack: &str) -> u64 {
+pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
     let re = r"".to_string() + &*needle.to_string() + &*" ([0-9]*)".to_string();
     let regex = Regex::new(&*re).unwrap();
     let caps = regex.captures(&*haystack);
@@ -164,7 +164,7 @@ pub fn extract_go_param(needle: &str, haystack: &str) -> u64 {
             s.parse::<u64>().unwrap()
         },
         None => {
-            0
+            default
         }
     }
 }
@@ -192,15 +192,16 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
         },
         _ => {
             let line = parts.join(" ").to_string();
-            uci_state.wtime = extract_go_param("wtime", &line);
-            uci_state.btime = extract_go_param("btime", &line);
-            uci_state.winc = extract_go_param("winc", &line);
-            uci_state.binc = extract_go_param("binc", &line);
-            uci_state.moves_to_go = extract_go_param("movestogo", &line);
-            uci_state.depth = extract_go_param("depth", &line);
-            uci_state.nodes = extract_go_param("nodes", &line);
-            uci_state.move_time = extract_go_param("movetime", &line);
+            uci_state.wtime = extract_go_param("wtime", &line, 0);
+            uci_state.btime = extract_go_param("btime", &line, 0);
+            uci_state.winc = extract_go_param("winc", &line, 0);
+            uci_state.binc = extract_go_param("binc", &line, 0);
+            uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
+            uci_state.depth = extract_go_param("depth", &line, 250);
+            uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
+            uci_state.move_time = extract_go_param("movetime", &line, u64::MAX);
 
+            println!("{} {}", uci_state.move_time, uci_state.depth);
             let position = get_position(uci_state.fen.trim());
             let mv = start_search(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), search_state, tx);
 
@@ -273,10 +274,10 @@ fn cmd_setoption(mut search_state: &mut SearchState, parts: Vec<&str>) -> Either
     }
 }
 
-fn cmd_register(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_register() -> Either<String, Option<String>> {
     Right(None)
 }
 
-fn cmd_ucinewgame(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_ucinewgame() -> Either<String, Option<String>> {
     Right(None)
 }
