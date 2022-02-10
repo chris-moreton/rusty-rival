@@ -75,7 +75,7 @@ pub fn promotion_mask(piece_char: String) -> Move {
     if piece_char == "q" { PROMOTION_QUEEN_MOVE_MASK }
     else if piece_char == "b" { PROMOTION_BISHOP_MOVE_MASK }
     else if piece_char == "r" { PROMOTION_ROOK_MOVE_MASK }
-    else if piece_char == "n" { PROMOTION_QUEEN_MOVE_MASK }
+    else if piece_char == "n" { PROMOTION_KNIGHT_MOVE_MASK }
     else { 0 }
 }
 

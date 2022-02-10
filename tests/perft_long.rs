@@ -2,7 +2,6 @@ use rusty_rival::fen::get_position;
 use rusty_rival::perft::perft;
 
 #[test]
-#[ignore]
 fn it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_with_a_given_position_as_its_head_long_version() {
 
     // 11719118449 {
