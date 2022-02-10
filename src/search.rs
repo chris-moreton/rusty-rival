@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::ops::Add;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
@@ -68,13 +69,12 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
     } else {
         let lock = zobrist_lock(position);
         let index = zobrist_index(lock);
-        let mut hash_move = 0;
 
         let mut best_score = -MAX_SCORE;
         let mut best_move = 0;
         let mut alpha = window.0;
         let mut beta = window.1;
-        let mut moves = moves(position);
+        let mut move_list: MoveList = vec![];
 
         let hash_entry = search_state.hash_table.get(&index);
         match hash_entry {
@@ -94,14 +94,15 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                         return x.score
                     }
                 }
-
+                move_list = moves(position);
+                move_list.sort_by(|a, b| if *a == x.mv { Ordering::Less } else { Ordering::Equal } )
             },
             None => {
-
+                move_list = moves(position);
             }
         }
 
-        for m in moves {
+        for m in move_list {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
