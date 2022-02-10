@@ -32,7 +32,7 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
         for move_num in 0..legal_moves.len() {
             let mut new_position = *position;
             make_move(position, legal_moves[move_num].0, &mut new_position);
-            let score = -search(&new_position, iterative_depth, aspiration_window, end_time, search_state, &tx, start_time);
+            let score = -search(&new_position, iterative_depth, aspiration_window, end_time, search_state, &tx, start_time, false);
             if Instant::now() > end_time {
                 return legal_moves[0].0;
             }
@@ -78,7 +78,7 @@ pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, bound: Bou
     search_state.hash_table.insert(index, HashEntry { score, height, mv, bound, lock, });
 }
 
-pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {
+pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, on_null_move: bool) -> Score {
     search_state.nodes += 1;
     check_time!(search_state.nodes, end_time);
 
@@ -91,7 +91,6 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         let mut best_move = 0;
         let mut alpha = window.0;
         let mut beta = window.1;
-        let mut move_list: MoveList;
         let mut hash_move: Move = 0;
 
         let hash_entry = search_state.hash_table.get(&index);
@@ -118,42 +117,28 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
             }
         }
 
-        move_list = moves(position);
+        if !on_null_move && depth > 2 && !is_check(position, position.mover) {
+            let mut new_position = *position;
+            new_position.mover ^= 1;
+            let score = -search(&new_position, depth-1-1, (-beta, (-beta)+1), end_time, search_state, tx, start_time, true);
+            if score >= beta {
+                return beta;
+            }
+            new_position.mover ^= 1;
+        }
 
         let enemy = position.pieces[opponent!(position.mover) as usize];
-        let mut move_scores: Vec<(Move, Score)> = move_list.into_iter().map(|m| {
-            let tsp = to_square_part(m);
-            let score = if m == hash_move {
-                10000
-            } else if enemy.all_pieces_bitboard & bit(tsp) != 0 {
-                piece_value(&enemy, tsp)
-            } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
-                let mask = m & PROMOTION_FULL_MOVE_MASK;
-                let score = if mask == PROMOTION_ROOK_MOVE_MASK {
-                    ROOK_VALUE
-                } else if mask == PROMOTION_BISHOP_MOVE_MASK {
-                    BISHOP_VALUE
-                } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
-                    KNIGHT_VALUE
-                } else  {
-                    QUEEN_VALUE
-                };
-                score
-            } else if tsp == position.en_passant_square {
-                PAWN_VALUE
-            } else {
-                0
-            };
-            (m,score)
+        let mut move_scores: Vec<(Move, Score)> = moves(position).into_iter().map(|m| {
+            (m, score_move(position, hash_move, &enemy, m, to_square_part(m)))
         }).collect();
         move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
-        move_list = move_scores.into_iter().map(|(m,_)| { m }).collect();
+        let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
 
         for m in move_list {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
-                let score = -search(&new_position, depth-1, (-beta, -alpha), end_time, search_state, tx, start_time);
+                let score = -search(&new_position, depth-1, (-beta, -alpha), end_time, search_state, tx, start_time, false);
                 check_time!(search_state.nodes, end_time);
                 if score > best_score {
                     best_score = score;
@@ -171,6 +156,31 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         store_hash_entry(index, position.zobrist_lock, depth, if best_score > -MAX_SCORE { BoundType::Exact } else { BoundType::Lower }, best_move, best_score, search_state);
         best_score
     }
+}
+
+fn score_move(position: &Position, mut hash_move: Move, enemy: &Pieces, m: Move, tsp: Square) -> Score {
+    let score = if m == hash_move {
+        10000
+    } else if enemy.all_pieces_bitboard & bit(tsp) != 0 {
+        piece_value(&enemy, tsp)
+    } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
+        let mask = m & PROMOTION_FULL_MOVE_MASK;
+        let score = if mask == PROMOTION_ROOK_MOVE_MASK {
+            ROOK_VALUE
+        } else if mask == PROMOTION_BISHOP_MOVE_MASK {
+            BISHOP_VALUE
+        } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
+            KNIGHT_VALUE
+        } else {
+            QUEEN_VALUE
+        };
+        score
+    } else if tsp == position.en_passant_square {
+        PAWN_VALUE
+    } else {
+        0
+    };
+    score
 }
 
 pub fn piece_value(pieces: &Pieces, to: Square) -> Score {
