@@ -85,7 +85,6 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                         return x.score;
                     }
                     if x.bound == BoundType::Lower  {
-                        search_state.hash_hits_exact += 1;
                         if x.score > beta {
                             return x.score
                         }
@@ -93,7 +92,9 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                 }
 
             },
-            None => { }
+            None => {
+
+            }
         }
 
         for m in moves {
@@ -102,15 +103,13 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
             if !is_check(&new_position, position.mover) {
                 let score = -search(&new_position, depth-1, (-beta, -alpha), end_time, search_state, tx);
                 check_time!(search_state.nodes, end_time);
-                if score > alpha {
-                    alpha = score;
-                    if score > best_score {
-                        best_score = score;
-                        best_move = m;
-                        if best_score >= beta {
-                            if best_score > -MAX_SCORE {
-                                store_hash_entry(index, lock, depth, BoundType::Lower, best_move, best_score, search_state);
-                            }
+                if score > best_score {
+                    best_score = score;
+                    best_move = m;
+                    if best_score > alpha {
+                        alpha = best_score;
+                        if alpha >= beta {
+                            store_hash_entry(index, lock, depth, BoundType::Lower, best_move, best_score, search_state);
                             return best_score;
                         }
                     }
@@ -119,6 +118,8 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         }
         if best_score > -MAX_SCORE {
             store_hash_entry(index, lock, depth, BoundType::Exact, best_move, best_score, search_state);
+        } else {
+            store_hash_entry(index, lock, depth, BoundType::Lower, 0, best_score, search_state);
         }
         best_score
     }
