@@ -2,13 +2,14 @@ use std::cmp::Ordering;
 use std::sync::mpsc::{Sender};
 use std::time::{Instant};
 use crate::bitboards::bit;
-use crate::evaluate::evaluate;
+use crate::evaluate::{BISHOP_VALUE, evaluate, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{zobrist_index};
 use crate::make_move::make_move;
+use crate::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::moves::{capture_moves, is_check, moves};
 use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, Pieces, Square};
 use crate::utils::to_square_part;
 
 pub const MAX_SCORE: Score = 30000;
@@ -120,16 +121,30 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         }
 
         let enemy = position.pieces[opponent!(position.mover) as usize];
-
         let mut move_scores: Vec<(Move, Score)> = move_list.into_iter().map(|m| {
-            if enemy.all_pieces_bitboard & bit(to_square_part(m)) != 0 { (m,0) } else { (m,1) }
+            let tsp = to_square_part(m);
+            if enemy.all_pieces_bitboard & bit(tsp) != 0 {
+                (m,piece_value(&enemy, tsp))
+            } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
+                let mask = m & PROMOTION_FULL_MOVE_MASK;
+                let score = if mask == PROMOTION_ROOK_MOVE_MASK {
+                    ROOK_VALUE
+                } else if mask == PROMOTION_BISHOP_MOVE_MASK {
+                    BISHOP_VALUE
+                } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
+                    KNIGHT_VALUE
+                } else  {
+                    QUEEN_VALUE
+                };
+                (m, score)
+            } else if tsp == position.en_passant_square {
+                (m,PAWN_VALUE)
+            } else {
+                (m,0)
+            }
         }).collect();
-
-        move_scores.sort_by(|(_, a), (_, b) | a.cmp(b));
-
-        move_list = move_scores.into_iter().map(|(m,_)| {
-            m
-        }).collect();
+        move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
+        move_list = move_scores.into_iter().map(|(m,_)| { m }).collect();
 
         for m in move_list {
             let mut new_position = *position;
@@ -153,6 +168,26 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         store_hash_entry(index, position.zobrist_lock, depth, if best_score > -MAX_SCORE { BoundType::Exact } else { BoundType::Lower }, best_move, best_score, search_state);
         best_score
     }
+}
+
+pub fn piece_value(pieces: &Pieces, to: Square) -> Score {
+    let bb = bit(to);
+    if pieces.pawn_bitboard & bb != 0 {
+        return PAWN_VALUE;
+    }
+    if pieces.knight_bitboard & bb != 0 {
+        return KNIGHT_VALUE;
+    }
+    if pieces.rook_bitboard & bb != 0 {
+        return ROOK_VALUE;
+    }
+    if pieces.queen_bitboard & bb != 0 {
+        return QUEEN_VALUE;
+    }
+    if pieces.bishop_bitboard & bb != 0 {
+        return BISHOP_VALUE;
+    }
+    0
 }
 
 pub fn quiesce(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {

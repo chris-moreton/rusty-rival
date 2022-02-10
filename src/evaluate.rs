@@ -1,10 +1,10 @@
 use crate::types::{BLACK, Pieces, Position, Score, WHITE};
 
-const PAWN_VALUE: Score = 100;
-const KNIGHT_VALUE: Score = 350;
-const BISHOP_VALUE: Score = 350;
-const ROOK_VALUE: Score = 550;
-const QUEEN_VALUE: Score = 900;
+pub const PAWN_VALUE: Score = 100;
+pub const KNIGHT_VALUE: Score = 350;
+pub const BISHOP_VALUE: Score = 350;
+pub const ROOK_VALUE: Score = 550;
+pub const QUEEN_VALUE: Score = 900;
 
 #[inline(always)]
 pub fn material(pieces: &Pieces) -> Score {
