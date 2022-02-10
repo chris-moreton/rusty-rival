@@ -19,9 +19,9 @@ pub fn perft(position: &Position, depth: u8) -> u64 {
         for m in moves(position) {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
-            if new_position.zobrist_lock != zobrist_lock(&new_position) {
-                panic!("{} {}", get_fen(position), algebraic_move_from_move(m));
-            }
+            // if new_position.zobrist_lock != zobrist_lock(&new_position) {
+            //     panic!("{} {}", get_fen(position), algebraic_move_from_move(m));
+            // }
             if !is_check(&new_position, mover) {
                 count += if depth == 0 {
                     1

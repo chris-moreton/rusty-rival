@@ -82,8 +82,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
     if depth == 0 {
         evaluate(position)
     } else {
-        let lock = zobrist_lock(position);
-        let index = zobrist_index(lock);
+        let index = zobrist_index(position.zobrist_lock);
 
         let mut best_score = -MAX_SCORE;
         let mut best_move = 0;
@@ -129,14 +128,14 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                     if best_score > alpha {
                         alpha = best_score;
                         if alpha >= beta {
-                            store_hash_entry(index, lock, depth, BoundType::Lower, best_move, best_score, search_state);
+                            store_hash_entry(index, position.zobrist_lock, depth, BoundType::Lower, best_move, best_score, search_state);
                             return best_score;
                         }
                     }
                 }
             }
         }
-        store_hash_entry(index, lock, depth, if best_score > -MAX_SCORE { BoundType::Exact } else { BoundType::Lower }, best_move, best_score, search_state);
+        store_hash_entry(index, position.zobrist_lock, depth, if best_score > -MAX_SCORE { BoundType::Exact } else { BoundType::Lower }, best_move, best_score, search_state);
         best_score
     }
 }
