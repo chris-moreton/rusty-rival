@@ -1,15 +1,12 @@
 use std::cmp::Ordering;
-use std::ops::Add;
-use std::sync::mpsc::Sender;
-use std::time::{Duration, Instant};
-use num_format::Locale::cu;
-use rand::Rng;
+use std::sync::mpsc::{Sender};
+use std::time::{Instant};
 use crate::evaluate::evaluate;
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{zobrist_index, zobrist_lock};
 use crate::make_move::make_move;
 use crate::moves::{is_check, moves};
-use crate::types::{Bound, Move, Position, MoveList, Score, SearchState, Window, WHITE, MoveScoreList, MoveScore, UciState, HashIndex, HashLock, HashEntry, BoundType};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType};
 
 pub const MAX_SCORE: Score = 30000;
 
@@ -41,13 +38,17 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
                 current_best = legal_moves[move_num];
                 if start_time.elapsed().as_millis() > 0 {
                     let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
-                    tx.send("info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
+                    let result = tx.send("info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
                         &*" depth ".to_string() + &*iterative_depth.to_string() +
                         &*" time ".to_string() + &*start_time.elapsed().as_millis().to_string() +
                         &*" nodes ".to_string() + &*search_state.nodes.to_string() +
                         &*" pv ".to_string() + &*algebraic_move_from_move(current_best.0).to_string() +
                         &*" nps ".to_string() + &*(nps as u64).to_string()
                     );
+                    match result {
+                        Err(_e) => { },
+                        _ => {}
+                    }
                 }
             }
 
@@ -88,7 +89,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         let mut best_move = 0;
         let mut alpha = window.0;
         let mut beta = window.1;
-        let mut move_list: MoveList = vec![];
+        let mut move_list: MoveList;
 
         let hash_entry = search_state.hash_table.get(&index);
         match hash_entry {
@@ -109,7 +110,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                     }
                 }
                 move_list = moves(position);
-                move_list.sort_by(|a, b| if *a == x.mv { Ordering::Less } else { Ordering::Equal } )
+                move_list.sort_by(|a, _b| if *a == x.mv { Ordering::Less } else { Ordering::Equal } )
             },
             None => {
                 move_list = moves(position);

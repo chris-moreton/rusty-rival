@@ -2,27 +2,25 @@ use std::ops::Add;
 use std::process::exit;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
-use std::thread;
 use std::time::{Duration, Instant};
 use either::{Either, Left, Right};
-use num_format::Locale::se;
 use regex::Regex;
 
-use crate::fen::{algebraic_move_from_move, get_fen, get_position, move_from_algebraic_move};
+use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
-use crate::move_constants::{PIECE_MASK_FULL, START_POS};
+use crate::move_constants::{START_POS};
 use crate::moves::{is_check, moves};
 use crate::perft::perft;
 use crate::search::{start_search};
-use crate::types::{Move, Position, SearchState, UciState};
+use crate::types::{Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
-pub fn run_command_test(mut uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
-    let (tx, rx) = mpsc::channel();
+pub fn run_command_test(uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
+    let (tx, _rx) = mpsc::channel();
     run_command(uci_state, search_state, l, &tx)
 }
 
-pub fn run_command(mut uci_state: &mut UciState, search_state: &mut SearchState, l: &str, tx: &Sender<String>) -> Either<String, Option<String>> {
+pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: &str, tx: &Sender<String>) -> Either<String, Option<String>> {
 
     let mut trimmed_line = l.trim().clone().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
@@ -236,7 +234,7 @@ fn cmd_perft(depth: u8, uci_state: &UciState) -> Either<String, Option<String>> 
     Right(None)
 }
 
-fn cmd_setoption(mut search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_setoption(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
     if parts.len() < 3 || parts[1] != "name" {
         Left("usage: setoption name <name> [value <value>]".parse().unwrap())
     } else {

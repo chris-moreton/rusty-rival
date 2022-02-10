@@ -3,8 +3,7 @@ use std::io::BufRead;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use either::{Left, Right};
-use rand::Rng;
-use rusty_rival::types::{default_search_state, default_uci_state, SearchState, UciState};
+use rusty_rival::types::{default_search_state, default_uci_state};
 use rusty_rival::uci::run_command;
 
 fn main() {

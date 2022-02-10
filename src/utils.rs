@@ -1,8 +1,7 @@
 use crate::bitboards::{bit, G1_BIT, C1_BIT, G8_BIT, C8_BIT, E8_BIT, E1_BIT};
 use crate::fen::move_from_algebraic_move;
 use crate::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
-use crate::types::{Bitboard, BLACK, Move, Piece, Pieces, Position, Square, WHITE};
-use crate::types::Piece::{Bishop, King, Knight, Pawn, Queen, Rook};
+use crate::types::{BLACK, Move, Position, Square, WHITE};
 
 #[inline(always)]
 pub const fn from_square_mask(square: Square) -> Move {

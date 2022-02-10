@@ -5,7 +5,6 @@ const KNIGHT_VALUE: Score = 350;
 const BISHOP_VALUE: Score = 350;
 const ROOK_VALUE: Score = 550;
 const QUEEN_VALUE: Score = 900;
-const KING_VALUE: Score = 10000;
 
 #[inline(always)]
 pub fn material(pieces: &Pieces) -> Score {

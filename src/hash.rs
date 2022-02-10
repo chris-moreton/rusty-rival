@@ -1,6 +1,6 @@
 use crate::get_and_unset_lsb;
 use crate::move_constants::EN_PASSANT_NOT_AVAILABLE;
-use crate::types::{Bitboard, BLACK, HashIndex, HashLock, Position, Square, WHITE};
+use crate::types::{Bitboard, BLACK, HashIndex, HashLock, Mover, Position, Square, WHITE};
 
 pub const MAX_HASH_ENTRIES: u64 = 1024 * 1024 * 1024;
 
@@ -30,7 +30,7 @@ pub const ZOBRIST_KEYS_PIECES: [[[HashLock; 64]; 6]; 2] = [
     ]
 ];
 
-pub const ZOBRIST_KEYS_EN_PASSANT: [HashLock; 9] = [7056382219104826431,981802896975023210,7131247082790910989,1860287780481240784,6783989463695542429,7310596491509041843,17354644209165587096,7793791874454836694,11137328641248235431];
+pub const ZOBRIST_KEYS_EN_PASSANT: [HashLock; 8] = [981802896975023210,7131247082790910989,1860287780481240784,6783989463695542429,7310596491509041843,17354644209165587096,7793791874454836694,11137328641248235431];
 pub const ZOBRIST_KEYS_CASTLE: [HashLock; 16] = [12551910486432502967,15048935222106526499,14139008433044054734,2471037821788810752,6141143048925446375,10316382463646024499,8917445066795085263,18175549349016618841,8672620021330556148,13092169828480562410,2093165675903958228,2663378635258641568,987433164033143453,9146436875021359411,13080866794591515423,15200920523634878927];
 pub const ZOBRIST_KEY_MOVER_SWITCH: HashLock = 7415538641281995070;
 
@@ -41,32 +41,30 @@ pub fn zobrist_index(lock: HashLock) -> HashIndex {
 
 #[inline(always)]
 pub fn en_passant_zobrist_key_index(ep: i8) -> usize {
-    if ep == -1 {
-        0
-    } else {
-        (ep % 8 + 1) as usize
-    }
+    (ep % 8) as usize
 }
 
 pub fn zobrist_lock(position: &Position) -> HashLock {
-    let mut index: HashLock = 0;
 
-    index ^= zobrist_piece(position.pieces[WHITE as usize].pawn_bitboard, ZOBRIST_PIECE_INDEX_PAWN);
-    index ^= zobrist_piece(position.pieces[WHITE as usize].knight_bitboard, ZOBRIST_PIECE_INDEX_KNIGHT);
-    index ^= zobrist_piece(position.pieces[WHITE as usize].bishop_bitboard, ZOBRIST_PIECE_INDEX_BISHOP);
-    index ^= zobrist_piece(position.pieces[WHITE as usize].rook_bitboard, ZOBRIST_PIECE_INDEX_ROOK);
-    index ^= zobrist_piece(position.pieces[WHITE as usize].queen_bitboard, ZOBRIST_PIECE_INDEX_QUEEN);
-    index ^= ZOBRIST_KEYS_PIECES[WHITE as usize][ZOBRIST_PIECE_INDEX_KING][position.pieces[WHITE as usize].king_square as usize];
-    index ^= zobrist_piece(position.pieces[BLACK as usize].pawn_bitboard, ZOBRIST_PIECE_INDEX_PAWN);
-    index ^= zobrist_piece(position.pieces[BLACK as usize].knight_bitboard, ZOBRIST_PIECE_INDEX_KNIGHT);
-    index ^= zobrist_piece(position.pieces[BLACK as usize].bishop_bitboard, ZOBRIST_PIECE_INDEX_BISHOP);
-    index ^= zobrist_piece(position.pieces[BLACK as usize].rook_bitboard, ZOBRIST_PIECE_INDEX_ROOK);
-    index ^= zobrist_piece(position.pieces[BLACK as usize].queen_bitboard, ZOBRIST_PIECE_INDEX_QUEEN);
-    index ^= ZOBRIST_KEYS_PIECES[BLACK as usize][ZOBRIST_PIECE_INDEX_KING][position.pieces[BLACK as usize].king_square as usize];
+    let mut index=
+        zobrist_piece(position.pieces[WHITE as usize].pawn_bitboard, WHITE, ZOBRIST_PIECE_INDEX_PAWN) ^
+        zobrist_piece(position.pieces[WHITE as usize].knight_bitboard, WHITE, ZOBRIST_PIECE_INDEX_KNIGHT) ^
+        zobrist_piece(position.pieces[WHITE as usize].bishop_bitboard, WHITE, ZOBRIST_PIECE_INDEX_BISHOP) ^
+        zobrist_piece(position.pieces[WHITE as usize].rook_bitboard, WHITE, ZOBRIST_PIECE_INDEX_ROOK) ^
+        zobrist_piece(position.pieces[WHITE as usize].queen_bitboard, WHITE, ZOBRIST_PIECE_INDEX_QUEEN) ^
+        ZOBRIST_KEYS_PIECES[WHITE as usize][ZOBRIST_PIECE_INDEX_KING][position.pieces[WHITE as usize].king_square as usize] ^
+        zobrist_piece(position.pieces[BLACK as usize].pawn_bitboard, BLACK, ZOBRIST_PIECE_INDEX_PAWN) ^
+        zobrist_piece(position.pieces[BLACK as usize].knight_bitboard, BLACK, ZOBRIST_PIECE_INDEX_KNIGHT) ^
+        zobrist_piece(position.pieces[BLACK as usize].bishop_bitboard, BLACK, ZOBRIST_PIECE_INDEX_BISHOP) ^
+        zobrist_piece(position.pieces[BLACK as usize].rook_bitboard, BLACK, ZOBRIST_PIECE_INDEX_ROOK) ^
+        zobrist_piece(position.pieces[BLACK as usize].queen_bitboard, BLACK, ZOBRIST_PIECE_INDEX_QUEEN) ^
+        ZOBRIST_KEYS_PIECES[BLACK as usize][ZOBRIST_PIECE_INDEX_KING][position.pieces[BLACK as usize].king_square as usize];
 
     index ^= ZOBRIST_KEYS_CASTLE[position.castle_flags as usize];
 
-    index ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square) as usize];
+    if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
+        index ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square) as usize];
+    }
 
     if position.mover == BLACK {
         index ^= ZOBRIST_KEY_MOVER_SWITCH;
@@ -75,11 +73,11 @@ pub fn zobrist_lock(position: &Position) -> HashLock {
     index
 }
 
-fn zobrist_piece(mut bb: Bitboard, piece_index: usize) -> HashLock {
+fn zobrist_piece(mut bb: Bitboard, colour: Mover, piece_index: usize) -> HashLock {
     let mut index: HashLock = 0;
     while bb != 0 {
         let square = get_and_unset_lsb!(bb);
-        index ^= ZOBRIST_KEYS_PIECES[WHITE as usize][piece_index][square as usize];
+        index ^= ZOBRIST_KEYS_PIECES[colour as usize][piece_index][square as usize];
     }
     index
 }
