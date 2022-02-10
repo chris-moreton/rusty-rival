@@ -73,7 +73,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         let mut best_score = -MAX_SCORE;
         let mut best_move = 0;
         let mut alpha = window.0;
-        let beta = window.1;
+        let mut beta = window.1;
         let mut moves = moves(position);
 
         let hash_entry = search_state.hash_table.get(&index);
@@ -85,9 +85,13 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                         return x.score;
                     }
                     if x.bound == BoundType::Lower  {
-                        if x.score > beta {
-                            return x.score
-                        }
+                        alpha = x.score
+                    }
+                    if x.bound == BoundType::Upper  {
+                        beta = x.score
+                    }
+                    if alpha >= beta {
+                        return x.score
                     }
                 }
 
@@ -116,11 +120,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                 }
             }
         }
-        if best_score > -MAX_SCORE {
-            store_hash_entry(index, lock, depth, BoundType::Exact, best_move, best_score, search_state);
-        } else {
-            store_hash_entry(index, lock, depth, BoundType::Lower, 0, best_score, search_state);
-        }
+        store_hash_entry(index, lock, depth, if best_score > -MAX_SCORE { BoundType::Exact } else { BoundType::Lower }, best_move, best_score, search_state);
         best_score
     }
 }
