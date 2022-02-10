@@ -1,9 +1,9 @@
 use crate::bitboards::{BISHOP_RAYS, bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, epsbit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, ROOK_RAYS};
 use crate::magic_bitboards::{magic_moves_rook, magic_moves_bishop};
-use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
+use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
 use crate::types::{Bitboard, BLACK, Move, MoveList, Mover, Position, Square, WHITE};
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
-use crate::utils::from_square_mask;
+use crate::utils::{from_square_mask, to_square_part};
 
 #[macro_export]
 macro_rules! add_moves {
@@ -34,6 +34,17 @@ pub fn moves(position: &Position) -> MoveList {
     generate_pawn_moves(position, &mut move_list, !all_pieces, position.mover as usize, friendly.pawn_bitboard);
 
     move_list
+}
+
+#[inline(always)]
+pub fn capture_moves(position: &Position) -> MoveList {
+    let enemy = position.pieces[opponent!(position.mover) as usize];
+
+    moves(position).into_iter().filter(|m| {
+        m & PROMOTION_FULL_MOVE_MASK == 0 || m & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK
+    }).filter(|m| {
+        enemy.all_pieces_bitboard & bit(to_square_part(*m)) != 0
+    }).collect()
 }
 
 #[inline(always)]

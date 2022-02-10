@@ -5,7 +5,7 @@ use crate::evaluate::evaluate;
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{zobrist_index};
 use crate::make_move::make_move;
-use crate::moves::{is_check, moves};
+use crate::moves::{capture_moves, is_check, moves};
 use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType};
 
 pub const MAX_SCORE: Score = 30000;
@@ -27,12 +27,12 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
     for iterative_depth in 1..=max_depth {
         let mut current_best: MoveScore = (legal_moves[0].0, -MAX_SCORE);
         for move_num in 0..legal_moves.len() {
-            if end_time < Instant::now() {
-                return legal_moves[0].0;
-            }
             let mut new_position = *position;
             make_move(position, legal_moves[move_num].0, &mut new_position);
             let score = -search(&new_position, iterative_depth, aspiration_window, end_time, search_state, &tx, start_time);
+            if Instant::now() > end_time {
+                return legal_moves[0].0;
+            }
             legal_moves[move_num].1 = score;
             if score > current_best.1 {
                 current_best = legal_moves[move_num];
@@ -80,7 +80,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
     check_time!(search_state.nodes, end_time);
 
     if depth == 0 {
-        evaluate(position)
+        quiesce(position, 20, window, end_time, search_state, tx, start_time)
     } else {
         let index = zobrist_index(position.zobrist_lock);
 
@@ -138,4 +138,41 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         store_hash_entry(index, position.zobrist_lock, depth, if best_score > -MAX_SCORE { BoundType::Exact } else { BoundType::Lower }, best_move, best_score, search_state);
         best_score
     }
+}
+
+pub fn quiesce(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {
+//    evaluate(position)
+
+    check_time!(search_state.nodes, end_time);
+
+    search_state.nodes += 1;
+
+    let eval = evaluate(position);
+    let mut alpha = window.0;
+    let beta = window.1;
+
+    if eval >= beta {
+        return beta;
+    }
+
+    if alpha < eval {
+        alpha = eval;
+    }
+
+    for m in capture_moves(position) {
+        let mut new_position = *position;
+        make_move(position, m, &mut new_position);
+        if !is_check(&new_position, position.mover) {
+            let score = -quiesce(&new_position, depth-1, (-beta, -alpha), end_time, search_state, tx, start_time);
+            check_time!(search_state.nodes, end_time);
+            if score >= beta {
+                return beta;
+            }
+            if score > alpha {
+                alpha = score;
+            }
+        }
+    }
+
+    alpha
 }

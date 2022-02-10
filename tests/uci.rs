@@ -17,8 +17,6 @@ pub fn it_sets_a_fen() {
 
 #[test]
 pub fn it_knows_legal_moves() {
-    let mut uci_state = default_uci_state();
-
     let position = &get_position("r3k1nr/pppp1ppp/1bn5/4p1q1/3PP3/1BNB1N1b/PPP1QPPP/R4RK1 w kq - 0 1");
     assert!(is_legal_move(position, "a1b1"));
     assert!(is_legal_move(position, "f3g5"));
@@ -95,7 +93,7 @@ fn assert_success_message(result: Either<String, Option<String>>, f: fn(&str) ->
 fn assert_error_message(result: Either<String, Option<String>>, f: fn(&str) -> bool) -> bool {
     match result {
         Left(error) => assert!(f(&*error)),
-        Right(Some(message)) => panic!(),
+        Right(Some(_message)) => panic!(),
         _ => {
             panic!("Fail")
         }
@@ -179,7 +177,7 @@ pub fn it_handles_the_setoption_clear_hash_command() {
     let result = run_command_test(&mut uci_state, &mut search_state, "setoption name Clear Hash");
     assert_eq!(result, Right(None));
     match search_state.hash_table.get(&0) {
-        Some(he) => panic!(),
+        Some(_he) => panic!(),
         None => {}
     }
 
