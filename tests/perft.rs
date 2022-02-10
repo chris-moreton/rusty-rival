@@ -2,6 +2,7 @@ use rusty_rival::fen::get_position;
 use rusty_rival::perft::perft;
 
 #[test]
+#[ignore]
 fn it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_with_a_given_position_as_its_head() {
 
     assert_eq!(perft(&mut get_position(&"8/p7/8/1P6/K1k3pP/6P1/8/8 b - h3 0 1".to_string()), 0), 8);

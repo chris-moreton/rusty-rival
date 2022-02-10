@@ -6,6 +6,7 @@ use rusty_rival::types::{BoundType, default_search_state, default_uci_state, Has
 use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
 
 #[test]
+#[ignore]
 pub fn it_sets_a_fen() {
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
@@ -31,6 +32,7 @@ pub fn it_knows_legal_moves() {
 }
 
 #[test]
+#[ignore]
 pub fn it_runs_a_perft_test() {
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();

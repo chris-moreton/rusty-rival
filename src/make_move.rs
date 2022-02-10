@@ -1,6 +1,7 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::{opponent};
+use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEYS_PIECES, ZOBRIST_PIECE_INDEX_BISHOP, ZOBRIST_PIECE_INDEX_KNIGHT, ZOBRIST_PIECE_INDEX_PAWN, ZOBRIST_PIECE_INDEX_QUEEN, ZOBRIST_PIECE_INDEX_ROOK};
 use crate::types::{Bitboard, BLACK, Move, Position, Square, WHITE};
 use crate::utils::{from_square_part, to_square_part};
 
@@ -23,6 +24,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             }
             new_position.move_number += position.mover as u16;
             new_position.mover ^= 1;
+            new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
         },
         PIECE_MASK_KING => {
             if mv >= BLACK_QUEEN_CASTLE_MOVE_MASK {
@@ -30,7 +32,9 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             } else {
                 make_king_move(new_position, from, to);
             }
+            new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+            new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(new_position.en_passant_square)];
         },
         _ => {
             if test_bit(all_pieces(position), to) {
@@ -38,9 +42,12 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
             } else {
                 make_non_pawn_non_king_non_capture_move(new_position, from, to, piece_mask);
             };
+            new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+            new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(new_position.en_passant_square)];
             new_position.move_number += position.mover as u16;
             new_position.mover ^= 1;
+            new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
         }
     }
 
@@ -113,29 +120,57 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     let is_capture = position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard & bit_to != 0;
 
     match promotion_mask {
-        PROMOTION_KNIGHT_MOVE_MASK => position.pieces[position.mover as usize].knight_bitboard |= bit_to,
-        PROMOTION_BISHOP_MOVE_MASK => position.pieces[position.mover as usize].bishop_bitboard |= bit_to,
-        PROMOTION_ROOK_MOVE_MASK => position.pieces[position.mover as usize].rook_bitboard |= bit_to,
-        PROMOTION_QUEEN_MOVE_MASK => position.pieces[position.mover as usize].queen_bitboard |= bit_to,
+        PROMOTION_KNIGHT_MOVE_MASK => {
+            position.pieces[position.mover as usize].knight_bitboard |= bit_to;
+            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][to as usize];
+        },
+        PROMOTION_BISHOP_MOVE_MASK => {
+            position.pieces[position.mover as usize].bishop_bitboard |= bit_to;
+            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_BISHOP][to as usize];
+        },
+        PROMOTION_ROOK_MOVE_MASK => {
+            position.pieces[position.mover as usize].rook_bitboard |= bit_to;
+            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_ROOK][to as usize];
+        },
+        PROMOTION_QUEEN_MOVE_MASK => {
+            position.pieces[position.mover as usize].queen_bitboard |= bit_to;
+            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_QUEEN][to as usize];
+        },
         _ => panic!("Invalid promotion piece")
     }
 
     position.pieces[position.mover as usize].pawn_bitboard ^= bit_from;
+    position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][from as usize];
     position.pieces[position.mover as usize].all_pieces_bitboard ^= bit_from | bit_to;
 
     if is_capture {
-        let enemy = &mut position.pieces[opponent!(position.mover) as usize];
-        let not_bit_to = !bit_to;
-        enemy.knight_bitboard &= not_bit_to;
-        enemy.rook_bitboard &= not_bit_to;
-        enemy.bishop_bitboard &= not_bit_to;
-        enemy.queen_bitboard &= not_bit_to;
-        enemy.all_pieces_bitboard &= not_bit_to;
+        let opponent = opponent!(position.mover) as usize;
+        let enemy = &mut position.pieces[opponent];
+
+        if enemy.knight_bitboard & bit_to != 0 {
+            enemy.knight_bitboard &= !bit_to;
+            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_KNIGHT][from as usize];
+        }
+        if enemy.rook_bitboard & bit_to != 0 {
+            enemy.rook_bitboard &= !bit_to;
+            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_ROOK][from as usize];
+        }
+        if enemy.bishop_bitboard & bit_to != 0 {
+            enemy.bishop_bitboard &= !bit_to;
+            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_BISHOP][from as usize];
+        }
+        if enemy.queen_bitboard & bit_to != 0 {
+            enemy.queen_bitboard &= !bit_to;
+            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_QUEEN][from as usize];
+        }
+        enemy.all_pieces_bitboard &= !bit_to;
     }
 
     update_castle_flags_if_square(position, to);
 
-    position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+    if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
+        position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];
+    }
     position.half_moves = 0;
 }
 

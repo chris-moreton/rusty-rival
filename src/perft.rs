@@ -4,6 +4,7 @@ use crate::make_move::{make_move};
 use crate::moves::{is_check, moves};
 use crate::types::{Move, Position};
 use num_format::{Locale, ToFormattedString};
+use crate::hash::zobrist_lock;
 
 pub fn perft(position: &Position, depth: u8) -> u64 {
 
@@ -18,6 +19,7 @@ pub fn perft(position: &Position, depth: u8) -> u64 {
         for m in moves(position) {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
+            assert_eq!(new_position.zobrist_lock, zobrist_lock(&new_position));
             if !is_check(&new_position, mover) {
                 count += if depth == 0 {
                     1
