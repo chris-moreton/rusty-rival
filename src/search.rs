@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::ops::Add;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
+use num_format::Locale::cu;
 use rand::Rng;
 use crate::evaluate::evaluate;
 use crate::fen::algebraic_move_from_move;
@@ -27,8 +28,8 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
     let aspiration_window: Window = (-30000, 30000);
 
     for iterative_depth in 1..=max_depth {
-        let mut current_best: MoveScore = legal_moves[0];
-            for move_num in 1..legal_moves.len() {
+        let mut current_best: MoveScore = (legal_moves[0].0, -MAX_SCORE);
+        for move_num in 0..legal_moves.len() {
             if end_time < Instant::now() {
                 return legal_moves[0].0;
             }
@@ -38,6 +39,16 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
             legal_moves[move_num].1 = score;
             if score > current_best.1 {
                 current_best = legal_moves[move_num];
+                if start_time.elapsed().as_millis() > 0 {
+                    let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
+                    tx.send("info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
+                        &*" depth ".to_string() + &*iterative_depth.to_string() +
+                        &*" time ".to_string() + &*start_time.elapsed().as_millis().to_string() +
+                        &*" nodes ".to_string() + &*search_state.nodes.to_string() +
+                        &*" pv ".to_string() + &*algebraic_move_from_move(current_best.0).to_string() +
+                        &*" nps ".to_string() + &*(nps as u64).to_string()
+                    );
+                }
             }
 
         }
@@ -67,10 +78,10 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
     search_state.nodes += 1;
     check_time!(search_state.nodes, end_time);
 
-    if search_state.nodes % 1000000 == 0 {
-        let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
-        tx.send("NPS ".to_string() + &*(nps as u64).to_string());
-    }
+    // if search_state.nodes % 1000000 == 0 {
+    //     let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
+    //     tx.send();
+    // }
 
     if depth == 0 {
         evaluate(position)

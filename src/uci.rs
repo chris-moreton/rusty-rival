@@ -5,6 +5,7 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::{Duration, Instant};
 use either::{Either, Left, Right};
+use num_format::Locale::se;
 use regex::Regex;
 
 use crate::fen::{algebraic_move_from_move, get_fen, get_position, move_from_algebraic_move};
@@ -16,7 +17,13 @@ use crate::search::{start_search};
 use crate::types::{Move, Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
+pub fn run_command_test(mut uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
+    let (tx, rx) = mpsc::channel();
+    run_command(uci_state, search_state, l, &tx)
+}
+
 pub fn run_command(mut uci_state: &mut UciState, search_state: &mut SearchState, l: &str, tx: &Sender<String>) -> Either<String, Option<String>> {
+
     let mut trimmed_line = l.trim().clone().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
         trimmed_line = trimmed_line.replace("startpos", &*("fen ".to_string() + START_POS));
