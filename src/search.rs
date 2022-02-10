@@ -12,7 +12,9 @@ use crate::types::{Bound, Move, Position, MoveList, Score, SearchState, Window, 
 
 pub const MAX_SCORE: Score = 30000;
 
-pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: Sender<String>) -> Move {
+pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Move {
+
+    let start_time = Instant::now();
 
     let mut legal_moves: MoveScoreList = moves(position).into_iter().filter(|m| {
         let mut new_position = *position;
@@ -32,7 +34,7 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
             }
             let mut new_position = *position;
             make_move(position, legal_moves[move_num].0, &mut new_position);
-            let score = -search(&new_position, iterative_depth, aspiration_window, end_time, search_state, &tx);
+            let score = -search(&new_position, iterative_depth, aspiration_window, end_time, search_state, &tx, start_time);
             legal_moves[move_num].1 = score;
             if score > current_best.1 {
                 current_best = legal_moves[move_num];
@@ -61,9 +63,15 @@ pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, bound: Bou
     search_state.hash_table.insert(index, HashEntry { score, height, mv, bound, lock, });
 }
 
-pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Score {
+pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {
     search_state.nodes += 1;
     check_time!(search_state.nodes, end_time);
+
+    if search_state.nodes % 1000000 == 0 {
+        let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
+        tx.send("NPS ".to_string() + &*(nps as u64).to_string());
+    }
+
     if depth == 0 {
         evaluate(position)
     } else {
@@ -106,7 +114,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
-                let score = -search(&new_position, depth-1, (-beta, -alpha), end_time, search_state, tx);
+                let score = -search(&new_position, depth-1, (-beta, -alpha), end_time, search_state, tx, start_time);
                 check_time!(search_state.nodes, end_time);
                 if score > best_score {
                     best_score = score;

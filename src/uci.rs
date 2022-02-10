@@ -1,6 +1,7 @@
 use std::ops::Add;
 use std::process::exit;
 use std::sync::mpsc;
+use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::{Duration, Instant};
 use either::{Either, Left, Right};
@@ -15,16 +16,12 @@ use crate::search::{start_search};
 use crate::types::{Move, Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
-pub fn run_command(mut uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
+pub fn run_command(mut uci_state: &mut UciState, search_state: &mut SearchState, l: &str, tx: &Sender<String>) -> Either<String, Option<String>> {
     let mut trimmed_line = l.trim().clone().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
         trimmed_line = trimmed_line.replace("startpos", &*("fen ".to_string() + START_POS));
     }
     let parts = trimmed_line.split(' ').collect::<Vec<&str>>();
-    run_parts(&mut uci_state, search_state, parts)
-}
-
-fn run_parts(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
 
     match *parts.get(0).unwrap() {
         "bench" => {
@@ -37,7 +34,7 @@ fn run_parts(mut uci_state: &mut UciState, search_state: &mut SearchState, parts
             cmd_isready()
         },
         "go" => {
-            cmd_go(uci_state, search_state, parts)
+            cmd_go(uci_state, search_state, parts, tx)
         },
         "setoption" => {
             cmd_setoption(search_state, parts)
@@ -131,29 +128,6 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
     }
 }
 
-// fn cmd_msg_test(mut uci_state: &mut UciState) -> Either<String, Option<String>> {
-//     let (tx, rx) = mpsc::channel();
-//     let position = get_position(uci_state.fen.trim());
-//
-//     thread::spawn(move || {
-//         start_search(&position, 0, tx, &mut SearchState {}, ());
-//     });
-//
-//     let mut start = Instant::now();
-//
-//     loop {
-//         let received = rx.recv().unwrap();
-//         if start.elapsed().as_secs() >= 1 {
-//             println!("Got: {}", received);
-//             if received == "done" {
-//                 break;
-//             }
-//             start = Instant::now();
-//         }
-//     }
-//     Right(None)
-// }
-
 pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
     let re = r"".to_string() + &*needle.to_string() + &*" ([0-9]*)".to_string();
     let regex = Regex::new(&*re).unwrap();
@@ -169,10 +143,8 @@ pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
     }
 }
 
-fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>, tx: &Sender<String>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
-
-    let (tx, rx) = mpsc::channel();
 
     match *t {
         "perft" => {

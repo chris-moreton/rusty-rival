@@ -1,5 +1,7 @@
-use std::io;
+use std::{io, thread};
 use std::io::BufRead;
+use std::sync::mpsc;
+use std::sync::mpsc::Sender;
 use either::{Left, Right};
 use rand::Rng;
 use rusty_rival::types::{default_search_state, default_uci_state, SearchState, UciState};
@@ -7,6 +9,19 @@ use rusty_rival::uci::run_command;
 
 fn main() {
 
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        repl(tx);
+    });
+
+    loop {
+        let received = rx.recv().unwrap();
+        println!("{}", received);
+    }
+}
+
+fn repl(tx: Sender<String>) {
     let stdin = io::stdin();
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
@@ -16,14 +31,14 @@ fn main() {
     for line in stdin.lock().lines() {
         match line {
             Ok(l) => {
-                let result = run_command(&mut uci_state, &mut search_state, l.as_str());
+                let result = run_command(&mut uci_state, &mut search_state, l.as_str(), &tx);
                 match result {
                     Right(message) => {
                         match message {
                             Some(m) => {
                                 println!("{}", m);
                             },
-                            None => { }
+                            None => {}
                         }
                     },
                     Left(error) => {
@@ -39,3 +54,6 @@ fn main() {
 }
 
 
+// fn cmd_msg_test(mut uci_state: &mut UciState) -> Either<String, Option<String>> {
+
+// }
