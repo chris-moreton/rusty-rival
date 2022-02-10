@@ -1,12 +1,15 @@
 use std::cmp::Ordering;
 use std::sync::mpsc::{Sender};
 use std::time::{Instant};
+use crate::bitboards::bit;
 use crate::evaluate::evaluate;
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{zobrist_index};
 use crate::make_move::make_move;
 use crate::moves::{capture_moves, is_check, moves};
+use crate::opponent;
 use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType};
+use crate::utils::to_square_part;
 
 pub const MAX_SCORE: Score = 30000;
 
@@ -80,7 +83,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
     check_time!(search_state.nodes, end_time);
 
     if depth == 0 {
-        quiesce(position, 20, window, end_time, search_state, tx, start_time)
+        quiesce(position, 8, window, end_time, search_state, tx, start_time)
     } else {
         let index = zobrist_index(position.zobrist_lock);
 
@@ -115,6 +118,18 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
                 move_list = moves(position);
             }
         }
+
+        let enemy = position.pieces[opponent!(position.mover) as usize];
+
+        let mut move_scores: Vec<(Move, Score)> = move_list.into_iter().map(|m| {
+            if enemy.all_pieces_bitboard & bit(to_square_part(m)) != 0 { (m,0) } else { (m,1) }
+        }).collect();
+
+        move_scores.sort_by(|(_, a), (_, b) | a.cmp(b));
+
+        move_list = move_scores.into_iter().map(|(m,_)| {
+            m
+        }).collect();
 
         for m in move_list {
             let mut new_position = *position;

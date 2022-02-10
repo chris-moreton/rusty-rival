@@ -3,7 +3,7 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
 use rusty_rival::search::start_search;
-use rusty_rival::types::{default_search_state, SearchState};
+use rusty_rival::types::{default_search_state};
 
 #[test]
 fn it_returns_the_best_move_at_depth_1() {

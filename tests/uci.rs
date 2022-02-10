@@ -1,7 +1,6 @@
 use either::{Either, Left, Right};
 use rusty_rival::fen::get_position;
 use rusty_rival::move_constants::START_POS;
-use rusty_rival::search::search;
 use rusty_rival::types::{BoundType, default_search_state, default_uci_state, HashEntry};
 use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
 
@@ -78,7 +77,7 @@ pub fn it_handles_a_bad_fen() {
 
 fn assert_success_message(result: Either<String, Option<String>>, f: fn(&str) -> bool) -> bool {
     match result {
-        Left(error) => panic!("Fail"),
+        Left(_error) => panic!("Fail"),
         Right(Some(message)) => {
             assert!(f(&*message))
         },
