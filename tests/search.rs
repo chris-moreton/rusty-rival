@@ -43,7 +43,7 @@ fn it_finds_a_mate_in_4() {
 
 #[test]
 fn it_finds_a_mate_in_5() {
-//    assert_move("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 9, 1000000, "h4f4");
+    assert_move("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 9, 1000000, "h4f4");
 }
 
 #[test]
