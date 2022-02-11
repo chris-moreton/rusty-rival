@@ -15,7 +15,7 @@ use crate::utils::to_square_part;
 
 pub const MAX_SCORE: Score = 30000;
 
-pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Move {
+pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, history: Vec<Move>) -> Move {
 
     let start_time = Instant::now();
 
@@ -81,17 +81,6 @@ pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_h
 
     if score < 29000 && score > -29000 && height >= existing_height {
         search_state.hash_table.insert(index, HashEntry { score, height, mv, bound, lock, });
-    }
-}
-
-#[inline(always)]
-pub fn adjust_score_for_hash_storage(score: Score, ply: u8) -> Score {
-    if score > 29000 {
-        30000 - ply as Score
-    } else if score < -29000 {
-        -30000 + ply as Score
-    } else {
-        score
     }
 }
 

@@ -30,6 +30,7 @@ pub struct UciState {
     pub mate: bool,
     pub move_time: u64,
     pub infinite: bool,
+    pub history: Vec<Move>,
 }
 
 pub fn default_uci_state() -> UciState {
@@ -46,7 +47,8 @@ pub fn default_uci_state() -> UciState {
         nodes: 0,
         mate: false,
         move_time: u64::MAX,
-        infinite: false
+        infinite: false,
+        history: vec![],
     }
 }
 
