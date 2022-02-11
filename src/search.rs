@@ -1,4 +1,3 @@
-use std::process::exit;
 use std::sync::mpsc::{Sender};
 use std::time::{Instant};
 use crate::bitboards::bit;
