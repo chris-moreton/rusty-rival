@@ -8,7 +8,7 @@ use crate::make_move::make_move;
 use crate::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::moves::{capture_moves, is_check, moves};
 use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, Pieces, Square};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, Pieces, Square, WHITE, BLACK};
 use crate::utils::to_square_part;
 
 pub const MAX_SCORE: Score = 30000;
@@ -117,7 +117,7 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
             }
         }
 
-        if !on_null_move && depth > 2 && !is_check(position, position.mover) {
+        if !on_null_move && depth > 2 && null_move_material(position) && !is_check(position, position.mover) {
             let mut new_position = *position;
             new_position.mover ^= 1;
             let score = -search(&new_position, depth-1-1, (-beta, (-beta)+1), end_time, search_state, tx, start_time, true);
@@ -156,6 +156,18 @@ pub fn search(position: &Position, depth: u8, window: Window, end_time: Instant,
         store_hash_entry(index, position.zobrist_lock, depth, if best_score > -MAX_SCORE { BoundType::Exact } else { BoundType::Lower }, best_move, best_score, search_state);
         best_score
     }
+}
+
+fn null_move_material(position: &Position) -> bool {
+    let white_total =
+        position.pieces[WHITE as usize].rook_bitboard.count_ones() +
+        position.pieces[WHITE as usize].queen_bitboard.count_ones();
+
+    let black_total =
+        position.pieces[BLACK as usize].rook_bitboard.count_ones() +
+        position.pieces[BLACK as usize].queen_bitboard.count_ones();
+
+    white_total >= 1 && black_total >= 1 && (white_total + black_total >= 3)
 }
 
 fn score_move(position: &Position, hash_move: Move, enemy: &Pieces, m: Move, tsp: Square) -> Score {
