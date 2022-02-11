@@ -92,12 +92,10 @@ pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_h
 #[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, on_null_move: bool) -> Score {
 
-    // assert_eq!(search_state.history.len() - 1, ply as usize);
-
     search_state.nodes += 1;
     check_time!(search_state.nodes, end_time);
 
-    if search_state.history.iter().filter(|p| position.zobrist_lock == **p).count() > 1 {
+    if search_state.history.iter().rev().take(position.half_moves as usize).filter(|p| position.zobrist_lock == **p).count() > 1 {
         return 0
     }
 
