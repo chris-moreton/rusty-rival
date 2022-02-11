@@ -21,11 +21,14 @@ fn it_returns_the_best_move_at_depth_1() {
 }
 
 fn assert_move(fen: &str, depth: u8, millis: u64, bestmove: &str) {
+    let moves: Vec<String> = bestmove.split(',').map(|m| { m.to_string() }).collect();
+
     let mut search_state = default_search_state();
     let (tx, _rx) = mpsc::channel();
     let position = get_position(&fen.to_string());
     let mv = start_search(&position, depth, Instant::now().add(Duration::from_millis(millis)), &mut search_state, &tx);
-    assert_eq!(algebraic_move_from_move(mv), bestmove);
+    println!("{}", algebraic_move_from_move(mv));
+    assert!(moves.contains(&algebraic_move_from_move(mv)));
 }
 
 #[test]
@@ -44,6 +47,18 @@ fn it_finds_a_mate_in_4() {
 #[test]
 fn it_finds_a_mate_in_5() {
     assert_move("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 9, 1000000, "h4f4");
+}
+
+#[test]
+fn it_avoids_thinking_stalemate_is_checkmate() {
+    assert_move("8/8/8/8/4Q3/2P4k/8/5K2 w - - 0 1", 3, 1000000, "f1f2");
+    assert_move("8/8/8/8/4Q3/2P3k1/4K3/8 w - - 0 1", 5, 1000000, "e2f1");
+    assert_move("8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1", 7, 1000000, "d3e3,d3e2");
+}
+
+#[test]
+fn it_finds_a_mate_in_6() {
+    assert_move("8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1", 11, 1000000, "b5c5,b5c4");
 }
 
 #[test]

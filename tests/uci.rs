@@ -43,6 +43,7 @@ pub fn it_handles_startpos() {
 
     assert_eq!(run_command_test(&mut uci_state, &mut search_state, "position fen rnbqkbnr/pppppppp/8/8/8/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1"), Right(None));
     assert_ne!(uci_state.fen, START_POS);
+
     assert_eq!(run_command_test(&mut uci_state, &mut search_state, "position startpos"), Right(None));
     assert_eq!(uci_state.fen, START_POS);
 }
@@ -109,6 +110,13 @@ pub fn it_returns_a_best_move() {
     assert_eq!(run_command_test(&mut uci_state, &mut search_state, "position fen rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1"), Right(None));
     let result = run_command_test(&mut uci_state, &mut search_state, "go depth 1");
     assert_success_message(result, |message| {
+        message.contains("bestmove")
+    });
+
+    assert_eq!(run_command_test(&mut uci_state, &mut search_state, "position fen 8/8/8/8/8/2PKQ3/5k2/8 b - - 0 1"), Right(None));
+    let result = run_command_test(&mut uci_state, &mut search_state, "go movetime 250");
+    assert_success_message(result, |message| {
+        println!("{}", message);
         message.contains("bestmove")
     });
 }
@@ -179,7 +187,6 @@ pub fn it_handles_the_setoption_clear_hash_command() {
         Some(_he) => panic!(),
         None => {}
     }
-
 }
 
 #[test]

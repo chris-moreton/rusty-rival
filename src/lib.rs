@@ -13,3 +13,4 @@ pub mod search;
 pub mod uci;
 pub mod evaluate;
 pub mod hash;
+pub mod engine_constants;

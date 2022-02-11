@@ -15,14 +15,31 @@ use crate::search::{start_search};
 use crate::types::{Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
+fn replace_shortcuts(l: &str) -> &str {
+    match l {
+        "mate201" => "position fen 8/8/8/8/4Q3/2P4k/8/5K2 w - - 0 1",
+        "mate301" => "position fen 1k5r/pP3ppp/3p2b1/1BN1n3/1Q2P3/P1B5/KP3P1P/7q w - - 1 0",
+        "mate302" => "position fen 3r4/pR2N3/2pkb3/5p2/8/2B5/qP3PPP/4R1K1 w - - 1 0",
+        "mate303" => "position fen R6R/1r3pp1/4p1kp/3pP3/1r2qPP1/7P/1P1Q3K/8 w - - 1 0",
+        "mate304" => "position fen 4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1",
+        "mate305" => "position fen 8/8/8/8/4Q3/2P3k1/4K3/8 w - - 0 1",
+        "mate401" => "position fen 7R/r1p1q1pp/3k4/1p1n1Q2/3N4/8/1PP2PPP/2B3K1 w - - 1 0",
+        "mate402" => "position fen 8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1",
+        "mate501" => "position fen 6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1",
+        "mate502" => "position fen 8/8/8/8/2K1Q3/2P3k1/8/8 w - - 0 1",
+        "mate601" => "position fen 8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1",
+        _ => l
+    }
+}
+
 pub fn run_command_test(uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
     let (tx, _rx) = mpsc::channel();
-    run_command(uci_state, search_state, l, &tx)
+    run_command(uci_state, search_state, replace_shortcuts(l), &tx)
 }
 
 pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: &str, tx: &Sender<String>) -> Either<String, Option<String>> {
 
-    let mut trimmed_line = l.trim().clone().replace("  ", " ");
+    let mut trimmed_line = replace_shortcuts(l).trim().clone().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
         trimmed_line = trimmed_line.replace("startpos", &*("fen ".to_string() + START_POS));
     }

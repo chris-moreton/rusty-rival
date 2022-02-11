@@ -1,0 +1,1 @@
+pub const MAX_QUIESCE_DEPTH: u8 = 0;
