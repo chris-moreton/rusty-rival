@@ -77,18 +77,19 @@ macro_rules! check_time {
 }
 
 #[inline(always)]
-pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, ply: u8, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
-    if height >= existing_height {
-        search_state.hash_table.insert(index, HashEntry { score: adjust_score_for_mate(score), height, mv, bound, lock, });
+pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
+
+    if score < 29000 && score > -29000 && height >= existing_height {
+        search_state.hash_table.insert(index, HashEntry { score, height, mv, bound, lock, });
     }
 }
 
 #[inline(always)]
-pub fn adjust_score_for_mate(score: Score) -> Score {
+pub fn adjust_score_for_hash_storage(score: Score, ply: u8) -> Score {
     if score > 29000 {
-        30000
+        30000 - ply as Score
     } else if score < -29000 {
-        -30000
+        -30000 + ply as Score
     } else {
         score
     }
@@ -117,18 +118,19 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             Some(x) => {
                 if x.lock == position.zobrist_lock && x.height >= depth {
                     hash_height = x.height;
+                    let adjusted_score = x.score;
                     if x.bound == BoundType::Exact  {
                         search_state.hash_hits_exact += 1;
-                        return x.score;
+                        return adjusted_score;
                     }
                     if x.bound == BoundType::Lower  {
-                        alpha = x.score
+                        alpha = adjusted_score
                     }
                     if x.bound == BoundType::Upper  {
-                        beta = x.score
+                        beta = adjusted_score
                     }
                     if alpha >= beta {
-                        return x.score
+                        return adjusted_score
                     }
                 }
                 hash_move = x.mv;
@@ -166,7 +168,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                     if best_score > alpha {
                         alpha = best_score;
                         if alpha >= beta {
-                            store_hash_entry(index, position.zobrist_lock, depth, hash_height, ply, BoundType::Lower, best_move, best_score, search_state);
+                            store_hash_entry(index, position.zobrist_lock, depth, hash_height, Lower, best_move,
+                                             best_score,
+                                             search_state);
                             return best_score;
                         }
                         hash_flag = Exact;
@@ -177,7 +181,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         if best_score == worst_case && !is_check(position, position.mover) {
             best_score = 0;
         }
-        store_hash_entry(index, position.zobrist_lock, depth, hash_height, ply, hash_flag, best_move, best_score, search_state);
+        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_flag, best_move,
+                         best_score,
+                         search_state);
         best_score
     }
 }

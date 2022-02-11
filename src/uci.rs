@@ -176,12 +176,12 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
         },
         "infinite" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, 200, Instant::now(), search_state, tx);
+            let mv = start_search(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         "mate" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, 200, Instant::now(), search_state, tx);
+            let mv = start_search(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         _ => {
