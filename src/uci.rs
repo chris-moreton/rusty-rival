@@ -28,6 +28,10 @@ fn replace_shortcuts(l: &str) -> &str {
         "mate501" => "position fen 6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1",
         "mate502" => "position fen 8/8/8/8/2K1Q3/2P3k1/8/8 w - - 0 1",
         "mate601" => "position fen 8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1",
+        "tf01" => "position fen 3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1",
+        "tf02" => "position fen 3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1",
+        "tf03" => "position fen 3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1 e3f2 e1d2",
+        "i" => "go infinite",
         _ => l
     }
 }
@@ -74,7 +78,7 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
             exit(0)
         },
         "position" => {
-            cmd_position(uci_state, parts)
+            cmd_position(uci_state, search_state, parts)
         }
         _ => {
             Left("Unknown command".parse().unwrap())
@@ -113,12 +117,12 @@ pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
     false
 }
 
-fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
     match *t {
         "fen" => {
 
-            uci_state.history = vec![];
+            search_state.history = vec![];
 
             let re = Regex::new(r"\s*^(((?:[rnbqkpRNBQKP1-8]+/){7})[rnbqkpRNBQKP1-8]+)\s([b|w])\s([K|Q|k|q]{1,4}|-)\s(-|[a-h][1-8])\s(\d+\s\d+)$").unwrap();
             let (fen, moves) = fen_and_moves(parts);
@@ -129,14 +133,15 @@ fn cmd_position(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Op
                 uci_state.fen = fen;
                 let mut position = get_position(&uci_state.fen);
                 let mut new_position = position;
+                search_state.history.push(new_position.zobrist_lock);
                 if moves.len() > 0 {
                     for m in moves {
                         if !is_legal_move(&new_position, &m) {
                             return Left("Illegal move found".parse::<String>().unwrap() + " " + &*m);
                         }
                         let hydrated_move = hydrate_move_from_algebraic_move(&position, m.to_string());
-                        uci_state.history.push(hydrated_move);
                         make_move(&position, hydrated_move, &mut new_position);
+                        search_state.history.push(new_position.zobrist_lock);
                         position = new_position
                     }
                 }
@@ -178,12 +183,12 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
         },
         "infinite" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx, uci_state.history.clone());
+            let mv = start_search(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         "mate" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx, uci_state.history.clone());
+            let mv = start_search(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         _ => {
@@ -198,7 +203,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
             uci_state.move_time = extract_go_param("movetime", &line, u64::MAX);
 
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), search_state, tx, uci_state.history.clone());
+            let mv = start_search(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), search_state, tx);
 
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         }
@@ -239,7 +244,6 @@ fn cmd_benchmark(parts: Vec<&str>) -> Either<String, Option<String>> {
         mate: false,
         move_time: 0,
         infinite: false,
-        history: vec![]
     }
     );
     Right(None)

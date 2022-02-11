@@ -1,8 +1,7 @@
+use crate::engine_constants::MAX_HASH_ENTRIES;
 use crate::get_and_unset_lsb;
 use crate::move_constants::EN_PASSANT_NOT_AVAILABLE;
 use crate::types::{Bitboard, BLACK, HashIndex, HashLock, Mover, Position, Square, WHITE};
-
-pub const MAX_HASH_ENTRIES: u64 = 1024 * 1024 * 1024;
 
 pub const ZOBRIST_PIECE_INDEX_PAWN: usize = 0;
 pub const ZOBRIST_PIECE_INDEX_KNIGHT: usize = 1;

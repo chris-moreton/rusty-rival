@@ -1,3 +1,4 @@
+use std::process::exit;
 use std::sync::mpsc::{Sender};
 use std::time::{Instant};
 use crate::bitboards::bit;
@@ -15,7 +16,7 @@ use crate::utils::to_square_part;
 
 pub const MAX_SCORE: Score = 30000;
 
-pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, history: Vec<Move>) -> Move {
+pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Move {
 
     let start_time = Instant::now();
 
@@ -27,14 +28,20 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
         (m, 0)
     }).collect();
 
-    let aspiration_window: Window = (-30000, 30000);
+    let aspiration_window: Window = (-MAX_SCORE, MAX_SCORE);
+
+    if search_state.history.len() == 0 {
+        search_state.history.push(position.zobrist_lock)
+    }
 
     for iterative_depth in 1..=max_depth {
         let mut current_best: MoveScore = (legal_moves[0].0, -MAX_SCORE);
         for move_num in 0..legal_moves.len() {
             let mut new_position = *position;
             make_move(position, legal_moves[move_num].0, &mut new_position);
+            search_state.history.push(new_position.zobrist_lock);
             let score = -search(&new_position, iterative_depth, 1, aspiration_window, end_time, search_state, &tx, start_time, false);
+            search_state.history.pop();
             if Instant::now() > end_time {
                 return legal_moves[0].0;
             }
@@ -78,19 +85,27 @@ macro_rules! check_time {
 
 #[inline(always)]
 pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
-
     if score < 29000 && score > -29000 && height >= existing_height {
         search_state.hash_table.insert(index, HashEntry { score, height, mv, bound, lock, });
     }
 }
 
+#[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, on_null_move: bool) -> Score {
+
+    // assert_eq!(search_state.history.len() - 1, ply as usize);
+
     search_state.nodes += 1;
     check_time!(search_state.nodes, end_time);
+
+    if search_state.history.iter().filter(|p| position.zobrist_lock == **p).count() > 1 {
+        return 0
+    }
 
     if depth == 0 {
         quiesce(position, MAX_QUIESCE_DEPTH, window, end_time, search_state, tx, start_time)
     } else {
+
         let index = zobrist_index(position.zobrist_lock);
 
         let worst_case = -(MAX_SCORE-ply as Score);
@@ -148,8 +163,10 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         for m in move_list {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
+            search_state.history.push(new_position.zobrist_lock);
             if !is_check(&new_position, position.mover) {
                 let score = -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time, false);
+                search_state.history.pop();
                 check_time!(search_state.nodes, end_time);
                 if score > best_score {
                     best_score = score;
@@ -165,6 +182,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                         hash_flag = Exact;
                     }
                 }
+            } else {
+                search_state.history.pop();
             }
         }
         if best_score == worst_case && !is_check(position, position.mover) {
@@ -177,18 +196,24 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
     }
 }
 
+#[inline(always)]
 fn null_move_material(position: &Position) -> bool {
     let white_total =
+        position.pieces[WHITE as usize].bishop_bitboard.count_ones() +
+        position.pieces[WHITE as usize].knight_bitboard.count_ones() +
         position.pieces[WHITE as usize].rook_bitboard.count_ones() +
         position.pieces[WHITE as usize].queen_bitboard.count_ones();
 
     let black_total =
+        position.pieces[BLACK as usize].bishop_bitboard.count_ones() +
+        position.pieces[BLACK as usize].knight_bitboard.count_ones() +
         position.pieces[BLACK as usize].rook_bitboard.count_ones() +
         position.pieces[BLACK as usize].queen_bitboard.count_ones();
 
-    white_total >= 1 && black_total >= 1 && (white_total + black_total >= 3)
+    white_total >= 2 && black_total >= 2
 }
 
+#[inline(always)]
 fn score_move(position: &Position, hash_move: Move, enemy: &Pieces, m: Move, tsp: Square) -> Score {
     let score = if m == hash_move {
         10000
@@ -214,6 +239,7 @@ fn score_move(position: &Position, hash_move: Move, enemy: &Pieces, m: Move, tsp
     score
 }
 
+#[inline(always)]
 pub fn piece_value(pieces: &Pieces, to: Square) -> Score {
     let bb = bit(to);
     if pieces.pawn_bitboard & bb != 0 {
@@ -234,6 +260,7 @@ pub fn piece_value(pieces: &Pieces, to: Square) -> Score {
     0
 }
 
+#[inline(always)]
 pub fn quiesce(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {
 
     check_time!(search_state.nodes, end_time);
