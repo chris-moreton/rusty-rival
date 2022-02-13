@@ -5,10 +5,13 @@ use crate::evaluate::{evaluate};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{zobrist_index};
 use crate::make_move::make_move;
+use crate::move_constants::PROMOTION_FULL_MOVE_MASK;
 use crate::move_scores::score_move;
 use crate::moves::{capture_moves, is_check, moves};
+use crate::opponent;
 use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK};
 use crate::types::BoundType::{Exact, Lower, Upper};
+use crate::utils::to_square_part;
 
 pub const MAX_SCORE: Score = 30000;
 
@@ -155,7 +158,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         }
 
         let mut move_scores: Vec<(Move, Score)> = moves(position).into_iter().map(|m| {
-            (m, score_move(position, hash_move, m, search_state.killer_moves[ply as usize]))
+            (m, score_move(position, hash_move, m, search_state, ply as usize))
         }).collect();
         move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
         let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
@@ -176,8 +179,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                         if alpha >= beta {
                             store_hash_entry(index, position.zobrist_lock, depth, hash_height, Lower, best_move, best_score, search_state);
                             if search_state.killer_moves[ply as usize][0] != m {
-                                search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
-                                search_state.killer_moves[ply as usize][0] = m;
+                                let opponent_index = opponent!(position.mover) as usize;
+                                let was_capture = position.pieces[opponent_index].all_pieces_bitboard != new_position.pieces[opponent_index].all_pieces_bitboard;
+                                if (m & PROMOTION_FULL_MOVE_MASK == 0) && !was_capture {
+                                    search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
+                                    search_state.killer_moves[ply as usize][0] = m;
+                                }
                             }
                             return best_score;
                         }
@@ -253,7 +260,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
     }
 
     let mut move_scores: Vec<(Move, Score)> = capture_moves(position).into_iter().map(|m| {
-        (m, score_move(position, 0, m, search_state.killer_moves[ply as usize]))
+        (m, score_move(position, 0, m, search_state, ply as usize))
     }).collect();
     move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
     let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();

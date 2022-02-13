@@ -1,8 +1,8 @@
 use crate::bitboards::bit;
-use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, NUM_KILLER_MOVES, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::opponent;
-use crate::types::{Move, Piece, Pieces, Position, Score, Square};
+use crate::types::{Move, Piece, Pieces, Position, Score, SearchState, Square};
 use crate::types::Piece::{Bishop, King, Knight, Pawn, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
 
@@ -33,7 +33,7 @@ fn attacker_bonus(piece: Piece) -> Score {
 }
 
 #[inline(always)]
-pub fn score_move(position: &Position, hash_move: Move, m: Move, killer_moves: [Move; NUM_KILLER_MOVES]) -> Score {
+pub fn score_move(position: &Position, hash_move: Move, m: Move, search_state: &SearchState, ply: usize) -> Score {
     let enemy = position.pieces[opponent!(position.mover) as usize];
     let to_square = to_square_part(m);
 
@@ -55,10 +55,10 @@ pub fn score_move(position: &Position, hash_move: Move, m: Move, killer_moves: [
     } else if to_square == position.en_passant_square {
         PAWN_VALUE + attacker_bonus(Pawn)
     } else {
-        if m == killer_moves[0] {
-            75
-        } else if m == killer_moves[1] {
-            50
+        let killer_moves = search_state.killer_moves[ply];
+        if m == killer_moves[0] { 75 } else if m == killer_moves[1] { 50 } else if ply > 2 {
+            let killer_moves = search_state.killer_moves[ply - 2];
+            if m == killer_moves[0] { 65 } else if m == killer_moves[1] { 40 } else { 0 }
         } else {
             0
         }

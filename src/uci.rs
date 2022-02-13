@@ -221,7 +221,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220213-04-Order-Quiesce-Moves|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220213-05-Killers-From-Two-Ply-Previous|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
