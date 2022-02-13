@@ -2,7 +2,7 @@ use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, QUEEN_VALUE, ROOK_VALU
 use crate::evaluate::material;
 use crate::move_scores::{BIT_FLIPPED_HORIZONTAL_AXIS, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_STAGE_MATERIAL_LOW, OPENING_PHASE_MATERIAL, PAWN_STAGE_MATERIAL_HIGH, PAWN_STAGE_MATERIAL_LOW, piece_type};
 use crate::{get_and_unset_lsb, opponent};
-use crate::types::{BLACK, Move, Piece, Pieces, Position, Score, Square, WHITE};
+use crate::types::{BLACK, Move, Pieces, Position, Score, Square, WHITE};
 use crate::utils::{from_square_part, linear_scale, to_square_part};
 use crate::types::Piece::{Bishop, King, Knight, Pawn, Queen, Rook};
 

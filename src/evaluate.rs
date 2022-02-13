@@ -1,6 +1,5 @@
 use crate::bitboards::{RANK_1_BITS, south_fill};
 use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Pieces, Position, Score, WHITE};
 
 #[inline(always)]

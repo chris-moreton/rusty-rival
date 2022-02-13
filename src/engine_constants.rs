@@ -6,6 +6,8 @@ pub const BISHOP_VALUE: Score = 350;
 pub const ROOK_VALUE: Score = 550;
 pub const QUEEN_VALUE: Score = 900;
 
+pub const NUM_KILLER_MOVES: usize = 2;
+
 pub const NULL_MOVE_REDUCE_DEPTH: u8 = 2;
 
 pub const MAX_DEPTH: u8 = 250;

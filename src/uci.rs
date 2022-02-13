@@ -60,7 +60,7 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
 
     match *parts.get(0).unwrap() {
         "bench" => {
-            cmd_benchmark(uci_state, search_state, parts, tx)
+            cmd_benchmark(uci_state, search_state, tx)
         },
         "uci" => {
             cmd_uci()
@@ -221,7 +221,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220213-01-Killer-Moves|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220213-02-Attacker-Bonus|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -239,33 +239,26 @@ fn cmd_debug(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
 }
 
 
-fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>, tx: &Sender<String>) -> Either<String, Option<String>> {
+fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, tx: &Sender<String>) -> Either<String, Option<String>> {
     let start = Instant::now();
 
     let positions = vec![
-        ("8/8/8/8/4Q3/2P4k/8/5K2 w - - 0 1", 7),
-        ("1k5r/pP3ppp/3p2b1/1BN1n3/1Q2P3/P1B5/KP3P1P/7q w - - 1 0", 7),
-        ("3r4/pR2N3/2pkb3/5p2/8/2B5/qP3PPP/4R1K1 w - - 1 0", 7),
-        ("R6R/1r3pp1/4p1kp/3pP3/1r2qPP1/7P/1P1Q3K/8 w - - 1 0", 7),
-        ("4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1", 7),
-        ("8/8/8/8/4Q3/2P3k1/4K3/8 w - - 0 1", 7),
-        ("7R/r1p1q1pp/3k4/1p1n1Q2/3N4/8/1PP2PPP/2B3K1 w - - 1 0", 7),
-        ("8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1", 7),
-        ("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 7),
-        ("8/8/8/8/2K1Q3/2P3k1/8/8 w - - 0 1", 7),
-        ("8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1", 7),
+        ("7R/r1p1q1pp/3k4/1p1n1Q2/3N4/8/1PP2PPP/2B3K1 w - - 1 0", 6),
+        ("8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1", 6),
+        ("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 6),
+        ("8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1", 6),
         ("3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1", 7),
-        ("3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1", 7),
-        ("3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1 e3f2 e1d2", 7),
         ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
-        ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
-        ("8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28", 7),
-        ("r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1", 7),
-        ("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 7),
-        ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
-        ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
-        ("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 7),
-        ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 7),
+        ("8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28", 6),
+        ("r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1", 6),
+        ("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 4),
+        ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6),
+        ("r1b2k1b/1p3p2/pP2pNp1/P1p1P1P1/6q1/7P/3B3R/R4K2 w - - 0 32", 6),
+        ("8/R1N2k2/3R3p/6p1/2P3P1/1P5P/P4P2/4r1K1 w - - 3 45", 6),
+        ("5rk1/5ppp/8/1pPpR3/1p3P2/2nB4/q5PP/4Q1K1 w - - 1 24", 6),
+        ("r2q1rk1/3b2p1/p2p3p/1ppPbp2/4P3/1P1P3P/P3Q1PN/R1B2RK1 w - - 0 19", 6),
+        ("3r4/2p2p2/p7/1pb1p3/4Bk1p/1PN2P1P/P1P3K1/8 b - - 0 29", 6),
+        ("rnbqkbnr/1pp1pppp/p7/8/2pP4/2N2N2/PP2PPPP/R1BQKB1R b KQkq - 1 4", 6),
     ];
 
     let mut total_nodes = 0;
@@ -274,7 +267,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
         let mut owned = "position fen ".to_owned();
         owned.push_str(p.0);
         run_command(uci_state, search_state, &owned, tx);
-        run_command(uci_state, search_state, "go depth 7", tx);
+        run_command(uci_state, search_state, &format!("go depth {}", p.1), tx);
         total_nodes += search_state.nodes;
     }
     let duration = start.elapsed();

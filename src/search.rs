@@ -1,18 +1,14 @@
 use std::sync::mpsc::{Sender};
 use std::time::{Instant};
-use crate::bitboards::bit;
-use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH};
 use crate::evaluate::{evaluate};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{zobrist_index};
 use crate::make_move::make_move;
-use crate::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::move_scores::score_move;
 use crate::moves::{capture_moves, is_check, moves};
-use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, Pieces, Square, WHITE, BLACK};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK};
 use crate::types::BoundType::{Exact, Lower, Upper};
-use crate::utils::{from_square_part, to_square_part};
 
 pub const MAX_SCORE: Score = 30000;
 
@@ -85,7 +81,7 @@ macro_rules! check_time {
 
 #[inline(always)]
 pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
-    if height >= existing_height {
+    if height >= existing_height && score.abs() < 29000 {
         search_state.hash_table.insert(index, HashEntry { score, height, mv, bound, lock, });
     }
 }
@@ -179,9 +175,10 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                         alpha = best_score;
                         if alpha >= beta {
                             store_hash_entry(index, position.zobrist_lock, depth, hash_height, Lower, best_move, best_score, search_state);
-                            search_state.killer_moves[ply as usize][2] = search_state.killer_moves[ply as usize][1];
-                            search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
-                            search_state.killer_moves[ply as usize][0] = m;
+                            if search_state.killer_moves[ply as usize][0] != m {
+                                search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
+                                search_state.killer_moves[ply as usize][0] = m;
+                            }
                             return best_score;
                         }
                         hash_flag = Exact;
