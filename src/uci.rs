@@ -259,6 +259,9 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, tx: &
         ("r2q1rk1/3b2p1/p2p3p/1ppPbp2/4P3/1P1P3P/P3Q1PN/R1B2RK1 w - - 0 19", 6),
         ("3r4/2p2p2/p7/1pb1p3/4Bk1p/1PN2P1P/P1P3K1/8 b - - 0 29", 6),
         ("rnbqkbnr/1pp1pppp/p7/8/2pP4/2N2N2/PP2PPPP/R1BQKB1R b KQkq - 1 4", 6),
+        ("3r2k1/4bpp1/p3p3/1ppn1r1p/4q3/P1B1PNPP/1P2QPK1/4R1R1 b - - 1 26", 6),
+        ("rn1qkb1r/1pp1ppp1/p4n1p/3p1b2/3P1B2/2N1PN1P/PPP2PP1/R2QKB1R b KQkq - 2 6", 6),
+        ("2r1kb1r/p2p2pp/3n3n/1b2Nq2/4pP2/1B4P1/1BPN3P/R2QK2R w KQk - 0 18", 6),
     ];
 
     let mut total_nodes = 0;
