@@ -81,7 +81,7 @@ macro_rules! check_time {
 
 #[inline(always)]
 pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
-    if height >= existing_height && score.abs() < 29000 {
+    if height >= existing_height {
         search_state.hash_table.insert(index, HashEntry { score, height, mv, bound, lock, });
     }
 }
@@ -191,7 +191,22 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         if best_score == worst_case && !is_check(position, position.mover) {
             best_score = 0;
         }
-        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_flag, best_move, best_score, search_state);
+        let hash_score = if hash_flag == Exact {
+            if best_score.abs() > 29000 {
+                let root_mate_distance = 30000 - best_score.abs();
+                let this_mate_distance = root_mate_distance - ply as Score;
+                if best_score > 29000 {
+                    30000 - this_mate_distance
+                } else {
+                    this_mate_distance - 30000
+                }
+            } else {
+                best_score
+            }
+        } else {
+            best_score
+        };
+        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_flag, best_move, hash_score, search_state);
         best_score
     }
 }
