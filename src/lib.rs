@@ -14,3 +14,5 @@ pub mod uci;
 pub mod evaluate;
 pub mod hash;
 pub mod engine_constants;
+pub mod piece_square_tables;
+pub mod move_scores;

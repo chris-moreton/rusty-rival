@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::engine_constants::MAX_DEPTH;
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 
 pub type Square = i8;
@@ -53,6 +54,7 @@ pub fn default_uci_state() -> UciState {
 
 pub struct SearchState {
     pub hash_table: HashMap<HashIndex, HashEntry>,
+    pub killer_moves: [[Move; 3]; MAX_DEPTH as usize],
     pub pv: Path,
     pub pv_score: Score,
     pub nodes: u64,
@@ -63,6 +65,7 @@ pub struct SearchState {
 pub fn default_search_state() -> SearchState {
     SearchState {
         hash_table: Default::default(),
+        killer_moves: [[0,0,0]; MAX_DEPTH as usize],
         pv: vec![],
         pv_score: 0,
         nodes: 0,

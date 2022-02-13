@@ -31,6 +31,15 @@ fn replace_shortcuts(l: &str) -> &str {
         "tf01" => "position fen 3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1",
         "tf02" => "position fen 3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1",
         "tf03" => "position fen 3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1 e3f2 e1d2",
+        "bench01" => "position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        "bench02" => "position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        "bench03" => "position fen 8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28",
+        "bench04" => "position fen r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1",
+        "bench05" => "position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "bench06" => "position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        "bench07" => "position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        "bench08" => "position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "bench09" => "position startpos",
         "i" => "go infinite",
         _ => l
     }
@@ -51,7 +60,7 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
 
     match *parts.get(0).unwrap() {
         "bench" => {
-            cmd_benchmark(parts)
+            cmd_benchmark(uci_state, search_state, parts, tx)
         },
         "uci" => {
             cmd_uci()
@@ -69,7 +78,7 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
             cmd_register()
         },
         "ucinewgame" => {
-            cmd_ucinewgame()
+            cmd_ucinewgame(uci_state, search_state)
         },
         "debug" => {
             cmd_debug(uci_state, parts)
@@ -174,6 +183,7 @@ pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
 
 fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>, tx: &Sender<String>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
+    search_state.nodes = 0;
 
     match *t {
         "perft" => {
@@ -211,7 +221,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220213-01-Killer-Moves|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -228,24 +238,51 @@ fn cmd_debug(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
     Right(None)
 }
 
-fn cmd_benchmark(parts: Vec<&str>) -> Either<String, Option<String>> {
-    let depth: u8 = parts.get(1).unwrap().to_string().parse().unwrap();
-    cmd_perft(depth, &UciState {
-        debug: false,
-        fen: "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".parse().unwrap(),
-        registered_name: "".to_string(),
-        wtime: 0,
-        btime: 0,
-        winc: 0,
-        binc: 0,
-        moves_to_go: 0,
-        depth: 0,
-        nodes: 0,
-        mate: false,
-        move_time: 0,
-        infinite: false,
+
+fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>, tx: &Sender<String>) -> Either<String, Option<String>> {
+    let start = Instant::now();
+
+    let positions = vec![
+        ("8/8/8/8/4Q3/2P4k/8/5K2 w - - 0 1", 7),
+        ("1k5r/pP3ppp/3p2b1/1BN1n3/1Q2P3/P1B5/KP3P1P/7q w - - 1 0", 7),
+        ("3r4/pR2N3/2pkb3/5p2/8/2B5/qP3PPP/4R1K1 w - - 1 0", 7),
+        ("R6R/1r3pp1/4p1kp/3pP3/1r2qPP1/7P/1P1Q3K/8 w - - 1 0", 7),
+        ("4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1", 7),
+        ("8/8/8/8/4Q3/2P3k1/4K3/8 w - - 0 1", 7),
+        ("7R/r1p1q1pp/3k4/1p1n1Q2/3N4/8/1PP2PPP/2B3K1 w - - 1 0", 7),
+        ("8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1", 7),
+        ("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 7),
+        ("8/8/8/8/2K1Q3/2P3k1/8/8 w - - 0 1", 7),
+        ("8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1", 7),
+        ("3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1", 7),
+        ("3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1", 7),
+        ("3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1 e3f2 e1d2", 7),
+        ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
+        ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
+        ("8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28", 7),
+        ("r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1", 7),
+        ("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 7),
+        ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
+        ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
+        ("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 7),
+        ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 7),
+    ];
+
+    let mut total_nodes = 0;
+    for p in positions {
+        println!("{}", p.0);
+        let mut owned = "position fen ".to_owned();
+        owned.push_str(p.0);
+        run_command(uci_state, search_state, &owned, tx);
+        run_command(uci_state, search_state, "go depth 7", tx);
+        total_nodes += search_state.nodes;
     }
-    );
+    let duration = start.elapsed();
+    println!("Time elapsed is: {:?}", duration);
+    let nps = (total_nodes as f64 / start.elapsed().as_millis() as f64) * 1000.0;
+
+    println!("{} nodes {} nps", total_nodes, &*(nps as u64).to_string());
+
     Right(None)
 }
 
@@ -278,6 +315,9 @@ fn cmd_register() -> Either<String, Option<String>> {
     Right(None)
 }
 
-fn cmd_ucinewgame() -> Either<String, Option<String>> {
+fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchState) -> Either<String, Option<String>> {
+    search_state.nodes = 0;
+    search_state.hash_table.clear();
+    uci_state.fen = START_POS.parse().unwrap();
     Right(None)
 }

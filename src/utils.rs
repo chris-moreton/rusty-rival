@@ -1,7 +1,7 @@
 use crate::bitboards::{bit, G1_BIT, C1_BIT, G8_BIT, C8_BIT, E8_BIT, E1_BIT};
 use crate::fen::move_from_algebraic_move;
 use crate::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
-use crate::types::{BLACK, Move, Position, Square, WHITE};
+use crate::types::{BLACK, Move, Position, Score, Square, WHITE};
 
 #[inline(always)]
 pub const fn from_square_mask(square: Square) -> Move {
@@ -76,4 +76,14 @@ pub fn castle_mask(position: &Position, mv: Move) -> Move {
 pub fn hydrate_move_from_algebraic_move(position: &Position, algebraic_move: String) -> Move {
     let mv = move_from_algebraic_move(algebraic_move, 0);
     mv | castle_mask(position, mv) | moving_piece_mask(position, mv)
+}
+
+pub fn linear_scale(x: Score, min: Score, max: Score, a: Score, b: Score) -> Score {
+    if x < min {
+        a
+    } else if x > max {
+        b
+    } else {
+        a + (x - min) * (b - a) / (max - min)
+    }
 }
