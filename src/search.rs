@@ -97,7 +97,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
     }
 
     if depth == 0 {
-        quiesce(position, MAX_QUIESCE_DEPTH, window, end_time, search_state, tx, start_time)
+        quiesce(position, MAX_QUIESCE_DEPTH, ply, window, end_time, search_state, tx, start_time)
     } else {
 
         let index = zobrist_index(position.zobrist_lock);
@@ -229,7 +229,7 @@ fn null_move_material(position: &Position) -> bool {
 }
 
 #[inline(always)]
-pub fn quiesce(position: &Position, depth: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {
+pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {
 
     check_time!(search_state.nodes, end_time);
 
@@ -252,11 +252,17 @@ pub fn quiesce(position: &Position, depth: u8, window: Window, end_time: Instant
         alpha = eval;
     }
 
-    for m in capture_moves(position) {
+    let mut move_scores: Vec<(Move, Score)> = capture_moves(position).into_iter().map(|m| {
+        (m, score_move(position, 0, m, search_state.killer_moves[ply as usize]))
+    }).collect();
+    move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
+    let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
+
+    for m in move_list {
         let mut new_position = *position;
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
-            let score = -quiesce(&new_position, depth-1, (-beta, -alpha), end_time, search_state, tx, start_time);
+            let score = -quiesce(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time);
             check_time!(search_state.nodes, end_time);
             if score >= beta {
                 return beta;
