@@ -38,7 +38,7 @@ pub fn score_move(position: &Position, hash_move: Move, m: Move, search_state: &
     let enemy = position.pieces[opponent!(position.mover) as usize];
     let to_square = to_square_part(m);
 
-    (if m == hash_move {
+    if m == hash_move {
         10000
     } else if enemy.all_pieces_bitboard & bit(to_square) != 0 {
         piece_value(&enemy, to_square) + attacker_bonus(piece_type(position, from_square_part(m)))
@@ -63,7 +63,7 @@ pub fn score_move(position: &Position, hash_move: Move, m: Move, search_state: &
         } else {
             0
         }
-    })
+    }
 }
 
 #[inline(always)]
