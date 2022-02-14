@@ -11,7 +11,6 @@ use crate::moves::{capture_moves, is_check, moves};
 use crate::opponent;
 use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK};
 use crate::types::BoundType::{Exact, Lower, Upper};
-use crate::utils::to_square_part;
 
 pub const MAX_SCORE: Score = 30000;
 

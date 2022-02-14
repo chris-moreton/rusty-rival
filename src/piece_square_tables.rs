@@ -116,10 +116,10 @@ pub const KING_IN_CORNER_PIECE_SQUARE_TABLE: [Score; 64] = [
 ];
 
 pub fn non_pawn_piece_values(pieces: &Pieces) -> Score {
-    (pieces.knight_bitboard.count_ones() as i16 * KNIGHT_VALUE +
-        pieces.rook_bitboard.count_ones() as i16 * ROOK_VALUE +
-        pieces.bishop_bitboard.count_ones() as i16 * BISHOP_VALUE +
-        pieces.queen_bitboard.count_ones() as i16 * QUEEN_VALUE) as Score
+    (pieces.knight_bitboard.count_ones() as Score * KNIGHT_VALUE +
+        pieces.rook_bitboard.count_ones() as Score * ROOK_VALUE +
+        pieces.bishop_bitboard.count_ones() as Score * BISHOP_VALUE +
+        pieces.queen_bitboard.count_ones() as Score * QUEEN_VALUE) as Score
 }
 
 pub fn score_piece_square_values(position: &Position, mv: Move) -> Score {
@@ -157,77 +157,87 @@ pub fn score_piece_square_values(position: &Position, mv: Move) -> Score {
 
 pub fn piece_square_values(position: &Position) -> Score {
 
-    let mut score: Score = 0;
-    let enemy = position.pieces[BLACK as usize];
 
-    let mut bb = position.pieces[WHITE as usize].pawn_bitboard;
-    while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        score += linear_scale(non_pawn_piece_values(&enemy), PAWN_STAGE_MATERIAL_LOW, PAWN_STAGE_MATERIAL_HIGH, PAWN_END_GAME_PIECE_SQUARE_TABLE[sq], PAWN_PIECE_SQUARE_TABLE[sq])
-    }
+    let mut score: Score = white_pawn_piece_square_values(position);
 
-    let mut bb = position.pieces[WHITE as usize].rook_bitboard;
-    while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        score += ROOK_PIECE_SQUARE_TABLE[sq];
-    }
+    // let mut bb = position.pieces[WHITE as usize].rook_bitboard;
+    // while bb != 0 {
+    //     let sq = get_and_unset_lsb!(bb) as usize;
+    //     score += ROOK_PIECE_SQUARE_TABLE[sq];
+    // }
+    //
+    // let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
+    // while bb != 0 {
+    //     let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
+    //     score += BISHOP_PIECE_SQUARE_TABLE[sq];
+    // }
+    //
+    // let mut bb = position.pieces[WHITE as usize].queen_bitboard;
+    // while bb != 0 {
+    //     let sq = get_and_unset_lsb!(bb) as usize;
+    //     score += QUEEN_PIECE_SQUARE_TABLE[sq];
+    // }
+    //
+    // let mut bb = position.pieces[WHITE as usize].knight_bitboard;
+    // while bb != 0 {
+    //     let sq = get_and_unset_lsb!(bb) as usize;
+    //     score += linear_scale(nppv, KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
+    // }
+    //
+    // let sq = position.pieces[WHITE as usize].king_square as usize;
+    // score += linear_scale(nppv, ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq]);
 
-    let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        score += BISHOP_PIECE_SQUARE_TABLE[sq];
-    }
+    score -= black_pawn_piece_square_values(position);
 
-    let mut bb = position.pieces[WHITE as usize].queen_bitboard;
-    while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        score += QUEEN_PIECE_SQUARE_TABLE[sq];
-    }
-
-    let mut bb = position.pieces[WHITE as usize].knight_bitboard;
-    while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        score += linear_scale(non_pawn_piece_values(&enemy), KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
-    }
-
-    let sq = position.pieces[WHITE as usize].king_square as usize;
-    score += linear_scale(non_pawn_piece_values(&enemy), ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq]);
-
-    let enemy = position.pieces[WHITE as usize];
-
-    let mut bb = position.pieces[BLACK as usize].pawn_bitboard;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        score -= linear_scale(non_pawn_piece_values(&enemy), PAWN_STAGE_MATERIAL_LOW, PAWN_STAGE_MATERIAL_HIGH, PAWN_END_GAME_PIECE_SQUARE_TABLE[sq], PAWN_PIECE_SQUARE_TABLE[sq])
-    }
-
-    let mut bb = position.pieces[BLACK as usize].rook_bitboard;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        score -= ROOK_PIECE_SQUARE_TABLE[sq];
-    }
-
-    let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        score -= BISHOP_PIECE_SQUARE_TABLE[sq];
-    }
-
-    let mut bb = position.pieces[BLACK as usize].queen_bitboard;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        score -= QUEEN_PIECE_SQUARE_TABLE[sq];
-    }
-
-    let mut bb = position.pieces[BLACK as usize].knight_bitboard;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        score -= linear_scale(non_pawn_piece_values(&enemy), KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
-    }
-
-    let sq = BIT_FLIPPED_HORIZONTAL_AXIS[position.pieces[BLACK as usize].king_square as usize] as usize;
-    score -= linear_scale(non_pawn_piece_values(&enemy), ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq]);
+    // let mut bb = position.pieces[BLACK as usize].rook_bitboard;
+    // while bb != 0 {
+    //     let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
+    //     score -= ROOK_PIECE_SQUARE_TABLE[sq];
+    // }
+    //
+    // let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
+    // while bb != 0 {
+    //     let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
+    //     score -= BISHOP_PIECE_SQUARE_TABLE[sq];
+    // }
+    //
+    // let mut bb = position.pieces[BLACK as usize].queen_bitboard;
+    // while bb != 0 {
+    //     let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
+    //     score -= QUEEN_PIECE_SQUARE_TABLE[sq];
+    // }
+    //
+    // let mut bb = position.pieces[BLACK as usize].knight_bitboard;
+    // while bb != 0 {
+    //     let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
+    //     score -= linear_scale(nppv, KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
+    // }
+    //
+    // let sq = BIT_FLIPPED_HORIZONTAL_AXIS[position.pieces[BLACK as usize].king_square as usize] as usize;
+    // score -= linear_scale(nppv, ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq]);
 
     score
 
+}
+
+pub fn white_pawn_piece_square_values(position: &Position) -> Score {
+    let nppv = non_pawn_piece_values(&position.pieces[BLACK as usize]);
+    let mut bb = position.pieces[WHITE as usize].pawn_bitboard;
+    let mut score = 0;
+    while bb != 0 {
+        let sq = get_and_unset_lsb!(bb) as usize;
+        score += linear_scale(nppv, PAWN_STAGE_MATERIAL_LOW, PAWN_STAGE_MATERIAL_HIGH, PAWN_END_GAME_PIECE_SQUARE_TABLE[sq], PAWN_PIECE_SQUARE_TABLE[sq])
+    }
+    score
+}
+
+pub fn black_pawn_piece_square_values(position: &Position) -> Score {
+    let nppv = non_pawn_piece_values(&position.pieces[WHITE as usize]);
+    let mut bb = position.pieces[BLACK as usize].pawn_bitboard;
+    let mut score = 0;
+    while bb != 0 {
+        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
+        score += linear_scale(nppv, PAWN_STAGE_MATERIAL_LOW, PAWN_STAGE_MATERIAL_HIGH, PAWN_END_GAME_PIECE_SQUARE_TABLE[sq], PAWN_PIECE_SQUARE_TABLE[sq])
+    }
+    score
 }

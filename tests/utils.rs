@@ -2,7 +2,7 @@ use rusty_rival::bitboards::{C8_BIT, F8_BIT, G8_BIT, H2_BIT, H4_BIT, H8_BIT};
 use rusty_rival::fen::{get_position, move_from_algebraic_move};
 use rusty_rival::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_ROOK, START_POS, WHITE_KING_CASTLE_MOVE, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
 use rusty_rival::types::Move;
-use rusty_rival::utils::{castle_mask, from_square_mask, from_square_part, hydrate_move_from_algebraic_move, moving_piece_mask, to_square_part};
+use rusty_rival::utils::{castle_mask, from_square_mask, from_square_part, hydrate_move_from_algebraic_move, invert_fen, moving_piece_mask, to_square_part};
 
 #[test]
 fn it_creates_a_move_with_the_from_part_only() {
@@ -50,3 +50,7 @@ pub fn it_can_hydrate_a_move() {
 
 }
 
+#[test]
+fn it_inverts_a_fen() {
+    assert_eq!(invert_fen("6k1/1P2P3/7p/P1pP4/5R2/5B2/1r2N2P/R1Q1K3 w Q - 0 1"), "r1q1k3/1R2n2p/5b2/5r2/p1Pp4/7P/1p2p3/6K1 b q - 0 1");
+}

@@ -87,3 +87,39 @@ pub fn linear_scale(x: Score, min: Score, max: Score, a: Score, b: Score) -> Sco
         a + (x - min) * (b - a) / (max - min)
     }
 }
+
+pub fn invert_fen(fen: &str) -> String {
+
+    let inverted_fen = fen.trim().replace(" b ", " . ")
+            .replace(" w ", " ; ")
+            .replace("Q", "z")
+            .replace("K", "x")
+            .replace("N", "c")
+            .replace("B", "v")
+            .replace("R", "m")
+            .replace("P", ",")
+            .replace("q", "Q")
+            .replace("k", "K")
+            .replace("n", "N")
+            .replace("b", "B")
+            .replace("r", "R")
+            .replace("p", "P")
+            .replace("z", "q")
+            .replace("x", "k")
+            .replace("c", "n")
+            .replace("v", "b")
+            .replace("m", "r")
+            .replace(",", "p")
+            .replace(" . ", " w ")
+            .replace(" ; ", " b ");
+
+    let fen_parts: Vec<&str> = inverted_fen.split(' ').collect();
+    let board_parts: Vec<&str> = fen_parts[0].split('/').collect();
+
+    let en_passant_part = fen_parts[3].replace("6", ".").replace("3", "6").replace(".", "3");
+
+    format!("{}/{}/{}/{}/{}/{}/{}/{} {} {} {} {} {}",
+            board_parts[7], board_parts[6], board_parts[5], board_parts[4], board_parts[3], board_parts[2], board_parts[1], board_parts[0],
+            fen_parts[1], fen_parts[2], en_passant_part, fen_parts[4], fen_parts[5])
+
+}

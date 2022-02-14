@@ -2,6 +2,7 @@ use crate::bitboards::bit;
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_constants::{PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::opponent;
+use crate::piece_square_tables::score_piece_square_values;
 use crate::types::{Move, Piece, Pieces, Position, Score, SearchState, Square};
 use crate::types::Piece::{Bishop, King, Knight, Pawn, Queen, Rook};
 use crate::utils::{from_square_part, to_square_part};
@@ -37,18 +38,18 @@ pub fn score_move(position: &Position, hash_move: Move, m: Move, search_state: &
     let enemy = position.pieces[opponent!(position.mover) as usize];
     let to_square = to_square_part(m);
 
-    if m == hash_move {
+    (if m == hash_move {
         10000
     } else if enemy.all_pieces_bitboard & bit(to_square) != 0 {
         piece_value(&enemy, to_square) + attacker_bonus(piece_type(position, from_square_part(m)))
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         let mask = m & PROMOTION_FULL_MOVE_MASK;
         if mask == PROMOTION_ROOK_MOVE_MASK {
-            ROOK_VALUE
+            3
         } else if mask == PROMOTION_BISHOP_MOVE_MASK {
-            BISHOP_VALUE
+            2
         } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
-            KNIGHT_VALUE
+            1
         } else {
             QUEEN_VALUE
         }
@@ -62,7 +63,7 @@ pub fn score_move(position: &Position, hash_move: Move, m: Move, search_state: &
         } else {
             0
         }
-    }
+    })
 }
 
 #[inline(always)]

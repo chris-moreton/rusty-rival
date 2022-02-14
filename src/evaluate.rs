@@ -1,23 +1,24 @@
 use crate::bitboards::{RANK_1_BITS, south_fill};
 use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Pieces, Position, Score, WHITE};
 
 #[inline(always)]
 pub fn material(pieces: &Pieces) -> Score {
-    (pieces.pawn_bitboard.count_ones() as i16 * PAWN_VALUE +
-    pieces.knight_bitboard.count_ones() as i16 * KNIGHT_VALUE +
-    pieces.rook_bitboard.count_ones() as i16 * ROOK_VALUE +
-    pieces.bishop_bitboard.count_ones() as i16 * BISHOP_VALUE +
-    pieces.queen_bitboard.count_ones() as i16 * QUEEN_VALUE) as Score
+    (pieces.pawn_bitboard.count_ones() as Score * PAWN_VALUE +
+    pieces.knight_bitboard.count_ones() as Score * KNIGHT_VALUE +
+    pieces.rook_bitboard.count_ones() as Score * ROOK_VALUE +
+    pieces.bishop_bitboard.count_ones() as Score * BISHOP_VALUE +
+    pieces.queen_bitboard.count_ones() as Score * QUEEN_VALUE) as Score
 }
 
 #[inline(always)]
 pub fn material_score(position: &Position) -> Score {
-    ((position.pieces[WHITE as usize].pawn_bitboard.count_ones() - position.pieces[BLACK as usize].pawn_bitboard.count_ones()) as i16 * PAWN_VALUE +
-        (position.pieces[WHITE as usize].knight_bitboard.count_ones() - position.pieces[BLACK as usize].knight_bitboard.count_ones()) as i16 * KNIGHT_VALUE +
-        (position.pieces[WHITE as usize].rook_bitboard.count_ones() - position.pieces[BLACK as usize].rook_bitboard.count_ones()) as i16 * ROOK_VALUE +
-        (position.pieces[WHITE as usize].bishop_bitboard.count_ones() - position.pieces[BLACK as usize].bishop_bitboard.count_ones()) as i16 * BISHOP_VALUE +
-        (position.pieces[WHITE as usize].queen_bitboard.count_ones() - position.pieces[BLACK as usize].queen_bitboard.count_ones()) as i16 * QUEEN_VALUE) as Score
+    ((position.pieces[WHITE as usize].pawn_bitboard.count_ones() - position.pieces[BLACK as usize].pawn_bitboard.count_ones()) as Score * PAWN_VALUE +
+        (position.pieces[WHITE as usize].knight_bitboard.count_ones() - position.pieces[BLACK as usize].knight_bitboard.count_ones()) as Score * KNIGHT_VALUE +
+        (position.pieces[WHITE as usize].rook_bitboard.count_ones() - position.pieces[BLACK as usize].rook_bitboard.count_ones()) as Score * ROOK_VALUE +
+        (position.pieces[WHITE as usize].bishop_bitboard.count_ones() - position.pieces[BLACK as usize].bishop_bitboard.count_ones()) as Score * BISHOP_VALUE +
+        (position.pieces[WHITE as usize].queen_bitboard.count_ones() - position.pieces[BLACK as usize].queen_bitboard.count_ones()) as Score * QUEEN_VALUE) as Score
 }
 
 #[inline(always)]
