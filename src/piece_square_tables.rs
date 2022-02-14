@@ -1,4 +1,4 @@
-use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::evaluate::material;
 use crate::move_scores::{BIT_FLIPPED_HORIZONTAL_AXIS, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_STAGE_MATERIAL_LOW, OPENING_PHASE_MATERIAL, PAWN_STAGE_MATERIAL_HIGH, PAWN_STAGE_MATERIAL_LOW, piece_type};
 use crate::{get_and_unset_lsb, opponent};
@@ -124,6 +124,11 @@ pub fn non_pawn_piece_values(pieces: &Pieces) -> Score {
 }
 
 #[inline(always)]
+pub fn pawn_values(pieces: &Pieces) -> Score {
+    pieces.pawn_bitboard.count_ones() as Score * PAWN_VALUE
+}
+
+#[inline(always)]
 pub fn score_piece_square_values(position: &Position, mv: Move) -> Score {
     let from = from_square_part(mv) as usize;
     let to = to_square_part(mv) as usize;
@@ -160,46 +165,46 @@ pub fn score_piece_square_values(position: &Position, mv: Move) -> Score {
 #[inline(always)]
 pub fn piece_square_values(position: &Position) -> Score {
 
-    let nppv = non_pawn_piece_values(&position.pieces[BLACK as usize]);
+    let bnppv = non_pawn_piece_values(&position.pieces[BLACK as usize]);
+    let wnppv = non_pawn_piece_values(&position.pieces[WHITE as usize]);
+    let wpv = pawn_values(&position.pieces[WHITE as usize]);
+    let bpv = pawn_values(&position.pieces[BLACK as usize]);
 
-    let mut score: Score = white_pawn_piece_square_values(position, nppv) + white_rook_piece_square_values(position) + white_bishop_piece_square_values(position);
-    //
-    // let mut bb = position.pieces[WHITE as usize].queen_bitboard;
-    // while bb != 0 {
-    //     let sq = get_and_unset_lsb!(bb) as usize;
-    //     score += QUEEN_PIECE_SQUARE_TABLE[sq];
-    // }
-    //
-    // let mut bb = position.pieces[WHITE as usize].knight_bitboard;
-    // while bb != 0 {
-    //     let sq = get_and_unset_lsb!(bb) as usize;
-    //     score += linear_scale(nppv, KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
-    // }
-    //
-    // let sq = position.pieces[WHITE as usize].king_square as usize;
-    // score += linear_scale(nppv, ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq]);
-
-    let nppv = non_pawn_piece_values(&position.pieces[WHITE as usize]);
-
-    score -= black_pawn_piece_square_values(position, nppv) - black_rook_piece_square_values(position) - black_bishop_piece_square_values(position);
-
-    // let mut bb = position.pieces[BLACK as usize].queen_bitboard;
-    // while bb != 0 {
-    //     let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-    //     score -= QUEEN_PIECE_SQUARE_TABLE[sq];
-    // }
-    //
-    // let mut bb = position.pieces[BLACK as usize].knight_bitboard;
-    // while bb != 0 {
-    //     let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-    //     score -= linear_scale(nppv, KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
-    // }
-    //
-    // let sq = BIT_FLIPPED_HORIZONTAL_AXIS[position.pieces[BLACK as usize].king_square as usize] as usize;
-    // score -= linear_scale(nppv, ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq]);
+    let mut score: Score = white_pawn_piece_square_values(position, bnppv) +
+        white_rook_piece_square_values(position) +
+        white_queen_piece_square_values(position) +
+        white_knight_piece_square_values(position, bnppv + bpv) +
+        white_king_piece_square_values(position, bnppv) +
+        white_bishop_piece_square_values(position) -
+        black_pawn_piece_square_values(position, wnppv) -
+        black_rook_piece_square_values(position) -
+        black_queen_piece_square_values(position) -
+        black_knight_piece_square_values(position, wnppv + wpv) +
+        black_king_piece_square_values(position, wnppv) +
+        black_bishop_piece_square_values(position);
 
     score
 
+}
+
+fn white_queen_piece_square_values(position: &Position) -> Score {
+    let mut bb = position.pieces[WHITE as usize].queen_bitboard;
+    let mut score = 0;
+    while bb != 0 {
+        let sq = get_and_unset_lsb!(bb) as usize;
+        score += QUEEN_PIECE_SQUARE_TABLE[sq];
+    }
+    score
+}
+
+fn black_queen_piece_square_values(position: &Position) -> Score {
+    let mut bb = position.pieces[BLACK as usize].queen_bitboard;
+    let mut score = 0;
+    while bb != 0 {
+        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
+        score += QUEEN_PIECE_SQUARE_TABLE[sq];
+    }
+    score
 }
 
 fn white_bishop_piece_square_values(position: &Position) -> Score {
@@ -260,4 +265,36 @@ pub fn black_pawn_piece_square_values(position: &Position, nppv: Score) -> Score
         score += linear_scale(nppv, PAWN_STAGE_MATERIAL_LOW, PAWN_STAGE_MATERIAL_HIGH, PAWN_END_GAME_PIECE_SQUARE_TABLE[sq], PAWN_PIECE_SQUARE_TABLE[sq])
     }
     score
+}
+
+pub fn white_knight_piece_square_values(position: &Position, pv: Score) -> Score {
+    let mut bb = position.pieces[WHITE as usize].knight_bitboard;
+    let mut score = 0;
+    while bb != 0 {
+        let sq = get_and_unset_lsb!(bb) as usize;
+        score += linear_scale(pv, KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
+    }
+    score
+}
+
+pub fn black_knight_piece_square_values(position: &Position, pv: Score) -> Score {
+    println!("{}", pv);
+
+    let mut bb = position.pieces[BLACK as usize].knight_bitboard;
+    let mut score = 0;
+    while bb != 0 {
+        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
+        score += linear_scale(pv, KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
+    }
+    score
+}
+
+pub fn white_king_piece_square_values(position: &Position, nppv: Score) -> Score {
+    let sq = position.pieces[WHITE as usize].king_square as usize;
+    linear_scale(nppv, ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq])
+}
+
+pub fn black_king_piece_square_values(position: &Position, nppv: Score) -> Score {
+    let sq = BIT_FLIPPED_HORIZONTAL_AXIS[position.pieces[BLACK as usize].king_square as usize] as usize;
+    linear_scale(nppv, ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq])
 }
