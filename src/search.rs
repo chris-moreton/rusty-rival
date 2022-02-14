@@ -7,7 +7,7 @@ use crate::hash::{zobrist_index};
 use crate::make_move::make_move;
 use crate::move_constants::PROMOTION_FULL_MOVE_MASK;
 use crate::move_scores::score_move;
-use crate::moves::{capture_moves, is_check, moves};
+use crate::moves::{capture_moves, is_check, moves, quiesce_moves};
 use crate::opponent;
 use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK};
 use crate::types::BoundType::{Exact, Lower, Upper};
@@ -120,24 +120,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                     if x.bound == BoundType::Exact  {
                         search_state.hash_hits_exact += 1;
                         let adjusted_score =
-                            if x.score > 29000 {
-                                x.score - ply as Score
-                            } else if x.score < -29000 {
-                                x.score + ply as Score
-                            } else {
-                                x.score
-                            };
+                            if x.score > 29000 { x.score - ply as Score }
+                            else if x.score < -29000 { x.score + ply as Score }
+                            else { x.score };
                         return adjusted_score;
                     }
-                    if x.bound == BoundType::Lower  {
-                        alpha = x.score
-                    }
-                    if x.bound == BoundType::Upper  {
-                        beta = x.score
-                    }
-                    if alpha >= beta {
-                        return x.score
-                    }
+                    if x.bound == BoundType::Lower  { alpha = x.score }
+                    if x.bound == BoundType::Upper  { beta = x.score }
+                    if alpha >= beta { return x.score }
                 }
                 x.mv
             },
@@ -258,7 +248,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
         alpha = eval;
     }
 
-    let mut move_scores: Vec<(Move, Score)> = capture_moves(position).into_iter().map(|m| {
+    let mut move_scores: Vec<(Move, Score)> = quiesce_moves(position).into_iter().map(|m| {
         (m, score_move(position, 0, m, search_state, ply as usize))
     }).collect();
     move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));

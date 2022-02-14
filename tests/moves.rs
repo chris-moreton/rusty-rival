@@ -2,7 +2,7 @@ use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, RANK_4_BITS,
 use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
 use rusty_rival::make_move::{make_move};
 use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL};
-use rusty_rival::moves::{any_squares_in_bitboard_attacked, capture_moves, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check, is_square_attacked, moves};
+use rusty_rival::moves::{any_squares_in_bitboard_attacked, capture_moves, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check, is_square_attacked, moves, quiesce_moves};
 use rusty_rival::types::{BLACK, MoveList, Square, WHITE};
 
 #[test]
@@ -286,6 +286,7 @@ pub fn it_gets_all_moves_for_a_position() {
 
 #[test]
 pub fn it_gets_all_capture_moves_for_a_position() {
-    assert_eq!(sort_moves(capture_moves(&get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/3K1B2/1r2N2P/6r1 w - c6 0 1".to_string()))),
-               vec!["a5b6","b7a8q","d5e6","e2g1"]);
+    assert_eq!(sort_moves(quiesce_moves(&get_position(&"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/3K1B2/1r2N2P/6r1 w - c6 0 1".to_string()))),
+               vec!["a5b6","b7a8q","d5c6","d5e6","e2g1"]);
+
 }
