@@ -278,8 +278,6 @@ pub fn white_knight_piece_square_values(position: &Position, pv: Score) -> Score
 }
 
 pub fn black_knight_piece_square_values(position: &Position, pv: Score) -> Score {
-    println!("{}", pv);
-
     let mut bb = position.pieces[BLACK as usize].knight_bitboard;
     let mut score = 0;
     while bb != 0 {
