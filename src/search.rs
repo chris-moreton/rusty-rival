@@ -46,8 +46,10 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
             search_state.history.pop();
             legal_moves[move_num].1 = score;
             if score > current_best.1 {
-                current_best = legal_moves[move_num];
-                send_info(search_state, tx, start_time, iterative_depth, &mut current_best)
+                if Instant::now() < end_time {
+                    current_best = legal_moves[move_num];
+                    send_info(search_state, tx, start_time, iterative_depth, &mut current_best)
+                }
             }
 
             if Instant::now() > end_time {
