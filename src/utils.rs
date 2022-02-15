@@ -84,7 +84,6 @@ pub fn linear_scale(x: Score, min: Score, max: Score, a: Score, b: Score) -> Sco
     } else if x > max {
         b
     } else {
-        println!("{} {} {} {} {}", x, min, max, a, b);
         a + (x - min) * (b - a) / (max - min)
     }
 }
