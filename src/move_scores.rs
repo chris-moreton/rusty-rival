@@ -67,6 +67,31 @@ pub fn score_move(position: &Position, hash_move: Move, m: Move, search_state: &
 }
 
 #[inline(always)]
+pub fn score_quiesce_move(position: &Position, m: Move) -> Score {
+    let enemy = position.pieces[opponent!(position.mover) as usize];
+    let to_square = to_square_part(m);
+
+    if enemy.all_pieces_bitboard & bit(to_square) != 0 {
+        piece_value(&enemy, to_square) + attacker_bonus(piece_type(position, from_square_part(m)))
+    } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
+        let mask = m & PROMOTION_FULL_MOVE_MASK;
+        if mask == PROMOTION_ROOK_MOVE_MASK {
+            3
+        } else if mask == PROMOTION_BISHOP_MOVE_MASK {
+            2
+        } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
+            1
+        } else {
+            QUEEN_VALUE
+        }
+    } else if to_square == position.en_passant_square {
+        PAWN_VALUE + attacker_bonus(Pawn)
+    } else {
+        0
+    }
+}
+
+#[inline(always)]
 pub fn piece_type(position: &Position, sq: Square) -> Piece {
 
     let pieces = position.pieces[position.mover as usize];

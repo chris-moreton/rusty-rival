@@ -170,7 +170,7 @@ pub fn piece_square_values(position: &Position) -> Score {
     let wpv = pawn_values(&position.pieces[WHITE as usize]);
     let bpv = pawn_values(&position.pieces[BLACK as usize]);
 
-    let mut score: Score = white_pawn_piece_square_values(position, bnppv) +
+    white_pawn_piece_square_values(position, bnppv) +
         white_rook_piece_square_values(position) +
         white_queen_piece_square_values(position) +
         white_knight_piece_square_values(position, bnppv + bpv) +
@@ -181,9 +181,7 @@ pub fn piece_square_values(position: &Position) -> Score {
         black_queen_piece_square_values(position) -
         black_knight_piece_square_values(position, wnppv + wpv) +
         black_king_piece_square_values(position, wnppv) +
-        black_bishop_piece_square_values(position);
-
-    score
+        black_bishop_piece_square_values(position)
 
 }
 
