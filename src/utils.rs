@@ -78,6 +78,7 @@ pub fn hydrate_move_from_algebraic_move(position: &Position, algebraic_move: Str
     mv | castle_mask(position, mv) | moving_piece_mask(position, mv)
 }
 
+#[inline(always)]
 pub fn linear_scale(x: Score, min: Score, max: Score, a: Score, b: Score) -> Score {
     if x < min {
         a

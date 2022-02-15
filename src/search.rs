@@ -1,4 +1,6 @@
+use std::cmp::{max, min};
 use std::sync::mpsc::{Sender};
+use std::thread::current;
 use std::time::{Instant};
 use crate::engine_constants::{MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH};
 use crate::evaluate::{evaluate};
@@ -26,7 +28,7 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
         (m, 0)
     }).collect();
 
-    let aspiration_window: Window = (-MAX_SCORE, MAX_SCORE);
+    let mut aspiration_window: Window = (-MAX_SCORE, MAX_SCORE);
 
     if search_state.history.len() == 0 {
         search_state.history.push(position.zobrist_lock)
@@ -38,36 +40,43 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
             let mut new_position = *position;
             make_move(position, legal_moves[move_num].0, &mut new_position);
             search_state.history.push(new_position.zobrist_lock);
-            let score = -search(&new_position, iterative_depth, 1, aspiration_window, end_time, search_state, &tx, start_time, false);
+
+            let mut score = -search(&new_position, iterative_depth, 1, aspiration_window, end_time, search_state, &tx, start_time, false);
+
             search_state.history.pop();
-            if Instant::now() > end_time {
-                return legal_moves[0].0;
-            }
             legal_moves[move_num].1 = score;
             if score > current_best.1 {
                 current_best = legal_moves[move_num];
-                if start_time.elapsed().as_millis() > 0 {
-                    let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
-                    let result = tx.send("info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
-                        &*" depth ".to_string() + &*iterative_depth.to_string() +
-                        &*" time ".to_string() + &*start_time.elapsed().as_millis().to_string() +
-                        &*" nodes ".to_string() + &*search_state.nodes.to_string() +
-                        &*" pv ".to_string() + &*algebraic_move_from_move(current_best.0).to_string() +
-                        &*" nps ".to_string() + &*(nps as u64).to_string()
-                    );
-                    match result {
-                        Err(_e) => { },
-                        _ => {}
-                    }
-                }
+                send_info(search_state, tx, start_time, iterative_depth, &mut current_best)
             }
 
+            if Instant::now() > end_time {
+                return current_best.0;
+            }
         }
-        legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a))
+        legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
+
     }
 
     legal_moves[0].0
 
+}
+
+fn send_info(search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, iterative_depth: u8, current_best: &mut MoveScore) {
+    if start_time.elapsed().as_millis() > 0 {
+        let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
+        let result = tx.send("info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
+            &*" depth ".to_string() + &*iterative_depth.to_string() +
+            &*" time ".to_string() + &*start_time.elapsed().as_millis().to_string() +
+            &*" nodes ".to_string() + &*search_state.nodes.to_string() +
+            &*" pv ".to_string() + &*algebraic_move_from_move(current_best.0).to_string() +
+            &*" nps ".to_string() + &*(nps as u64).to_string()
+        );
+        match result {
+            Err(_e) => {},
+            _ => {}
+        }
+    }
 }
 
 #[macro_export]
