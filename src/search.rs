@@ -1,6 +1,5 @@
 use std::cmp::{max, min};
 use std::sync::mpsc::{Sender};
-use std::thread::current;
 use std::time::{Instant};
 use crate::engine_constants::{MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH};
 use crate::evaluate::{evaluate};

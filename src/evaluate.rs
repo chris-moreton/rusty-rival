@@ -6,6 +6,20 @@ use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
 use crate::utils::linear_scale;
 
 #[inline(always)]
+pub fn evaluate(position: &Position) -> Score {
+
+    let material_score = material_score(position);
+
+    let score =
+        material_score +
+            piece_square_values(position) +
+            rook_eval(position) +
+            pawn_score(position);
+
+    if position.mover == WHITE { score } else { -score }
+}
+
+#[inline(always)]
 pub fn material(pieces: &Pieces) -> Score {
     (pieces.pawn_bitboard.count_ones() as Score * PAWN_VALUE +
         pieces.knight_bitboard.count_ones() as Score * KNIGHT_VALUE +
@@ -37,34 +51,21 @@ pub fn pawn_material(position: &Position, mover: Mover) -> Score {
 }
 
 #[inline(always)]
-pub fn doubled_pawn_count(pawn_bitboard: Bitboard) -> Score {
+pub fn on_same_file_count(pawn_bitboard: Bitboard) -> Score {
     (pawn_bitboard.count_ones() as u8 - (south_fill(pawn_bitboard) & RANK_1_BITS).count_ones() as u8) as u8 as Score
 }
 
 #[inline(always)]
 pub fn pawn_score(position: &Position) -> Score {
-    ((doubled_pawn_count(position.pieces[BLACK as usize].pawn_bitboard) -
-        doubled_pawn_count(position.pieces[WHITE as usize].pawn_bitboard)) as Score
+    ((on_same_file_count(position.pieces[BLACK as usize].pawn_bitboard) -
+        on_same_file_count(position.pieces[WHITE as usize].pawn_bitboard)) as Score
         * DOUBLED_PAWN_PENALTY) as Score
 }
 
 #[inline(always)]
-pub fn evaluate(position: &Position) -> Score {
-
-    let material_score = material_score(position);
-    let white_piece_values = piece_material(position, WHITE);
-    let black_piece_values = piece_material(position, BLACK);
-    let white_pawn_values = pawn_material(position, WHITE);
-    let black_pawn_values = pawn_material(position, BLACK);
-
-    let score =
-        material_score +
-            piece_square_values(position) +
-            trade_piece_bonus_when_more_material(material_score, white_piece_values, black_piece_values, white_pawn_values, black_pawn_values) +
-            trade_pawn_bonus_when_more_material(material_score, white_pawn_values, black_pawn_values) +
-            pawn_score(position);
-
-    if position.mover == WHITE { score } else { -score }
+pub fn rook_eval(position: &Position) -> Score {
+    on_same_file_count(position.pieces[WHITE as usize].rook_bitboard) * ROOK_VALUE -
+        on_same_file_count(position.pieces[BLACK as usize].rook_bitboard) * ROOK_VALUE
 }
 
 pub fn trade_piece_bonus_when_more_material(material_difference: Score, white_piece_values: Score, black_piece_values: Score, white_pawn_values: Score, black_pawn_values: Score) -> Score {

@@ -17,3 +17,4 @@ pub const MAX_HASH_ENTRIES: u64 = 1024 * 1024 * 1024;
 
 pub const DOUBLED_PAWN_PENALTY: Score = 25;
 pub const PAWN_TRADE_BONUS_MAX: Score = 600;
+pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
