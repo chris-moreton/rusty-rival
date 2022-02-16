@@ -28,47 +28,73 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
         (m, 0)
     }).collect();
 
-    let mut aspiration_window: Window = (-MAX_SCORE, MAX_SCORE);
-
     if search_state.history.len() == 0 {
         search_state.history.push(position.zobrist_lock)
     }
 
     for iterative_depth in 1..=max_depth {
-        let mut current_best: MoveScore = (legal_moves[0].0, -MAX_SCORE);
-        for move_num in 0..legal_moves.len() {
-            let mut new_position = *position;
-            make_move(position, legal_moves[move_num].0, &mut new_position);
-            search_state.history.push(new_position.zobrist_lock);
-
-            let mut score = -search(&new_position, iterative_depth, 1, aspiration_window, end_time, search_state, &tx, start_time, false);
-
-            search_state.history.pop();
-            legal_moves[move_num].1 = score;
-            if score > current_best.1 {
-                if Instant::now() < end_time {
-                    current_best = legal_moves[move_num];
-                    send_info(search_state, tx, start_time, iterative_depth, &mut current_best)
-                }
-            }
-
-            if Instant::now() > end_time {
-                return current_best.0;
-            }
-        }
-        legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
-
+        let move_score = aspiration_search(position, max_depth, end_time, search_state, &tx, start_time, legal_moves.clone(), (-MAX_SCORE, MAX_SCORE), 0);
     }
-
-    legal_moves[0].0
-
+    move_score.0
 }
 
-fn send_info(search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, iterative_depth: u8, current_best: &mut MoveScore) {
+fn aspiration_search(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &&Sender<String>, start_time: Instant, legal_moves: MoveScoreList, aspiration_window: Window, attempt: usize) -> MoveScore {
+    let mut result = search_zero(position, max_depth, end_time, search_state, &tx, start_time, &legal_moves, aspiration_window);
+
+    let widen_by: [Score; 4] = [200, 500, 2000, 10000];
+    let mut new_window = aspiration_window;
+
+    if result.1 <= aspiration_window.0 || result.1 >= aspiration_window.1 {
+        if attempt == 4 {
+            new_window = (-MAX_SCORE, MAX_SCORE)
+        } else {
+            if result.1 <= aspiration_window.0 {
+                new_window.0 -= widen_by[attempt];
+            }
+            if result.1 >= aspiration_window.1 {
+                new_window.1 += widen_by[attempt];
+            }
+        }
+        result = aspiration_search(position, max_depth, end_time, search_state, tx, start_time, legal_moves, new_window, attempt + 1)
+    }
+
+    result
+}
+
+fn search_zero(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &&&Sender<String>, start_time: Instant, legal_moves: &MoveScoreList, aspiration_window: Window) -> MoveScore {
+
+    let mut move_list = legal_moves.clone();
+
+    let mut current_best: MoveScore = (move_list[0].0, -MAX_SCORE);
+    for move_num in 0..move_list.len() {
+        let mut new_position = *position;
+        make_move(position, move_list[move_num].0, &mut new_position);
+        search_state.history.push(new_position.zobrist_lock);
+        let score = -search(&new_position, max_depth, 1, aspiration_window, end_time, search_state, &tx, start_time, false);
+
+        search_state.history.pop();
+        move_list[move_num].1 = score;
+        if score > current_best.1 {
+            if Instant::now() < end_time {
+                current_best = move_list[move_num];
+                send_info(search_state, tx, start_time, max_depth, &mut current_best)
+            }
+        }
+
+        if Instant::now() > end_time {
+            return current_best;
+        }
+    }
+    move_list.sort_by(|(_, a), (_, b)| b.cmp(a));
+
+    legal_moves[0]
+}
+
+fn send_info(search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, max_depth: u8, current_best: &mut MoveScore) {
     if start_time.elapsed().as_millis() > 0 {
         let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
         let result = tx.send("info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
-            &*" depth ".to_string() + &*iterative_depth.to_string() +
+            &*" depth ".to_string() + &*max_depth.to_string() +
             &*" time ".to_string() + &*start_time.elapsed().as_millis().to_string() +
             &*" nodes ".to_string() + &*search_state.nodes.to_string() +
             &*" pv ".to_string() + &*algebraic_move_from_move(current_best.0).to_string() +

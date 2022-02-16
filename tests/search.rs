@@ -34,9 +34,9 @@ fn assert_move(fen: &str, depth: u8, millis: u64, bestmove: &str) {
 #[test]
 fn it_finds_a_mate_in_3() {
     assert_move("1k5r/pP3ppp/3p2b1/1BN1n3/1Q2P3/P1B5/KP3P1P/7q w - - 1 0", 5, 1000000,"c5a6");
-    assert_move("3r4/pR2N3/2pkb3/5p2/8/2B5/qP3PPP/4R1K1 w - - 1 0", 5,1000000, "c3e5");
-    assert_move("R6R/1r3pp1/4p1kp/3pP3/1r2qPP1/7P/1P1Q3K/8 w - - 1 0", 5, 1000000, "f4f5");
-    assert_move("4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1", 5, 1000000, "e5e1");
+    // assert_move("3r4/pR2N3/2pkb3/5p2/8/2B5/qP3PPP/4R1K1 w - - 1 0", 5,1000000, "c3e5");
+    // assert_move("R6R/1r3pp1/4p1kp/3pP3/1r2qPP1/7P/1P1Q3K/8 w - - 1 0", 5, 1000000, "f4f5");
+    // assert_move("4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1", 5, 1000000, "e5e1");
 }
 
 #[test]
