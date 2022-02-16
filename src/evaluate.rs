@@ -1,7 +1,9 @@
 use crate::bitboards::{RANK_1_BITS, south_fill};
-use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_TRADE_BONUS_MAX, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::move_scores::TOTAL_PIECE_VALUE_PER_SIDE_AT_START;
 use crate::piece_square_tables::piece_square_values;
-use crate::types::{Bitboard, BLACK, Pieces, Position, Score, WHITE};
+use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
+use crate::utils::linear_scale;
 
 #[inline(always)]
 pub fn material(pieces: &Pieces) -> Score {
@@ -22,6 +24,19 @@ pub fn material_score(position: &Position) -> Score {
 }
 
 #[inline(always)]
+pub fn piece_material(position: &Position, mover: Mover) -> Score {
+        position.pieces[mover as usize].knight_bitboard.count_ones() as Score +
+        position.pieces[mover as usize].rook_bitboard.count_ones() as Score +
+        position.pieces[mover as usize].bishop_bitboard.count_ones() as Score +
+        position.pieces[mover as usize].queen_bitboard.count_ones() as Score
+}
+
+#[inline(always)]
+pub fn pawn_material(position: &Position, mover: Mover) -> Score {
+    position.pieces[mover as usize].pawn_bitboard.count_ones() as Score
+}
+
+#[inline(always)]
 pub fn doubled_pawn_count(pawn_bitboard: Bitboard) -> Score {
     (pawn_bitboard.count_ones() as u8 - (south_fill(pawn_bitboard) & RANK_1_BITS).count_ones() as u8) as u8 as Score
 }
@@ -36,10 +51,36 @@ pub fn pawn_score(position: &Position) -> Score {
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {
 
+    let material_score = material_score(position);
+    let white_piece_values = piece_material(position, WHITE);
+    let black_piece_values = piece_material(position, BLACK);
+    let white_pawn_values = pawn_material(position, WHITE);
+    let black_pawn_values = pawn_material(position, BLACK);
+
     let score =
-        material_score(position) +
+        material_score +
             piece_square_values(position) +
+            trade_piece_bonus_when_more_material(material_score, white_piece_values, black_piece_values, white_pawn_values, black_pawn_values) +
+            trade_pawn_bonus_when_more_material(material_score, white_pawn_values, black_pawn_values) +
             pawn_score(position);
 
     if position.mover == WHITE { score } else { -score }
+}
+
+pub fn trade_piece_bonus_when_more_material(material_difference: Score, white_piece_values: Score, black_piece_values: Score, white_pawn_values: Score, black_pawn_values: Score) -> Score {
+    linear_scale(
+        if material_difference > 0 { black_piece_values + black_pawn_values } else { white_piece_values + white_pawn_values },
+        0,
+        TOTAL_PIECE_VALUE_PER_SIDE_AT_START,
+        30 * material_difference / 100,
+        0)
+}
+
+pub fn trade_pawn_bonus_when_more_material(material_difference: Score, white_pawn_values: Score, black_pawn_values: Score) -> Score {
+    linear_scale(
+        if material_difference > 0 { white_pawn_values } else { black_pawn_values },
+        0,
+        PAWN_TRADE_BONUS_MAX,
+        30 * material_difference / 100,
+        0)
 }

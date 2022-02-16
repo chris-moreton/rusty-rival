@@ -28,8 +28,6 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
         (m, 0)
     }).collect();
 
-    let mut aspiration_window: Window = (-MAX_SCORE, MAX_SCORE);
-
     if search_state.history.len() == 0 {
         search_state.history.push(position.zobrist_lock)
     }
@@ -41,7 +39,7 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
             make_move(position, legal_moves[move_num].0, &mut new_position);
             search_state.history.push(new_position.zobrist_lock);
 
-            let mut score = -search(&new_position, iterative_depth, 1, aspiration_window, end_time, search_state, &tx, start_time, false);
+            let mut score = -search(&new_position, iterative_depth, 1, (-MAX_SCORE, MAX_SCORE), end_time, search_state, &tx, start_time, false);
 
             search_state.history.pop();
             legal_moves[move_num].1 = score;
