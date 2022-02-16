@@ -1,5 +1,5 @@
 use crate::bitboards::{RANK_1_BITS, south_fill};
-use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_TRADE_BONUS_MAX, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_TRADE_BONUS_MAX, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_ROOKS_ON_SAME_FILE};
 use crate::move_scores::TOTAL_PIECE_VALUE_PER_SIDE_AT_START;
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
@@ -64,10 +64,11 @@ pub fn pawn_score(position: &Position) -> Score {
 
 #[inline(always)]
 pub fn rook_eval(position: &Position) -> Score {
-    on_same_file_count(position.pieces[WHITE as usize].rook_bitboard) * ROOK_VALUE -
-        on_same_file_count(position.pieces[BLACK as usize].rook_bitboard) * ROOK_VALUE
+    (on_same_file_count(position.pieces[WHITE as usize].rook_bitboard) -
+        on_same_file_count(position.pieces[BLACK as usize].rook_bitboard)) * VALUE_ROOKS_ON_SAME_FILE
 }
 
+#[inline(always)]
 pub fn trade_piece_bonus_when_more_material(material_difference: Score, white_piece_values: Score, black_piece_values: Score, white_pawn_values: Score, black_pawn_values: Score) -> Score {
     linear_scale(
         if material_difference > 0 { black_piece_values + black_pawn_values } else { white_piece_values + white_pawn_values },
@@ -77,6 +78,7 @@ pub fn trade_piece_bonus_when_more_material(material_difference: Score, white_pi
         0)
 }
 
+#[inline(always)]
 pub fn trade_pawn_bonus_when_more_material(material_difference: Score, white_pawn_values: Score, black_pawn_values: Score) -> Score {
     linear_scale(
         if material_difference > 0 { white_pawn_values } else { black_pawn_values },
