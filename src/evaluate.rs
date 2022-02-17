@@ -5,6 +5,8 @@ use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
 use crate::utils::linear_scale;
 
+pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 2, 6, 10, 13, 16, 18, 20, 22, 23, 24];
+
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {
 
@@ -22,27 +24,27 @@ pub fn evaluate(position: &Position) -> Score {
 #[inline(always)]
 pub fn material(pieces: &Pieces) -> Score {
     (pieces.pawn_bitboard.count_ones() as Score * PAWN_VALUE +
-        pieces.knight_bitboard.count_ones() as Score * KNIGHT_VALUE +
-        pieces.rook_bitboard.count_ones() as Score * ROOK_VALUE +
-        pieces.bishop_bitboard.count_ones() as Score * BISHOP_VALUE +
-        pieces.queen_bitboard.count_ones() as Score * QUEEN_VALUE) as Score
+    pieces.knight_bitboard.count_ones() as Score * KNIGHT_VALUE +
+    pieces.rook_bitboard.count_ones() as Score * ROOK_VALUE +
+    pieces.bishop_bitboard.count_ones() as Score * BISHOP_VALUE +
+    pieces.queen_bitboard.count_ones() as Score * QUEEN_VALUE) as Score
 }
 
 #[inline(always)]
 pub fn material_score(position: &Position) -> Score {
     ((position.pieces[WHITE as usize].pawn_bitboard.count_ones() as Score - position.pieces[BLACK as usize].pawn_bitboard.count_ones() as Score) as Score * PAWN_VALUE +
-        (position.pieces[WHITE as usize].knight_bitboard.count_ones() as Score - position.pieces[BLACK as usize].knight_bitboard.count_ones() as Score) as Score * KNIGHT_VALUE +
-        (position.pieces[WHITE as usize].rook_bitboard.count_ones() as Score - position.pieces[BLACK as usize].rook_bitboard.count_ones() as Score) as Score * ROOK_VALUE +
-        (position.pieces[WHITE as usize].bishop_bitboard.count_ones() as Score - position.pieces[BLACK as usize].bishop_bitboard.count_ones() as Score) as Score * BISHOP_VALUE +
-        (position.pieces[WHITE as usize].queen_bitboard.count_ones() as Score - position.pieces[BLACK as usize].queen_bitboard.count_ones() as Score) as Score * QUEEN_VALUE) as Score
+    (position.pieces[WHITE as usize].knight_bitboard.count_ones() as Score - position.pieces[BLACK as usize].knight_bitboard.count_ones() as Score) as Score * KNIGHT_VALUE +
+    (position.pieces[WHITE as usize].rook_bitboard.count_ones() as Score - position.pieces[BLACK as usize].rook_bitboard.count_ones() as Score) as Score * ROOK_VALUE +
+    (position.pieces[WHITE as usize].bishop_bitboard.count_ones() as Score - position.pieces[BLACK as usize].bishop_bitboard.count_ones() as Score) as Score * BISHOP_VALUE +
+    (position.pieces[WHITE as usize].queen_bitboard.count_ones() as Score - position.pieces[BLACK as usize].queen_bitboard.count_ones() as Score) as Score * QUEEN_VALUE) as Score
 }
 
 #[inline(always)]
 pub fn piece_material(position: &Position, mover: Mover) -> Score {
-        position.pieces[mover as usize].knight_bitboard.count_ones() as Score +
-        position.pieces[mover as usize].rook_bitboard.count_ones() as Score +
-        position.pieces[mover as usize].bishop_bitboard.count_ones() as Score +
-        position.pieces[mover as usize].queen_bitboard.count_ones() as Score
+    position.pieces[mover as usize].knight_bitboard.count_ones() as Score +
+    position.pieces[mover as usize].rook_bitboard.count_ones() as Score +
+    position.pieces[mover as usize].bishop_bitboard.count_ones() as Score +
+    position.pieces[mover as usize].queen_bitboard.count_ones() as Score
 }
 
 #[inline(always)]

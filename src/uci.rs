@@ -210,7 +210,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
             uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
             uci_state.depth = extract_go_param("depth", &line, 250);
             uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
-            uci_state.move_time = extract_go_param("movetime", &line, u64::MAX);
+            uci_state.move_time = extract_go_param("movetime", &line, 10000000);
 
             let position = get_position(uci_state.fen.trim());
             let mv = start_search(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), search_state, tx);
@@ -221,7 +221,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220217-02-Speedier-Piece-Square-Eval|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220217-03-Bishop-Mobility|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {

@@ -2,7 +2,7 @@ use crate::bitboards::bit;
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PIECE_MASK_BISHOP, PIECE_MASK_KNIGHT, PIECE_MASK_KING, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::opponent;
-use crate::types::{Move, Piece, Pieces, Position, Score, SearchState, Square};
+use crate::types::{Move, Pieces, Position, Score, SearchState, Square};
 use crate::utils::{to_square_part};
 
 pub const BIT_FLIPPED_HORIZONTAL_AXIS: [Square; 64] = [

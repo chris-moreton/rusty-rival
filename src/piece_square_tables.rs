@@ -1,8 +1,10 @@
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use crate::evaluate::material;
 use crate::move_scores::{BIT_FLIPPED_HORIZONTAL_AXIS, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_STAGE_MATERIAL_LOW, OPENING_PHASE_MATERIAL, PAWN_STAGE_MATERIAL_HIGH, PAWN_STAGE_MATERIAL_LOW};
 use crate::{get_and_unset_lsb};
-use crate::types::{BLACK, Move, Pieces, Position, Score, Square, WHITE};
+use crate::evaluate::VALUE_BISHOP_MOBILITY;
+use crate::magic_bitboards::magic_moves_bishop;
+use crate::make_move::all_pieces;
+use crate::types::{BLACK, Pieces, Position, Score, Square, WHITE};
 use crate::utils::{linear_scale};
 
 pub const PAWN_PIECE_SQUARE_TABLE: [Score; 64] = [
@@ -177,8 +179,10 @@ fn white_bishop_piece_square_values(position: &Position) -> Score {
     let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
     let mut score = 0;
     while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        score += BISHOP_PIECE_SQUARE_TABLE[sq];
+        let sq = get_and_unset_lsb!(bb);
+        score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
+        let moves = magic_moves_bishop(sq, all_pieces(position));
+        score += VALUE_BISHOP_MOBILITY[(moves & !position.pieces[WHITE as usize].all_pieces_bitboard).count_ones() as usize];
     }
     score
 }
@@ -188,8 +192,10 @@ fn black_bishop_piece_square_values(position: &Position) -> Score {
     let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
     let mut score = 0;
     while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        score += BISHOP_PIECE_SQUARE_TABLE[sq];
+        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize];
+        score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
+        let moves = magic_moves_bishop(sq, all_pieces(position));
+        score += VALUE_BISHOP_MOBILITY[(moves & !position.pieces[BLACK as usize].all_pieces_bitboard).count_ones() as usize];
     }
     score
 }
