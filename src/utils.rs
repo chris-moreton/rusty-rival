@@ -85,7 +85,7 @@ pub fn linear_scale(value: Score, domain_min: Score, domain_max: Score, target_m
     } else if value > domain_max {
         target_max
     } else {
-        target_min + (value - domain_min) * (target_max - target_min) / (domain_max - domain_min)
+        (target_min as f64 + (value as f64 - domain_min as f64) * (target_max as f64 - target_min as f64) / (domain_max as f64 - domain_min as f64)) as Score
     }
 }
 

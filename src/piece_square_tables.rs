@@ -119,9 +119,9 @@ pub const KING_IN_CORNER_PIECE_SQUARE_TABLE: [Score; 64] = [
 #[inline(always)]
 pub fn non_pawn_piece_values(pieces: &Pieces) -> Score {
     (pieces.knight_bitboard.count_ones() as Score * KNIGHT_VALUE +
-        pieces.rook_bitboard.count_ones() as Score * ROOK_VALUE +
-        pieces.bishop_bitboard.count_ones() as Score * BISHOP_VALUE +
-        pieces.queen_bitboard.count_ones() as Score * QUEEN_VALUE) as Score
+    pieces.rook_bitboard.count_ones() as Score * ROOK_VALUE +
+    pieces.bishop_bitboard.count_ones() as Score * BISHOP_VALUE +
+    pieces.queen_bitboard.count_ones() as Score * QUEEN_VALUE) as Score
 }
 
 #[inline(always)]
@@ -225,23 +225,31 @@ fn black_rook_piece_square_values(position: &Position) -> Score {
 #[inline(always)]
 pub fn white_pawn_piece_square_values(position: &Position, nppv: Score) -> Score {
     let mut bb = position.pieces[WHITE as usize].pawn_bitboard;
-    let mut score = 0;
+    let mut pawn_count = 0;
+    let mut min_total = 0;
+    let mut max_total = 0;
     while bb != 0 {
+        pawn_count += 1;
         let sq = get_and_unset_lsb!(bb) as usize;
-        score += linear_scale(nppv, PAWN_STAGE_MATERIAL_LOW, PAWN_STAGE_MATERIAL_HIGH, PAWN_END_GAME_PIECE_SQUARE_TABLE[sq], PAWN_PIECE_SQUARE_TABLE[sq])
+        min_total += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
+        max_total += PAWN_PIECE_SQUARE_TABLE[sq];
     }
-    score
+    linear_scale(nppv * pawn_count, PAWN_STAGE_MATERIAL_LOW * pawn_count, PAWN_STAGE_MATERIAL_HIGH * pawn_count, min_total, max_total)
 }
 
 #[inline(always)]
 pub fn black_pawn_piece_square_values(position: &Position, nppv: Score) -> Score {
     let mut bb = position.pieces[BLACK as usize].pawn_bitboard;
-    let mut score = 0;
+    let mut pawn_count = 0;
+    let mut min_total = 0;
+    let mut max_total = 0;
     while bb != 0 {
+        pawn_count += 1;
         let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        score += linear_scale(nppv, PAWN_STAGE_MATERIAL_LOW, PAWN_STAGE_MATERIAL_HIGH, PAWN_END_GAME_PIECE_SQUARE_TABLE[sq], PAWN_PIECE_SQUARE_TABLE[sq])
+        min_total += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
+        max_total += PAWN_PIECE_SQUARE_TABLE[sq];
     }
-    score
+    linear_scale(nppv * pawn_count, PAWN_STAGE_MATERIAL_LOW * pawn_count, PAWN_STAGE_MATERIAL_HIGH * pawn_count, min_total, max_total)
 }
 
 #[inline(always)]
