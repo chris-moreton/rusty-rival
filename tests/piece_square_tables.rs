@@ -1,5 +1,5 @@
-use rusty_rival::fen::{get_fen, get_position};
-use rusty_rival::piece_square_tables::{black_knight_piece_square_values, black_pawn_piece_square_values, non_pawn_piece_values, pawn_values, piece_square_values, white_knight_piece_square_values, white_pawn_piece_square_values};
+use rusty_rival::fen::{get_position};
+use rusty_rival::piece_square_tables::{black_knight_piece_square_values, black_pawn_piece_square_values, non_pawn_piece_values, pawn_values, white_knight_piece_square_values, white_pawn_piece_square_values};
 use rusty_rival::types::{BLACK, WHITE};
 use rusty_rival::utils::invert_fen;
 
