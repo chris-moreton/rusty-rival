@@ -138,17 +138,17 @@ pub fn piece_square_values(position: &Position) -> Score {
     let bpv = pawn_values(&position.pieces[BLACK as usize]);
 
     white_pawn_piece_square_values(position, bnppv) +
-        white_rook_piece_square_values(position) +
-        white_queen_piece_square_values(position) +
-        white_knight_piece_square_values(position, bnppv + bpv) +
-        white_king_piece_square_values(position, bnppv) +
-        white_bishop_piece_square_values(position) -
-        black_pawn_piece_square_values(position, wnppv) -
-        black_rook_piece_square_values(position) -
-        black_queen_piece_square_values(position) -
-        black_knight_piece_square_values(position, wnppv + wpv) +
-        black_king_piece_square_values(position, wnppv) +
-        black_bishop_piece_square_values(position)
+    white_rook_piece_square_values(position) +
+    white_queen_piece_square_values(position) +
+    white_knight_piece_square_values(position, bnppv + bpv) +
+    white_king_piece_square_values(position, bnppv) +
+    white_bishop_piece_square_values(position) -
+    black_pawn_piece_square_values(position, wnppv) -
+    black_rook_piece_square_values(position) -
+    black_queen_piece_square_values(position) -
+    black_knight_piece_square_values(position, wnppv + wpv) +
+    black_king_piece_square_values(position, wnppv) +
+    black_bishop_piece_square_values(position)
 
 }
 

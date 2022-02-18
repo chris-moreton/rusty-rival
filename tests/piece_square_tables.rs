@@ -11,9 +11,9 @@ fn it_calculates_the_pawn_piece_square_values() {
     assert_eq!(black_pawn_piece_square_values(&position, non_pawn_piece_values(&position.pieces[WHITE as usize])), 57);
 
     let position = get_position(&"6k1/1P2P3/7p/P1pP4/5R2/5B2/1r2N2P/R1Q1K1n1 w Q - 0 1".to_string());
-    assert_eq!(white_pawn_piece_square_values(&position, non_pawn_piece_values(&position.pieces[BLACK as usize])), 88);
+    assert_eq!(white_pawn_piece_square_values(&position, non_pawn_piece_values(&position.pieces[BLACK as usize])), 89);
     let position = get_position(&invert_fen("6k1/1P2P3/7p/P1pP4/5R2/5B2/1r2N2P/R1Q1K1n1 w Q - 0 1").to_string());
-    assert_eq!(black_pawn_piece_square_values(&position, non_pawn_piece_values(&position.pieces[WHITE as usize])), 88);
+    assert_eq!(black_pawn_piece_square_values(&position, non_pawn_piece_values(&position.pieces[WHITE as usize])), 89);
 
     let position = get_position(&"6k1/1P2P3/7p/P1pP4/5R2/5B2/1r2N2P/R1Q1K3 w Q - 0 1".to_string());
     assert_eq!(white_pawn_piece_square_values(&position, non_pawn_piece_values(&position.pieces[BLACK as usize])), 95);
