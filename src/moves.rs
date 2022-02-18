@@ -45,15 +45,14 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
     let enemy = position.pieces[opponent!(position.mover) as usize];
     let valid_destinations = enemy.all_pieces_bitboard | (if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE { bit(position.en_passant_square) } else { 0 });
 
-    add_moves!(move_list, from_square_mask(friendly.king_square) | PIECE_MASK_KING, KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations);
-
-    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_ROOK);
+    generate_capture_pawn_moves(position, &mut move_list, position.mover as usize, friendly.pawn_bitboard);
     generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
     generate_diagonal_slider_moves(friendly.bishop_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_BISHOP);
+    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_ROOK);
     generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN);
     generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN);
 
-    generate_capture_pawn_moves(position, &mut move_list, position.mover as usize, friendly.pawn_bitboard);
+    add_moves!(move_list, from_square_mask(friendly.king_square) | PIECE_MASK_KING, KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations);
 
     move_list
 }

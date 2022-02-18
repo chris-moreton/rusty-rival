@@ -1,8 +1,9 @@
 use rusty_rival::bitboards::{C8_BIT, F8_BIT, G8_BIT, H2_BIT, H4_BIT, H8_BIT};
+use rusty_rival::engine_constants::{KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use rusty_rival::fen::{get_position, move_from_algebraic_move};
 use rusty_rival::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_ROOK, START_POS, WHITE_KING_CASTLE_MOVE, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
 use rusty_rival::types::Move;
-use rusty_rival::utils::{castle_mask, from_square_mask, from_square_part, hydrate_move_from_algebraic_move, invert_fen, moving_piece_mask, to_square_part};
+use rusty_rival::utils::{captured_piece_value, castle_mask, from_square_mask, from_square_part, hydrate_move_from_algebraic_move, invert_fen, moving_piece_mask, to_square_part};
 
 #[test]
 fn it_creates_a_move_with_the_from_part_only() {
@@ -24,6 +25,22 @@ pub fn it_can_figure_out_the_moving_piece() {
     let position = &get_position(&START_POS.to_string());
     assert_eq!(moving_piece_mask(position, move_from_algebraic_move("e2e3".to_string(), 0)), PIECE_MASK_PAWN);
     assert_eq!(moving_piece_mask(position, move_from_algebraic_move("g1f3".to_string(), 0)), PIECE_MASK_KNIGHT);
+}
+
+#[test]
+pub fn it_can_figure_out_the_captured_piece() {
+    let position = &get_position(&"r3k3/pppp1ppp/1bnb1n2/4p1q1/3PP3/1BNB1Nr1/PPP1QPPP/R3K2R w KQq - 0 1".to_string());
+    assert_eq!(captured_piece_value(position, hydrate_move_from_algebraic_move(position, "f3g5".to_string())), QUEEN_VALUE);
+    assert_eq!(captured_piece_value(position, hydrate_move_from_algebraic_move(position, "f3e5".to_string())), PAWN_VALUE);
+    assert_eq!(captured_piece_value(position, hydrate_move_from_algebraic_move(position, "f2g3".to_string())), ROOK_VALUE);
+    assert_eq!(captured_piece_value(position, hydrate_move_from_algebraic_move(position, "h2h3".to_string())), 0);
+
+    let position = &get_position(&"r3k2r/pppp1p1p/1bnb1n2/4p1q1/3PP1pP/1BNB1N2/PPP1QPP1/R3K2R b KQq h3 0 1".to_string());
+    assert_eq!(captured_piece_value(position, hydrate_move_from_algebraic_move(position, "g4h3".to_string())), PAWN_VALUE);
+
+    let position = &get_position(&"r3k2r/p1pp1p1p/1bnb1n2/4p1q1/3PP1pP/1BNB1N2/PpP1QPP1/R3K2R b KQq - 0 1".to_string());
+    assert_eq!(captured_piece_value(position, hydrate_move_from_algebraic_move(position, "b2a1n".to_string())), KNIGHT_VALUE - PAWN_VALUE + ROOK_VALUE);
+
 }
 
 #[test]

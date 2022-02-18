@@ -1,7 +1,10 @@
 use crate::bitboards::{bit, G1_BIT, C1_BIT, G8_BIT, C8_BIT, E8_BIT, E1_BIT};
-use crate::fen::move_from_algebraic_move;
-use crate::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
-use crate::types::{BLACK, Move, Position, Score, Square, WHITE};
+use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::fen::{move_from_algebraic_move, promotion_mask};
+use crate::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
+                            PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
+use crate::opponent;
+use crate::types::{Bitboard, BLACK, Move, Position, Score, Square, WHITE};
 
 #[inline(always)]
 pub const fn from_square_mask(square: Square) -> Move {
@@ -21,6 +24,43 @@ pub const fn piece_part(mv: Move) -> Square {
 #[inline(always)]
 pub fn to_square_part(mv: Move) -> Square {
     (mv as Square) & 63
+}
+
+#[inline(always)]
+pub fn captured_piece_value(position: &Position, mv: Move) -> Score {
+
+    let enemy = &position.pieces[opponent!(position.mover) as usize];
+    let tsp = to_square_part(mv);
+    let to_bb = bit(tsp);
+
+    let promote_value = match mv & PROMOTION_FULL_MOVE_MASK {
+        PROMOTION_QUEEN_MOVE_MASK => QUEEN_VALUE - PAWN_VALUE,
+        PROMOTION_ROOK_MOVE_MASK => ROOK_VALUE - PAWN_VALUE,
+        PROMOTION_BISHOP_MOVE_MASK => BISHOP_VALUE - PAWN_VALUE,
+        PROMOTION_KNIGHT_MOVE_MASK => KNIGHT_VALUE - PAWN_VALUE,
+        _ => 0,
+    };
+
+    promote_value + (if tsp == position.en_passant_square {
+        PAWN_VALUE
+    } else if enemy.pawn_bitboard & to_bb != 0 {
+        PAWN_VALUE
+    }
+    else if enemy.knight_bitboard & to_bb != 0 {
+        KNIGHT_VALUE
+    }
+    else if enemy.bishop_bitboard & to_bb != 0 {
+        BISHOP_VALUE
+    }
+    else if enemy.rook_bitboard & to_bb != 0  {
+        ROOK_VALUE
+    }
+    else if enemy.queen_bitboard & to_bb != 0  {
+        QUEEN_VALUE
+    }
+    else {
+        0
+    })
 }
 
 #[inline(always)]
