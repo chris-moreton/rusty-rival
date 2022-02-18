@@ -1,6 +1,7 @@
 use std::sync::mpsc::{Sender};
 use std::time::{Instant};
-use crate::engine_constants::{MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH};
+use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
+use crate::engine_constants::{MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{zobrist_index};
@@ -249,6 +250,15 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
 
     if eval >= beta {
         return beta;
+    }
+
+    let promote_from_rank = if position.mover == WHITE { RANK_7_BITS } else { RANK_2_BITS };
+    let mut delta = QUEEN_VALUE;
+    if position.pieces[position.mover as usize].pawn_bitboard & promote_from_rank != 0 {
+        delta += QUEEN_VALUE - (PAWN_VALUE * 2)
+    }
+    if eval < alpha - delta {
+        return alpha;
     }
 
     if alpha < eval {
