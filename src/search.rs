@@ -12,7 +12,7 @@ use crate::moves::{is_check, moves, quiesce_moves};
 use crate::opponent;
 use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK};
 use crate::types::BoundType::{Exact, Lower, Upper};
-use crate::utils::{captured_piece_value, moving_piece_mask};
+use crate::utils::{captured_piece_value};
 
 pub const MAX_SCORE: Score = 30000;
 
@@ -276,7 +276,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
     for m in move_list {
         let mut new_position = *position;
 
-        if captured_piece_value(position, m) + 200 > alpha {
+        if eval + captured_piece_value(position, m) + 200 < alpha {
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
                 let score = -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), end_time, search_state, tx, start_time);
