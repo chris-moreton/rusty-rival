@@ -1,4 +1,4 @@
-use crate::bitboards::{RANK_1_BITS, south_fill};
+use crate::bitboards::{bit, RANK_1_BITS, south_fill};
 use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_TRADE_BONUS_MAX, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_ROOKS_ON_SAME_FILE};
 use crate::move_scores::TOTAL_PIECE_VALUE_PER_SIDE_AT_START;
 use crate::piece_square_tables::piece_square_values;
@@ -6,6 +6,18 @@ use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
 use crate::utils::linear_scale;
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 2, 6, 10, 13, 16, 18, 20, 22, 23, 24];
+pub const VALUE_ONE_PAWN_SHIELDING: Score = 15;
+
+pub const WHITE_KING_SHIELD_MASK: [Bitboard; 8] = [
+    bit(9)| (bit(8)),
+    bit(10)| (bit(9))| (bit(8)),
+    bit(11)| (bit(10))| (bit(9)),
+    bit(12)| (bit(11))| (bit(10)),
+    bit(13)| (bit(12))| (bit(11)),
+    bit(14)| (bit(13))| (bit(12)),
+    bit(15)| (bit(14))| (bit(13)),
+    bit(15)| (bit(14))
+];
 
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {
@@ -16,9 +28,28 @@ pub fn evaluate(position: &Position) -> Score {
         material_score +
             piece_square_values(position) +
             rook_eval(position) +
+            pawn_shield(position) +
             pawn_score(position);
 
     if position.mover == WHITE { score } else { -score }
+}
+
+#[inline(always)]
+pub fn pawn_shield(position: &Position) -> Score {
+    let mut score: Score = 0;
+    let ks = position.pieces[WHITE as usize].king_square as usize;
+    if ks <= 7 {
+        let mask = WHITE_KING_SHIELD_MASK[ks];
+        let pawns_shielding = (mask & position.pieces[WHITE as usize].pawn_bitboard).count_ones() as Score;
+        score += pawns_shielding * VALUE_ONE_PAWN_SHIELDING;
+    }
+    let ks = position.pieces[BLACK as usize].king_square as usize;
+    if ks >= 56 {
+        let mask = WHITE_KING_SHIELD_MASK[ks % 8] << 40;
+        let pawns_shielding = (mask & position.pieces[BLACK as usize].pawn_bitboard).count_ones() as Score;
+        score -= pawns_shielding * VALUE_ONE_PAWN_SHIELDING;
+    }
+    score
 }
 
 #[inline(always)]

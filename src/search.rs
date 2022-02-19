@@ -220,15 +220,15 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
 fn null_move_material(position: &Position) -> bool {
     let white_total =
         (position.pieces[WHITE as usize].bishop_bitboard |
-        position.pieces[WHITE as usize].knight_bitboard |
-        position.pieces[WHITE as usize].rook_bitboard |
-        position.pieces[WHITE as usize].queen_bitboard).count_ones();
+            position.pieces[WHITE as usize].knight_bitboard |
+            position.pieces[WHITE as usize].rook_bitboard |
+            position.pieces[WHITE as usize].queen_bitboard).count_ones();
 
     let black_total =
         (position.pieces[BLACK as usize].bishop_bitboard |
-        position.pieces[BLACK as usize].knight_bitboard |
-        position.pieces[BLACK as usize].rook_bitboard |
-        position.pieces[BLACK as usize].queen_bitboard).count_ones();
+            position.pieces[BLACK as usize].knight_bitboard |
+            position.pieces[BLACK as usize].rook_bitboard |
+            position.pieces[BLACK as usize].queen_bitboard).count_ones();
 
     white_total >= 2 && black_total >= 2
 }
