@@ -28,7 +28,7 @@ pub fn evaluate(position: &Position) -> Score {
         material_score +
             piece_square_values(position) +
             rook_eval(position) +
-            pawn_shield(position) +
+            //pawn_shield(position) +
             pawn_score(position);
 
     if position.mover == WHITE { score } else { -score }

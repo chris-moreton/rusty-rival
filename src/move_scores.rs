@@ -72,16 +72,18 @@ pub fn score_quiesce_move(position: &Position, m: Move) -> Score {
     let enemy = position.pieces[opponent!(position.mover) as usize];
     let to_square = to_square_part(m);
 
-    if enemy.all_pieces_bitboard & bit(to_square) != 0 {
-        let piece_mask = m & PIECE_MASK_FULL;
-        piece_value(&enemy, to_square) + attacker_bonus(piece_mask)
-    } else if m & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK {
+    let mut score = if m & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK {
         QUEEN_VALUE
+    } else { 0 };
+
+    score += if enemy.all_pieces_bitboard & bit(to_square) != 0 {
+        piece_value(&enemy, to_square) + attacker_bonus(m & PIECE_MASK_FULL)
     } else if to_square == position.en_passant_square {
         PAWN_VALUE + PAWN_ATTACKER_BONUS
     } else {
         0
-    }
+    };
+    score
 }
 
 #[inline(always)]

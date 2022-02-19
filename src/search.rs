@@ -10,7 +10,7 @@ use crate::move_constants::PROMOTION_FULL_MOVE_MASK;
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves};
 use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK, Mover};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value};
 
@@ -218,19 +218,15 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
 
 #[inline(always)]
 fn null_move_material(position: &Position) -> bool {
-    let white_total =
-        (position.pieces[WHITE as usize].bishop_bitboard |
-            position.pieces[WHITE as usize].knight_bitboard |
-            position.pieces[WHITE as usize].rook_bitboard |
-            position.pieces[WHITE as usize].queen_bitboard).count_ones();
+    side_total_non_pawn_values(position, WHITE) >= 2 && side_total_non_pawn_values(position, BLACK) >= 2
+}
 
-    let black_total =
-        (position.pieces[BLACK as usize].bishop_bitboard |
-            position.pieces[BLACK as usize].knight_bitboard |
-            position.pieces[BLACK as usize].rook_bitboard |
-            position.pieces[BLACK as usize].queen_bitboard).count_ones();
-
-    white_total >= 2 && black_total >= 2
+#[inline(always)]
+fn side_total_non_pawn_values(position: &Position, side: Mover) -> u32 {
+    (position.pieces[side as usize].bishop_bitboard |
+        position.pieces[side as usize].knight_bitboard |
+        position.pieces[side as usize].rook_bitboard |
+        position.pieces[side as usize].queen_bitboard).count_ones()
 }
 
 #[inline(always)]
@@ -267,11 +263,23 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
         alpha = eval;
     }
 
-    let mut move_scores: Vec<(Move, Score)> = quiesce_moves(position).into_iter().map(|m| {
-        (m, score_quiesce_move(position, m))
-    }).collect();
+    let in_check = is_check(position, position.mover);
+
+    let mut move_scores: Vec<(Move, Score)> =
+        if in_check {
+            moves(position).into_iter().map(|m| {
+                (m, score_move(position, 0, m, search_state, ply as usize))
+            }).collect()
+        } else {
+            quiesce_moves(position).into_iter().map(|m| {
+                (m, score_quiesce_move(position, m))
+            }).collect()
+        };
+
     move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
     let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
+
+    let mut legal_move_count = 0;
 
     for m in move_list {
         let mut new_position = *position;
@@ -279,7 +287,8 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
         if eval + captured_piece_value(position, m) + 200 > alpha {
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
-                let score = -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), end_time, search_state, tx, start_time);
+                legal_move_count += 1;
+                let score = -quiesce(&new_position, depth - 1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time);
                 check_time!(search_state.nodes, end_time);
                 if score >= beta {
                     return beta;
@@ -291,5 +300,9 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
         }
     }
 
-    alpha
+    if legal_move_count == 0 && in_check {
+        -(MAX_SCORE-ply as Score)
+    } else {
+        alpha
+    }
 }
