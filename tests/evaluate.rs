@@ -1,6 +1,8 @@
+use rusty_rival::bitboards::{D6_BIT, E4_BIT, E7_BIT, F3_BIT, F5_BIT, F6_BIT, G3_BIT, G5_BIT};
 use rusty_rival::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use rusty_rival::evaluate::{on_same_file_count, material, material_score, pawn_score, pawn_shield};
+use rusty_rival::evaluate::{on_same_file_count, material, material_score, pawn_score, pawn_shield, attack_count, slider_attack_count, knight_attack_count, near_king_attack_count};
 use rusty_rival::fen::get_position;
+use rusty_rival::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use rusty_rival::types::{BLACK, WHITE};
 
 #[test]
@@ -43,5 +45,36 @@ fn it_scores_the_king_shield() {
     assert_eq!(pawn_shield(&get_position("rnbqkbnr/pppp1ppp/4p3/8/7P/4BN2/PPPPPPP1/RNBQ1RK1 w kq - 0 1")), -0);
     assert_eq!(pawn_shield(&get_position("rnbq1rk1/pppp1ppp/4pn2/2b5/7P/4BN2/PPPPPPP1/RNBQ1RK1 w - - 0 1")), -15);
     assert_eq!(pawn_shield(&get_position("rnbq1rk1/pppp1p2/4pnpp/2b5/8/4BN2/PPPPPPPP/RNBQ1RK1 w - - 0 1")), 30);
+}
 
+#[test]
+fn it_counts_the_slider_attacks_on_a_square() {
+    let position = get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+
+    assert_eq!(slider_attack_count(
+        position.pieces[BLACK as usize].bishop_bitboard | position.pieces[BLACK as usize].queen_bitboard,
+        all_pieces, E7_BIT, magic_moves_bishop), 2);
+
+    let position = get_position("rnbqkbnr/pppppppp/8/8/1R5R/4Q3/PPPPPPPP/1NB1KBN1 w kq - 0 1");
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    assert_eq!(slider_attack_count(
+        position.pieces[WHITE as usize].rook_bitboard | position.pieces[WHITE as usize].queen_bitboard,
+        all_pieces, E4_BIT, magic_moves_rook), 3);
+
+}
+
+#[test]
+fn it_counts_the_knight_attacks_on_a_square() {
+    let position = get_position("rnbqkbnr/pppppppp/8/6N1/1R5R/4Q3/PPPPPPPP/2B1KBN1 w kq - 0 1");
+
+    assert_eq!(knight_attack_count(position.pieces[BLACK as usize].knight_bitboard,F3_BIT), 0);
+    assert_eq!(knight_attack_count(position.pieces[WHITE as usize].knight_bitboard,F3_BIT), 2);
+}
+
+#[test]
+fn it_counts_near_king_attacks() {
+    assert_eq!(near_king_attack_count(&get_position("rnbqkbnr/pppppppp/8/6N1/1R5R/4Q3/PPPPPPPP/2B1KBN1 w kq - 0 1"), WHITE), 2);
+    assert_eq!(near_king_attack_count(&get_position("rnbqkbnr/pppppppp/8/6N1/1R5R/4Q3/PPPPPPPP/2B1KBN1 w kq - 0 1"), BLACK), 0);
+    assert_eq!(near_king_attack_count(&get_position("2b1k2r/pppppppp/8/6N1/1Rn3nR/4q1b1/PPrPPPPP/2B1KBN1 w k - 0 1"), BLACK), 7);
 }

@@ -97,6 +97,9 @@ pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_h
     }
 }
 
+pub const MATE_MARGIN: Score = 1000;
+pub const MATE_START: Score = MAX_SCORE - MATE_MARGIN;
+
 #[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, on_null_move: bool) -> Score {
 
@@ -113,7 +116,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
 
         let index = zobrist_index(position.zobrist_lock);
 
-        let mut best_score = -MAX_SCORE as Score;
+        let worst_case = -(MAX_SCORE-ply as Score);
+        let mut best_score = worst_case;
         let mut best_move = 0;
         let mut alpha = window.0;
         let mut beta = window.1;
@@ -128,8 +132,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                     if x.bound == BoundType::Exact  {
                         search_state.hash_hits_exact += 1;
                         let adjusted_score =
-                            if x.score > 29000 { x.score - ply as Score }
-                            else if x.score < -29000 { x.score + ply as Score }
+                            if x.score > MATE_START { x.score - ply as Score }
+                            else if x.score < -MATE_START { x.score + ply as Score }
                             else { x.score };
                         return adjusted_score;
                     }
@@ -160,26 +164,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
         let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
 
-        let mut pv = true;
-        let mut legal_move_count = 0;
-
         for m in move_list {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             search_state.history.push(new_position.zobrist_lock);
             if !is_check(&new_position, position.mover) {
-                legal_move_count += 1;
-                let score = if pv {
-                    pv = false;
-                    -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time, false)
-                } else {
-                    let score = -search(&new_position, depth-1, ply+1, (-alpha-1, -alpha), end_time, search_state, tx, start_time, false);
-                    if score > alpha {
-                        -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time, false)
-                    } else {
-                        score
-                    }
-                };
+                let score = -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time, false);
                 search_state.history.pop();
                 check_time!(search_state.nodes, end_time);
                 if score > best_score {
@@ -206,39 +196,26 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                 search_state.history.pop();
             }
         }
-
-        if legal_move_count == 0 {
-            if !is_check(position, position.mover) {
-                best_score = 0;
-            } else {
-                best_score = -30000 + ply as Score
-            }
+        if best_score == worst_case && !is_check(position, position.mover) {
+            best_score = 0;
         }
-
-        let hash_score = if best_score.abs() > 29000 {
-            if hash_flag == Exact {
-                let root_mate_distance = 30000 - best_score.abs();
+        let hash_score = if hash_flag == Exact {
+            if best_score.abs() > MATE_START {
+                let root_mate_distance = MAX_SCORE - best_score.abs();
                 let this_mate_distance = root_mate_distance - ply as Score;
-                if best_score > 29000 {
-                    30000 - this_mate_distance
+                if best_score > MATE_START {
+                    MAX_SCORE - this_mate_distance
                 } else {
-                    this_mate_distance - 30000
+                    this_mate_distance - MAX_SCORE
                 }
             } else {
-                if best_score.abs() > 29000 {
-                    30000
-                } else {
-                    -30000
-                }
+                best_score
             }
         } else {
             best_score
         };
-
         store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_flag, best_move, hash_score, search_state);
-
         best_score
-
     }
 }
 
@@ -250,9 +227,9 @@ fn null_move_material(position: &Position) -> bool {
 #[inline(always)]
 fn side_total_non_pawn_values(position: &Position, side: Mover) -> u32 {
     (position.pieces[side as usize].bishop_bitboard |
-        position.pieces[side as usize].knight_bitboard |
-        position.pieces[side as usize].rook_bitboard |
-        position.pieces[side as usize].queen_bitboard).count_ones()
+    position.pieces[side as usize].knight_bitboard |
+    position.pieces[side as usize].rook_bitboard |
+    position.pieces[side as usize].queen_bitboard).count_ones()
 }
 
 #[inline(always)]
