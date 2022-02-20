@@ -116,9 +116,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
 
         let index = zobrist_index(position.zobrist_lock);
 
-        let worst_case = -(MAX_SCORE-ply as Score);
-        let mut best_score = worst_case;
-        let mut best_move = 0;
+        let mut best_score = -(MAX_SCORE-ply as Score);
         let mut alpha = window.0;
         let mut beta = window.1;
         let mut hash_height = 0;
@@ -158,17 +156,20 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             new_position.mover ^= 1;
         }
 
+        let mut best_move = 0;
         let mut move_scores: Vec<(Move, Score)> = moves(position).into_iter().map(|m| {
             (m, score_move(position, hash_move, m, search_state, ply as usize))
         }).collect();
         move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
         let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
 
+        let mut legal_move_count = 0;
         for m in move_list {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             search_state.history.push(new_position.zobrist_lock);
             if !is_check(&new_position, position.mover) {
+                legal_move_count += 1;
                 let score = -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time, false);
                 search_state.history.pop();
                 check_time!(search_state.nodes, end_time);
@@ -196,7 +197,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                 search_state.history.pop();
             }
         }
-        if best_score == worst_case && !is_check(position, position.mover) {
+        if legal_move_count == 0 && !is_check(position, position.mover) {
             best_score = 0;
         }
         let hash_score = if hash_flag == Exact {
