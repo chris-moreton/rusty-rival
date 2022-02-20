@@ -113,7 +113,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
 
         let index = zobrist_index(position.zobrist_lock);
 
-        let mut best_score = -(MAX_SCORE-ply as Score);
+        let mut best_score = -MAX_SCORE as Score;
         let mut best_move = 0;
         let mut alpha = window.0;
         let mut beta = window.1;
@@ -207,8 +207,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             }
         }
 
-        if legal_move_count == 0 && !is_check(position, position.mover) {
-            best_score = 0;
+        if legal_move_count == 0 {
+            if !is_check(position, position.mover) {
+                best_score = 0;
+            } else {
+                best_score = -30000 + ply as Score
+            }
         }
 
         let hash_score = if best_score.abs() > 29000 {
@@ -232,7 +236,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         };
 
         store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_flag, best_move, hash_score, search_state);
+
         best_score
+
     }
 }
 
