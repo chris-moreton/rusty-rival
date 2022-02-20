@@ -132,6 +132,7 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
         "fen" => {
 
             search_state.history = vec![];
+            search_state.hash_table_version += 1;
 
             let re = Regex::new(r"\s*^(((?:[rnbqkpRNBQKP1-8]+/){7})[rnbqkpRNBQKP1-8]+)\s([b|w])\s([K|Q|k|q]{1,4}|-)\s(-|[a-h][1-8])\s(\d+\s\d+)$").unwrap();
             let (fen, moves) = fen_and_moves(parts);
@@ -221,7 +222,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220220-02-King-Threats-Draw-Fix|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220220-03-Hash-Version|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {

@@ -91,9 +91,9 @@ macro_rules! check_time {
 }
 
 #[inline(always)]
-pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
-    if height >= existing_height {
-        search_state.hash_table.insert(index, HashEntry { score, height, mv, bound, lock, });
+pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
+    if height >= existing_height || search_state.hash_table_version > existing_version {
+        search_state.hash_table.insert(index, HashEntry { score, version: search_state.hash_table_version, height, mv, bound, lock, });
     }
 }
 
@@ -121,12 +121,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         let mut beta = window.1;
         let mut hash_height = 0;
         let mut hash_flag = Upper;
+        let mut hash_version = 0;
 
         let hash_entry = search_state.hash_table.get(&index);
         let hash_move = match hash_entry {
             Some(x) => {
                 if x.lock == position.zobrist_lock && x.height >= depth {
                     hash_height = x.height;
+                    hash_version = x.version;
                     if x.bound == BoundType::Exact  {
                         search_state.hash_hits_exact += 1;
                         let adjusted_score =
@@ -179,7 +181,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                     if best_score > alpha {
                         alpha = best_score;
                         if alpha >= beta {
-                            store_hash_entry(index, position.zobrist_lock, depth, hash_height, Lower, best_move, best_score, search_state);
+                            store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_move, best_score, search_state);
                             if search_state.killer_moves[ply as usize][0] != m {
                                 let opponent_index = opponent!(position.mover) as usize;
                                 let was_capture = position.pieces[opponent_index].all_pieces_bitboard != new_position.pieces[opponent_index].all_pieces_bitboard;
@@ -215,7 +217,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         } else {
             best_score
         };
-        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_flag, best_move, hash_score, search_state);
+        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_move, hash_score, search_state);
         best_score
     }
 }

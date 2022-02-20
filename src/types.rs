@@ -54,6 +54,7 @@ pub fn default_uci_state() -> UciState {
 
 pub struct SearchState {
     pub hash_table: HashMap<HashIndex, HashEntry>,
+    pub hash_table_version: u32,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
     pub pv: Path,
     pub pv_score: Score,
@@ -65,6 +66,7 @@ pub struct SearchState {
 pub fn default_search_state() -> SearchState {
     SearchState {
         hash_table: Default::default(),
+        hash_table_version: 0,
         killer_moves: [[0,0]; MAX_DEPTH as usize],
         pv: vec![],
         pv_score: 0,
@@ -76,6 +78,7 @@ pub fn default_search_state() -> SearchState {
 
 pub struct HashEntry {
     pub score: Score,
+    pub version: u32,
     pub height: u8,
     pub mv: Move,
     pub bound: BoundType,
