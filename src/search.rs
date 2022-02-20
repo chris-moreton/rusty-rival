@@ -16,8 +16,23 @@ use crate::utils::{captured_piece_value};
 
 pub const MAX_SCORE: Score = 30000;
 
-pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Move {
+#[macro_export]
+macro_rules! time_remains {
+    ($end_time:expr) => {
+        $end_time > Instant::now()
+    }
+}
 
+#[macro_export]
+macro_rules! time_expired {
+    ($end_time:expr) => {
+        Instant::now() >= $end_time
+    }
+}
+
+pub const ASPIRATION_RADIUS: Score = 40;
+
+pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Move {
     let start_time = Instant::now();
 
     let mut legal_moves: MoveScoreList = moves(position).into_iter().filter(|m| {
@@ -32,33 +47,56 @@ pub fn start_search(position: &Position, max_depth: u8, end_time: Instant, searc
         search_state.history.push(position.zobrist_lock)
     }
 
+    let mut aspiration_window = (-MAX_SCORE, MAX_SCORE);
+
     for iterative_depth in 1..=max_depth {
-        let mut current_best: MoveScore = (legal_moves[0].0, -MAX_SCORE);
-        for move_num in 0..legal_moves.len() {
-            let mut new_position = *position;
-            make_move(position, legal_moves[move_num].0, &mut new_position);
-            search_state.history.push(new_position.zobrist_lock);
+        let mut best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, aspiration_window);
 
-            let score = -search(&new_position, iterative_depth, 1, (-MAX_SCORE, MAX_SCORE), end_time, search_state, &tx, start_time, false);
-
-            search_state.history.pop();
-            legal_moves[move_num].1 = score;
-            if score > current_best.1 {
-                if Instant::now() < end_time {
-                    current_best = legal_moves[move_num];
-                    send_info(search_state, tx, start_time, iterative_depth, &mut current_best)
-                }
-            }
-
-            if Instant::now() > end_time {
-                return current_best.0;
-            }
+        if time_remains!(end_time) && best.1 < aspiration_window.0 {
+            best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, aspiration_window.1));
+        } else if time_remains!(end_time) && best.1 >= aspiration_window.1 {
+            best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (aspiration_window.0, MAX_SCORE));
         }
-        legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
 
+        if time_remains!(end_time) && best.1 <= aspiration_window.0 || best.1 >= aspiration_window.1 {
+            best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, MAX_SCORE));
+        }
+
+        if time_expired!(end_time) {
+            return best.0
+        }
+
+        aspiration_window = (best.1 - ASPIRATION_RADIUS, best.1 + ASPIRATION_RADIUS)
     }
 
     legal_moves[0].0
+}
+
+pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, iterative_depth: u8, start_time: Instant, aspiration_window: Window) -> MoveScore {
+
+    let mut current_best: MoveScore = (legal_moves[0].0, -MAX_SCORE);
+    for move_num in 0..legal_moves.len() {
+        let mut new_position = *position;
+        make_move(position, legal_moves[move_num].0, &mut new_position);
+        search_state.history.push(new_position.zobrist_lock);
+
+        let score = -search(&new_position, iterative_depth, 1, aspiration_window, end_time, search_state, &tx, start_time, false);
+
+        search_state.history.pop();
+        legal_moves[move_num].1 = score;
+        if score > current_best.1 {
+            if Instant::now() < end_time {
+                current_best = legal_moves[move_num];
+                send_info(search_state, tx, start_time, iterative_depth, &mut current_best)
+            }
+        }
+
+        if time_expired!(end_time) {
+            return current_best;
+        }
+    }
+    legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
+    current_best
 
 }
 

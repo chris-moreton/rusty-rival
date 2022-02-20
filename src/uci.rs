@@ -11,7 +11,7 @@ use crate::make_move::make_move;
 use crate::move_constants::{START_POS};
 use crate::moves::{is_check, moves};
 use crate::perft::perft;
-use crate::search::{start_search};
+use crate::search::{iterative_deepening, start_search};
 use crate::types::{Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
@@ -194,12 +194,12 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
         },
         "infinite" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
+            let mv = iterative_deepening(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         "mate" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
+            let mv = iterative_deepening(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         _ => {
@@ -214,7 +214,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
             uci_state.move_time = extract_go_param("movetime", &line, 10000000);
 
             let position = get_position(uci_state.fen.trim());
-            let mv = start_search(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), search_state, tx);
+            let mv = iterative_deepening(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), search_state, tx);
 
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         }
@@ -222,7 +222,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220220-03-Hash-Version|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220220-05-Aspiration-Window|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
