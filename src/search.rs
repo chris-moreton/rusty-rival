@@ -52,21 +52,21 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant
     for iterative_depth in 1..=max_depth {
         let mut best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, aspiration_window);
 
-        if time_remains!(end_time) && best.1 < aspiration_window.0 {
-            best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, aspiration_window.1));
-        } else if time_remains!(end_time) && best.1 >= aspiration_window.1 {
-            best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (aspiration_window.0, MAX_SCORE));
-        }
-
-        if time_remains!(end_time) && best.1 <= aspiration_window.0 || best.1 >= aspiration_window.1 {
-            best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, MAX_SCORE));
-        }
+        // if time_remains!(end_time) && best.1 < aspiration_window.0 {
+        //     best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, aspiration_window.1));
+        // } else if time_remains!(end_time) && best.1 >= aspiration_window.1 {
+        //     best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (aspiration_window.0, MAX_SCORE));
+        // }
+        //
+        // if time_remains!(end_time) && best.1 <= aspiration_window.0 || best.1 >= aspiration_window.1 {
+        //     best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, MAX_SCORE));
+        // }
 
         if time_expired!(end_time) {
             return best.0
         }
 
-        aspiration_window = (best.1 - ASPIRATION_RADIUS, best.1 + ASPIRATION_RADIUS)
+       // aspiration_window = (best.1 - ASPIRATION_RADIUS, best.1 + ASPIRATION_RADIUS)
     }
 
     legal_moves[0].0
