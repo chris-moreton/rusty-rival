@@ -124,6 +124,8 @@ pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_h
     }
 }
 
+const DEPTH_REMAINING_FOR_RD_INCREASE: u8 = 6;
+
 #[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {
 
@@ -172,7 +174,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             }
         };
 
-        if !search_state.is_on_null_move && depth > (NULL_MOVE_REDUCE_DEPTH + 2) && null_move_material(position) && !is_check(position, position.mover) {
+        let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
+
+        if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !is_check(position, position.mover) {
             let mut new_position = *position;
             new_position.mover ^= 1;
             search_state.is_on_null_move = true;
