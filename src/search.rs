@@ -15,6 +15,8 @@ use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value};
 
 pub const MAX_SCORE: Score = 30000;
+pub const MATE_MARGIN: Score = 1000;
+pub const MATE_START: Score = MAX_SCORE - MATE_MARGIN;
 
 #[macro_export]
 macro_rules! time_remains {
@@ -30,7 +32,18 @@ macro_rules! time_expired {
     }
 }
 
-pub const ASPIRATION_RADIUS: Score = 40;
+#[macro_export]
+macro_rules! check_time {
+    ($nodes:expr, $end_time:expr) => {
+        if $nodes % 100000 == 0 {
+            if $end_time < Instant::now() {
+                return 0;
+            }
+        }
+    }
+}
+
+pub const ASPIRATION_RADIUS: Score = 50;
 
 pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Move {
     let start_time = Instant::now();
@@ -52,25 +65,38 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant
     for iterative_depth in 1..=max_depth {
         let mut best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, aspiration_window);
 
-        if time_remains!(end_time) && best.1 < aspiration_window.0 {
+        //println!("==========================================================================================================================");
+        //println!("Best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, aspiration_window.0, aspiration_window.1, algebraic_move_from_move(best.0), best.1);
+
+        if time_remains!(end_time) && best.1 <= aspiration_window.0 {
+            //println!("Failed low");
             best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, aspiration_window.1));
+            //println!("Research gives best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, -MAX_SCORE, aspiration_window.1, algebraic_move_from_move(best.0), best.1);
         } else if time_remains!(end_time) && best.1 >= aspiration_window.1 {
+            //println!("Failed high");
             best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (aspiration_window.0, MAX_SCORE));
+            //println!("Research gives best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, aspiration_window.0, MAX_SCORE, algebraic_move_from_move(best.0), best.1);
         }
 
         if time_remains!(end_time) && best.1 <= aspiration_window.0 || best.1 >= aspiration_window.1 {
+            //println!("Still failed with a score of {}", best.1);
             best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, MAX_SCORE));
+            //println!("Research gives best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, -MAX_SCORE, MAX_SCORE, algebraic_move_from_move(best.0), best.1);
         }
 
         if time_expired!(end_time) {
+            //println!("Time expired, returning {}", algebraic_move_from_move(best.0));
             return best.0
         }
 
+        //println!("Sorting legal_moves");
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
+        //println!("Resetting scores to minimum");
         legal_moves = legal_moves.into_iter().map(|m| {
             (m.0, -MAX_SCORE)
         }).collect();
 
+        //println!("Setting aspiration window to ({},{})", best.1 - ASPIRATION_RADIUS, best.1 + ASPIRATION_RADIUS);
         aspiration_window = (best.1 - ASPIRATION_RADIUS, best.1 + ASPIRATION_RADIUS)
     }
 
@@ -85,7 +111,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
         make_move(position, legal_moves[move_num].0, &mut new_position);
         search_state.history.push(new_position.zobrist_lock);
 
-        let score = -search(&new_position, iterative_depth, 1, aspiration_window, end_time, search_state, &tx, start_time, false);
+        let score = -search(&new_position, iterative_depth, 1, (-aspiration_window.1, -aspiration_window.0), end_time, search_state, &tx, start_time, false);
 
         search_state.history.pop();
         legal_moves[move_num].1 = score;
@@ -104,43 +130,12 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
 
 }
 
-fn send_info(search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, iterative_depth: u8, current_best: &mut MoveScore) {
-    if start_time.elapsed().as_millis() > 0 {
-        let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
-        let result = tx.send("info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
-            &*" depth ".to_string() + &*iterative_depth.to_string() +
-            &*" time ".to_string() + &*start_time.elapsed().as_millis().to_string() +
-            &*" nodes ".to_string() + &*search_state.nodes.to_string() +
-            &*" pv ".to_string() + &*algebraic_move_from_move(current_best.0).to_string() +
-            &*" nps ".to_string() + &*(nps as u64).to_string()
-        );
-        match result {
-            Err(_e) => {},
-            _ => {}
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! check_time {
-    ($nodes:expr, $end_time:expr) => {
-        if $nodes % 100000 == 0 {
-            if $end_time < Instant::now() {
-                return 0;
-            }
-        }
-    }
-}
-
 #[inline(always)]
 pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
         search_state.hash_table.insert(index, HashEntry { score, version: search_state.hash_table_version, height, mv, bound, lock, });
     }
 }
-
-pub const MATE_MARGIN: Score = 1000;
-pub const MATE_START: Score = MAX_SCORE - MATE_MARGIN;
 
 #[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, on_null_move: bool) -> Score {
@@ -190,15 +185,15 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             }
         };
 
-        if !on_null_move && depth > (NULL_MOVE_REDUCE_DEPTH + 2) && null_move_material(position) && !is_check(position, position.mover) {
-            let mut new_position = *position;
-            new_position.mover ^= 1;
-            let score = -search(&new_position, depth-1-NULL_MOVE_REDUCE_DEPTH, ply+1, (-beta, (-beta)+1), end_time, search_state, tx, start_time, true);
-            if score >= beta {
-                return beta;
-            }
-            new_position.mover ^= 1;
-        }
+        // if !on_null_move && depth > (NULL_MOVE_REDUCE_DEPTH + 2) && null_move_material(position) && !is_check(position, position.mover) {
+        //     let mut new_position = *position;
+        //     new_position.mover ^= 1;
+        //     let score = -search(&new_position, depth-1-NULL_MOVE_REDUCE_DEPTH, ply+1, (-beta, (-beta)+1), end_time, search_state, tx, start_time, true);
+        //     if score >= beta {
+        //         return beta;
+        //     }
+        //     new_position.mover ^= 1;
+        // }
 
         let mut best_move = 0;
         let mut move_scores: Vec<(Move, Score)> = moves(position).into_iter().map(|m| {
@@ -352,5 +347,22 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
         -(MAX_SCORE-ply as Score)
     } else {
         alpha
+    }
+}
+
+fn send_info(search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, iterative_depth: u8, current_best: &mut MoveScore) {
+    if start_time.elapsed().as_millis() > 0 {
+        let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
+        let result = tx.send("info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
+            &*" depth ".to_string() + &*iterative_depth.to_string() +
+            &*" time ".to_string() + &*start_time.elapsed().as_millis().to_string() +
+            &*" nodes ".to_string() + &*search_state.nodes.to_string() +
+            &*" pv ".to_string() + &*algebraic_move_from_move(current_best.0).to_string() +
+            &*" nps ".to_string() + &*(nps as u64).to_string()
+        );
+        match result {
+            Err(_e) => {},
+            _ => {}
+        }
     }
 }
