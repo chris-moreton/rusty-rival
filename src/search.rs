@@ -68,7 +68,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant
 
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
         legal_moves = legal_moves.into_iter().map(|m| {
-            (m, -MAX_SCORE)
+            (m.0, -MAX_SCORE)
         }).collect();
 
         aspiration_window = (best.1 - ASPIRATION_RADIUS, best.1 + ASPIRATION_RADIUS)
