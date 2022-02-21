@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::sync::mpsc::{Sender};
 use std::thread::current;
 use std::time::{Instant};
@@ -157,8 +158,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
 
 #[inline(always)]
 pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
-    return;
-    if height >= existing_height || search_state.hash_table_version > existing_version {
+    if height >= existing_height || movescore.1.abs() < MATE_START && search_state.hash_table_version > existing_version {
         search_state.hash_table.insert(index, HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, });
     }
 }
@@ -196,11 +196,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                     hash_version = x.version;
                     if x.bound == BoundType::Exact  {
                         search_state.hash_hits_exact += 1;
-                        let adjusted_score =
-                            if x.score > MATE_START { x.score - ply as Score }
-                            else if x.score < -MATE_START { x.score + ply as Score }
-                            else { x.score };
-                        return adjusted_score;
+                        return x.score;
                     }
                     if x.bound == BoundType::Lower  { alpha = x.score }
                     if x.bound == BoundType::Upper  { beta = x.score }
@@ -262,31 +258,21 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         }
 
         if legal_move_count == 0 {
-            best_movescore.1 = if !is_check(position, position.mover) {
+            best_movescore.1 = if is_check(position, position.mover) {
                 -MAX_SCORE + ply as Score
             } else {
                 0
             }
         };
 
-        let hash_score = if hash_flag == Exact {
-            if best_movescore.1.abs() > MATE_START {
-                let root_mate_distance = MAX_SCORE - best_movescore.1.abs();
-                let this_mate_distance = root_mate_distance - ply as Score;
-                if best_movescore.1 > MATE_START {
-                    MAX_SCORE - this_mate_distance
-                } else {
-                    this_mate_distance - MAX_SCORE
-                }
-            } else {
-                best_movescore.1
-            }
-        } else {
-            best_movescore.1
-        };
-        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, (best_movescore.0, hash_score), search_state);
+        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
         best_movescore.1
     }
+}
+
+#[inline(always)]
+fn adjust_mate_hash_score(ply: u8, best_movescore: &MoveScore, hash_flag: &BoundType) -> Score {
+    best_movescore.1
 }
 
 #[inline(always)]
