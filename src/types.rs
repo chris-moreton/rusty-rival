@@ -60,6 +60,7 @@ pub struct SearchState {
     pub pv_score: Score,
     pub nodes: u64,
     pub hash_hits_exact: u64,
+    pub is_on_null_move: bool,
     pub history: PositionHistory,
 }
 
@@ -72,6 +73,7 @@ pub fn default_search_state() -> SearchState {
         pv_score: 0,
         nodes: 0,
         hash_hits_exact: 0,
+        is_on_null_move: false,
         history: vec![],
     }
 }

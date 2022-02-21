@@ -98,7 +98,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
         make_move(position, legal_moves[move_num].0, &mut new_position);
         search_state.history.push(new_position.zobrist_lock);
 
-        let score = -search(&new_position, iterative_depth, 1, (-aspiration_window.1, -aspiration_window.0), end_time, search_state, &tx, start_time, false);
+        let score = -search(&new_position, iterative_depth, 1, (-aspiration_window.1, -aspiration_window.0), end_time, search_state, &tx, start_time);
 
         search_state.history.pop();
         legal_moves[move_num].1 = score;
@@ -118,14 +118,14 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
 }
 
 #[inline(always)]
-pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, mv: Move, score: Score, search_state: &mut SearchState) {
+pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
-        search_state.hash_table.insert(index, HashEntry { score, version: search_state.hash_table_version, height, mv, bound, lock, });
+        search_state.hash_table.insert(index, HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, });
     }
 }
 
 #[inline(always)]
-pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, on_null_move: bool) -> Score {
+pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {
 
     search_state.nodes += 1;
     check_time!(search_state.nodes, end_time);
@@ -140,7 +140,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
 
         let index = zobrist_index(position.zobrist_lock);
 
-        let mut best_score = -(MAX_SCORE-ply as Score);
+        let mut best_movescore: MoveScore = (0,-(MAX_SCORE-ply as Score));
         let mut alpha = window.0;
         let mut beta = window.1;
         let mut hash_height = 0;
@@ -172,17 +172,18 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             }
         };
 
-        // if !on_null_move && depth > (NULL_MOVE_REDUCE_DEPTH + 2) && null_move_material(position) && !is_check(position, position.mover) {
-        //     let mut new_position = *position;
-        //     new_position.mover ^= 1;
-        //     let score = -search(&new_position, depth-1-NULL_MOVE_REDUCE_DEPTH, ply+1, (-beta, (-beta)+1), end_time, search_state, tx, start_time, true);
-        //     if score >= beta {
-        //         return beta;
-        //     }
-        //     new_position.mover ^= 1;
-        // }
+        if !search_state.is_on_null_move && depth > (NULL_MOVE_REDUCE_DEPTH + 2) && null_move_material(position) && !is_check(position, position.mover) {
+            let mut new_position = *position;
+            new_position.mover ^= 1;
+            search_state.is_on_null_move = true;
+            let score = -search(&new_position, depth-1-NULL_MOVE_REDUCE_DEPTH, ply+1, (-beta, (-beta)+1), end_time, search_state, tx, start_time);
+            if score >= beta {
+                return beta;
+            }
+            new_position.mover ^= 1;
+            search_state.is_on_null_move = false;
+        }
 
-        let mut best_move = 0;
         let mut move_scores: Vec<(Move, Score)> = moves(position).into_iter().map(|m| {
             (m, score_move(position, hash_move, m, search_state, ply as usize))
         }).collect();
@@ -196,25 +197,17 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             search_state.history.push(new_position.zobrist_lock);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let score = -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time, false);
+                let score = -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time);
                 search_state.history.pop();
                 check_time!(search_state.nodes, end_time);
-                if score > best_score {
-                    best_score = score;
-                    best_move = m;
-                    if best_score > alpha {
-                        alpha = best_score;
+                if score > best_movescore.1 {
+                    best_movescore = (m, score);
+                    if best_movescore.1 > alpha {
+                        alpha = best_movescore.1;
                         if alpha >= beta {
-                            store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_move, best_score, search_state);
-                            if search_state.killer_moves[ply as usize][0] != m {
-                                let opponent_index = opponent!(position.mover) as usize;
-                                let was_capture = position.pieces[opponent_index].all_pieces_bitboard != new_position.pieces[opponent_index].all_pieces_bitboard;
-                                if (m & PROMOTION_FULL_MOVE_MASK == 0) && !was_capture {
-                                    search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
-                                    search_state.killer_moves[ply as usize][0] = m;
-                                }
-                            }
-                            return best_score;
+                            store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
+                            update_killers(position, ply, search_state, m, &mut new_position);
+                            return best_movescore.1;
                         }
                         hash_flag = Exact;
                     }
@@ -224,25 +217,37 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             }
         }
         if legal_move_count == 0 && !is_check(position, position.mover) {
-            best_score = 0;
+            best_movescore.1 = 0;
         }
         let hash_score = if hash_flag == Exact {
-            if best_score.abs() > MATE_START {
-                let root_mate_distance = MAX_SCORE - best_score.abs();
+            if best_movescore.1.abs() > MATE_START {
+                let root_mate_distance = MAX_SCORE - best_movescore.1.abs();
                 let this_mate_distance = root_mate_distance - ply as Score;
-                if best_score > MATE_START {
+                if best_movescore.1 > MATE_START {
                     MAX_SCORE - this_mate_distance
                 } else {
                     this_mate_distance - MAX_SCORE
                 }
             } else {
-                best_score
+                best_movescore.1
             }
         } else {
-            best_score
+            best_movescore.1
         };
-        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_move, hash_score, search_state);
-        best_score
+        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, (best_movescore.0, hash_score), search_state);
+        best_movescore.1
+    }
+}
+
+#[inline(always)]
+fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, new_position: &mut Position) {
+    if search_state.killer_moves[ply as usize][0] != m {
+        let opponent_index = opponent!(position.mover) as usize;
+        let was_capture = position.pieces[opponent_index].all_pieces_bitboard != new_position.pieces[opponent_index].all_pieces_bitboard;
+        if (m & PROMOTION_FULL_MOVE_MASK == 0) && !was_capture {
+            search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
+            search_state.killer_moves[ply as usize][0] = m;
+        }
     }
 }
 
