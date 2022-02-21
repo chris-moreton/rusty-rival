@@ -1,4 +1,5 @@
 use std::sync::mpsc::{Sender};
+use std::thread::current;
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
@@ -43,6 +44,17 @@ macro_rules! check_time {
     }
 }
 
+pub const DEBUG: bool = false;
+
+#[macro_export]
+macro_rules! debug_out {
+    ($s:expr) => {
+        if DEBUG {
+            $s
+        }
+    }
+}
+
 pub const ASPIRATION_RADIUS: Score = 50;
 
 pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Move {
@@ -62,29 +74,53 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant
 
     let mut aspiration_window = (-MAX_SCORE, MAX_SCORE);
 
+    let mut current_best: MoveScore = (0, -MAX_SCORE);
+
     for iterative_depth in 1..=max_depth {
-        let mut best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, aspiration_window);
+        let mut aspire_best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, aspiration_window);
 
-        if time_remains!(end_time) && best.1 <= aspiration_window.0 {
-            best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, aspiration_window.1));
-        } else if time_remains!(end_time) && best.1 >= aspiration_window.1 {
-            best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (aspiration_window.0, MAX_SCORE));
-        }
+        debug_out!(println!("=========================================================================================================================="));
+        debug_out!(println!("Best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, aspiration_window.0, aspiration_window.1,
+                 algebraic_move_from_move(aspire_best.0), aspire_best.1));
 
-        if time_remains!(end_time) && best.1 <= aspiration_window.0 || best.1 >= aspiration_window.1 {
-            best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, MAX_SCORE));
-        }
+        if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+            current_best = aspire_best
+        } else {
+            if time_remains!(end_time) {
+                if aspire_best.1 <= aspiration_window.0 {
+                    debug_out!(println!("Failed low"));
+                    aspire_best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (-MAX_SCORE, aspiration_window.1));
+                    debug_out!(println!("Research gives best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, -MAX_SCORE, aspiration_window.1,
+                             algebraic_move_from_move(aspire_best.0), aspire_best.1));
+                } else if aspire_best.1 >= aspiration_window.1 {
+                    debug_out!(println!("Failed high"));
+                    aspire_best = start_search(position, &mut legal_moves, end_time, search_state, tx, iterative_depth, start_time, (aspiration_window.0, MAX_SCORE));
+                    debug_out!(println!("Research gives best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, aspiration_window.0, MAX_SCORE,
+                             algebraic_move_from_move(aspire_best.0), aspire_best.1));
+                };
+            }
+            if time_remains!(end_time) {
+                current_best = aspire_best
+            }
+        };
 
         if time_expired!(end_time) {
-            return best.0
+            if current_best.0 == 0 {
+                panic!("Didn't have time to do anything.")
+            }
+            debug_out!(println!("Time expired, returning {}", algebraic_move_from_move(current_best.0)));
+            return current_best.0
         }
 
+        debug_out!(println!("Sorting legal_moves"));
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
+        debug_out!(println!("Resetting scores to minimum"));
         legal_moves = legal_moves.into_iter().map(|m| {
             (m.0, -MAX_SCORE)
         }).collect();
 
-        aspiration_window = (best.1 - ASPIRATION_RADIUS, best.1 + ASPIRATION_RADIUS)
+        debug_out!(println!("Setting aspiration window to ({},{})", current_best.1 - ASPIRATION_RADIUS, current_best.1 + ASPIRATION_RADIUS));
+        aspiration_window = (current_best.1 - ASPIRATION_RADIUS, current_best.1 + ASPIRATION_RADIUS)
     }
 
     legal_moves[0].0
@@ -105,7 +141,9 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
         if score > current_best.1 {
             if time_remains!(end_time) {
                 current_best = legal_moves[move_num];
-                send_info(search_state, tx, start_time, iterative_depth, &mut current_best)
+                if score > aspiration_window.0 && score < aspiration_window.1 {
+                    send_info(search_state, tx, start_time, iterative_depth, &mut current_best)
+                }
             }
         }
 
@@ -119,6 +157,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
 
 #[inline(always)]
 pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
+    return;
     if height >= existing_height || search_state.hash_table_version > existing_version {
         search_state.hash_table.insert(index, HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, });
     }
@@ -142,7 +181,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
 
         let index = zobrist_index(position.zobrist_lock);
 
-        let mut best_movescore: MoveScore = (0,-(MAX_SCORE-ply as Score));
+        let mut best_movescore: MoveScore = (0,-MAX_SCORE);
         let mut alpha = window.0;
         let mut beta = window.1;
         let mut hash_height = 0;
@@ -195,6 +234,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
 
         let mut legal_move_count = 0;
+
         for m in move_list {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
@@ -220,9 +260,15 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                 search_state.history.pop();
             }
         }
-        if legal_move_count == 0 && !is_check(position, position.mover) {
-            best_movescore.1 = 0;
-        }
+
+        if legal_move_count == 0 {
+            best_movescore.1 = if !is_check(position, position.mover) {
+                -MAX_SCORE + ply as Score
+            } else {
+                0
+            }
+        };
+
         let hash_score = if hash_flag == Exact {
             if best_movescore.1.abs() > MATE_START {
                 let root_mate_distance = MAX_SCORE - best_movescore.1.abs();
@@ -340,7 +386,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
     }
 
     if legal_move_count == 0 && in_check {
-        -(MAX_SCORE-ply as Score)
+        -MAX_SCORE + ply as Score
     } else {
         alpha
     }

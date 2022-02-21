@@ -1,0 +1,30 @@
+i
+info score cp 1076 depth 4 time 1 nodes 15896 pv c3c4 nps 15896000
+info score cp 1075 depth 5 time 5 nodes 120302 pv c3c4 nps 24060400
+info score cp 1085 depth 6 time 20 nodes 337732 pv c3c4 nps 16886600
+info score cp 1085 depth 7 time 108 nodes 2978806 pv c3c4 nps 27581537
+info score cp 1135 depth 8 time 559 nodes 9353027 pv c3c4 nps 16731711
+info score cp 1822 depth 8 time 3669 nodes 105812620 pv c3c4 nps 28839634
+info score cp 1822 depth 8 time 7220 nodes 220217413 pv c3c4 nps 30501026
+info score cp 1822 depth 9 time 10918 nodes 332525346 pv c3c4 nps 30456617
+info score cp 29991 depth 9 time 10924 nodes 332600405 pv b5c4 nps 30446759
+info score cp 1822 depth 9 time 15649 nodes 387326157 pv c3c4 nps 24750856
+info score cp 29991 depth 9 time 15776 nodes 389319826 pv b5c4 nps 24677980
+
+
+==========================================================================================================================
+Best at depth 8 within aspiration window (1035,1135) is c3c4 with score of 1135
+Failed high
+info score cp 1822 depth 8 time 3893 nodes 105812620 pv c3c4 nps 27180226
+Research gives best at depth 8 within aspiration window (1035,30000) is c3c4 with score of 1822
+Still failed with a score of 1822
+info score cp 1822 depth 8 time 7895 nodes 220217413 pv c3c4 nps 27893275
+Research gives best at depth 8 within aspiration window (-30000,30000) is c3c4 with score of 1822
+Sorting legal_moves
+Resetting scores to minimum
+Setting aspiration window to (1772,1872)
+info score cp 1822 depth 9 time 11838 nodes 332525346 pv c3c4 nps 28089655
+info score cp 29991 depth 9 time 11844 nodes 332600405 pv b5c4 nps 28081763
+==========================================================================================================================
+
+
