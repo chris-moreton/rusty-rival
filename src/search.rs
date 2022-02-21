@@ -40,7 +40,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant
         make_move(position, *m, &mut new_position);
         !is_check(&new_position, position.mover)
     }).map(|m| {
-        (m, 0)
+        (m, -MAX_SCORE)
     }).collect();
 
     if search_state.history.len() == 0 {
@@ -67,6 +67,9 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant
         }
 
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
+        legal_moves = legal_moves.into_iter().map(|m| {
+            (m, -MAX_SCORE)
+        }).collect();
 
         aspiration_window = (best.1 - ASPIRATION_RADIUS, best.1 + ASPIRATION_RADIUS)
     }
@@ -87,7 +90,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
         search_state.history.pop();
         legal_moves[move_num].1 = score;
         if score > current_best.1 {
-            if Instant::now() < end_time {
+            if time_remains!(end_time) {
                 current_best = legal_moves[move_num];
                 send_info(search_state, tx, start_time, iterative_depth, &mut current_best)
             }
