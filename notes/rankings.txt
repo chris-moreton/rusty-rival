@@ -1,0 +1,68 @@
+Rank Name                                                              Elo    +    - games score oppo. draws
+   1 Rival (build v1.0.3)                                              419    9    9 57753   98%  -398    2%
+   2 Rival 1.0.3 |No-Replace-Hash|                                     414   62   62    77   49%   419   42% 
+   3 Rival 1.0.3 |No-Aspiration|                                       390   29   30   333   45%   419   46% 
+   4 Rusty Rival |20220221-02-Aspiration-Window-No-Null-Move|          216   34   34   277   61%   142   31% 
+   5 Rusty Rival |20220221-06-Null-Move-Tweak|                         181   15   15  1438   50%   178   38% 
+   6 Rusty Rival |20220221-10-All-Kinds-Of-Mate-Distance-Issues|       178   25   25   502   50%   181   36% 
+   7 Rusty Rival |20220221-04-Benchmark|                               177   15   15  1360   48%   193   40% 
+   8 Rusty Rival |20220221-05-Possible-Null-Move-Fix|                  171   29   29   341   49%   177   45% 
+   9 Rusty Rival |20220219-01-Simple-Pawn-Shield|                      171   26   26   466   50%   170   30% 
+  10 Rusty Rival |20220218-04-Delta-Pruning-Fix|                       170    9    9  4446   44%   216   30% 
+  11 Rusty Rival |20220219-02-Mate-Check-In-Q|                         170   20   20   827   50%   170   34% 
+  12 Rusty Rival |20220220-01-King-Threats|                            167   24   24   547   51%   158   35% 
+  13 Rusty Rival |20220218-01-Batch-Scale-Pawn-Piece-Squares-As-Int|   157   12   12  2539   50%   159   32% 
+  14 Rusty Rival |20220217-03-Bishop-Mobility|                         157   12   12  2503   50%   155   34% 
+  15 Rusty Rival |20220218-03-Delta-Pruning|                           156   20   20   816   50%   157   33% 
+  16 Rusty Rival |20220217-01-Hashlock-128|                            156   13   13  2000   50%   155   32% 
+  17 Rusty Rival |20220217-04-Batch-Scale-Pawn-Piece-Squares|          155   18   18  1000   50%   157   36% 
+  18 Rusty Rival |20220216-02-Doubled-Rooks|                           154   13   13  2000   50%   154   32% 
+  19 Rusty Rival |20220220-02-King-Threats-Draw-Fix|                   153   18   18   977   49%   159   35% 
+  20 Rusty Rival |20220220-03-Hash-Version|                            153   13   13  2322   63%    58   28% 
+  21 Rusty Rival |20220218-02-Delta-Pruning|                           152   41   41   190   49%   157   31% 
+  22 Rusty Rival |20220215-03-Return-Current-Best|                     151   10   10  3998   47%   179   27% 
+  23 Rusty Rival |20220220-05-Aspiration-Window-Reverted|              143   48   48   135   48%   153   34% 
+  24 Rusty Rival |20220219-03-NegaScout|                               140   18   18  1000   45%   170   33% 
+  25 Rusty Rival |20220216-01-Trade-Bonuses|                           135   22   22   689   48%   151   32% 
+  26 rusty-rival-202202080-02                                          125  292  582     3    0%   419    0% 
+  27 Rusty Rival |20220221-03-No-Aspiration-No-Null|                   106   67   70    69   33%   216   32% 
+  28 Rusty Rival |20220214-03-All-Piece-Square-Tables-Remove-Println    90   14   13  1903   52%    77   29% 
+  29 rusty-rival-202202080-03                                           90  274  582     4    0%   419    0% 
+  30 Rusty Rival |20220214-02-Rook-Bishop-Piece-Squares|                81   13   12  2585   61%   -14   25% 
+  31 Rusty Rival |20220215-01-Faster-Quiesce-Move-Scoring|              73   15   16  1375   44%   112   30% 
+  32 Rusty Rival |20220214-01-Pawn-Piece-Squares|                       43   16   16  1416   42%   112   25% 
+  33 Rusty Rival |20220221-02-Aspiration-Window-Move-Score-Fix|         37   58   61    98   34%   153   27% 
+  34 rusty-rival-202202080-04                                           21  254  581     6    0%   419    0% 
+  35 Rusty Rival |20220216-01-Doubled-Rooks|                            16   21   22   811   31%   151   22% 
+  36 Rusty Rival |20220220-05-Aspiration-Window|                       -15   35   36   298   27%   153   25% 
+  37 Rusty Rival |20220220-05-Aspiration-Window-Move-Sort-Fix|         -17   20   20  1000   27%   153   23% 
+  38 Rusty Rival |20220218-03-Delta-Pruning-Fixed|                     -39  103  118    30   20%   157   33% 
+  39 rusty-rival-20220210-12                                           -53   87  113   123    4%   419    8% 
+  40 Rusty Rival |20220213-05-Killers-From-Two-Ply-Previous|           -64   14   14  2211   29%   158   38% 
+  41 Rusty Rival |20220213-02-Attacker-Bonus|                          -64   47   47   110   53%   -79   71% 
+  42 rusty-rival-20220211-03                                           -68   44   49   606    4%   419    7% 
+  43 Rusty Rival |20220213-04-Order-Quiesce-Moves|                     -75   16   16  1000   51%   -79   70% 
+  44 Rusty Rival |20220212-03-Clear-Hash-On-New-Game|                  -79    9    9  4930   47%   -31   47% 
+  45 Rusty Rival |20220213-01-Killer-Moves|                            -80   20   20   655   50%   -79   67% 
+  46 Rusty Rival |20220212-01-Doubled-Pawn-Overflow-Fix|               -81   33   33   234   57%  -118   63% 
+  47 rusty-rival-20220211-01                                           -86   58   69   356    4%   419    6% 
+  48 Rusty Rival |20220212-02-Nodes-Fix-1|                             -86   29   28   325   56%  -118   61% 
+  49 Rusty Rival |20220213-03-Hash-Mate-Adjusts|                       -92   41   41   147   48%   -79   69% 
+  50 rusty-rival-20220210-10                                          -102  112  161    89    3%   419    6% 
+  51 Rusty Rival 07-NODP                                              -107   39   39   159   53%  -118   74% 
+  52 Rusty Rival |20220211-STAMP|                                     -107   43   49   775    3%   419    6% 
+  53 rusty-rival-20220210-11                                          -114   89  119   160    3%   419    6% 
+  54 Rusty Rival                                                      -118   16   16  1079   48%  -110   61% 
+  55 Rusty Rival Doubled Pawns Again                                  -119   58   58    72   47%  -107   72% 
+  56 rusty-rival-20220210-13                                          -127   52   62   558    3%   419    5% 
+  57 rusty-rival-20220210-14                                          -144   79  102   251    3%   419    4% 
+  58 Rusty Rival NMRD-2                                               -156   68   69    54   43%  -118   67% 
+  59 Rusty Rival Doubled Pawns                                        -197   42   43   156   36%  -118   54% 
+  60 Rusty Rival NOQ                                                  -273   97  107    31   24%  -118   42% 
+  61 Rusty Rival |20220214-03-All-Piece-Square-Tables|                -298   35   38   574    9%    81   12% 
+  62 rusty-rival-20220209-02                                          -389   28   31 10000    1%   419    1% 
+  63 rusty-rival-20220209-01                                          -396   28   31 10100    1%   419    1% 
+  64 Rival Haskell Build -                                            -409   27   28   826   11%   -79   17% 
+  65 rusty-rival-20220210-01                                          -416   30   33 10000    0%   419    1% 
+  66 rusty-rival-202202080-06                                         -525   41   47 10000    0%   419    0% 
+  67 rusty-rival-202202080-05                                         -573   47   56 10009    0%   419    0% 
