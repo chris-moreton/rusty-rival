@@ -288,7 +288,7 @@ fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, 
 
 #[inline(always)]
 fn null_move_material(position: &Position) -> bool {
-    side_total_non_pawn_values(position, WHITE) >= 2 && side_total_non_pawn_values(position, BLACK) >= 2
+    side_total_non_pawn_values(position, position.mover) >= 1
 }
 
 #[inline(always)]
