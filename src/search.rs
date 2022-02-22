@@ -135,7 +135,8 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
         make_move(position, legal_moves[move_num].0, &mut new_position);
         search_state.history.push(new_position.zobrist_lock);
 
-        let score = -search(&new_position, iterative_depth, 1, (-aspiration_window.1, -aspiration_window.0), end_time, search_state, &tx, start_time);
+        let mut score = -search(&new_position, iterative_depth, 1, (-aspiration_window.1, -aspiration_window.0), end_time, search_state, &tx, start_time);
+        if score > MATE_START { score -= 1 } else if score < -MATE_START { score += 1 };
 
         search_state.history.pop();
         legal_moves[move_num].1 = score;
@@ -158,7 +159,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, end_ti
 
 #[inline(always)]
 pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
-    if height >= existing_height || movescore.1.abs() < MATE_START && search_state.hash_table_version > existing_version {
+    if height >= existing_height && search_state.hash_table_version > existing_version {
         search_state.hash_table.insert(index, HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, });
     }
 }
@@ -196,7 +197,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                     hash_version = x.version;
                     if x.bound == BoundType::Exact  {
                         search_state.hash_hits_exact += 1;
-                        return x.score;
+                        return if x.score > MATE_START { x.score - ply as Score } else if x.score < -MATE_START { x.score + ply as Score } else { x.score }
                     }
                     if x.bound == BoundType::Lower  { alpha = x.score }
                     if x.bound == BoundType::Upper  { beta = x.score }
@@ -215,7 +216,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             let mut new_position = *position;
             new_position.mover ^= 1;
             search_state.is_on_null_move = true;
-            let score = -search(&new_position, depth-1-NULL_MOVE_REDUCE_DEPTH, ply+1, (-beta, (-beta)+1), end_time, search_state, tx, start_time);
+            let mut score = -search(&new_position, depth-1-NULL_MOVE_REDUCE_DEPTH, ply+1, (-beta, (-beta)+1), end_time, search_state, tx, start_time);
+            if score > MATE_START { score -= 1 } else if score < -MATE_START { score += 1 };
             if score >= beta {
                 return beta;
             }
@@ -237,7 +239,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             search_state.history.push(new_position.zobrist_lock);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let score = -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time);
+                let mut score = -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time);
+                if score > MATE_START { score -= 1 } else if score < -MATE_START { score += 1 };
                 search_state.history.pop();
                 check_time!(search_state.nodes, end_time);
                 if score > best_movescore.1 {
@@ -247,7 +250,11 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                         if alpha >= beta {
                             store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
                             update_killers(position, ply, search_state, m, &mut new_position);
-                            return best_movescore.1;
+                            return if best_movescore.1 > 0 {
+                                best_movescore.1 - ply as Score
+                            } else {
+                                best_movescore.1 + ply as Score
+                            }
                         }
                         hash_flag = Exact;
                     }
@@ -258,14 +265,13 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         }
 
         if legal_move_count == 0 {
-            best_movescore.1 = if is_check(position, position.mover) {
-                -MAX_SCORE + ply as Score
-            } else {
-                0
+            if !is_check(position, position.mover) {
+                best_movescore.1 = 0
             }
         };
 
         store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
+
         best_movescore.1
     }
 }
