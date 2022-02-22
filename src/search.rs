@@ -210,16 +210,18 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
 
         if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !is_check(position, position.mover) {
-            let mut new_position = *position;
-            new_position.mover ^= 1;
-            search_state.is_on_null_move = true;
-            let mut score = -search(&new_position, depth-1-NULL_MOVE_REDUCE_DEPTH, ply+1, (-beta, (-beta)+1), end_time, search_state, tx, start_time);
-            score = adjust_mate_score_for_ply(1, score);
-            if score >= beta {
-                return beta;
+            if evaluate(position) > beta {
+                let mut new_position = *position;
+                new_position.mover ^= 1;
+                //search_state.is_on_null_move = true;
+                let mut score = -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), end_time, search_state, tx, start_time);
+                score = adjust_mate_score_for_ply(1, score);
+                if score >= beta {
+                    return beta;
+                }
+                new_position.mover ^= 1;
+                //search_state.is_on_null_move = false;
             }
-            new_position.mover ^= 1;
-            search_state.is_on_null_move = false;
         }
 
         let mut move_scores: Vec<(Move, Score)> = moves(position).into_iter().map(|m| {
@@ -288,7 +290,7 @@ fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, 
 
 #[inline(always)]
 fn null_move_material(position: &Position) -> bool {
-    side_total_non_pawn_values(position, position.mover) >= 1
+    side_total_non_pawn_values(position, position.mover) >= 2
 }
 
 #[inline(always)]
