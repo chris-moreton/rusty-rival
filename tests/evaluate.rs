@@ -1,8 +1,6 @@
-use rusty_rival::bitboards::{D6_BIT, E4_BIT, E7_BIT, F3_BIT, F5_BIT, F6_BIT, G3_BIT, G5_BIT};
 use rusty_rival::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use rusty_rival::evaluate::{on_same_file_count, material, material_score, pawn_score};
 use rusty_rival::fen::get_position;
-use rusty_rival::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use rusty_rival::types::{BLACK, WHITE};
 
 #[test]

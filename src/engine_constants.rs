@@ -1,5 +1,7 @@
 use crate::types::Score;
 
+pub const DEBUG: bool = false;
+
 pub const PAWN_VALUE: Score = 100;
 pub const KNIGHT_VALUE: Score = 350;
 pub const BISHOP_VALUE: Score = 350;

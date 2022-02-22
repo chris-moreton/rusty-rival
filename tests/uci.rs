@@ -15,6 +15,19 @@ pub fn it_sets_a_fen() {
 }
 
 #[test]
+pub fn it_tests() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+
+    assert_eq!(run_command_test(&mut uci_state, &mut search_state, "st03"), Right(None));
+    let result = run_command_test(&mut uci_state, &mut search_state, "go depth 7");
+
+    assert_success_message(result, |message| {
+        message.contains("bestmove d3e3")
+    });
+}
+
+#[test]
 pub fn it_knows_legal_moves() {
     let position = &get_position("r3k1nr/pppp1ppp/1bn5/4p1q1/3PP3/1BNB1N1b/PPP1QPPP/R4RK1 w kq - 0 1");
     assert!(is_legal_move(position, "a1b1"));

@@ -1,9 +1,7 @@
-use std::cmp::max;
 use std::sync::mpsc::{Sender};
-use std::thread::current;
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{DEBUG, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{zobrist_index};
@@ -45,8 +43,6 @@ macro_rules! check_time {
     }
 }
 
-pub const DEBUG: bool = false;
-
 #[macro_export]
 macro_rules! debug_out {
     ($s:expr) => {
@@ -59,6 +55,7 @@ macro_rules! debug_out {
 pub const ASPIRATION_RADIUS: Score = 50;
 
 pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>) -> Move {
+
     let start_time = Instant::now();
 
     let mut legal_moves: MoveScoreList = moves(position).into_iter().filter(|m| {
@@ -278,11 +275,6 @@ fn adjust_mate_score_for_ply(ply: u8, score: Score) -> Score {
 }
 
 #[inline(always)]
-fn adjust_mate_hash_score(ply: u8, best_movescore: &MoveScore, hash_flag: &BoundType) -> Score {
-    best_movescore.1
-}
-
-#[inline(always)]
 fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, new_position: &mut Position) {
     if search_state.killer_moves[ply as usize][0] != m {
         let opponent_index = opponent!(position.mover) as usize;
@@ -388,13 +380,15 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
 fn send_info(search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant, iterative_depth: u8, current_best: &mut MoveScore) {
     if start_time.elapsed().as_millis() > 0 {
         let nps = (search_state.nodes as f64 / start_time.elapsed().as_millis() as f64) * 1000.0;
-        let result = tx.send("info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
+        let s = "info score cp ".to_string() + &*(current_best.1 as i64).to_string() +
             &*" depth ".to_string() + &*iterative_depth.to_string() +
             &*" time ".to_string() + &*start_time.elapsed().as_millis().to_string() +
             &*" nodes ".to_string() + &*search_state.nodes.to_string() +
             &*" pv ".to_string() + &*algebraic_move_from_move(current_best.0).to_string() +
-            &*" nps ".to_string() + &*(nps as u64).to_string()
-        );
+            &*" nps ".to_string() + &*(nps as u64).to_string();
+
+        let result = tx.send(s.clone());
+        debug_out!(println!("{}", s));
         match result {
             Err(_e) => {},
             _ => {}

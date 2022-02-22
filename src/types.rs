@@ -67,7 +67,7 @@ pub struct SearchState {
 pub fn default_search_state() -> SearchState {
     SearchState {
         hash_table: Default::default(),
-        hash_table_version: 0,
+        hash_table_version: 1,
         killer_moves: [[0,0]; MAX_DEPTH as usize],
         pv: vec![],
         pv_score: 0,

@@ -1,9 +1,6 @@
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_scores::{BIT_FLIPPED_HORIZONTAL_AXIS, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_STAGE_MATERIAL_LOW, OPENING_PHASE_MATERIAL, PAWN_STAGE_MATERIAL_HIGH, PAWN_STAGE_MATERIAL_LOW};
 use crate::{get_and_unset_lsb};
-use crate::evaluate::VALUE_BISHOP_MOBILITY;
-use crate::magic_bitboards::magic_moves_bishop;
-use crate::make_move::all_pieces;
 use crate::types::{BLACK, Pieces, Position, Score, Square, WHITE};
 use crate::utils::{linear_scale};
 

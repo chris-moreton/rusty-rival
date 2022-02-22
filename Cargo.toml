@@ -12,7 +12,7 @@ opt-level = 3
 
 [profile.test]
 debug = false
-opt-level = 3
+opt-level = 0
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

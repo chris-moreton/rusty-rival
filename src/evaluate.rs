@@ -1,11 +1,7 @@
-use crate::bitboards::{bit, KNIGHT_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_1_BITS, south_fill};
-use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_TRADE_BONUS_MAX, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_ROOKS_ON_SAME_FILE};
-use crate::move_scores::TOTAL_PIECE_VALUE_PER_SIDE_AT_START;
-use crate::{get_and_unset_lsb, opponent};
-use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
+use crate::bitboards::{RANK_1_BITS, south_fill};
+use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_ROOKS_ON_SAME_FILE};
 use crate::piece_square_tables::piece_square_values;
-use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, Square, WHITE};
-use crate::utils::linear_scale;
+use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 2, 6, 10, 13, 16, 18, 20, 22, 23, 24];
 

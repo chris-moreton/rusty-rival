@@ -11,7 +11,7 @@ use crate::make_move::make_move;
 use crate::move_constants::{START_POS};
 use crate::moves::{is_check, moves};
 use crate::perft::perft;
-use crate::search::{iterative_deepening, start_search};
+use crate::search::{iterative_deepening};
 use crate::types::{Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
@@ -31,6 +31,9 @@ fn replace_shortcuts(l: &str) -> &str {
         "tf01" => "position fen 3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1",
         "tf02" => "position fen 3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1",
         "tf03" => "position fen 3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1 moves d4f2 e1d2 f2e3 d2e1 e3f2 e1d2",
+        "st01" => "position fen 8/8/8/8/4Q3/2P4k/8/5K2 w - - 0 1",
+        "st02" => "position fen 8/8/8/8/4Q3/2P3k1/4K3/8 w - - 0 1",
+        "st03" => "position fen 8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1",
         "bench01" => "position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
         "bench02" => "position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
         "bench03" => "position fen 8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28",
