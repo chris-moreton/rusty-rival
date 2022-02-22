@@ -197,7 +197,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                     hash_version = x.version;
                     if x.bound == BoundType::Exact  {
                         search_state.hash_hits_exact += 1;
-                        return if x.score > MATE_START { x.score - ply as Score } else if x.score < -MATE_START { x.score + ply as Score } else { x.score }
+                        return x.score
                     }
                     if x.bound == BoundType::Lower  { alpha = x.score }
                     if x.bound == BoundType::Upper  { beta = x.score }
@@ -217,7 +217,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             new_position.mover ^= 1;
             search_state.is_on_null_move = true;
             let mut score = -search(&new_position, depth-1-NULL_MOVE_REDUCE_DEPTH, ply+1, (-beta, (-beta)+1), end_time, search_state, tx, start_time);
-            if score > MATE_START { score -= 1 } else if score < -MATE_START { score += 1 };
+            score = adjust_mate_score_for_ply(1, score);
             if score >= beta {
                 return beta;
             }
@@ -240,7 +240,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
                 let mut score = -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time);
-                if score > MATE_START { score -= 1 } else if score < -MATE_START { score += 1 };
+                score = adjust_mate_score_for_ply(1, score);
                 search_state.history.pop();
                 check_time!(search_state.nodes, end_time);
                 if score > best_movescore.1 {
@@ -250,11 +250,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                         if alpha >= beta {
                             store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
                             update_killers(position, ply, search_state, m, &mut new_position);
-                            return if best_movescore.1 > 0 {
-                                best_movescore.1 - ply as Score
-                            } else {
-                                best_movescore.1 + ply as Score
-                            }
+                            return best_movescore.1;
                         }
                         hash_flag = Exact;
                     }
@@ -272,8 +268,13 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
 
         store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
 
-        best_movescore.1
+        adjust_mate_score_for_ply(0, best_movescore.1)
     }
+}
+
+#[inline(always)]
+fn adjust_mate_score_for_ply(ply: u8, score: Score) -> Score {
+    if score > MATE_START { score - ply as Score } else if score < -MATE_START { score + ply as Score } else { score }
 }
 
 #[inline(always)]
@@ -365,7 +366,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let score = -quiesce(&new_position, depth - 1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time);
+                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time));
                 check_time!(search_state.nodes, end_time);
                 if score >= beta {
                     return beta;
