@@ -17,6 +17,7 @@ pub type HashLock = u128;
 pub type MoveScore = (Move, Score);
 pub type MoveScoreList = Vec<MoveScore>;
 pub type PositionHistory = Vec<HashLock>;
+pub type HistoryScore = i64;
 
 pub struct UciState {
     pub fen: String,
@@ -56,6 +57,8 @@ pub struct SearchState {
     pub hash_table: HashMap<HashIndex, HashEntry>,
     pub hash_table_version: u32,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
+    pub history_moves: [[[HistoryScore; 64]; 64]; 2],
+    pub highest_history_score: HistoryScore,
     pub pv: Path,
     pub pv_score: Score,
     pub nodes: u64,
@@ -69,6 +72,8 @@ pub fn default_search_state() -> SearchState {
         hash_table: Default::default(),
         hash_table_version: 1,
         killer_moves: [[0,0]; MAX_DEPTH as usize],
+        history_moves: [[[0; 64]; 64]; 2],
+        highest_history_score: 0,
         pv: vec![],
         pv_score: 0,
         nodes: 0,

@@ -12,7 +12,7 @@ use crate::moves::{is_check, moves, quiesce_moves};
 use crate::opponent;
 use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK, Mover};
 use crate::types::BoundType::{Exact, Lower, Upper};
-use crate::utils::{captured_piece_value};
+use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
 pub const MAX_SCORE: Score = 30000;
 pub const MATE_MARGIN: Score = 1000;
@@ -65,6 +65,15 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, end_time: Instant
     }).map(|m| {
         (m, -MAX_SCORE)
     }).collect();
+
+    for i in 0..2 as usize {
+        for j in 0..64 as usize {
+            for k in 0..64 as usize {
+                search_state.history_moves[i][j][k] = 0;
+            }
+        }
+    }
+    search_state.highest_history_score = 0;
 
     if search_state.history.len() == 0 {
         search_state.history.push(position.zobrist_lock)
@@ -213,14 +222,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             if evaluate(position) > beta {
                 let mut new_position = *position;
                 new_position.mover ^= 1;
-                //search_state.is_on_null_move = true;
                 let mut score = -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), end_time, search_state, tx, start_time);
                 score = adjust_mate_score_for_ply(1, score);
                 if score >= beta {
                     return beta;
                 }
                 new_position.mover ^= 1;
-                //search_state.is_on_null_move = false;
             }
         }
 
@@ -248,6 +255,17 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                         alpha = best_movescore.1;
                         if alpha >= beta {
                             store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
+
+                            if depth < 8 && captured_piece_value(position, m) == 0 {
+                                let f = from_square_part(m) as usize;
+                                let t = to_square_part(m) as usize;
+                                search_state.history_moves[position.mover as usize][f][t] += 1 << depth;
+
+                                if search_state.history_moves[position.mover as usize][f][t] > search_state.highest_history_score {
+                                    search_state.highest_history_score = search_state.history_moves[position.mover as usize][f][t];
+                                }
+                            }
+
                             update_killers(position, ply, search_state, m, &mut new_position);
                             return best_movescore.1;
                         }

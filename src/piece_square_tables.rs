@@ -227,7 +227,7 @@ pub fn white_pawn_piece_square_values(position: &Position, nppv: Score) -> Score
         min_total += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
         max_total += PAWN_PIECE_SQUARE_TABLE[sq];
     }
-    linear_scale(nppv * pawn_count, PAWN_STAGE_MATERIAL_LOW * pawn_count, PAWN_STAGE_MATERIAL_HIGH * pawn_count, min_total, max_total)
+    linear_scale((nppv * pawn_count) as i64, (PAWN_STAGE_MATERIAL_LOW * pawn_count) as i64, (PAWN_STAGE_MATERIAL_HIGH * pawn_count) as i64, min_total as i64, max_total as i64) as Score
 }
 
 #[inline(always)]
@@ -242,7 +242,7 @@ pub fn black_pawn_piece_square_values(position: &Position, nppv: Score) -> Score
         min_total += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
         max_total += PAWN_PIECE_SQUARE_TABLE[sq];
     }
-    linear_scale(nppv * pawn_count, PAWN_STAGE_MATERIAL_LOW * pawn_count, PAWN_STAGE_MATERIAL_HIGH * pawn_count, min_total, max_total)
+    linear_scale((nppv * pawn_count) as i64, (PAWN_STAGE_MATERIAL_LOW * pawn_count) as i64, (PAWN_STAGE_MATERIAL_HIGH * pawn_count) as i64, min_total as i64, max_total as i64) as Score
 }
 
 #[inline(always)]
@@ -251,7 +251,7 @@ pub fn white_knight_piece_square_values(position: &Position, pv: Score) -> Score
     let mut score = 0;
     while bb != 0 {
         let sq = get_and_unset_lsb!(bb) as usize;
-        score += linear_scale(pv, KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
+        score += linear_scale(pv as i64, KNIGHT_STAGE_MATERIAL_LOW as i64, KNIGHT_STAGE_MATERIAL_HIGH as i64, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq] as i64, KNIGHT_PIECE_SQUARE_TABLE[sq] as i64) as Score
     }
     score
 }
@@ -262,7 +262,7 @@ pub fn black_knight_piece_square_values(position: &Position, pv: Score) -> Score
     let mut score = 0;
     while bb != 0 {
         let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        score += linear_scale(pv, KNIGHT_STAGE_MATERIAL_LOW, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq], KNIGHT_PIECE_SQUARE_TABLE[sq])
+        score += linear_scale(pv as i64, KNIGHT_STAGE_MATERIAL_LOW as i64, KNIGHT_STAGE_MATERIAL_HIGH as i64, KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq] as i64, KNIGHT_PIECE_SQUARE_TABLE[sq] as i64) as Score
     }
     score
 }
@@ -270,11 +270,11 @@ pub fn black_knight_piece_square_values(position: &Position, pv: Score) -> Score
 #[inline(always)]
 pub fn white_king_piece_square_values(position: &Position, nppv: Score) -> Score {
     let sq = position.pieces[WHITE as usize].king_square as usize;
-    linear_scale(nppv, ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq])
+    linear_scale(nppv as i64, ROOK_VALUE as i64, OPENING_PHASE_MATERIAL as i64, KING_END_GAME_PIECE_SQUARE_TABLE[sq] as i64, KING_PIECE_SQUARE_TABLE[sq] as i64) as Score
 }
 
 #[inline(always)]
 pub fn black_king_piece_square_values(position: &Position, nppv: Score) -> Score {
     let sq = BIT_FLIPPED_HORIZONTAL_AXIS[position.pieces[BLACK as usize].king_square as usize] as usize;
-    linear_scale(nppv, ROOK_VALUE, OPENING_PHASE_MATERIAL, KING_END_GAME_PIECE_SQUARE_TABLE[sq], KING_PIECE_SQUARE_TABLE[sq])
+    linear_scale(nppv as i64, ROOK_VALUE as i64, OPENING_PHASE_MATERIAL as i64, KING_END_GAME_PIECE_SQUARE_TABLE[sq] as i64, KING_PIECE_SQUARE_TABLE[sq] as i64) as Score
 }

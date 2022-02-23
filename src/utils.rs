@@ -119,7 +119,7 @@ pub fn hydrate_move_from_algebraic_move(position: &Position, algebraic_move: Str
 }
 
 #[inline(always)]
-pub fn linear_scale(value: Score, domain_min: Score, domain_max: Score, target_min: Score, target_max: Score) -> Score {
+pub fn linear_scale(value: i64, domain_min: i64, domain_max: i64, target_min: i64, target_max: i64) -> i64 {
     if value <= domain_min {
         target_min
     } else if value >= domain_max {
