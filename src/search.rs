@@ -3,14 +3,14 @@ use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{DEBUG, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
-use crate::fen::algebraic_move_from_move;
-use crate::hash::{zobrist_index};
+use crate::fen::{algebraic_move_from_move};
+use crate::hash::{zobrist_index, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
 use crate::move_constants::PROMOTION_FULL_MOVE_MASK;
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves};
 use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK, Mover, HistoryScore};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, Mover, HistoryScore};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
@@ -198,18 +198,23 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         let hash_entry = search_state.hash_table.get(&index);
         let hash_move = match hash_entry {
             Some(x) => {
-                if x.lock == position.zobrist_lock && x.height >= depth {
-                    hash_height = x.height;
-                    hash_version = x.version;
-                    if x.bound == BoundType::Exact  {
-                        search_state.hash_hits_exact += 1;
-                        return x.score
+                if x.lock == position.zobrist_lock {
+                    if x.height >= depth {
+                        hash_height = x.height;
+                        hash_version = x.version;
+                        if x.bound == BoundType::Exact {
+                            search_state.hash_hits_exact += 1;
+                            return x.score
+                        }
+                        if x.bound == BoundType::Lower { alpha = x.score }
+                        if x.bound == BoundType::Upper { beta = x.score }
+                        if alpha >= beta { return x.score }
                     }
-                    if x.bound == BoundType::Lower  { alpha = x.score }
-                    if x.bound == BoundType::Upper  { beta = x.score }
-                    if alpha >= beta { return x.score }
+                    x.mv
+                } else {
+                    search_state.hash_clashes += 1;
+                    0
                 }
-                x.mv
             },
             None => {
                 0
@@ -222,31 +227,61 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             if evaluate(position) > beta {
                 let mut new_position = *position;
                 new_position.mover ^= 1;
+                new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
                 let mut score = -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), end_time, search_state, tx, start_time);
                 score = adjust_mate_score_for_ply(1, score);
                 if score >= beta {
                     return beta;
                 }
                 new_position.mover ^= 1;
+                new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
             }
         }
 
-        let mut move_scores: Vec<(Move, Score)> = moves(position).into_iter().map(|m| {
+        let mut legal_move_count = 0;
+        let these_moves = moves(position);
+
+        // if hash_move != 0 && these_moves.contains(&hash_move) {
+        //     let mut new_position = *position;
+        //     make_move(position, hash_move, &mut new_position);
+        //     search_state.history.push(new_position.zobrist_lock);
+        //     if !is_check(&new_position, position.mover) {
+        //         legal_move_count += 1;
+        //         let score = adjust_mate_score_for_ply(1, -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time));
+        //         search_state.history.pop();
+        //         check_time!(search_state.nodes, end_time);
+        //         if score > best_movescore.1 {
+        //             best_movescore = (hash_move, score);
+        //             if best_movescore.1 > alpha {
+        //                 alpha = best_movescore.1;
+        //                 if alpha >= beta {
+        //                     cutoff_admin(position, depth, ply, search_state, index, best_movescore, hash_height, hash_version, hash_move, &mut new_position);
+        //                     return best_movescore.1;
+        //                 }
+        //                 hash_flag = Exact;
+        //             }
+        //         }
+        //     } else {
+        //         search_state.history.pop();
+        //     }
+        // }
+
+        let mut move_scores: Vec<(Move, Score)> = these_moves.into_iter().map(|m| {
             (m, score_move(position, hash_move, m, search_state, ply as usize))
         }).collect();
         move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
         let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
 
-        let mut legal_move_count = 0;
-
         for m in move_list {
+            // if m == hash_move {
+            //     continue;
+            // }
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             search_state.history.push(new_position.zobrist_lock);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let mut score = -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time);
-                score = adjust_mate_score_for_ply(1, score);
+                let score = adjust_mate_score_for_ply(1, -search(&new_position, depth-1, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time));
                 search_state.history.pop();
                 check_time!(search_state.nodes, end_time);
                 if score > best_movescore.1 {
@@ -254,19 +289,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                     if best_movescore.1 > alpha {
                         alpha = best_movescore.1;
                         if alpha >= beta {
-                            store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
-
-                            if depth < 8 && captured_piece_value(position, m) == 0 {
-                                let f = from_square_part(m) as usize;
-                                let t = to_square_part(m) as usize;
-                                search_state.history_moves[position.mover as usize][f][t] += (depth * depth) as HistoryScore;
-
-                                if search_state.history_moves[position.mover as usize][f][t] > search_state.highest_history_score {
-                                    search_state.highest_history_score = search_state.history_moves[position.mover as usize][f][t];
-                                }
-                            }
-
-                            update_killers(position, ply, search_state, m, &mut new_position);
+                            cutoff_admin(position, depth, ply, search_state, index, best_movescore, hash_height, hash_version, m, &mut new_position);
                             return best_movescore.1;
                         }
                         hash_flag = Exact;
@@ -286,6 +309,26 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
 
         adjust_mate_score_for_ply(0, best_movescore.1)
+    }
+}
+
+#[inline(always)]
+fn cutoff_admin(position: &Position, depth: u8, ply: u8, search_state: &mut SearchState, index: HashIndex, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, mut new_position: &mut Position) {
+    store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
+    update_history(position, depth, search_state, m);
+    update_killers(position, ply, search_state, m, &mut new_position);
+}
+
+#[inline(always)]
+fn update_history(position: &Position, depth: u8, search_state: &mut SearchState, m: Move) {
+    if depth < 8 && captured_piece_value(position, m) == 0 {
+        let f = from_square_part(m) as usize;
+        let t = to_square_part(m) as usize;
+        search_state.history_moves[position.mover as usize][f][t] += (depth * depth) as HistoryScore;
+
+        if search_state.history_moves[position.mover as usize][f][t] > search_state.highest_history_score {
+            search_state.highest_history_score = search_state.history_moves[position.mover as usize][f][t];
+        }
     }
 }
 
