@@ -10,7 +10,7 @@ use crate::move_constants::PROMOTION_FULL_MOVE_MASK;
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves};
 use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK, Mover};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, BLACK, Mover, HistoryScore};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
@@ -259,7 +259,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                             if depth < 8 && captured_piece_value(position, m) == 0 {
                                 let f = from_square_part(m) as usize;
                                 let t = to_square_part(m) as usize;
-                                search_state.history_moves[position.mover as usize][f][t] += 1 << depth;
+                                search_state.history_moves[position.mover as usize][f][t] += (depth * depth) as HistoryScore;
 
                                 if search_state.history_moves[position.mover as usize][f][t] > search_state.highest_history_score {
                                     search_state.highest_history_score = search_state.history_moves[position.mover as usize][f][t];
