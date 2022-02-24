@@ -281,7 +281,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             search_state.history.push(new_position.zobrist_lock);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let lmr = if legal_move_count > 6 && depth > 3 && !is_check(position, position.mover) && !is_check(&new_position, new_position.mover) && captured_piece_value(&new_position, m) == 0 { 1 } else { 0 };
+                let lmr = if legal_move_count > 6 && depth > 3 && !is_check(position, position.mover) && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 { 1 } else { 0 };
 
                 let score = adjust_mate_score_for_ply(1, -search(&new_position, depth-1-lmr, ply+1, (-beta, -alpha), end_time, search_state, tx, start_time));
                 search_state.history.pop();
