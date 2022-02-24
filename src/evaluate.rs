@@ -61,7 +61,6 @@ pub fn isolated_pawn_count(pawn_files: u8) -> Score {
     let right: u8 = (pawn_files & (pawn_files >> 1)) as u8;
 
     let not_isolated: u8 = (left | right).count_ones() as u8;
-    println!("{} {} {} {} {}", pawn_files, left, right, not_isolated, pawn_files.count_ones());
     (pawn_files.count_ones() - not_isolated as u32) as Score
 }
 
