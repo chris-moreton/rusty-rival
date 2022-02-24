@@ -18,5 +18,7 @@ pub const MAX_QUIESCE_DEPTH: u8 = 10;
 pub const MAX_HASH_ENTRIES: u64 = 1024 * 1024 * 1024;
 
 pub const DOUBLED_PAWN_PENALTY: Score = 25;
+pub const ISOLATED_PAWN_PENALTY: Score = 15;
+
 pub const PAWN_TRADE_BONUS_MAX: Score = 600;
 pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;

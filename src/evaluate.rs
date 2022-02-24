@@ -1,5 +1,5 @@
 use crate::bitboards::{RANK_1_BITS, south_fill};
-use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_ROOKS_ON_SAME_FILE};
+use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_ROOKS_ON_SAME_FILE};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
 
@@ -51,19 +51,40 @@ pub fn pawn_material(position: &Position, mover: Mover) -> Score {
 }
 
 #[inline(always)]
-pub fn on_same_file_count(pawn_bitboard: Bitboard) -> Score {
-    (pawn_bitboard.count_ones() as u8 - (south_fill(pawn_bitboard) & RANK_1_BITS).count_ones() as u8) as u8 as Score
+pub fn on_same_file_count(pawn_bitboard: Bitboard, pawn_files: u8) -> Score {
+    pawn_bitboard.count_ones() as Score - (pawn_files.count_ones() as Score)
+}
+
+#[inline(always)]
+pub fn isolated_pawn_count(pawn_files: u8) -> Score {
+    let left: u8 = (pawn_files & (pawn_files << 1)) as u8;
+    let right: u8 = (pawn_files & (pawn_files >> 1)) as u8;
+
+    let not_isolated: u8 = (left | right).count_ones() as u8;
+    println!("{} {} {} {} {}", pawn_files, left, right, not_isolated, pawn_files.count_ones());
+    (pawn_files.count_ones() - not_isolated as u32) as Score
 }
 
 #[inline(always)]
 pub fn pawn_score(position: &Position) -> Score {
-    ((on_same_file_count(position.pieces[BLACK as usize].pawn_bitboard) -
-        on_same_file_count(position.pieces[WHITE as usize].pawn_bitboard)) as Score
-        * DOUBLED_PAWN_PENALTY) as Score
+
+    let white_pawn_files: u8 = (south_fill(position.pieces[WHITE as usize].pawn_bitboard) & RANK_1_BITS) as u8;
+    let black_pawn_files: u8 = (south_fill(position.pieces[BLACK as usize].pawn_bitboard) & RANK_1_BITS) as u8;
+
+    let doubled = ((on_same_file_count(position.pieces[BLACK as usize].pawn_bitboard, black_pawn_files) -
+        on_same_file_count(position.pieces[WHITE as usize].pawn_bitboard, white_pawn_files)) as Score
+        * DOUBLED_PAWN_PENALTY) as Score;
+
+    let isolated = (isolated_pawn_count(black_pawn_files) - isolated_pawn_count(white_pawn_files)) * ISOLATED_PAWN_PENALTY;
+
+    doubled + isolated
 }
 
 #[inline(always)]
 pub fn rook_eval(position: &Position) -> Score {
-    (on_same_file_count(position.pieces[WHITE as usize].rook_bitboard) -
-        on_same_file_count(position.pieces[BLACK as usize].rook_bitboard)) * VALUE_ROOKS_ON_SAME_FILE
+    let white_rook_files: u8 = (south_fill(position.pieces[WHITE as usize].rook_bitboard) & RANK_1_BITS) as u8;
+    let black_rook_files: u8 = (south_fill(position.pieces[BLACK as usize].rook_bitboard) & RANK_1_BITS) as u8;
+
+    (on_same_file_count(position.pieces[WHITE as usize].rook_bitboard, white_rook_files) -
+        on_same_file_count(position.pieces[BLACK as usize].rook_bitboard, black_rook_files)) * VALUE_ROOKS_ON_SAME_FILE
 }
