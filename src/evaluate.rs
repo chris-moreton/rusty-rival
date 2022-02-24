@@ -74,9 +74,9 @@ pub fn pawn_score(position: &Position) -> Score {
         on_same_file_count(position.pieces[WHITE as usize].pawn_bitboard, white_pawn_files)) as Score
         * DOUBLED_PAWN_PENALTY) as Score;
 
-    let isolated = (isolated_pawn_count(black_pawn_files) - isolated_pawn_count(white_pawn_files)) * ISOLATED_PAWN_PENALTY;
+    // let isolated = (isolated_pawn_count(black_pawn_files) - isolated_pawn_count(white_pawn_files)) * ISOLATED_PAWN_PENALTY;
 
-    doubled + isolated
+    doubled
 }
 
 #[inline(always)]
