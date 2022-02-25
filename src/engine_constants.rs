@@ -22,3 +22,5 @@ pub const ISOLATED_PAWN_PENALTY: Score = 15;
 
 pub const PAWN_TRADE_BONUS_MAX: Score = 600;
 pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
+
+pub const DEPTH_REMAINING_FOR_RD_INCREASE: u8 = 6;

@@ -34,13 +34,11 @@ fn attacker_bonus(piece: Move) -> Score {
 }
 
 #[inline(always)]
-pub fn score_move(position: &Position, hash_move: Move, m: Move, search_state: &SearchState, ply: usize) -> Score {
+pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize) -> Score {
     let enemy = position.pieces[opponent!(position.mover) as usize];
     let to_square = to_square_part(m);
 
-    let score = if m == hash_move {
-        10000
-    } else if enemy.all_pieces_bitboard & bit(to_square) != 0 {
+    let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
         let piece_mask = m & PIECE_MASK_FULL;
         piece_value(&enemy, to_square) + attacker_bonus(piece_mask)
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {

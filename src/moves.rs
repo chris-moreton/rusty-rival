@@ -1,9 +1,9 @@
 use crate::bitboards::{BISHOP_RAYS, bit, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, epsbit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, ROOK_RAYS};
 use crate::magic_bitboards::{magic_moves_rook, magic_moves_bishop};
-use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
+use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
 use crate::types::{Bitboard, BLACK, Move, MoveList, Mover, Position, Square, WHITE};
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
-use crate::utils::{from_square_mask, to_square_part};
+use crate::utils::{from_square_mask, from_square_part, moving_piece_mask, to_square_part};
 
 #[macro_export]
 macro_rules! add_moves {
@@ -13,6 +13,73 @@ macro_rules! add_moves {
             $move_list.push($fsm | get_and_unset_lsb!(bb) as Move);
         }
     }
+}
+
+#[inline(always)]
+pub fn verify_move(position: &Position, m: Move) -> bool {
+
+    if m == 0 {
+        return false;
+    }
+
+    let mut move_list = Vec::with_capacity(10);
+
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let friendly = position.pieces[position.mover as usize];
+    let valid_destinations = !friendly.all_pieces_bitboard;
+
+    match moving_piece_mask(position, m) {
+        PIECE_MASK_KING => {
+            let from_square = from_square_part(m);
+            return if from_square == friendly.king_square {
+                let landing_squares = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
+                if bit(to_square_part(m)) & landing_squares != 0 {
+                    true
+                } else {
+                    if position.castle_flags != 0 { generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize) }
+                    move_list.contains(&m)
+                }
+            } else {
+                false
+            }
+        },
+        PIECE_MASK_QUEEN => {
+            let from_square = from_square_part(m);
+            return if bit(from_square) & friendly.queen_bitboard != 0 {
+                let tsp = bit(to_square_part(m));
+                (tsp & magic_moves_rook(from_square, all_pieces) & valid_destinations != 0) ||
+                    (tsp & magic_moves_bishop(from_square, all_pieces) & valid_destinations != 0)
+            } else {
+                false
+            }
+        },
+        PIECE_MASK_ROOK => {
+            let from_square = from_square_part(m);
+            return if bit(from_square) & friendly.rook_bitboard != 0 {
+                bit(to_square_part(m)) & magic_moves_rook(from_square, all_pieces) & valid_destinations != 0
+            } else {
+                false
+            }
+        },
+        PIECE_MASK_BISHOP => {
+            let from_square = from_square_part(m);
+            return if bit(from_square) & friendly.bishop_bitboard != 0 {
+                bit(to_square_part(m)) & magic_moves_bishop(from_square, all_pieces) & valid_destinations != 0
+            } else {
+                false
+            }
+        },
+        PIECE_MASK_KNIGHT => {
+            let from_square = from_square_part(m);
+            let landing_squares = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
+            return bit(from_square) & friendly.knight_bitboard != 0 && bit(to_square_part(m)) & landing_squares != 0;
+        },
+        _ => {
+            generate_pawn_moves(position, &mut move_list, !all_pieces, position.mover as usize, friendly.pawn_bitboard);
+        }
+    }
+
+    move_list.contains(&m)
 }
 
 #[inline(always)]
@@ -55,17 +122,6 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
     add_moves!(move_list, from_square_mask(friendly.king_square) | PIECE_MASK_KING, KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations);
 
     move_list
-}
-
-#[inline(always)]
-pub fn capture_moves(position: &Position) -> MoveList {
-    let enemy = position.pieces[opponent!(position.mover) as usize];
-
-    moves(position).into_iter().filter(|m| {
-        m & PROMOTION_FULL_MOVE_MASK == 0 || m & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK
-    }).filter(|m| {
-        enemy.all_pieces_bitboard & bit(to_square_part(*m)) != 0
-    }).collect()
 }
 
 #[inline(always)]

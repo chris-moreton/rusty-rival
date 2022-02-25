@@ -1,14 +1,14 @@
 use std::sync::mpsc::{Sender};
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{zobrist_index, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
 use crate::move_constants::PROMOTION_FULL_MOVE_MASK;
 use crate::move_scores::{score_move, score_quiesce_move};
-use crate::moves::{is_check, moves, quiesce_moves};
+use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
 use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, Mover, HistoryScore};
 use crate::types::BoundType::{Exact, Lower, Upper};
@@ -170,8 +170,6 @@ pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_h
     }
 }
 
-const DEPTH_REMAINING_FOR_RD_INCREASE: u8 = 6;
-
 #[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time: Instant, search_state: &mut SearchState, tx: &Sender<String>, start_time: Instant) -> Score {
 
@@ -226,23 +224,18 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
         if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !is_check(position, position.mover) {
             if evaluate(position) > beta {
                 let mut new_position = *position;
-                new_position.mover ^= 1;
-                new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
-                let mut score = -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), end_time, search_state, tx, start_time);
-                score = adjust_mate_score_for_ply(1, score);
+                switch_mover(&mut new_position);
+                let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), end_time, search_state, tx, start_time));
                 if score >= beta {
                     return beta;
                 }
-                new_position.mover ^= 1;
-                new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
+                switch_mover(&mut new_position);
             }
         }
 
         let mut legal_move_count = 0;
 
-        let these_moves = moves(position);
-
-        if hash_move != 0 && these_moves.contains(&hash_move) {
+        if verify_move(position, hash_move) {
             let mut new_position = *position;
             make_move(position, hash_move, &mut new_position);
             if !is_check(&new_position, position.mover) {
@@ -262,14 +255,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             }
         }
 
+        let these_moves = moves(position);
         let mut move_scores: Vec<(Move, Score)> = these_moves.into_iter().map(|m| {
-            (m, score_move(position, hash_move, m, search_state, ply as usize))
+            (m, score_move(position, m, search_state, ply as usize))
         }).collect();
         move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
-        let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
+        let move_list: Vec<Move> = move_scores.into_iter().map(|(m,_)| { m }).filter(|m| { *m != hash_move }).collect();
 
         for m in move_list {
-            if m == hash_move { continue; }
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
@@ -300,6 +293,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
 
         adjust_mate_score_for_ply(0, best_movescore.1)
     }
+}
+
+#[inline(always)]
+fn switch_mover(new_position: &mut Position) {
+    new_position.mover ^= 1;
+    new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
 }
 
 #[inline(always)]
@@ -400,7 +399,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, end_time
     let mut move_scores: Vec<(Move, Score)> =
         if in_check {
             moves(position).into_iter().map(|m| {
-                (m, score_move(position, 0, m, search_state, ply as usize))
+                (m, score_move(position, m, search_state, ply as usize))
             }).collect()
         } else {
             quiesce_moves(position).into_iter().map(|m| {
