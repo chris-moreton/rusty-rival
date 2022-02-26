@@ -270,6 +270,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
                 let lmr = if legal_move_count > 6 && depth > 3 && !is_check(position, position.mover) && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 { 1 } else { 0 };
                 let score = search_wrapper(depth, ply, end_time, search_state, tx, start_time, (-beta, -alpha), &mut new_position, lmr);
                 check_time!(search_state.nodes, end_time);
+                if score < beta {
+                    update_history(position, depth, search_state, m, false);
+                }
                 if score > best_movescore.1 {
                     best_movescore = (m, score);
                     if best_movescore.1 > alpha {
@@ -312,17 +315,26 @@ fn search_wrapper(depth: u8, ply: u8, end_time: Instant, search_state: &mut Sear
 #[inline(always)]
 fn cutoff(position: &Position, depth: u8, ply: u8, search_state: &mut SearchState, index: HashIndex, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, mut new_position: &mut Position) -> Score {
     store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
-    update_history(position, depth, search_state, m);
+    update_history(position, depth, search_state, m, true);
     update_killers(position, ply, search_state, m, &mut new_position);
     best_movescore.1
 }
 
 #[inline(always)]
-fn update_history(position: &Position, depth: u8, search_state: &mut SearchState, m: Move) {
+fn update_history(position: &Position, depth: u8, search_state: &mut SearchState, m: Move, cutoff: bool) {
     if depth < 8 && captured_piece_value(position, m) == 0 {
         let f = from_square_part(m) as usize;
         let t = to_square_part(m) as usize;
-        search_state.history_moves[position.mover as usize][f][t] += (depth * depth) as HistoryScore;
+
+        search_state.history_moves[position.mover as usize][f][t] += if cutoff {
+            (depth * depth) as HistoryScore
+        } else {
+            0// - (depth * depth) as HistoryScore
+        };
+
+        if search_state.history_moves[position.mover as usize][f][t] < 0 {
+            search_state.history_moves[position.mover as usize][f][t] = 0;
+        }
 
         if search_state.history_moves[position.mover as usize][f][t] > search_state.highest_history_score {
             search_state.highest_history_score = search_state.history_moves[position.mover as usize][f][t];
