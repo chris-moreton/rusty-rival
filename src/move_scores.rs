@@ -57,17 +57,17 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     } else {
         let killer_moves = search_state.killer_moves[ply];
         if m == killer_moves[0] { 100 }
-        else if m == killer_moves[1] { 99 }
+        else if m == killer_moves[1] { 75 }
         else if ply > 2 {
             let killer_moves = search_state.killer_moves[ply - 2];
-            if m == killer_moves[0] { 98 } else if m == killer_moves[1] { 97 } else { 0 }
+            if m == killer_moves[0] { 50 } else if m == killer_moves[1] { 25 } else { 0 }
         } else {
             0
         }
     };
 
     let history_score = search_state.history_moves[position.mover as usize][from_square_part(m) as usize][to_square as usize];
-    score + linear_scale(history_score, 0, search_state.highest_history_score, 0, 96) as Score
+    score + linear_scale(history_score, 0, search_state.highest_history_score, 0, 45) as Score
 
 }
 
