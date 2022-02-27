@@ -1,4 +1,3 @@
-use std::sync::mpsc::{Sender};
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, IID_REDUCE_DEPTH, LMR_LEGALMOVES_BEFORE_ATTEMPT, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
@@ -57,7 +56,7 @@ macro_rules! debug_out {
 
 pub const ASPIRATION_RADIUS: Score = 50;
 
-pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mut SearchState, tx: &Sender<String>) -> Move {
+pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mut SearchState) -> Move {
 
     search_state.start_time = Instant::now();
 
@@ -88,7 +87,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     for iterative_depth in 1..=max_depth {
         search_state.iterative_depth = iterative_depth;
-        let mut aspire_best = start_search(position, &mut legal_moves, search_state, tx, aspiration_window);
+        let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window);
 
         debug_out!(println!("=========================================================================================================================="));
         debug_out!(println!("Best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, aspiration_window.0, aspiration_window.1,
@@ -100,12 +99,12 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             if time_remains!(search_state.end_time) {
                 if aspire_best.1 <= aspiration_window.0 {
                     debug_out!(println!("Failed low"));
-                    aspire_best = start_search(position, &mut legal_moves, search_state, tx, (-MAX_SCORE, aspiration_window.1));
+                    aspire_best = start_search(position, &mut legal_moves, search_state, (-MAX_SCORE, aspiration_window.1));
                     debug_out!(println!("Research gives best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, -MAX_SCORE, aspiration_window.1,
                              algebraic_move_from_move(aspire_best.0), aspire_best.1));
                 } else if aspire_best.1 >= aspiration_window.1 {
                     debug_out!(println!("Failed high"));
-                    aspire_best = start_search(position, &mut legal_moves, search_state, tx, (aspiration_window.0, MAX_SCORE));
+                    aspire_best = start_search(position, &mut legal_moves, search_state, (aspiration_window.0, MAX_SCORE));
                     debug_out!(println!("Research gives best at depth {} within aspiration window ({},{}) is {} with score of {}", iterative_depth, aspiration_window.0, MAX_SCORE,
                              algebraic_move_from_move(aspire_best.0), aspire_best.1));
                 };
@@ -137,7 +136,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     legal_moves[0].0
 }
 
-pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, tx: &Sender<String>, aspiration_window: Window) -> MoveScore {
+pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, aspiration_window: Window) -> MoveScore {
 
     let mut current_best: MoveScore = (legal_moves[0].0, -MAX_SCORE);
 
@@ -146,7 +145,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
         make_move(position, legal_moves[move_num].0, &mut new_position);
         search_state.history.push(new_position.zobrist_lock);
 
-        let mut score = -search(&new_position, search_state.iterative_depth, 1, (-aspiration_window.1, -aspiration_window.0), search_state, &tx);
+        let mut score = -search(&new_position, search_state.iterative_depth, 1, (-aspiration_window.1, -aspiration_window.0), search_state);
         if score > MATE_START { score -= 1 } else if score < -MATE_START { score += 1 };
 
         search_state.history.pop();
@@ -173,7 +172,7 @@ pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_h
 }
 
 #[inline(always)]
-pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, tx: &Sender<String>) -> Score {
+pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> Score {
 
     search_state.nodes += 1;
     check_time!(search_state);
@@ -216,7 +215,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     };
 
     if depth == 0 {
-        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state, tx);
+        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
         // store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version,
         //                  if q < alpha { Upper } else if q > beta { Lower } else { Exact },
         //                  (0,q), search_state);
@@ -226,7 +225,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
         if depth > IID_REDUCE_DEPTH {
             let mut new_position = *position;
-            search_wrapper(depth-IID_REDUCE_DEPTH, ply, search_state, tx, (-beta, -alpha), &mut new_position, 0);
+            search_wrapper(depth-IID_REDUCE_DEPTH, ply, search_state, (-beta, -alpha), &mut new_position, 0);
         }
 
         let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
@@ -235,7 +234,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             if evaluate(position) > beta {
                 let mut new_position = *position;
                 switch_mover(&mut new_position);
-                let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, tx));
+                let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state));
                 if score >= beta {
                     return beta;
                 }
@@ -250,7 +249,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             make_move(position, hash_move, &mut new_position);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let score = search_wrapper(depth, ply, search_state, tx, (-beta, -alpha), &mut new_position, 0);
+                let score = search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, 0);
                 check_time!(search_state);
                 if score > best_movescore.1 {
                     best_movescore = (hash_move, score);
@@ -283,7 +282,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     0
                 };
 
-                let score = search_wrapper(depth, ply, search_state, tx, (-beta, -alpha), &mut new_position, lmr);
+                let score = search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, lmr);
                 check_time!(search_state);
                 if score < beta {
                     update_history(position, depth, search_state, m, false);
@@ -320,9 +319,9 @@ fn switch_mover(new_position: &mut Position) {
 }
 
 #[inline(always)]
-fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, tx: &Sender<String>, window: Window, new_position: &mut Position, lmr: u8) -> Score {
+fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &mut Position, lmr: u8) -> Score {
     search_state.history.push(new_position.zobrist_lock);
-    let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - lmr, ply + 1, window, search_state, tx));
+    let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - lmr, ply + 1, window, search_state));
     search_state.history.pop();
     score
 }
@@ -388,7 +387,7 @@ fn side_total_non_pawn_values(position: &Position, side: Mover) -> u32 {
 }
 
 #[inline(always)]
-pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, tx: &Sender<String>) -> Score {
+pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> Score {
 
     check_time!(search_state);
 
@@ -446,7 +445,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply+1, (-beta, -alpha), search_state, tx));
+                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply+1, (-beta, -alpha), search_state));
                 check_time!(search_state);
                 if score >= beta {
                     return beta;

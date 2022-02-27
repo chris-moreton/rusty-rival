@@ -1,7 +1,5 @@
 use std::ops::Add;
 use std::process::exit;
-use std::sync::mpsc;
-use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 use either::{Either, Left, Right};
 use regex::Regex;
@@ -49,11 +47,10 @@ fn replace_shortcuts(l: &str) -> &str {
 }
 
 pub fn run_command_test(uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
-    let (tx, _rx) = mpsc::channel();
-    run_command(uci_state, search_state, replace_shortcuts(l), &tx)
+    run_command(uci_state, search_state, replace_shortcuts(l))
 }
 
-pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: &str, tx: &Sender<String>) -> Either<String, Option<String>> {
+pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
 
     let mut trimmed_line = replace_shortcuts(l).trim().clone().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
@@ -63,7 +60,7 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
 
     match *parts.get(0).unwrap() {
         "bench" => {
-            cmd_benchmark(uci_state, search_state, tx)
+            cmd_benchmark(uci_state, search_state)
         },
         "uci" => {
             cmd_uci()
@@ -72,7 +69,7 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
             cmd_isready()
         },
         "go" => {
-            cmd_go(uci_state, search_state, parts, tx)
+            cmd_go(uci_state, search_state, parts)
         },
         "setoption" => {
             cmd_setoption(search_state, parts)
@@ -185,7 +182,7 @@ pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
     }
 }
 
-fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>, tx: &Sender<String>) -> Either<String, Option<String>> {
+fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
     search_state.nodes = 0;
 
@@ -198,13 +195,13 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
         "infinite" => {
             let position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
-            let mv = iterative_deepening(&position, 200, search_state, tx);
+            let mv = iterative_deepening(&position, 200, search_state);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         "mate" => {
             let position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
-            let mv = iterative_deepening(&position, 200, search_state, tx);
+            let mv = iterative_deepening(&position, 200, search_state);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         _ => {
@@ -220,7 +217,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 
             let position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
-            let mv = iterative_deepening(&position, uci_state.depth as u8, search_state, tx);
+            let mv = iterative_deepening(&position, uci_state.depth as u8, search_state);
 
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         }
@@ -228,7 +225,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220227-03-Improved-Info|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220227-04-Remove-Sender-Tx|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -246,7 +243,7 @@ fn cmd_debug(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
 }
 
 
-fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, tx: &Sender<String>) -> Either<String, Option<String>> {
+fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState) -> Either<String, Option<String>> {
     let start = Instant::now();
 
     let positions = vec![
@@ -276,8 +273,8 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, tx: &
         println!("{}", p.0);
         let mut owned = "position fen ".to_owned();
         owned.push_str(p.0);
-        run_command(uci_state, search_state, &owned, tx);
-        run_command(uci_state, search_state, &format!("go depth {}", p.1), tx);
+        run_command(uci_state, search_state, &owned);
+        run_command(uci_state, search_state, &format!("go depth {}", p.1));
         total_nodes += search_state.nodes;
     }
     let duration = start.elapsed();

@@ -1,5 +1,4 @@
 use std::ops::Add;
-use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
 use rusty_rival::search::iterative_deepening;
@@ -10,14 +9,12 @@ fn it_returns_the_best_move_at_depth_1() {
     let mut search_state = default_search_state();
     search_state.end_time = Instant::now().add(Duration::from_millis(250));
 
-    let (tx, _rx) = mpsc::channel();
     let position = get_position(&"n5k1/1P2P1n1/5q1p/P1pP4/5R2/5B2/1r2N2P/R3K1n1 w Q - 0 1".to_string());
-    let mv = iterative_deepening(&position, 1, &mut search_state, &tx);
+    let mv = iterative_deepening(&position, 1, &mut search_state);
     assert_eq!(algebraic_move_from_move(mv), "b7a8q");
 
-    let (tx, _rx) = mpsc::channel();
     let position = get_position(&"6k1/8/7p/P1pP4/4RB2/7P/1r6/4K3 w - - 0 1".to_string());
-    let mv = iterative_deepening(&position, 1, &mut search_state, &tx);
+    let mv = iterative_deepening(&position, 1, &mut search_state);
     assert_eq!(algebraic_move_from_move(mv), "f4h6");
 
 }
@@ -26,10 +23,9 @@ fn assert_move(fen: &str, depth: u8, millis: u64, bestmove: &str) {
     let moves: Vec<String> = bestmove.split(',').map(|m| { m.to_string() }).collect();
 
     let mut search_state = default_search_state();
-    let (tx, _rx) = mpsc::channel();
     let position = get_position(&fen.to_string());
     search_state.end_time = Instant::now().add(Duration::from_millis(millis));
-    let mv = iterative_deepening(&position, depth, &mut search_state, &tx);
+    let mv = iterative_deepening(&position, depth, &mut search_state);
     println!("{}", algebraic_move_from_move(mv));
     assert!(moves.contains(&algebraic_move_from_move(mv)));
 }
