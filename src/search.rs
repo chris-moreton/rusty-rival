@@ -1,7 +1,7 @@
 use std::sync::mpsc::{Sender};
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{zobrist_index, ZOBRIST_KEY_MOVER_SWITCH};
@@ -271,7 +271,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, end_time:
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let lmr = if legal_move_count > 6 && depth > 3 && !is_check(position, position.mover) && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 { 1 } else { 0 };
+                let lmr = if legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > 3 && !is_check(position, position.mover) && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
+                    1
+                } else {
+                    0
+                };
+
                 let score = search_wrapper(depth, ply, end_time, search_state, tx, start_time, (-beta, -alpha), &mut new_position, lmr);
                 check_time!(search_state.nodes, end_time);
                 if score < beta {
