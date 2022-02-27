@@ -15,7 +15,7 @@ pub fn it_sets_a_fen() {
 }
 
 #[test]
-pub fn it_tests() {
+pub fn it_tests_something() {
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
 
@@ -23,7 +23,7 @@ pub fn it_tests() {
     let result = run_command_test(&mut uci_state, &mut search_state, "go depth 7");
 
     assert_success_message(result, |message| {
-        message.contains("bestmove d3e3")
+        message.contains("bestmove d3e2")
     });
 }
 
@@ -200,15 +200,15 @@ pub fn it_handles_the_setoption_clear_hash_command() {
         lock: 0
     };
 
-    search_state.hash_table.insert(0, he);
-    match search_state.hash_table.get(&0) {
+    search_state.hash_table_height.insert(0, he);
+    match search_state.hash_table_height.get(&0) {
         Some(he) => assert_eq!(he.score, 100),
         None => panic!()
     }
 
     let result = run_command_test(&mut uci_state, &mut search_state, "setoption name Clear Hash");
     assert_eq!(result, Right(None));
-    match search_state.hash_table.get(&0) {
+    match search_state.hash_table_height.get(&0) {
         Some(_he) => panic!(),
         None => {}
     }

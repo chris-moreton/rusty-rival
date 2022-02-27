@@ -15,7 +15,10 @@ pub const NULL_MOVE_REDUCE_DEPTH: u8 = 2;
 pub const MAX_DEPTH: u8 = 250;
 
 pub const MAX_QUIESCE_DEPTH: u8 = 10;
+pub const IID_REDUCE_DEPTH: u8 = 3;
 pub const MAX_HASH_ENTRIES: u64 = 1024 * 1024 * 1024;
+
+pub const TICKER_MILLIS: u16 = 500;
 
 pub const DOUBLED_PAWN_PENALTY: Score = 25;
 pub const ISOLATED_PAWN_PENALTY: Score = 15;

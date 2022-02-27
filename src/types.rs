@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::Instant;
 use crate::engine_constants::{MAX_DEPTH, NUM_KILLER_MOVES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 
@@ -54,7 +55,11 @@ pub fn default_uci_state() -> UciState {
 }
 
 pub struct SearchState {
-    pub hash_table: HashMap<HashIndex, HashEntry>,
+    pub current_best: MoveScore,
+    pub start_time: Instant,
+    pub end_time: Instant,
+    pub iterative_depth: u8,
+    pub hash_table_height: HashMap<HashIndex, HashEntry>,
     pub hash_table_version: u32,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
     pub history_moves: [[[HistoryScore; 64]; 64]; 2],
@@ -70,7 +75,11 @@ pub struct SearchState {
 
 pub fn default_search_state() -> SearchState {
     SearchState {
-        hash_table: Default::default(),
+        current_best: (0, 0),
+        start_time: Instant::now(),
+        end_time: Instant::now(),
+        iterative_depth: 0,
+        hash_table_height: Default::default(),
         hash_table_version: 1,
         killer_moves: [[0,0]; MAX_DEPTH as usize],
         history_moves: [[[0; 64]; 64]; 2],

@@ -197,12 +197,14 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
         },
         "infinite" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = iterative_deepening(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
+            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            let mv = iterative_deepening(&position, 200, search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         "mate" => {
             let position = get_position(uci_state.fen.trim());
-            let mv = iterative_deepening(&position, 200, Instant::now().add(Duration::from_secs(86400)), search_state, tx);
+            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            let mv = iterative_deepening(&position, 200, search_state, tx);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
         _ => {
@@ -217,7 +219,8 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
             uci_state.move_time = extract_go_param("movetime", &line, 10000000);
 
             let position = get_position(uci_state.fen.trim());
-            let mv = iterative_deepening(&position, uci_state.depth as u8, Instant::now().add(Duration::from_millis(uci_state.move_time)), search_state, tx);
+            search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
+            let mv = iterative_deepening(&position, uci_state.depth as u8, search_state, tx);
 
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         }
@@ -225,7 +228,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220228-02-More-Agressive-LMR|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220227-03-Improved-Info|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -301,7 +304,7 @@ fn cmd_setoption(search_state: &mut SearchState, parts: Vec<&str>) -> Either<Str
     } else {
         match parts[2] {
             "Clear" => {
-                search_state.hash_table.clear();
+                search_state.hash_table_height.clear();
                 Right(None)
             },
             _ => {
@@ -317,7 +320,7 @@ fn cmd_register() -> Either<String, Option<String>> {
 
 fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchState) -> Either<String, Option<String>> {
     search_state.nodes = 0;
-    search_state.hash_table.clear();
+    search_state.hash_table_height.clear();
     uci_state.fen = START_POS.parse().unwrap();
     Right(None)
 }
