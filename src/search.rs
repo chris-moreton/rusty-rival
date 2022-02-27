@@ -1,6 +1,6 @@
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, IID_REDUCE_DEPTH, LMR_LEGALMOVES_BEFORE_ATTEMPT, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{zobrist_index, ZOBRIST_KEY_MOVER_SWITCH};
@@ -26,8 +26,13 @@ macro_rules! time_remains {
 
 #[macro_export]
 macro_rules! time_expired {
-    ($end_time:expr) => {
-        Instant::now() >= $end_time
+    ($search_state:expr) => {
+        if Instant::now() >= $search_state.end_time {
+            send_info($search_state);
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -36,6 +41,7 @@ macro_rules! check_time {
     ($search_state:expr) => {
         if $search_state.nodes % 100000 == 0 {
             if $search_state.end_time < Instant::now() {
+                send_info($search_state);
                 return 0;
             }
         }
@@ -114,7 +120,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             }
         };
 
-        if time_expired!(search_state.end_time) {
+        if time_expired!(search_state) {
             if search_state.current_best.0 == 0 {
                 panic!("Didn't have time to do anything.")
             }
@@ -133,6 +139,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         aspiration_window = (search_state.current_best.1 - ASPIRATION_RADIUS, search_state.current_best.1 + ASPIRATION_RADIUS)
     }
 
+    send_info(search_state);
     legal_moves[0].0
 }
 
@@ -156,7 +163,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
             }
         }
 
-        if time_expired!(search_state.end_time) {
+        if time_expired!(search_state) {
             return current_best;
         }
     }
@@ -178,16 +185,37 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     check_time!(search_state);
 
     if search_state.history.iter().rev().take(position.half_moves as usize).filter(|p| position.zobrist_lock == **p).count() > 1 {
-        return 0
+        return 0;
     }
+
+    if depth == 0 {
+        return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
+    }
+
+    let mut alpha = window.0;
+    let mut beta = window.1;
+
+    let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
+
+    if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !is_check(position, position.mover) {
+        if evaluate(position) > beta {
+            let mut new_position = *position;
+            switch_mover(&mut new_position);
+            let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state));
+            if score >= beta {
+                return beta;
+            }
+            switch_mover(&mut new_position);
+        }
+    }
+
+    let mut legal_move_count = 0;
 
     let index = zobrist_index(position.zobrist_lock);
     let mut hash_height = 0;
     let mut hash_flag = Upper;
     let mut hash_version = 0;
     let mut best_movescore: MoveScore = (0,-MAX_SCORE);
-    let mut alpha = window.0;
-    let mut beta = window.1;
 
     let hash_move = match search_state.hash_table_height.get(&index) {
         Some(x) => {
@@ -214,102 +242,71 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
     };
 
-    if depth == 0 {
-        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
-        // store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version,
-        //                  if q < alpha { Upper } else if q > beta { Lower } else { Exact },
-        //                  (0,q), search_state);
-        q
-
-    } else {
-
-        if depth > IID_REDUCE_DEPTH {
-            let mut new_position = *position;
-            search_wrapper(depth-IID_REDUCE_DEPTH, ply, search_state, (-beta, -alpha), &mut new_position, 0);
-        }
-
-        let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
-
-        if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !is_check(position, position.mover) {
-            if evaluate(position) > beta {
-                let mut new_position = *position;
-                switch_mover(&mut new_position);
-                let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state));
-                if score >= beta {
-                    return beta;
-                }
-                switch_mover(&mut new_position);
-            }
-        }
-
-        let mut legal_move_count = 0;
-
-        if verify_move(position, hash_move) {
-            let mut new_position = *position;
-            make_move(position, hash_move, &mut new_position);
-            if !is_check(&new_position, position.mover) {
-                legal_move_count += 1;
-                let score = search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, 0);
-                check_time!(search_state);
-                if score > best_movescore.1 {
-                    best_movescore = (hash_move, score);
-                    if best_movescore.1 > alpha {
-                        alpha = best_movescore.1;
-                        if alpha >= beta {
-                            return cutoff(position, depth, ply, search_state, index, best_movescore, hash_height, hash_version, hash_move, &mut new_position);
-                        }
-                        hash_flag = Exact;
+    if verify_move(position, hash_move) {
+        let mut new_position = *position;
+        make_move(position, hash_move, &mut new_position);
+        if !is_check(&new_position, position.mover) {
+            legal_move_count += 1;
+            let score = search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, 0);
+            check_time!(search_state);
+            if score > best_movescore.1 {
+                best_movescore = (hash_move, score);
+                if best_movescore.1 > alpha {
+                    alpha = best_movescore.1;
+                    if alpha >= beta {
+                        return cutoff(position, depth, ply, search_state, index, best_movescore, hash_height, hash_version, hash_move, &mut new_position);
                     }
+                    hash_flag = Exact;
                 }
             }
         }
-
-        let these_moves = moves(position);
-        let mut move_scores: Vec<(Move, Score)> = these_moves.into_iter().map(|m| {
-            (m, score_move(position, m, search_state, ply as usize))
-        }).collect();
-        move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
-        let move_list: Vec<Move> = move_scores.into_iter().map(|(m,_)| { m }).filter(|m| { *m != hash_move }).collect();
-
-        for m in move_list {
-            let mut new_position = *position;
-            make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) {
-                legal_move_count += 1;
-                let lmr = if legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > 3 && !is_check(position, position.mover) && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
-                    1
-                } else {
-                    0
-                };
-
-                let score = search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, lmr);
-                check_time!(search_state);
-                if score < beta {
-                    update_history(position, depth, search_state, m, false);
-                }
-                if score > best_movescore.1 {
-                    best_movescore = (m, score);
-                    if best_movescore.1 > alpha {
-                        alpha = best_movescore.1;
-                        if alpha >= beta {
-                            return cutoff(position, depth, ply, search_state, index, best_movescore, hash_height, hash_version, m, &mut new_position);
-                        }
-                        hash_flag = Exact;
-                    }
-                }
-            }
-        }
-
-        if legal_move_count == 0 {
-            if !is_check(position, position.mover) {
-                best_movescore.1 = 0
-            }
-        };
-
-        store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
-
-        adjust_mate_score_for_ply(0, best_movescore.1)
     }
+
+    let these_moves = moves(position);
+    let mut move_scores: Vec<(Move, Score)> = these_moves.into_iter().map(|m| {
+        (m, score_move(position, m, search_state, ply as usize))
+    }).collect();
+    move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
+    let move_list: Vec<Move> = move_scores.into_iter().map(|(m,_)| { m }).filter(|m| { *m != hash_move }).collect();
+
+    for m in move_list {
+        let mut new_position = *position;
+        make_move(position, m, &mut new_position);
+        if !is_check(&new_position, position.mover) {
+            legal_move_count += 1;
+            let lmr = if legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > 3 && !is_check(position, position.mover) && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
+                1
+            } else {
+                0
+            };
+
+            let score = search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, lmr);
+            check_time!(search_state);
+            if score < beta {
+                update_history(position, depth, search_state, m, false);
+            }
+            if score > best_movescore.1 {
+                best_movescore = (m, score);
+                if best_movescore.1 > alpha {
+                    alpha = best_movescore.1;
+                    if alpha >= beta {
+                        return cutoff(position, depth, ply, search_state, index, best_movescore, hash_height, hash_version, m, &mut new_position);
+                    }
+                    hash_flag = Exact;
+                }
+            }
+        }
+    }
+
+    if legal_move_count == 0 {
+        if !is_check(position, position.mover) {
+            best_movescore.1 = 0
+        }
+    };
+
+    store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
+
+    adjust_mate_score_for_ply(0, best_movescore.1)
 }
 
 #[inline(always)]
