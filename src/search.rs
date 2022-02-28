@@ -242,6 +242,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
     };
 
+    let mut scout_search = false;
+
     if verify_move(position, hash_move) {
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
@@ -258,6 +260,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     }
                     hash_flag = Exact;
                 }
+                scout_search = true;
             }
         }
     }
@@ -280,7 +283,16 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 0
             };
 
-            let score = search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, lmr);
+            let score = if scout_search {
+                let scout_score = search_wrapper(depth, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr);
+                if scout_score > alpha {
+                    search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, lmr)
+                } else {
+                    alpha
+                }
+            } else {
+                search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, lmr)
+            };
             check_time!(search_state);
             if score < beta {
                 update_history(position, depth, search_state, m, false);
@@ -294,6 +306,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     }
                     hash_flag = Exact;
                 }
+                scout_search = true;
             }
         }
     }
