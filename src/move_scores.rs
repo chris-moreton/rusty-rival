@@ -40,7 +40,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
         let piece_mask = m & PIECE_MASK_FULL;
-        piece_value(&enemy, to_square) + attacker_bonus(piece_mask)
+        1000 + piece_value(&enemy, to_square) + attacker_bonus(piece_mask)
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         let mask = m & PROMOTION_FULL_MOVE_MASK;
         if mask == PROMOTION_ROOK_MOVE_MASK {
@@ -50,24 +50,24 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
             1
         } else {
-            QUEEN_VALUE
+            1000 + QUEEN_VALUE
         }
     } else if to_square == position.en_passant_square {
-        PAWN_VALUE + PAWN_ATTACKER_BONUS
+        1000 + PAWN_VALUE + PAWN_ATTACKER_BONUS
     } else {
         let killer_moves = search_state.killer_moves[ply];
-        if m == killer_moves[0] { 75 }
-        else if m == killer_moves[1] { 50 }
+        if m == killer_moves[0] { 750 }
+        else if m == killer_moves[1] { 400 }
         else if ply > 2 {
             let killer_moves = search_state.killer_moves[ply - 2];
-            if m == killer_moves[0] { 65 } else if m == killer_moves[1] { 40 } else { 0 }
+            if m == killer_moves[0] { 300 } else if m == killer_moves[1] { 200 } else { 0 }
         } else {
             0
         }
     };
 
     let history_score = search_state.history_moves[position.mover as usize][from_square_part(m) as usize][to_square as usize];
-    score + linear_scale(history_score, 0, search_state.highest_history_score, 0, 25) as Score
+    score + linear_scale(history_score, 0, search_state.highest_history_score, 0, 500) as Score
 
 }
 

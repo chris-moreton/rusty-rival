@@ -293,6 +293,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             } else {
                 search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, lmr)
             };
+
             check_time!(search_state);
             if score < beta {
                 update_history(position, depth, search_state, m, false);
