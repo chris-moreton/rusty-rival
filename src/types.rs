@@ -1,6 +1,5 @@
-use std::collections::HashMap;
 use std::time::Instant;
-use crate::engine_constants::{MAX_DEPTH, NUM_KILLER_MOVES};
+use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 
 pub type Square = i8;
@@ -14,7 +13,8 @@ pub type Bound = Score;
 pub type Window = (Bound, Bound);
 pub type Score = i32;
 pub type HashLock = u128;
-pub type HashIndex = HashLock;
+pub type HashIndex = u32;
+pub type HashArray = [HashEntry; NUM_HASH_ENTRIES as usize];
 pub type MoveScore = (Move, Score);
 pub type MoveScoreList = Vec<MoveScore>;
 pub type PositionHistory = Vec<HashLock>;
@@ -40,7 +40,7 @@ pub fn default_uci_state() -> UciState {
     UciState {
         fen: START_POS.to_string(),
         debug: false,
-        registered_name: "Rustival".parse().unwrap(),
+        registered_name: "Rusty Rival".parse().unwrap(),
         wtime: u64::MAX,
         btime: u64::MAX,
         winc: 0,
@@ -54,12 +54,20 @@ pub fn default_uci_state() -> UciState {
     }
 }
 
+pub static mut HASH_TABLE_HEIGHT: HashArray = [HashEntry {
+    score: 0,
+    version: 0,
+    height: 0,
+    mv: 0,
+    bound: BoundType::Exact,
+    lock: 0
+    }; NUM_HASH_ENTRIES as usize];
+
 pub struct SearchState {
     pub current_best: MoveScore,
     pub start_time: Instant,
     pub end_time: Instant,
     pub iterative_depth: u8,
-    pub hash_table_height: HashMap<HashIndex, HashEntry>,
     pub hash_table_version: u32,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
     pub history_moves: [[[HistoryScore; 64]; 64]; 2],
@@ -79,7 +87,6 @@ pub fn default_search_state() -> SearchState {
         start_time: Instant::now(),
         end_time: Instant::now(),
         iterative_depth: 0,
-        hash_table_height: Default::default(),
         hash_table_version: 1,
         killer_moves: [[0,0]; MAX_DEPTH as usize],
         history_moves: [[[0; 64]; 64]; 2],
@@ -94,6 +101,7 @@ pub fn default_search_state() -> SearchState {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct HashEntry {
     pub score: Score,
     pub version: u32,
@@ -132,6 +140,14 @@ pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook, Empty }
 
 #[derive(Debug, PartialEq)]
 pub enum BoundType { Exact, Lower, Upper }
+
+impl Clone for BoundType {
+    fn clone(&self) -> Self {
+        todo!()
+    }
+}
+
+impl Copy for BoundType { }
 
 #[inline(always)]
 pub fn unset_white_castles(position: &mut Position) { position.castle_flags &= !(WK_CASTLE | WQ_CASTLE) }

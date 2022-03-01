@@ -3,6 +3,7 @@ use std::process::exit;
 use std::time::{Duration, Instant};
 use either::{Either, Left, Right};
 use regex::Regex;
+use crate::engine_constants::NUM_HASH_ENTRIES;
 
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
@@ -10,7 +11,7 @@ use crate::move_constants::{START_POS};
 use crate::moves::{is_check, moves};
 use crate::perft::perft;
 use crate::search::{iterative_deepening};
-use crate::types::{Position, SearchState, UciState};
+use crate::types::{BoundType, HASH_TABLE_HEIGHT, HashEntry, Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -72,12 +73,12 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
             cmd_go(uci_state, search_state, parts)
         },
         "setoption" => {
-            cmd_setoption(search_state, parts)
+            cmd_setoption(parts)
         },
         "register" => {
             cmd_register()
         },
-        "ucinewgame" => {
+        "ucinewgame" => unsafe {
             cmd_ucinewgame(uci_state, search_state)
         },
         "debug" => {
@@ -192,19 +193,19 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
             cmd_perft(depth, &uci_state);
             Right(None)
         },
-        "infinite" => {
+        "infinite" => unsafe {
             let position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
             let mv = iterative_deepening(&position, 200, search_state);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
-        "mate" => {
+        "mate" => unsafe {
             let position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
             let mv = iterative_deepening(&position, 200, search_state);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
-        _ => {
+        _ => unsafe {
             let line = parts.join(" ").to_string();
             uci_state.wtime = extract_go_param("wtime", &line, 0);
             uci_state.btime = extract_go_param("btime", &line, 0);
@@ -225,7 +226,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220301-01-Move-Ordering|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220301-02-HashArray|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -295,13 +296,20 @@ fn cmd_perft(depth: u8, uci_state: &UciState) -> Either<String, Option<String>> 
     Right(None)
 }
 
-fn cmd_setoption(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_setoption(parts: Vec<&str>) -> Either<String, Option<String>> {
     if parts.len() < 3 || parts[1] != "name" {
         Left("usage: setoption name <name> [value <value>]".parse().unwrap())
     } else {
         match parts[2] {
-            "Clear" => {
-                search_state.hash_table_height.clear();
+            "Clear" => unsafe {
+                HASH_TABLE_HEIGHT = [HashEntry {
+                    score: 0,
+                    version: 0,
+                    height: 0,
+                    mv: 0,
+                    bound: BoundType::Exact,
+                    lock: 0
+                }; NUM_HASH_ENTRIES as usize];
                 Right(None)
             },
             _ => {
@@ -315,9 +323,16 @@ fn cmd_register() -> Either<String, Option<String>> {
     Right(None)
 }
 
-fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchState) -> Either<String, Option<String>> {
+unsafe fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchState) -> Either<String, Option<String>> {
     search_state.nodes = 0;
-    search_state.hash_table_height.clear();
+    HASH_TABLE_HEIGHT = [HashEntry {
+        score: 0,
+        version: 0,
+        height: 0,
+        mv: 0,
+        bound: BoundType::Exact,
+        lock: 0
+    }; NUM_HASH_ENTRIES as usize];
     uci_state.fen = START_POS.parse().unwrap();
     Right(None)
 }
