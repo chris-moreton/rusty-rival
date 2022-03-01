@@ -188,8 +188,44 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         return 0;
     }
 
+    let index = zobrist_index(position.zobrist_lock);
+
     if depth == 0 {
-        return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
+        let q_score = match search_state.hash_table_height.get(&index) {
+            Some(x) => {
+                if x.lock == position.zobrist_lock {
+                    if x.bound == Exact {
+                        x.score
+                    } else if x.bound == Lower && x.score >= window.1 {
+                        x.score
+                    } else if x.bound == Upper && x.score <= window. 0 {
+                        x.score
+                    } else {
+                        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
+                        if q > window.0 && q < window.1 {
+                            search_state.hash_table_height.insert(index, HashEntry { score: q, version: search_state.hash_table_version, height: 0, mv: 0, bound: Exact, lock: position.zobrist_lock, });
+                        }
+                        q
+                    }
+                } else {
+                    search_state.hash_clashes += 1;
+                    let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
+                    if q > window.0 && q < window.1 {
+                        search_state.hash_table_height.insert(index, HashEntry { score: q, version: search_state.hash_table_version, height: 0, mv: 0, bound: Exact, lock: position.zobrist_lock, });
+                    }
+                    q
+                }
+            },
+            None => {
+                let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
+                if q > window.0 && q < window.1 {
+                    search_state.hash_table_height.insert(index, HashEntry { score: q, version: search_state.hash_table_version, height: 0, mv: 0, bound: Exact, lock: position.zobrist_lock, });
+                }
+                q
+            }
+        };
+
+        return q_score;
     }
 
     let mut alpha = window.0;
@@ -211,7 +247,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut legal_move_count = 0;
 
-    let index = zobrist_index(position.zobrist_lock);
     let mut hash_height = 0;
     let mut hash_flag = Upper;
     let mut hash_version = 0;
