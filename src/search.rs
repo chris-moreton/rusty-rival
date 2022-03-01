@@ -3,13 +3,13 @@ use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
-use crate::hash::{zobrist_index, ZOBRIST_KEY_MOVER_SWITCH};
+use crate::hash::{ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
 use crate::move_constants::PROMOTION_FULL_MOVE_MASK;
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashIndex, HashLock, HashEntry, BoundType, WHITE, Mover, HistoryScore};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, HistoryScore};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
@@ -172,9 +172,9 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
 }
 
 #[inline(always)]
-pub fn store_hash_entry(index: HashIndex, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
+pub fn store_hash_entry(lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
-        search_state.hash_table_height.insert(index, HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, });
+        search_state.hash_table_height.insert(lock, HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, });
     }
 }
 
@@ -188,44 +188,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         return 0;
     }
 
-    let index = zobrist_index(position.zobrist_lock);
-
     if depth == 0 {
-        let q_score = match search_state.hash_table_height.get(&index) {
-            Some(x) => {
-                if x.lock == position.zobrist_lock {
-                    if x.bound == Exact {
-                        x.score
-                    } else if x.bound == Lower && x.score >= window.1 {
-                        x.score
-                    } else if x.bound == Upper && x.score <= window. 0 {
-                        x.score
-                    } else {
-                        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
-                        if q > window.0 && q < window.1 {
-                            search_state.hash_table_height.insert(index, HashEntry { score: q, version: search_state.hash_table_version, height: 0, mv: 0, bound: Exact, lock: position.zobrist_lock, });
-                        }
-                        q
-                    }
-                } else {
-                    search_state.hash_clashes += 1;
-                    let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
-                    if q > window.0 && q < window.1 {
-                        search_state.hash_table_height.insert(index, HashEntry { score: q, version: search_state.hash_table_version, height: 0, mv: 0, bound: Exact, lock: position.zobrist_lock, });
-                    }
-                    q
-                }
-            },
-            None => {
-                let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
-                if q > window.0 && q < window.1 {
-                    search_state.hash_table_height.insert(index, HashEntry { score: q, version: search_state.hash_table_version, height: 0, mv: 0, bound: Exact, lock: position.zobrist_lock, });
-                }
-                q
-            }
-        };
-
-        return q_score;
+        return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
     }
 
     let mut alpha = window.0;
@@ -245,8 +209,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
     }
 
-    let mut legal_move_count = 0;
+    let index = position.zobrist_lock;
 
+    let mut legal_move_count = 0;
     let mut hash_height = 0;
     let mut hash_flag = Upper;
     let mut hash_version = 0;
@@ -291,7 +256,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 if best_movescore.1 > alpha {
                     alpha = best_movescore.1;
                     if alpha >= beta {
-                        return cutoff(position, depth, ply, search_state, index, best_movescore, hash_height, hash_version, hash_move, &mut new_position);
+                        return cutoff(position, depth, ply, search_state, best_movescore, hash_height, hash_version, hash_move, &mut new_position);
                     }
                     hash_flag = Exact;
                 }
@@ -338,7 +303,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 if best_movescore.1 > alpha {
                     alpha = best_movescore.1;
                     if alpha >= beta {
-                        return cutoff(position, depth, ply, search_state, index, best_movescore, hash_height, hash_version, m, &mut new_position);
+                        return cutoff(position, depth, ply, search_state, best_movescore, hash_height, hash_version, m, &mut new_position);
                     }
                     hash_flag = Exact;
                 }
@@ -353,7 +318,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
     };
 
-    store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
+    store_hash_entry(position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
 
     adjust_mate_score_for_ply(0, best_movescore.1)
 }
@@ -373,8 +338,8 @@ fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Wi
 }
 
 #[inline(always)]
-fn cutoff(position: &Position, depth: u8, ply: u8, search_state: &mut SearchState, index: HashIndex, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, mut new_position: &mut Position) -> Score {
-    store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
+fn cutoff(position: &Position, depth: u8, ply: u8, search_state: &mut SearchState, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, mut new_position: &mut Position) -> Score {
+    store_hash_entry(position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
     update_history(position, depth, search_state, m, true);
     update_killers(position, ply, search_state, m, &mut new_position);
     best_movescore.1
