@@ -152,7 +152,7 @@ pub unsafe fn start_search(position: &Position, legal_moves: &mut MoveScoreList,
         make_move(position, legal_moves[move_num].0, &mut new_position);
         search_state.history.push(new_position.zobrist_lock);
 
-        let mut score = -search(&new_position, search_state.iterative_depth, 1, (-aspiration_window.1, -aspiration_window.0), search_state);
+        let mut score = -search(&new_position, search_state.iterative_depth-1, 1, (-aspiration_window.1, -aspiration_window.0), search_state);
         if score > MATE_START { score -= 1 } else if score < -MATE_START { score += 1 };
 
         search_state.history.pop();
@@ -182,7 +182,6 @@ pub unsafe fn store_hash_entry(lock: HashLock, height: u8, existing_height: u8, 
 #[inline(always)]
 pub unsafe fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> Score {
 
-    search_state.nodes += 1;
     check_time!(search_state);
 
     if search_state.history.iter().rev().take(position.half_moves as usize).filter(|p| position.zobrist_lock == **p).count() > 1 {
@@ -192,6 +191,8 @@ pub unsafe fn search(position: &Position, depth: u8, ply: u8, window: Window, se
     if depth == 0 {
         return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
     }
+
+    search_state.nodes += 1;
 
     let mut alpha = window.0;
     let mut beta = window.1;

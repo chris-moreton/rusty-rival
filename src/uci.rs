@@ -69,6 +69,9 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
         "isready" => {
             cmd_isready()
         },
+        "state" => {
+            cmd_state(uci_state, search_state)
+        },
         "go" => {
             cmd_go(uci_state, search_state, parts)
         },
@@ -183,6 +186,10 @@ pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
     }
 }
 
+fn cmd_state(mut _uci_state: &mut UciState, search_state: &mut SearchState) -> Either<String, Option<String>> {
+    Right(Some(format!(r#"Nodes {}"#, search_state.nodes)))
+}
+
 fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
     search_state.nodes = 0;
@@ -226,7 +233,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220302-01-Search-State-Hash|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220302-02-SEE-In-Move-Score|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
