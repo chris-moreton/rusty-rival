@@ -42,7 +42,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
         let piece_mask = m & PIECE_MASK_FULL;
-        max(1000, 1000 + piece_value(&enemy, to_square) + attacker_bonus(piece_mask) + static_exchange_evaluation(position, m))
+        1000 + piece_value(&enemy, to_square) + attacker_bonus(piece_mask)
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         let mask = m & PROMOTION_FULL_MOVE_MASK;
         if mask == PROMOTION_ROOK_MOVE_MASK {
@@ -55,7 +55,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
             1000 + QUEEN_VALUE
         }
     } else if to_square == position.en_passant_square {
-        max(1000, 1000 + PAWN_VALUE + PAWN_ATTACKER_BONUS + static_exchange_evaluation(position, m))
+        1000 + PAWN_VALUE + PAWN_ATTACKER_BONUS + static_exchange_evaluation(position, m)
     } else {
         let killer_moves = search_state.killer_moves[ply];
         if m == killer_moves[0] { 750 }
