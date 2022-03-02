@@ -9,7 +9,7 @@ use crate::move_constants::PROMOTION_FULL_MOVE_MASK;
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, HistoryScore, HASH_TABLE_HEIGHT};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, HistoryScore};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
@@ -175,7 +175,7 @@ pub unsafe fn start_search(position: &Position, legal_moves: &mut MoveScoreList,
 pub unsafe fn store_hash_entry(lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
         let index: usize = (lock % NUM_HASH_ENTRIES as u128) as usize;
-        HASH_TABLE_HEIGHT[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
+        search_state.hash_table_height[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
     }
 }
 
@@ -218,7 +218,7 @@ pub unsafe fn search(position: &Position, depth: u8, ply: u8, window: Window, se
     let mut hash_version = 0;
     let mut best_movescore: MoveScore = (0,-MAX_SCORE);
 
-    let hash_move = match HASH_TABLE_HEIGHT.get(index) {
+    let hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
             if x.lock == position.zobrist_lock {
                 if x.height >= depth {

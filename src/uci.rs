@@ -11,7 +11,7 @@ use crate::move_constants::{START_POS};
 use crate::moves::{is_check, moves};
 use crate::perft::perft;
 use crate::search::{iterative_deepening};
-use crate::types::{BoundType, HASH_TABLE_HEIGHT, HashEntry, Position, SearchState, UciState};
+use crate::types::{BoundType, HashEntry, Position, SearchState, UciState};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -73,12 +73,12 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
             cmd_go(uci_state, search_state, parts)
         },
         "setoption" => {
-            cmd_setoption(parts)
+            cmd_setoption(parts, search_state)
         },
         "register" => {
             cmd_register()
         },
-        "ucinewgame" => unsafe {
+        "ucinewgame" => {
             cmd_ucinewgame(uci_state, search_state)
         },
         "debug" => {
@@ -226,7 +226,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220301-02-HashArray|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220302-01-Search-State-Hash|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -296,20 +296,22 @@ fn cmd_perft(depth: u8, uci_state: &UciState) -> Either<String, Option<String>> 
     Right(None)
 }
 
-fn cmd_setoption(parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<String, Option<String>> {
     if parts.len() < 3 || parts[1] != "name" {
         Left("usage: setoption name <name> [value <value>]".parse().unwrap())
     } else {
         match parts[2] {
-            "Clear" => unsafe {
-                HASH_TABLE_HEIGHT = [HashEntry {
-                    score: 0,
-                    version: 0,
-                    height: 0,
-                    mv: 0,
-                    bound: BoundType::Exact,
-                    lock: 0
-                }; NUM_HASH_ENTRIES as usize];
+            "Clear" => {
+                for i in 0..NUM_HASH_ENTRIES {
+                    search_state.hash_table_height[i as usize] = HashEntry {
+                        score: 0,
+                        version: 0,
+                        height: 0,
+                        mv: 0,
+                        bound: BoundType::Exact,
+                        lock: 0
+                    }
+                };
                 Right(None)
             },
             _ => {
@@ -323,16 +325,18 @@ fn cmd_register() -> Either<String, Option<String>> {
     Right(None)
 }
 
-unsafe fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchState) -> Either<String, Option<String>> {
+fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchState) -> Either<String, Option<String>> {
     search_state.nodes = 0;
-    HASH_TABLE_HEIGHT = [HashEntry {
-        score: 0,
-        version: 0,
-        height: 0,
-        mv: 0,
-        bound: BoundType::Exact,
-        lock: 0
-    }; NUM_HASH_ENTRIES as usize];
+    for i in 0..NUM_HASH_ENTRIES {
+        search_state.hash_table_height[i as usize] = HashEntry {
+            score: 0,
+            version: 0,
+            height: 0,
+            mv: 0,
+            bound: BoundType::Exact,
+            lock: 0
+        }
+    };
     uci_state.fen = START_POS.parse().unwrap();
     Right(None)
 }
