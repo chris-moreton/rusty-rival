@@ -1,6 +1,6 @@
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{ZOBRIST_KEY_MOVER_SWITCH};
@@ -279,8 +279,8 @@ pub unsafe fn search(position: &Position, depth: u8, ply: u8, window: Window, se
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
-            let lmr = if legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > 3 && !is_check(position, position.mover) && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
-                1
+            let lmr = if legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
+                2
             } else {
                 0
             };
@@ -288,12 +288,12 @@ pub unsafe fn search(position: &Position, depth: u8, ply: u8, window: Window, se
             let score = if scout_search {
                 let scout_score = search_wrapper(depth, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr);
                 if scout_score > alpha {
-                    search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, lmr)
+                    search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, 0)
                 } else {
                     alpha
                 }
             } else {
-                search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, lmr)
+                search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, 0)
             };
 
             check_time!(search_state);
