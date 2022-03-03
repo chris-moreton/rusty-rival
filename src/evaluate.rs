@@ -25,6 +25,7 @@ pub fn evaluate(position: &Position) -> Score {
     if position.mover == WHITE { score } else { -score }
 }
 
+#[inline(always)]
 pub fn king_score(position: &Position, piece_count: u32) -> Score {
     let mut score = 0 as Score;
 
@@ -35,21 +36,54 @@ pub fn king_score(position: &Position, piece_count: u32) -> Score {
     score
 }
 
+#[inline(always)]
 pub fn contains_all_bits(bitboard: Bitboard, mask: Bitboard) -> bool {
     bitboard & mask == mask
 }
 
+#[inline(always)]
 pub fn king_early_safety(position: &Position) -> Score {
-    let mut white_score: Score = white_king_early_safety(position);
-    let mut black_score: Score = black_king_early_safety(position);
+    let white_score: Score = white_king_early_safety(position);
+    let black_score: Score = black_king_early_safety(position);
 
     white_score - black_score
 }
 
+#[inline(always)]
+pub fn white_king_early_safety(position: &Position) -> Score {
+    let mut score: Score = 0;
+    let white = position.pieces[WHITE as usize];
+
+    if bit(white.king_square) & 0b0000000000000000000000000000000000000000000000000000000000000011 != 0 {
+        let white_pawn_files: u8 = (south_fill(white.pawn_bitboard) & RANK_1_BITS) as u8;
+        score += (white_pawn_files & 0b00000111) as Score * 2;
+        if white.rook_bitboard & 0b0000000000000000000000000000000000000000000000000000000000000100 != 0 {
+            if contains_all_bits(white.pawn_bitboard, 0b0000000000000000000000000000000000000000000000000000011100000000) {
+                score += 30 // (A)
+            } else if contains_all_bits(white.pawn_bitboard, 0b0000000000000000000000000000000000000000000000100000010100000000) {
+                score += 10; // (B-)
+                if white.bishop_bitboard & 0b0000000000000000000000000000000000000000000000000000001000000000 != 0 {
+                    score += 10; // (B+)
+                }
+            } else if contains_all_bits(white.pawn_bitboard, 0b0000000000000000000000000000000000000000000000110000010000000000) {
+                score += 5; // (C-)
+                if white.bishop_bitboard & 0b0000000000000000000000000000000000000000000000000000001000000000 != 0 {
+                    score += 10; // (C+)
+                }
+            }
+        }
+    }
+    score
+}
+
+#[inline(always)]
 pub fn black_king_early_safety(position: &Position) -> Score {
-    let mut score = 0;
+    let mut score: Score = 0;
     let black = position.pieces[BLACK as usize];
     if bit(black.king_square) & 0b0000001100000000000000000000000000000000000000000000000000000000 != 0 {
+        let black_pawn_files: u8 = (south_fill(black.pawn_bitboard) & RANK_1_BITS) as u8;
+        score += (black_pawn_files & 0b00000111) as Score * 2;
+
         if black.rook_bitboard & 0b0000010000000000000000000000000000000000000000000000000000000000 != 0 {
             if contains_all_bits(black.pawn_bitboard, 0b0000000000000111000000000000000000000000000000000000000000000000) {
                 score += 30 // (A)
@@ -58,23 +92,10 @@ pub fn black_king_early_safety(position: &Position) -> Score {
                 if black.bishop_bitboard & 0b0000000000000010000000000000000000000000000000000000000000000000 != 0 {
                     score += 10; // (B)
                 }
-            }
-        }
-    }
-    score
-}
-
-pub fn white_king_early_safety(position: &Position) -> Score {
-    let mut score = 0;
-    let white = position.pieces[WHITE as usize];
-    if bit(white.king_square) & 0b0000000000000000000000000000000000000000000000000000000000000011 != 0 {
-        if white.rook_bitboard & 0b0000000000000000000000000000000000000000000000000000000000000100 != 0 {
-            if contains_all_bits(white.pawn_bitboard, 0b0000000000000000000000000000000000000000000000000000011100000000) {
-                score += 30 // (A)
-            } else if contains_all_bits(white.pawn_bitboard, 0b0000000000000000000000000000000000000000000000100000010100000000) {
-                score += 10; // (B)
-                if white.bishop_bitboard & 0b0000000000000000000000000000000000000000000000000000001000000000 != 0 {
-                    score += 10; // (B)
+            } else if contains_all_bits(black.pawn_bitboard, 0b0000000000000100000000110000000000000000000000000000000000000000) {
+                score += 5; // (C-)
+                if black.bishop_bitboard & 0b0000000000000010000000000000000000000000000000000000000000000000 != 0 {
+                    score += 10; // (C+)
                 }
             }
         }

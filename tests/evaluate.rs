@@ -2,7 +2,7 @@ use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use rusty_rival::evaluate::{on_same_file_count, material, material_score, pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety};
 use rusty_rival::fen::get_position;
-use rusty_rival::types::{BLACK, WHITE};
+use rusty_rival::types::{BLACK, Score, WHITE};
 use rusty_rival::utils::{invert_fen, invert_pos};
 
 #[test]
@@ -48,15 +48,20 @@ fn it_gets_the_number_of_pieces_on_the_same_file_in_a_bitboard() {
     assert_eq!(material_score(&position), ROOK_VALUE + (PAWN_VALUE *2) - (ROOK_VALUE * 2) - QUEEN_VALUE - BISHOP_VALUE - KNIGHT_VALUE - (PAWN_VALUE * 5));
 }
 
+fn test_king_safety(fen: &str, white_score: Score, black_score: Score) {
+    let position = get_position(fen);
+    assert_eq!(white_king_early_safety(&position), white_score);
+    assert_eq!(black_king_early_safety(&position), black_score);
+    assert_eq!(white_king_early_safety(&invert_pos(&position)), black_score);
+    assert_eq!(black_king_early_safety(&invert_pos(&position)), white_score);
+}
+
 #[test]
 fn it_evaluates_king_safety() {
-    let position = get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    assert_eq!(white_king_early_safety(&position), 0);
-    assert_eq!(black_king_early_safety(&position), 0);
-
-    let position = get_position("rnbqkbnr/pppppppp/8/8/8/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1");
-    assert_eq!(white_king_early_safety(&position), 10);
-    assert_eq!(black_king_early_safety(&position), 0);
-    assert_eq!(white_king_early_safety(&invert_pos(&position)), 0);
-    assert_eq!(black_king_early_safety(&invert_pos(&position)), 10);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 0 ,0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", 24 ,0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/5NP1/PPPPPPBP/RNBQ1RK1 w kq - 0 1", 34 ,0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQBRK1 w kq - 0 1", 44, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/5NPP/PPPPPPB1/RNBQ1RK1 w kq - 0 1", 29, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/5NPP/PPPPPP2/RNBQBRK1 w kq - 0 1", 19, 0);
 }
