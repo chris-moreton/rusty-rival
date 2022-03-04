@@ -62,7 +62,7 @@ macro_rules! debug_out {
 
 pub const ASPIRATION_RADIUS: Score = 50;
 
-pub unsafe fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mut SearchState) -> Move {
+pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mut SearchState) -> Move {
 
     search_state.start_time = Instant::now();
 
@@ -143,7 +143,7 @@ pub unsafe fn iterative_deepening(position: &Position, max_depth: u8, search_sta
     legal_moves[0].0
 }
 
-pub unsafe fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, aspiration_window: Window) -> MoveScore {
+pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, aspiration_window: Window) -> MoveScore {
 
     let mut current_best: MoveScore = (legal_moves[0].0, -MAX_SCORE);
 
@@ -172,7 +172,7 @@ pub unsafe fn start_search(position: &Position, legal_moves: &mut MoveScoreList,
 }
 
 #[inline(always)]
-pub unsafe fn store_hash_entry(lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
+pub fn store_hash_entry(lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
         let index: usize = (lock % NUM_HASH_ENTRIES as u128) as usize;
         search_state.hash_table_height[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
@@ -180,7 +180,7 @@ pub unsafe fn store_hash_entry(lock: HashLock, height: u8, existing_height: u8, 
 }
 
 #[inline(always)]
-pub unsafe fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> Score {
+pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> Score {
 
     check_time!(search_state);
 
@@ -332,7 +332,7 @@ fn switch_mover(new_position: &mut Position) {
 }
 
 #[inline(always)]
-unsafe fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &mut Position, lmr: u8) -> Score {
+fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &mut Position, lmr: u8) -> Score {
     search_state.history.push(new_position.zobrist_lock);
     let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - lmr, ply + 1, window, search_state));
     search_state.history.pop();
@@ -340,7 +340,7 @@ unsafe fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, win
 }
 
 #[inline(always)]
-unsafe fn cutoff(position: &Position, depth: u8, ply: u8, search_state: &mut SearchState, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, mut new_position: &mut Position) -> Score {
+fn cutoff(position: &Position, depth: u8, ply: u8, search_state: &mut SearchState, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, mut new_position: &mut Position) -> Score {
     store_hash_entry(position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
     update_history(position, depth, search_state, m, true);
     update_killers(position, ply, search_state, m, &mut new_position);

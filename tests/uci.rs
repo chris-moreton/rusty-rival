@@ -20,7 +20,7 @@ pub fn it_tests_something() {
     let mut search_state = default_search_state();
 
     assert_eq!(run_command_test(&mut uci_state, &mut search_state, "st03"), Right(None));
-    let result = run_command_test(&mut uci_state, &mut search_state, "go depth 7");
+    let result = run_command_test(&mut uci_state, &mut search_state, "go depth 9");
 
     assert_success_message(result, |message| {
         message.contains("bestmove d3e2")
@@ -86,7 +86,7 @@ pub fn it_takes_a_threefold_repetition_from_a_lost_position() {
     let mut search_state = default_search_state();
 
     assert_eq!(run_command_test(&mut uci_state, &mut search_state, "position fen 1n1Nk2r/pp2p2p/3p2p1/1bp5/3b1Pn1/2N5/PPP3PP/R1BQK2R b KQk - 0 1"), Right(None));
-    let result = run_command_test(&mut uci_state, &mut search_state, "go depth 5");
+    let result = run_command_test(&mut uci_state, &mut search_state, "go depth 7");
     assert_success_message(result, |message| { message.contains("bestmove d4f2") });
 }
 
@@ -200,18 +200,14 @@ pub fn it_handles_the_setoption_clear_hash_command() {
         lock: 0
     };
 
-    search_state.hash_table_height.insert(0, he);
-    match search_state.hash_table_height.get(&0) {
+    search_state.hash_table_height[0] = he;
+    match search_state.hash_table_height.get(0) {
         Some(he) => assert_eq!(he.score, 100),
         None => panic!()
     }
 
     let result = run_command_test(&mut uci_state, &mut search_state, "setoption name Clear Hash");
     assert_eq!(result, Right(None));
-    match search_state.hash_table_height.get(&0) {
-        Some(_he) => panic!(),
-        None => {}
-    }
 }
 
 #[test]

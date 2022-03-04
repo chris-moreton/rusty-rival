@@ -54,9 +54,15 @@ pub fn white_king_early_safety(position: &Position) -> Score {
     let mut score: Score = 0;
     let white = position.pieces[WHITE as usize];
 
+    let king_file = (south_fill(bit(white.king_square)) & RANK_1_BITS) as u8;
+    let white_pawn_files: u8 = (south_fill(white.pawn_bitboard) & RANK_1_BITS) as u8;
+
+    if king_file | white_pawn_files != white_pawn_files {
+        score -= 20;
+    }
+
     if bit(white.king_square) & 0b0000000000000000000000000000000000000000000000000000000000000011 != 0 {
-        let white_pawn_files: u8 = (south_fill(white.pawn_bitboard) & RANK_1_BITS) as u8;
-        score += (white_pawn_files & 0b00000111) as Score * 2;
+        score += (white_pawn_files & 0b00000111).count_ones() as Score * 5;
         if white.rook_bitboard & 0b0000000000000000000000000000000000000000000000000000000000000100 != 0 {
             if contains_all_bits(white.pawn_bitboard, 0b0000000000000000000000000000000000000000000000000000011100000000) {
                 score += 30 // (A)
@@ -80,9 +86,16 @@ pub fn white_king_early_safety(position: &Position) -> Score {
 pub fn black_king_early_safety(position: &Position) -> Score {
     let mut score: Score = 0;
     let black = position.pieces[BLACK as usize];
+
+    let king_file = (south_fill(bit(black.king_square)) & RANK_1_BITS) as u8;
+    let black_pawn_files: u8 = (south_fill(black.pawn_bitboard) & RANK_1_BITS) as u8;
+
+    if king_file | black_pawn_files != black_pawn_files {
+        score -= 20;
+    }
+
     if bit(black.king_square) & 0b0000001100000000000000000000000000000000000000000000000000000000 != 0 {
-        let black_pawn_files: u8 = (south_fill(black.pawn_bitboard) & RANK_1_BITS) as u8;
-        score += (black_pawn_files & 0b00000111) as Score * 2;
+        score += (black_pawn_files & 0b00000111).count_ones() as Score * 5;
 
         if black.rook_bitboard & 0b0000010000000000000000000000000000000000000000000000000000000000 != 0 {
             if contains_all_bits(black.pawn_bitboard, 0b0000000000000111000000000000000000000000000000000000000000000000) {

@@ -200,19 +200,19 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
             cmd_perft(depth, &uci_state);
             Right(None)
         },
-        "infinite" => unsafe {
+        "infinite" => {
             let position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
             let mv = iterative_deepening(&position, 200, search_state);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
-        "mate" => unsafe {
+        "mate" => {
             let position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
             let mv = iterative_deepening(&position, 200, search_state);
             Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
         },
-        _ => unsafe {
+        _ => {
             let line = parts.join(" ").to_string();
             uci_state.wtime = extract_go_param("wtime", &line, 0);
             uci_state.btime = extract_go_param("btime", &line, 0);
@@ -233,7 +233,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220303-10-A-Little-More-KSafety|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220304-01-More-King-Safety|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
