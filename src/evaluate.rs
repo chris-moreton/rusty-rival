@@ -1,9 +1,11 @@
-use crate::bitboards::{bit, RANK_1_BITS, south_fill};
+use crate::bitboards::{bit, DARK_SQUARES_BITS, LIGHT_SQUARES_BITS, RANK_1_BITS, south_fill};
 use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_ROOKS_ON_SAME_FILE};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 2, 6, 10, 13, 16, 18, 20, 22, 23, 24];
+pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
+pub const VALUE_BISHOP_PAIR: Score = 20;
 
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {
@@ -54,14 +56,8 @@ pub fn white_king_early_safety(position: &Position) -> Score {
     let mut score: Score = 0;
     let white = position.pieces[WHITE as usize];
 
-    let king_file = (south_fill(bit(white.king_square)) & RANK_1_BITS) as u8;
-    let white_pawn_files: u8 = (south_fill(white.pawn_bitboard) & RANK_1_BITS) as u8;
-
-    if king_file | white_pawn_files != white_pawn_files {
-        score -= 20;
-    }
-
     if bit(white.king_square) & 0b0000000000000000000000000000000000000000000000000000000000000011 != 0 {
+        let white_pawn_files: u8 = (south_fill(white.pawn_bitboard) & RANK_1_BITS) as u8;
         score += (white_pawn_files & 0b00000111).count_ones() as Score * 5;
         if white.rook_bitboard & 0b0000000000000000000000000000000000000000000000000000000000000100 != 0 {
             if contains_all_bits(white.pawn_bitboard, 0b0000000000000000000000000000000000000000000000000000011100000000) {
@@ -87,14 +83,8 @@ pub fn black_king_early_safety(position: &Position) -> Score {
     let mut score: Score = 0;
     let black = position.pieces[BLACK as usize];
 
-    let king_file = (south_fill(bit(black.king_square)) & RANK_1_BITS) as u8;
-    let black_pawn_files: u8 = (south_fill(black.pawn_bitboard) & RANK_1_BITS) as u8;
-
-    if king_file | black_pawn_files != black_pawn_files {
-        score -= 20;
-    }
-
     if bit(black.king_square) & 0b0000001100000000000000000000000000000000000000000000000000000000 != 0 {
+        let black_pawn_files: u8 = (south_fill(black.pawn_bitboard) & RANK_1_BITS) as u8;
         score += (black_pawn_files & 0b00000111).count_ones() as Score * 5;
 
         if black.rook_bitboard & 0b0000010000000000000000000000000000000000000000000000000000000000 != 0 {
@@ -174,6 +164,15 @@ pub fn pawn_score(position: &Position) -> Score {
     // let isolated = (isolated_pawn_count(black_pawn_files) - isolated_pawn_count(white_pawn_files)) * ISOLATED_PAWN_PENALTY;
 
     doubled
+}
+
+#[inline(always)]
+pub fn bishop_pair_bonus(bishops: Bitboard, pawns: Bitboard) -> Score {
+    if bishops & DARK_SQUARES_BITS != 0 && bishops & LIGHT_SQUARES_BITS != 0 {
+        VALUE_BISHOP_PAIR + (8-pawns.count_ones()) as Score * VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS
+    } else {
+        0
+    }
 }
 
 #[inline(always)]

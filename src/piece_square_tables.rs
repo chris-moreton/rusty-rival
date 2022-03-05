@@ -1,7 +1,9 @@
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_scores::{BIT_FLIPPED_HORIZONTAL_AXIS, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_STAGE_MATERIAL_LOW, OPENING_PHASE_MATERIAL, PAWN_STAGE_MATERIAL_HIGH, PAWN_STAGE_MATERIAL_LOW};
 use crate::{get_and_unset_lsb};
-use crate::types::{BLACK, Pieces, Position, Score, Square, WHITE};
+use crate::bitboards::{DARK_SQUARES_BITS, LIGHT_SQUARES_BITS};
+use crate::evaluate::{bishop_pair_bonus, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS};
+use crate::types::{Bitboard, BLACK, Pieces, Position, Score, Square, WHITE};
 use crate::utils::{linear_scale};
 
 pub const PAWN_PIECE_SQUARE_TABLE: [Score; 64] = [
@@ -179,6 +181,8 @@ fn white_bishop_piece_square_values(position: &Position) -> Score {
         let sq = get_and_unset_lsb!(bb);
         score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
     }
+
+    score += bishop_pair_bonus(bb, position.pieces[WHITE as usize].pawn_bitboard);
     score
 }
 
@@ -190,6 +194,8 @@ fn black_bishop_piece_square_values(position: &Position) -> Score {
         let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize];
         score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
     }
+
+    score += bishop_pair_bonus(bb, position.pieces[BLACK as usize].pawn_bitboard);
     score
 }
 
