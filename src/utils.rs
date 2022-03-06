@@ -4,7 +4,7 @@ use crate::fen::{get_fen, get_position, move_from_algebraic_move};
 use crate::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
                             PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
 use crate::opponent;
-use crate::types::{BLACK, Move, Position, Score, Square, WHITE};
+use crate::types::{Bitboard, BLACK, Move, Position, Score, Square, WHITE};
 
 #[inline(always)]
 pub const fn from_square_mask(square: Square) -> Move {
@@ -110,6 +110,18 @@ pub fn castle_mask(position: &Position, mv: Move) -> Move {
     } else {
         0
     }
+}
+
+pub fn show_bitboard(title: &str, bitboard: Bitboard) {
+    println!("{}", title);
+    println!("########");
+    for i in (0..=63).rev() {
+        print!(" {} ", if bitboard & bit(i) != 0 { '*' } else { '-' } );
+        if i % 8 == 0 {
+            println!()
+        }
+    }
+    println!("########");
 }
 
 #[inline(always)]

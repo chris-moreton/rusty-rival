@@ -1,9 +1,10 @@
 use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use rusty_rival::evaluate::{on_same_file_count, material, material_score, pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, bishop_pair_bonus};
+use rusty_rival::evaluate::{on_same_file_count, material, material_score, pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, bishop_pair_bonus, passed_pawn_score, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN};
 use rusty_rival::fen::get_position;
+use rusty_rival::move_constants::START_POS;
 use rusty_rival::types::{BLACK, Score, WHITE};
-use rusty_rival::utils::{invert_pos};
+use rusty_rival::utils::{invert_fen, invert_pos};
 
 #[test]
 fn it_gets_the_pawn_score() {
@@ -46,6 +47,30 @@ fn it_gets_the_bishop_pair_bonus() {
     let position = get_position("3Nk3/4p3/8/1bp2p2/3b1Pn1/2N5/1PP3PP/1BBQK2R b K - 0 1");
     assert_eq!(bishop_pair_bonus(position.pieces[WHITE as usize].bishop_bitboard, position.pieces[WHITE as usize].pawn_bitboard), 29);
     assert_eq!(bishop_pair_bonus(position.pieces[BLACK as usize].bishop_bitboard, position.pieces[BLACK as usize].pawn_bitboard), 35);
+}
+
+fn test_passed_pawns(fen: &str, score: Score) -> Score {
+    let position = get_position(fen);
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+    passed_pawn_score(white_pawns, black_pawns);
+
+    let position = get_position(&invert_fen(fen));
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+    passed_pawn_score(white_pawns, black_pawns)
+
+}
+
+#[test]
+fn it_gets_the_passed_pawn_score() {
+    //assert_eq!(passed_pawn_wrapper(START_POS), 0);
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1",
+               (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
+                VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
+                VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                   (VALUE_PASSED_PAWN_BONUS[3]) // black pawn on 5th
+    );
 }
 
 #[test]
