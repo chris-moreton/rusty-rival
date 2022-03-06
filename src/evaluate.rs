@@ -2,7 +2,6 @@ use crate::bitboards::{bit, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, LIGHT_S
 use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_ROOKS_ON_SAME_FILE};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
-use crate::utils::show_bitboard;
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 2, 6, 10, 13, 16, 18, 20, 22, 23, 24];
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
@@ -25,7 +24,8 @@ pub fn evaluate(position: &Position) -> Score {
             piece_square_values(position) +
             king_score(position, piece_count) +
             rook_eval(position) +
-            pawn_score(position);
+            passed_pawn_score(position) +
+            doubled_pawns_score(position);
 
     if position.mover == WHITE { score } else { -score }
 }
@@ -155,7 +155,7 @@ pub fn isolated_pawn_count(pawn_files: u8) -> Score {
 }
 
 #[inline(always)]
-pub fn pawn_score(position: &Position) -> Score {
+pub fn doubled_pawns_score(position: &Position) -> Score {
 
     let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
     let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
@@ -169,11 +169,14 @@ pub fn pawn_score(position: &Position) -> Score {
 
     // let isolated = (isolated_pawn_count(black_pawn_files) - isolated_pawn_count(white_pawn_files)) * ISOLATED_PAWN_PENALTY;
 
-    doubled + passed_pawn_score(white_pawns, black_pawns)
+    doubled
 }
 
 #[inline(always)]
-pub fn passed_pawn_score(white_pawns: Bitboard, black_pawns: Bitboard) -> Score {
+pub fn passed_pawn_score(position: &Position) -> Score {
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+
     let white_pawn_attacks = ((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7);
     let black_pawn_attacks = ((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9);
 
@@ -209,7 +212,7 @@ pub fn guarded_passed_pawn_score(white_pawns: Bitboard, black_pawns: Bitboard, w
 
     println!("Guarded Count White {} Black {}", white_guarded_passed_pawns.count_ones(), black_guarded_passed_pawns.count_ones());
 
-    ((white_guarded_passed_pawns.count_ones() as Score - black_guarded_passed_pawns.count_ones() as Score) * VALUE_GUARDED_PASSED_PAWN)
+    (white_guarded_passed_pawns.count_ones() as Score - black_guarded_passed_pawns.count_ones() as Score) * VALUE_GUARDED_PASSED_PAWN
 }
 
 #[inline(always)]

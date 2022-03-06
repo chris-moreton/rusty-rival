@@ -1,8 +1,7 @@
 use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use rusty_rival::evaluate::{on_same_file_count, material, material_score, pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, bishop_pair_bonus, passed_pawn_score, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN};
+use rusty_rival::evaluate::{on_same_file_count, material, material_score, doubled_pawns_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, bishop_pair_bonus, passed_pawn_score, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN};
 use rusty_rival::fen::get_position;
-use rusty_rival::move_constants::START_POS;
 use rusty_rival::types::{BLACK, Score, WHITE};
 use rusty_rival::utils::{invert_fen, invert_pos};
 
@@ -15,7 +14,7 @@ fn it_gets_the_pawn_score() {
     assert_eq!(isolated_pawn_count(south_fill(position.pieces[WHITE as usize].pawn_bitboard) as u8), 0);
     assert_eq!(isolated_pawn_count(south_fill(position.pieces[BLACK as usize].pawn_bitboard) as u8), 1);
 
-    assert_eq!(pawn_score(&position), DOUBLED_PAWN_PENALTY * 2 );
+    assert_eq!(doubled_pawns_score(&position), DOUBLED_PAWN_PENALTY * 2 );
 
     let position = get_position("3Nk3/4p3/1p3p2/1bp2p2/3b1Pn1/2NP4/1P4PP/2BQK2R w K - 0 1");
     assert_eq!(on_same_file_count(position.pieces[WHITE as usize].pawn_bitboard, south_fill(position.pieces[WHITE as usize].pawn_bitboard) as u8), 0);
@@ -24,7 +23,7 @@ fn it_gets_the_pawn_score() {
     assert_eq!(isolated_pawn_count(south_fill(position.pieces[WHITE as usize].pawn_bitboard) as u8), 2);
     assert_eq!(isolated_pawn_count(south_fill(position.pieces[BLACK as usize].pawn_bitboard) as u8), 0);
 
-    assert_eq!(pawn_score(&position), DOUBLED_PAWN_PENALTY);
+    assert_eq!(doubled_pawns_score(&position), DOUBLED_PAWN_PENALTY);
 }
 
 #[test]
@@ -49,17 +48,12 @@ fn it_gets_the_bishop_pair_bonus() {
     assert_eq!(bishop_pair_bonus(position.pieces[BLACK as usize].bishop_bitboard, position.pieces[BLACK as usize].pawn_bitboard), 35);
 }
 
-fn test_passed_pawns(fen: &str, score: Score) -> Score {
+fn test_passed_pawns(fen: &str, score: Score) {
     let position = get_position(fen);
-    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
-    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
-    passed_pawn_score(white_pawns, black_pawns);
+    assert_eq!(passed_pawn_score(&position), score);
 
     let position = get_position(&invert_fen(fen));
-    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
-    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
-    passed_pawn_score(white_pawns, black_pawns)
-
+    assert_eq!(passed_pawn_score(&position), -score);
 }
 
 #[test]
@@ -100,7 +94,7 @@ fn it_evaluates_king_safety() {
     test_king_safety("rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQBRK1 w kq - 0 1", 45, 0);
     test_king_safety("rnbqkbnr/pppppppp/8/8/8/5NPP/PPPPPPB1/RNBQ1RK1 w kq - 0 1", 30, 0);
     test_king_safety("rnbqkbnr/pppppppp/8/8/8/5NPP/PPPPPP2/RNBQBRK1 w kq - 0 1", 20, 0);
-    test_king_safety("rnbqkbnr/pppppppp/8/8/8/3PBN2/PPPPPP1P/RNBQ1RK1 w kq - 0 1", -10, 0);
-    test_king_safety("rnbqkbnr/pppppppp/8/8/8/2PPBN2/PPPPPP2/RNBQ1RK1 w kq - 0 1", -15, 0);
-    test_king_safety("rnbqkbnr/pppppppp/8/8/2P5/2PPBN2/PPPPP3/RNBQ1RK1 w kq - 0 1", -20, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/3PBN2/PPPPPP1P/RNBQ1RK1 w kq - 0 1", 10, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/2PPBN2/PPPPPP2/RNBQ1RK1 w kq - 0 1", 5, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/2P5/2PPBN2/PPPPP3/RNBQ1RK1 w kq - 0 1", 0, 0);
 }
