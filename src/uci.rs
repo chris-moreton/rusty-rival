@@ -227,9 +227,9 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
             let position = get_position(uci_state.fen.trim());
 
             if position.mover == WHITE {
-                calc_from_colour_times(uci_state, uci_state.wtime);
+                calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
             } else {
-                calc_from_colour_times(uci_state, uci_state.btime);
+                calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
             }
 
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
@@ -240,14 +240,14 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
     }
 }
 
-fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64) {
+fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis: u64) {
     if millis > 0 {
         uci_state.move_time = if uci_state.moves_to_go == 0 {
             millis
         } else {
             min(uci_state.move_time, (millis as f64 / (uci_state.moves_to_go as f64 + 1.0) as f64) as u64)
         };
-        uci_state.move_time = (uci_state.move_time as f64 * 0.95) as u64;
+        uci_state.move_time = (uci_state.move_time as f64 * 0.95) as u64 + inc_millis;
     }
 }
 

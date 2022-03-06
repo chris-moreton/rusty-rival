@@ -164,6 +164,10 @@ pub fn it_handles_wtime_and_btime() {
     test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "go wtime 5000 btime 10000 movestogo 24", 200);
     test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "go wtime 500 btime 1000 movestogo 1", 500);
     test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "go wtime 500 btime 250 movestogo 0", 250);
+    test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "go wtime 1000 btime 1000 movestogo 9 winc 100 binc 0", 200);
+    test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "go wtime 5000 btime 10000 movestogo 24 winc 100 binc 100", 300);
+    test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "go wtime 500 btime 1000 movestogo 1 winc 200 binc 200", 700);
+    test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "go wtime 500 btime 250 movestogo 0 winc 50 binc 200", 450);
 }
 
 #[test]
