@@ -1,7 +1,8 @@
+use std::time::Instant;
 use either::{Either, Left, Right};
 use rusty_rival::fen::{get_position};
 use rusty_rival::move_constants::{START_POS};
-use rusty_rival::types::{BoundType, default_search_state, default_uci_state, HashEntry};
+use rusty_rival::types::{BoundType, default_search_state, default_uci_state, HashEntry, SearchState, UciState};
 use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
 
 #[test]
@@ -143,6 +144,26 @@ pub fn it_returns_a_best_move() {
         println!("{}", message);
         message.contains("bestmove")
     });
+}
+
+fn test_wtime_btime(fen: &str, cmd: &str, max_millis: u128) {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+
+    assert_eq!(run_command_test(&mut uci_state, &mut search_state, &*format!("position fen {}", fen)), Right(None));
+    let start = Instant::now();
+    let result = run_command_test(&mut uci_state, &mut search_state, cmd);
+    let millis = (Instant::now() - start).as_millis();
+    assert!(millis as f64 > (max_millis as f64 * 0.9) && millis < max_millis + 50);
+    assert_success_message(result, |message| { message.contains("bestmove") });
+}
+
+#[test]
+pub fn it_handles_wtime_and_btime() {
+    test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "go wtime 1000 btime 1000 movestogo 9", 100);
+    test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "go wtime 5000 btime 10000 movestogo 24", 200);
+    test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "go wtime 500 btime 1000 movestogo 1", 500);
+    test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1", "go wtime 500 btime 250 movestogo 0", 250);
 }
 
 #[test]

@@ -1,14 +1,10 @@
 # Rusty Rival
 
-Chess move generation routines written in Rust.
+A [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) chess engine written in Rust.
 
 ## Running Perft
 
-The only useful command at the moment is *perft*, to determine the total number
-of positions encountered while playing through every move and every response to a certain depth.
-
-Although the move-generation and move-making routines are solid and accurate, the 
-command line interface is currently hacked together, so try to avoid typos.
+Use *perft*, to determine the total number of positions encountered while playing through every move and every response to a certain depth.
 
 ```
 cargo run --release
