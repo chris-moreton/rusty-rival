@@ -210,8 +210,6 @@ pub fn guarded_passed_pawn_score(white_pawns: Bitboard, black_pawns: Bitboard, w
     let white_guarded_passed_pawns = white_passed_pawns & (((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7));
     let black_guarded_passed_pawns = black_passed_pawns & (((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9));
 
-    println!("Guarded Count White {} Black {}", white_guarded_passed_pawns.count_ones(), black_guarded_passed_pawns.count_ones());
-
     (white_guarded_passed_pawns.count_ones() as Score - black_guarded_passed_pawns.count_ones() as Score) * VALUE_GUARDED_PASSED_PAWN
 }
 
