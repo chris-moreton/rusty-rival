@@ -20,12 +20,6 @@ pub const NUM_HASH_ENTRIES: u64 = 1024 * 1024 * 4;
 
 pub const TICKER_MILLIS: u16 = 500;
 
-pub const DOUBLED_PAWN_PENALTY: Score = 25;
-pub const ISOLATED_PAWN_PENALTY: Score = 15;
-
-pub const PAWN_TRADE_BONUS_MAX: Score = 600;
-pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
-
 pub const DEPTH_REMAINING_FOR_RD_INCREASE: u8 = 6;
 
 pub const LMR_LEGALMOVES_BEFORE_ATTEMPT: u8 = 4;

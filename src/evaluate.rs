@@ -1,5 +1,5 @@
 use crate::bitboards::{bit, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, LIGHT_SQUARES_BITS, north_fill, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, south_fill};
-use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_ROOKS_ON_SAME_FILE};
+use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
 
@@ -8,6 +8,11 @@ pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
 pub const VALUE_BISHOP_PAIR: Score = 20;
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 15;
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24,26,30,36,44,56];
+pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 15;
+pub const DOUBLED_PAWN_PENALTY: Score = 15;
+pub const ISOLATED_PAWN_PENALTY: Score = 10;
+pub const PAWN_TRADE_BONUS_MAX: Score = 600;
+pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
 
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {
@@ -178,9 +183,9 @@ pub fn doubled_pawns_score(position: &Position) -> Score {
         on_same_file_count(position.pieces[WHITE as usize].pawn_bitboard, white_pawn_files)) as Score
         * DOUBLED_PAWN_PENALTY) as Score;
 
-    // let isolated = (isolated_pawn_count(black_pawn_files) - isolated_pawn_count(white_pawn_files)) * ISOLATED_PAWN_PENALTY;
+    let isolated = (isolated_pawn_count(black_pawn_files) - isolated_pawn_count(white_pawn_files)) * ISOLATED_PAWN_PENALTY;
 
-    doubled
+    doubled + isolated
 }
 
 #[inline(always)]

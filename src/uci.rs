@@ -144,7 +144,7 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
 
             uci_state.fen = fen.parse().unwrap();
 
-            if re.is_match(&*fen) {
+            return if re.is_match(&*fen) {
                 uci_state.fen = fen;
                 let mut position = get_position(&uci_state.fen);
                 let mut new_position = position;
@@ -161,9 +161,9 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
                     }
                 }
                 uci_state.fen = get_fen(&position);
-                return Right(None)
+                Right(None)
             } else {
-                return Left("Invalid FEN".parse().unwrap())
+                Left("Invalid FEN".parse().unwrap())
             }
         },
         _ => {
@@ -252,7 +252,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220306-04-Right-Way-Complete|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220307-01-ReIsolate|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {

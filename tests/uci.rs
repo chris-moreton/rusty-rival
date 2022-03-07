@@ -2,7 +2,7 @@ use std::time::Instant;
 use either::{Either, Left, Right};
 use rusty_rival::fen::{get_position};
 use rusty_rival::move_constants::{START_POS};
-use rusty_rival::types::{BoundType, default_search_state, default_uci_state, HashEntry, SearchState, UciState};
+use rusty_rival::types::{BoundType, default_search_state, default_uci_state, HashEntry};
 use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
 
 #[test]
