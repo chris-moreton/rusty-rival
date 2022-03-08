@@ -30,7 +30,7 @@ pub fn evaluate(position: &Position) -> Score {
         king_score(position, piece_count) +
         rook_eval(position) +
         passed_pawn_score(position) +
-        doubled_pawns_score(position);
+        doubled_and_isolated_pawn_score(position);
 
     if position.mover == WHITE { score } else { -score }
 }
@@ -171,7 +171,7 @@ pub fn isolated_pawn_count(pawn_files: u8) -> Score {
 }
 
 #[inline(always)]
-pub fn doubled_pawns_score(position: &Position) -> Score {
+pub fn doubled_and_isolated_pawn_score(position: &Position) -> Score {
 
     let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
     let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;

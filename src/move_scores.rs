@@ -40,8 +40,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     let to_square = to_square_part(m);
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
-        let piece_mask = m & PIECE_MASK_FULL;
-        1000 + piece_value(&enemy, to_square) + attacker_bonus(piece_mask)
+        1000 + piece_value(&enemy, to_square) + attacker_bonus(m & PIECE_MASK_FULL)
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         let mask = m & PROMOTION_FULL_MOVE_MASK;
         if mask == PROMOTION_ROOK_MOVE_MASK {
@@ -54,7 +53,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
             1000 + QUEEN_VALUE
         }
     } else if to_square == position.en_passant_square {
-        1000 + PAWN_VALUE + PAWN_ATTACKER_BONUS + static_exchange_evaluation(position, m)
+        1000 + PAWN_VALUE + PAWN_ATTACKER_BONUS
     } else {
         let killer_moves = search_state.killer_moves[ply];
         if m == killer_moves[0] { 750 }
@@ -88,7 +87,7 @@ pub fn score_quiesce_move(position: &Position, m: Move) -> Score {
     } else {
         0
     };
-    score
+    score + static_exchange_evaluation(position, m)
 }
 
 #[inline(always)]

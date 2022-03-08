@@ -125,6 +125,25 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
 }
 
 #[inline(always)]
+pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList {
+    let mut move_list = Vec::with_capacity(1);
+
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let friendly = position.pieces[position.mover as usize];
+
+    generate_capture_pawn_moves_with_destinations(&mut move_list, position.mover as usize, friendly.pawn_bitboard, valid_destinations);
+    generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
+    generate_diagonal_slider_moves(friendly.bishop_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_BISHOP);
+    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_ROOK);
+    generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN);
+    generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN);
+
+    add_moves!(move_list, from_square_mask(friendly.king_square) | PIECE_MASK_KING, KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations);
+
+    move_list
+}
+
+#[inline(always)]
 fn generate_pawn_moves(position: &Position, move_list: &mut Vec<Move>, empty_squares: Bitboard, colour_index: usize, mut from_squares: Bitboard) {
     while from_squares != 0 {
         let from_square = get_and_unset_lsb!(from_squares);
@@ -161,6 +180,26 @@ fn generate_capture_pawn_moves(position: &Position, move_list: &mut Vec<Move>, c
         let enemy_pawns_capture_bitboard = position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | epsbit(position.en_passant_square);
 
         let mut to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & enemy_pawns_capture_bitboard;
+
+        let fsm = from_square_mask(from_square);
+        let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
+        while to_bitboard != 0 {
+            let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
+            if is_promotion {
+                move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
+            } else {
+                move_list.push(base_move);
+            }
+        };
+    };
+}
+
+#[inline(always)]
+fn generate_capture_pawn_moves_with_destinations(move_list: &mut Vec<Move>, colour_index: usize, mut from_squares: Bitboard, valid_destinations: Bitboard) {
+    while from_squares != 0 {
+        let from_square = get_and_unset_lsb!(from_squares);
+
+        let mut to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & valid_destinations;
 
         let fsm = from_square_mask(from_square);
         let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;

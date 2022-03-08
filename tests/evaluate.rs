@@ -1,16 +1,16 @@
 use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use rusty_rival::evaluate::{on_same_file_count, material, material_score, doubled_pawns_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, bishop_pair_bonus, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY};
+use rusty_rival::evaluate::{on_same_file_count, material, material_score, doubled_and_isolated_pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, bishop_pair_bonus, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY};
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{BLACK, Score, WHITE};
 use rusty_rival::utils::{invert_fen, invert_pos};
 
 fn test_doubled_pawns(fen: &str, score: Score) {
     let position = get_position(fen);
-    assert_eq!(doubled_pawns_score(&position), score);
+    assert_eq!(doubled_and_isolated_pawn_score(&position), score);
 
     let position = get_position(&invert_fen(fen));
-    assert_eq!(doubled_pawns_score(&position), -score);
+    assert_eq!(doubled_and_isolated_pawn_score(&position), -score);
 }
 
 #[test]
