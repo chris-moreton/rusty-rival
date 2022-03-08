@@ -6,6 +6,74 @@ use crate::types::{Bitboard, BLACK, Move, Position, Square, WHITE};
 use crate::utils::{from_square_part, to_square_part};
 
 #[inline(always)]
+pub fn make_see_move(mv: Move, new_position: &mut Position) {
+
+    let from = from_square_part(mv);
+    let to = to_square_part(mv);
+
+    let piece_mask = mv & PIECE_MASK_FULL;
+
+    match piece_mask {
+        PIECE_MASK_PAWN => {
+            if mv & PROMOTION_FULL_MOVE_MASK != 0 {
+                make_move_with_promotion(new_position, from, to, mv & PROMOTION_FULL_MOVE_MASK);
+            } else if (from - to) % 8 != 0 {
+                make_pawn_capture_move(new_position, from, to);
+            }
+        },
+        _ => {
+            let bit_to = bit(to);
+
+            if (new_position.pieces[WHITE as usize].all_pieces_bitboard | new_position.pieces[BLACK as usize].all_pieces_bitboard) & bit_to != 0 {
+                let enemy = &mut new_position.pieces[opponent!(new_position.mover) as usize];
+
+                if enemy.pawn_bitboard & bit_to != 0 {
+                    enemy.pawn_bitboard &= !bit_to;
+                }
+                if enemy.knight_bitboard & bit_to != 0 {
+                    enemy.knight_bitboard &= !bit_to;
+                }
+                if enemy.rook_bitboard & bit_to != 0 {
+                    enemy.rook_bitboard &= !bit_to;
+                }
+                if enemy.bishop_bitboard & bit_to != 0 {
+                    enemy.bishop_bitboard &= !bit_to;
+                }
+                if enemy.queen_bitboard & bit_to != 0 {
+                    enemy.queen_bitboard &= !bit_to;
+                }
+
+                enemy.all_pieces_bitboard &= !bit_to;
+            }
+
+            let switch = bit(from) | bit_to;
+            new_position.pieces[new_position.mover as usize].all_pieces_bitboard ^= switch;
+
+            match piece_mask {
+                PIECE_MASK_KNIGHT => {
+                    new_position.pieces[new_position.mover as usize].knight_bitboard ^= switch
+                },
+                PIECE_MASK_BISHOP => {
+                    new_position.pieces[new_position.mover as usize].bishop_bitboard ^= switch
+                },
+                PIECE_MASK_ROOK => {
+                    new_position.pieces[new_position.mover as usize].rook_bitboard ^= switch;
+                },
+                PIECE_MASK_QUEEN => {
+                    new_position.pieces[new_position.mover as usize].queen_bitboard ^= switch
+                },
+                PIECE_MASK_KING => {
+                    new_position.pieces[new_position.mover as usize].king_square = to
+                },
+                _ => panic!("Piece panic")
+            }
+        }
+    }
+
+    new_position.mover ^= 1;
+}
+
+#[inline(always)]
 pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
     let from = from_square_part(mv);

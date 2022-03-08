@@ -1,15 +1,15 @@
 use std::cmp::{min};
 use crate::bitboards::bit;
-use crate::make_move::make_move;
+use crate::make_move::{make_see_move};
 use crate::moves::{is_check, see_moves};
-use crate::types::{Bitboard, Move, Position, Score, Square};
+use crate::types::{Bitboard, Move, Position, Score};
 use crate::utils::{captured_piece_value, to_square_part};
 
 #[inline(always)]
 pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
 
     let mut new_position = *position;
-    make_move(position, mv, &mut new_position);
+    make_see_move(mv, &mut new_position);
     return if is_check(&new_position, position.mover) {
         0
     } else {
@@ -22,7 +22,7 @@ fn see(v: Score, capture_square: Bitboard, position: &Position) -> Score {
 
     for m in see_moves(&position, capture_square) {
         let mut new_position = *position;
-        make_move(&position, m, &mut new_position);
+        make_see_move( m, &mut new_position);
         if !is_check(&new_position, position.mover) {
             return min(v, v - see(captured_piece_value(position, m), capture_square, &new_position));
         }
