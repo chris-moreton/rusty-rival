@@ -132,13 +132,12 @@ pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList 
     let friendly = position.pieces[position.mover as usize];
 
     generate_capture_pawn_moves_with_destinations(&mut move_list, position.mover as usize, friendly.pawn_bitboard, valid_destinations);
-    generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
-    generate_diagonal_slider_moves(friendly.bishop_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_BISHOP);
-    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_ROOK);
-    generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN);
-    generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN);
-
-    add_moves!(move_list, from_square_mask(friendly.king_square) | PIECE_MASK_KING, KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations);
+    if move_list.is_empty() { generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard); }
+    if move_list.is_empty() { generate_diagonal_slider_moves(friendly.bishop_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_BISHOP); }
+    if move_list.is_empty() { generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_ROOK); }
+    if move_list.is_empty() { generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN); }
+    if move_list.is_empty() { generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, valid_destinations, PIECE_MASK_QUEEN); }
+    if move_list.is_empty() { add_moves!(move_list, from_square_mask(friendly.king_square) | PIECE_MASK_KING, KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations); }
 
     move_list
 }
