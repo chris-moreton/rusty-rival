@@ -67,7 +67,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     };
 
     let history_score = search_state.history_moves[position.mover as usize][from_square_part(m) as usize][to_square as usize];
-    score + linear_scale(history_score, 0, search_state.highest_history_score, 0, 500) as Score
+    static_exchange_evaluation(position, m) + score + linear_scale(history_score, 0, search_state.highest_history_score, 0, 500) as Score
 
 }
 
