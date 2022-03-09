@@ -87,7 +87,7 @@ pub fn score_quiesce_move(position: &Position, m: Move) -> Score {
     } else {
         0
     };
-    score + static_exchange_evaluation(position, m)
+    score
 }
 
 #[inline(always)]
