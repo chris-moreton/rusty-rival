@@ -190,32 +190,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         return 0;
     }
 
-    if depth == 0 {
-        return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
-    }
-
-    search_state.nodes += 1;
-
+    let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let mut alpha = window.0;
     let mut beta = window.1;
-
-    let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
-
-    let in_check = is_check(position, position.mover);
-
-    if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !in_check {
-        if evaluate(position) > beta {
-            let mut new_position = *position;
-            switch_mover(&mut new_position);
-            let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit));
-            if score >= beta {
-                return beta;
-            }
-            switch_mover(&mut new_position);
-        }
-    }
-
-    let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
 
     let mut legal_move_count = 0;
     let mut hash_height = 0;
@@ -247,6 +224,33 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             0
         }
     };
+
+    if depth == 0 {
+        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
+        let bound = if q <= alpha { Upper } else if q >= beta { Lower } else { Exact };
+        if bound == Exact {
+           store_hash_entry(position.zobrist_lock, 0, hash_height, hash_version, bound, (0, q), search_state);
+        }
+        return q;
+    }
+
+    search_state.nodes += 1;
+
+    let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
+
+    let in_check = is_check(position, position.mover);
+
+    if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !in_check {
+        if evaluate(position) > beta {
+            let mut new_position = *position;
+            switch_mover(&mut new_position);
+            let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit));
+            if score >= beta {
+                return beta;
+            }
+            switch_mover(&mut new_position);
+        }
+    }
 
     let mut scout_search = false;
 
