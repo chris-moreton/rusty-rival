@@ -1,8 +1,9 @@
 use std::ops::Add;
 use std::time::{Duration, Instant};
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::search::iterative_deepening;
+use rusty_rival::search::{iterative_deepening, pawn_push};
 use rusty_rival::types::{default_search_state};
+use rusty_rival::utils::hydrate_move_from_algebraic_move;
 
 #[test]
 fn it_returns_the_best_move_at_depth_1() {
@@ -31,6 +32,42 @@ fn assert_move(fen: &str, depth: u8, millis: u64, bestmove: &str) {
 }
 
 #[test]
+fn it_knows_a_pawn_push() {
+    let position = get_position("1k5r/pP3ppp/3p2b1/1BN5/1Q2P1n1/P1B5/KP3P1P/7q w - - 0 1");
+    assert!(!pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e4e5".to_string())));
+
+    let position = get_position("1k5r/pP4pp/2p3b1/1BN3p1/1Q2P1n1/P1B5/KP3P1P/7q w - - 0 1");
+    assert!(!pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e4e5".to_string())));
+
+    let position = get_position("1k5r/p5pp/1Pp3b1/1BN3p1/1Q2P1n1/P1B5/KP3P1P/7q w - - 0 1");
+    assert!(pawn_push(&position, hydrate_move_from_algebraic_move(&position, "b6b7".to_string())));
+
+    let position = get_position("1k5r/p5pp/1Pp3b1/1BN5/1Q2P1n1/P1B1p3/KP3P1P/7q b - - 0 1");
+    assert!(pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e3e2".to_string())));
+
+    let position = get_position("1k5r/p5pp/1Pp3b1/1BN1p3/1Q3Pn1/P1B5/KP3P1P/7q b - - 0 1");
+    assert!(!pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e5e4".to_string())));
+
+    let position = get_position("1k5r/p5pp/1Pp3b1/1BN5/1Q2pPn1/P1B5/KP3P1P/7q b - - 0 1");
+    assert!(!pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e4e3".to_string())));
+
+    let position = get_position("1k5r/p5pp/1Pp3b1/1BN1pP2/1Q4n1/P1B3P1/KP5P/7q b - - 0 1");
+    assert!(!pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e5e4".to_string())));
+
+    let position = get_position("1k5r/p5pp/1Pp3b1/1BN5/1Q2pPn1/P1B3P1/KP5P/7q b - - 0 1");
+    assert!(pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e4e3".to_string())));
+
+    let position = get_position("1k5r/p5pp/1Pp3b1/1BN5/1Q2p1n1/P1B2PP1/KP5P/7q b - - 0 1");
+    assert!(pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e4e3".to_string())));
+
+    let position = get_position("1k5r/p5pp/1Pp3b1/1BN5/1Q2p1n1/P1B3P1/KP3P1P/7q b - - 0 1");
+    assert!(!pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e4e3".to_string())));
+
+    let position = get_position("1k5r/pP4pp/2p3b1/1BN1P1p1/1Q4n1/P1B5/KP3P1P/7q w - - 0 1");
+    assert!(pawn_push(&position, hydrate_move_from_algebraic_move(&position, "e5e6".to_string())));
+}
+
+#[test]
 fn it_finds_a_mate_in_3() {
     assert_move("1k5r/pP3ppp/3p2b1/1BN1n3/1Q2P3/P1B5/KP3P1P/7q w - - 1 0", 7, 1000000,"c5a6");
     assert_move("3r4/pR2N3/2pkb3/5p2/8/2B5/qP3PPP/4R1K1 w - - 1 0", 7,1000000, "c3e5");
@@ -45,7 +82,7 @@ fn it_finds_a_mate_in_4() {
 
 #[test]
 fn it_finds_a_mate_in_5() {
-    assert_move("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 11, 10000000, "h4f4");
+    assert_move("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 9, 10000000, "h4f4");
 }
 
 #[test]
@@ -57,7 +94,7 @@ fn it_avoids_thinking_stalemate_is_checkmate() {
 
 #[test]
 fn it_finds_a_mate_in_6() {
-    assert_move("8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1", 13, 10000000, "b5c5,b5c4,e4g4");
+    assert_move("8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1", 11, 10000000, "b5c5,b5c4,e4g4");
 }
 
 #[test]

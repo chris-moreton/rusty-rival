@@ -6,17 +6,41 @@ use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
-use crate::move_constants::PROMOTION_FULL_MOVE_MASK;
+use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PROMOTION_FULL_MOVE_MASK};
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, HistoryScore};
+use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, HistoryScore, Bitboard, BLACK};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
 pub const MAX_SCORE: Score = 30000;
 pub const MATE_MARGIN: Score = 1000;
 pub const MATE_START: Score = MAX_SCORE - MATE_MARGIN;
+
+pub const WHITE_PASSED_PAWN_MASK: [Bitboard; 64] =
+[
+    0,0,0,0,0,0,0,0,
+    0x0003030303030000,0x0007070707070000,0x000E0E0E0E0E0000,0x001C1C1C1C1C0000,0x0038383838380000,0x0070707070700000,0x00E0E0E0E0E00000,0x00C0C0C0C0C00000,
+    0x0003030303000000,0x0007070707000000,0x000E0E0E0E000000,0x001C1C1C1C000000,0x0038383838000000,0x0070707070000000,0x00E0E0E0E0000000,0x00C0C0C0C0000000,
+    0x0003030300000000,0x0007070700000000,0x000E0E0E00000000,0x001C1C1C00000000,0x0038383800000000,0x0070707000000000,0x00E0E0E000000000,0x00C0C0C000000000,
+    0x0003030000000000,0x0007070000000000,0x000E0E0000000000,0x001C1C0000000000,0x0038380000000000,0x0070700000000000,0x00E0E00000000000,0x00C0C00000000000,
+    0x0003000000000000,0x0007000000000000,0x000E000000000000,0x001C000000000000,0x0038000000000000,0x0070000000000000,0x00E0000000000000,0x00C0000000000000,
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0
+];
+
+pub const BLACK_PASSED_PAWN_MASK: [Bitboard; 64] =
+[
+    0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+    0x0000000000000300,0x0000000000000700,0x0000000000000E00,0x0000000000001C00,0x0000000000003800,0x0000000000007000,0x000000000000E000,0x000000000000C000,
+    0x0000000000030300,0x0000000000070700,0x00000000000E0E00,0x00000000001C1C00,0x0000000000383800,0x0000000000707000,0x0000000000E0E000,0x0000000000C0C000,
+    0x0000000003030300,0x0000000007070700,0x000000000E0E0E00,0x000000001C1C1C00,0x0000000038383800,0x0000000070707000,0x00000000E0E0E000,0x00000000C0C0C000,
+    0x0000000303030300,0x0000000707070700,0x0000000E0E0E0E00,0x0000001C1C1C1C00,0x0000003838383800,0x0000007070707000,0x000000E0E0E0E000,0x000000C0C0C0C000,
+    0x0000030303030300,0x0000070707070700,0x00000E0E0E0E0E00,0x00001C1C1C1C1C00,0x0000383838383800,0x0000707070707000,0x0000E0E0E0E0E000,0x0000C0C0C0C0C000,
+    0,0,0,0,0,0,0,0
+];
 
 #[macro_export]
 macro_rules! time_remains {
@@ -182,6 +206,27 @@ pub fn store_hash_entry(lock: HashLock, height: u8, existing_height: u8, existin
 }
 
 #[inline(always)]
+pub fn pawn_push(position: &Position, m: Move) -> bool {
+    let move_piece = m & PIECE_MASK_FULL;
+    if move_piece == PIECE_MASK_PAWN {
+        let to_square = to_square_part(m);
+        if to_square >= 48 || to_square <= 15 {
+            return true;
+        }
+        if position.mover == WHITE {
+            if to_square >= 40 && to_square <= 47 {
+                return position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0;
+            }
+        } else {
+            if to_square >= 16 && to_square <= 23 {
+                return position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0;
+            }
+        }
+    }
+    false
+}
+
+#[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, extension_limit: u8) -> Score {
 
     check_time!(search_state);
@@ -254,14 +299,16 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut scout_search = false;
 
-    let these_extentions = min(extension_limit, if in_check { 1 } else { 0 });
+    let check_extend = if in_check { 1 } else { 0 };
 
     if verify_move(position, hash_move) {
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
         if !is_check(&new_position, position.mover) {
+            let pawn_extend = if pawn_push(position, hash_move) { 1 } else { 0 };
+            let these_extensions = min(extension_limit, check_extend + pawn_extend);
             legal_move_count += 1;
-            let score = search_wrapper(depth + these_extentions, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions);
+            let score = search_wrapper(depth + these_extensions, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extensions);
             check_time!(search_state);
             if score > best_movescore.1 {
                 best_movescore = (hash_move, score);
@@ -288,27 +335,29 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         let mut new_position = *position;
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
+            let pawn_extend = if pawn_push(position, hash_move) { 1 } else { 0 };
+            let these_extensions = min(extension_limit, check_extend + pawn_extend);
             legal_move_count += 1;
-            let lmr = if these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
+            let lmr = if these_extensions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
                 2
             } else {
                 0
             };
 
             let score = if scout_search {
-                let scout_score = search_wrapper(depth + these_extentions, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr, extension_limit - these_extentions);
+                let scout_score = search_wrapper(depth + these_extensions, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr, extension_limit - these_extensions);
                 if scout_score > alpha {
-                    search_wrapper(depth + these_extentions, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+                    search_wrapper(depth + these_extensions, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extensions)
                 } else {
                     alpha
                 }
             } else {
-                search_wrapper(depth + these_extentions, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+                search_wrapper(depth + these_extensions, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extensions)
             };
 
             check_time!(search_state);
             if score < beta {
-                update_history(position, depth + these_extentions, search_state, m, false);
+                update_history(position, depth + these_extensions, search_state, m, false);
             }
             if score > best_movescore.1 {
                 best_movescore = (m, score);
