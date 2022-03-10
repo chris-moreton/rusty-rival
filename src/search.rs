@@ -335,7 +335,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         let mut new_position = *position;
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
-            let pawn_extend = if pawn_push(position, hash_move) { 1 } else { 0 };
+            let pawn_extend = if pawn_push(position, m) { 1 } else { 0 };
             let these_extensions = min(extension_limit, check_extend + pawn_extend);
             legal_move_count += 1;
             let lmr = if these_extensions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
