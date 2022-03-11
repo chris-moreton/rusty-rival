@@ -1,4 +1,3 @@
-use std::cmp::min;
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
@@ -302,18 +301,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut scout_search = false;
 
-    let extension_limit = if ply < search_state.iterative_depth { 1 } else { 0 };
-
-    let check_extend = if in_check { 1 } else { 0 };
-
     if verify_move(position, hash_move) {
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
         if !is_check(&new_position, position.mover) {
-            let pawn_extend = if pawn_push(position, hash_move) { 0 } else { 0 };
-            let these_extensions = min(extension_limit, check_extend + pawn_extend);
             legal_move_count += 1;
-            let score = search_wrapper(depth + these_extensions, ply, search_state, (-beta, -alpha), &mut new_position, 0);
+            let score = search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, 0);
             check_time!(search_state);
             if score > best_movescore.1 {
                 best_movescore = (hash_move, score);
@@ -340,29 +333,27 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         let mut new_position = *position;
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
-            let pawn_extend = if pawn_push(position, m) { 0 } else { 0 };
-            let these_extensions = min(extension_limit, check_extend + pawn_extend);
             legal_move_count += 1;
-            let lmr = if these_extensions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
+            let lmr = if legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
                 2
             } else {
                 0
             };
 
             let score = if scout_search {
-                let scout_score = search_wrapper(depth + these_extensions, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr);
+                let scout_score = search_wrapper(depth, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr);
                 if scout_score > alpha {
-                    search_wrapper(depth + these_extensions, ply, search_state, (-beta, -alpha), &mut new_position, 0)
+                    search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, 0)
                 } else {
                     alpha
                 }
             } else {
-                search_wrapper(depth + these_extensions, ply, search_state, (-beta, -alpha), &mut new_position, 0)
+                search_wrapper(depth, ply, search_state, (-beta, -alpha), &mut new_position, 0)
             };
 
             check_time!(search_state);
             if score < alpha {
-                update_history(position, depth + these_extensions, search_state, m, false);
+                update_history(position, depth, search_state, m, false);
             }
             if score > best_movescore.1 {
                 best_movescore = (m, score);
