@@ -6,7 +6,7 @@ use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
-use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PROMOTION_FULL_MOVE_MASK};
+use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_KING, PIECE_MASK_BISHOP, PIECE_MASK_ROOK, PIECE_MASK_KNIGHT, PROMOTION_FULL_MOVE_MASK};
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
@@ -310,7 +310,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
         if !is_check(&new_position, position.mover) {
-            let pawn_extend = if pawn_push(position, hash_move) { 1 } else { 0 };
+            let pawn_extend = if pawn_push(position, hash_move) { 0 } else { 0 };
             let these_extensions = min(extension_limit, check_extend + pawn_extend);
             legal_move_count += 1;
             let score = search_wrapper(depth + these_extensions, ply, search_state, (-beta, -alpha), &mut new_position, 0);
@@ -340,7 +340,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         let mut new_position = *position;
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
-            let pawn_extend = if pawn_push(position, m) { 1 } else { 0 };
+            let pawn_extend = if pawn_push(position, m) { 0 } else { 0 };
             let these_extensions = min(extension_limit, check_extend + pawn_extend);
             legal_move_count += 1;
             let lmr = if these_extensions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
@@ -361,7 +361,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             };
 
             check_time!(search_state);
-            if score < beta {
+            if score < alpha {
                 update_history(position, depth + these_extensions, search_state, m, false);
             }
             if score > best_movescore.1 {
@@ -417,20 +417,37 @@ fn update_history(position: &Position, depth: u8, search_state: &mut SearchState
         let f = from_square_part(m) as usize;
         let t = to_square_part(m) as usize;
 
-        search_state.history_moves[position.mover as usize][f][t] += if cutoff {
+        let piece_index = piece_index_12(position, m);
+
+        search_state.history_moves[piece_index][f][t] += if cutoff {
             (depth * depth) as HistoryScore
         } else {
             0 - (depth * depth) as HistoryScore
         };
 
-        if search_state.history_moves[position.mover as usize][f][t] < 0 {
-            search_state.history_moves[position.mover as usize][f][t] = 0;
+        if search_state.history_moves[piece_index][f][t] < 0 {
+            search_state.history_moves[piece_index][f][t] = 0;
         }
 
-        if search_state.history_moves[position.mover as usize][f][t] > search_state.highest_history_score {
-            search_state.highest_history_score = search_state.history_moves[position.mover as usize][f][t];
+        if search_state.history_moves[piece_index][f][t] > search_state.highest_history_score {
+            search_state.highest_history_score = search_state.history_moves[piece_index][f][t];
         }
     }
+}
+
+#[inline(always)]
+pub fn piece_index_12(position: &Position, m: Move) -> usize {
+    ((position.mover * 6) + match m & PIECE_MASK_FULL {
+        PIECE_MASK_PAWN => 0,
+        PIECE_MASK_KNIGHT => 1,
+        PIECE_MASK_BISHOP => 2,
+        PIECE_MASK_ROOK => 3,
+        PIECE_MASK_QUEEN => 4,
+        PIECE_MASK_KING => 5,
+        _ => {
+            panic!("Expected a valid piece mask.");
+        }
+    }) as usize
 }
 
 #[inline(always)]
