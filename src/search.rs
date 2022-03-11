@@ -121,7 +121,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     search_state.current_best = (0, -MAX_SCORE);
 
     for iterative_depth in 1..=max_depth {
-        let extension_limit = iterative_depth / 2;
+        let extension_limit = iterative_depth;
         search_state.iterative_depth = iterative_depth;
         let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
