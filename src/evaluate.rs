@@ -46,9 +46,7 @@ pub fn king_threat_score(position: &Position) -> Score {
 
     let white_king_danger_zone = bit(wks) | KING_MOVES_BITBOARDS[wks as usize] | (KING_MOVES_BITBOARDS[wks as usize] << 8);
     let black_king_danger_zone = bit (bks) | KING_MOVES_BITBOARDS[bks as usize] | (KING_MOVES_BITBOARDS[bks as usize] >> 8);
-
-    show_bitboard("Black King Danger Zone", black_king_danger_zone);
-
+    
     let mut white_king_threats: Vec<Move> = vec![];
     generate_knight_moves(&mut white_king_threats, white_king_danger_zone, position.pieces[BLACK as usize].knight_bitboard);
 
@@ -67,7 +65,6 @@ pub fn king_threat_score(position: &Position) -> Score {
     generate_straight_slider_moves(position.pieces[WHITE as usize].queen_bitboard, all_pieces, &mut black_king_threats, black_king_danger_zone, PIECE_MASK_QUEEN);
     generate_diagonal_slider_moves(position.pieces[WHITE as usize].queen_bitboard, all_pieces, &mut black_king_threats, black_king_danger_zone, PIECE_MASK_QUEEN);
 
-    println!("{} {}", white_king_threats.len(), black_king_threats.len());
     ((black_king_threats.len() as Score - white_king_threats.len() as Score) as Score * KING_THREAT_BONUS) as Score
 }
 
