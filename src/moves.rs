@@ -224,7 +224,7 @@ fn generate_castle_moves(position: &Position, move_list: &mut Vec<Move>, all_pie
 }
 
 #[inline(always)]
-fn generate_knight_moves(move_list: &mut Vec<Move>, valid_destinations: Bitboard, mut from_squares_bitboard: Bitboard) {
+pub fn generate_knight_moves(move_list: &mut Vec<Move>, valid_destinations: Bitboard, mut from_squares_bitboard: Bitboard) {
     while from_squares_bitboard != 0 {
         let from_square = get_and_unset_lsb!(from_squares_bitboard);
         add_moves!(move_list, from_square_mask(from_square) | PIECE_MASK_KNIGHT, KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations);

@@ -1,7 +1,8 @@
-use crate::bitboards::{bit, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, LIGHT_SQUARES_BITS, north_fill, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, south_fill};
+use crate::bitboards::{bit, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, north_fill, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, south_fill};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::moves::generate_knight_moves;
 use crate::piece_square_tables::piece_square_values;
-use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE};
+use crate::types::{Bitboard, BLACK, Move, Mover, Pieces, Position, Score, WHITE};
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 2, 6, 10, 13, 16, 18, 20, 22, 23, 24];
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
@@ -13,6 +14,7 @@ pub const DOUBLED_PAWN_PENALTY: Score = 15;
 pub const ISOLATED_PAWN_PENALTY: Score = 10;
 pub const PAWN_TRADE_BONUS_MAX: Score = 600;
 pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
+pub const KING_THREAT_BONUS: Score = 5;
 
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {
@@ -28,11 +30,28 @@ pub fn evaluate(position: &Position) -> Score {
         material_score +
         piece_square_values(position) +
         king_score(position, piece_count) +
+        king_threat_score(position) +
         rook_eval(position) +
         passed_pawn_score(position) +
         doubled_and_isolated_pawn_score(position);
 
     if position.mover == WHITE { score } else { -score }
+}
+
+pub fn king_threat_score(position: &Position) -> Score {
+    let wks = position.pieces[WHITE as usize].king_square;
+    let bks = position.pieces[BLACK as usize].king_square;
+
+    let white_king_danger_zone = bit(wks) | KING_MOVES_BITBOARDS[wks as usize] | KING_MOVES_BITBOARDS[wks as usize] << 8;
+    let black_king_danger_zone = bit (bks) | KING_MOVES_BITBOARDS[bks as usize] | KING_MOVES_BITBOARDS[bks as usize] >> 8;
+
+    let mut white_king_threats: Vec<Move> = vec![];
+    generate_knight_moves(&mut white_king_threats, white_king_danger_zone, position.pieces[BLACK as usize].knight_bitboard);
+
+    let mut black_king_threats: Vec<Move> = vec![];
+    generate_knight_moves(&mut black_king_threats, black_king_danger_zone, position.pieces[WHITE as usize].knight_bitboard);
+
+    ((black_king_threats.len() as Score - white_king_threats.len() as Score) as Score * KING_THREAT_BONUS) as Score
 }
 
 #[inline(always)]
