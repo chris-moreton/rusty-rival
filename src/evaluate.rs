@@ -1,8 +1,10 @@
 use crate::bitboards::{bit, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, north_fill, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, south_fill};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use crate::moves::generate_knight_moves;
+use crate::move_constants::{PIECE_MASK_BISHOP, PIECE_MASK_QUEEN, PIECE_MASK_ROOK};
+use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Move, Mover, Pieces, Position, Score, WHITE};
+use crate::utils::show_bitboard;
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 2, 6, 10, 13, 16, 18, 20, 22, 23, 24];
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
@@ -42,8 +44,10 @@ pub fn king_threat_score(position: &Position) -> Score {
     let wks = position.pieces[WHITE as usize].king_square;
     let bks = position.pieces[BLACK as usize].king_square;
 
-    let white_king_danger_zone = bit(wks) | KING_MOVES_BITBOARDS[wks as usize] | KING_MOVES_BITBOARDS[wks as usize] << 8;
-    let black_king_danger_zone = bit (bks) | KING_MOVES_BITBOARDS[bks as usize] | KING_MOVES_BITBOARDS[bks as usize] >> 8;
+    let white_king_danger_zone = bit(wks) | KING_MOVES_BITBOARDS[wks as usize] | (KING_MOVES_BITBOARDS[wks as usize] << 8);
+    let black_king_danger_zone = bit (bks) | KING_MOVES_BITBOARDS[bks as usize] | (KING_MOVES_BITBOARDS[bks as usize] >> 8);
+
+    show_bitboard("Black King Danger Zone", black_king_danger_zone);
 
     let mut white_king_threats: Vec<Move> = vec![];
     generate_knight_moves(&mut white_king_threats, white_king_danger_zone, position.pieces[BLACK as usize].knight_bitboard);
@@ -51,6 +55,19 @@ pub fn king_threat_score(position: &Position) -> Score {
     let mut black_king_threats: Vec<Move> = vec![];
     generate_knight_moves(&mut black_king_threats, black_king_danger_zone, position.pieces[WHITE as usize].knight_bitboard);
 
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+
+    generate_straight_slider_moves(position.pieces[BLACK as usize].rook_bitboard, all_pieces, &mut white_king_threats, white_king_danger_zone, PIECE_MASK_ROOK);
+    generate_diagonal_slider_moves(position.pieces[BLACK as usize].bishop_bitboard, all_pieces, &mut white_king_threats, white_king_danger_zone, PIECE_MASK_BISHOP);
+    generate_straight_slider_moves(position.pieces[BLACK as usize].queen_bitboard, all_pieces, &mut white_king_threats, white_king_danger_zone, PIECE_MASK_QUEEN);
+    generate_diagonal_slider_moves(position.pieces[BLACK as usize].queen_bitboard, all_pieces, &mut white_king_threats, white_king_danger_zone, PIECE_MASK_QUEEN);
+
+    generate_straight_slider_moves(position.pieces[WHITE as usize].rook_bitboard, all_pieces, &mut black_king_threats, black_king_danger_zone, PIECE_MASK_ROOK);
+    generate_diagonal_slider_moves(position.pieces[WHITE as usize].bishop_bitboard, all_pieces, &mut black_king_threats, black_king_danger_zone, PIECE_MASK_BISHOP);
+    generate_straight_slider_moves(position.pieces[WHITE as usize].queen_bitboard, all_pieces, &mut black_king_threats, black_king_danger_zone, PIECE_MASK_QUEEN);
+    generate_diagonal_slider_moves(position.pieces[WHITE as usize].queen_bitboard, all_pieces, &mut black_king_threats, black_king_danger_zone, PIECE_MASK_QUEEN);
+
+    println!("{} {}", white_king_threats.len(), black_king_threats.len());
     ((black_king_threats.len() as Score - white_king_threats.len() as Score) as Score * KING_THREAT_BONUS) as Score
 }
 
