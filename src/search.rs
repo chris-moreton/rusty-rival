@@ -103,7 +103,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         (m, -MAX_SCORE)
     }).collect();
 
-    for i in 0..2 as usize {
+    for i in 0..12 as usize {
         for j in 0..64 as usize {
             for k in 0..64 as usize {
                 search_state.history_moves[i][j][k] = 0;
@@ -432,7 +432,6 @@ fn update_history(position: &Position, depth: u8, search_state: &mut SearchState
 
 #[inline(always)]
 pub fn piece_index_12(position: &Position, m: Move) -> usize {
-    return position.mover as usize;
     ((position.mover * 6) + match m & PIECE_MASK_FULL {
         PIECE_MASK_PAWN => 0,
         PIECE_MASK_KNIGHT => 1,

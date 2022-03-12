@@ -1,7 +1,7 @@
 use std::ops::Add;
 use std::time::{Duration, Instant};
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::search::{iterative_deepening, pawn_push};
+use rusty_rival::search::{iterative_deepening, pawn_push, piece_index_12};
 use rusty_rival::types::{default_search_state};
 use rusty_rival::utils::hydrate_move_from_algebraic_move;
 
@@ -103,4 +103,15 @@ fn it_returns_the_best_move_when_time_runs_out() {
     assert_move("rnb1kbnr/pppppppp/8/2q4R/8/8/PPPPPPPP/RNBQKBN1 w Qkq - 0 1", 20, 500, "h5c5");
     assert_move("rnb1kbnr/pppppppp/8/2q4R/8/8/PPPPPPPP/RNBQKBN1 w Qkq - 0 1", 20, 1000, "h5c5");
     assert_move("rnb1kbnr/pppppppp/8/2q4R/8/8/PPPPPPPP/RNBQKBN1 w Qkq - 0 1", 20, 5000, "h5c5");
+}
+
+#[test]
+fn it_gets_the_12_piece_index_for_a_move() {
+    let position = get_position("1k5r/pP3ppp/3p2b1/1BN5/1Q2P1n1/P1B5/KP3P1P/7q w - - 0 1");
+    assert_eq!(1, piece_index_12(&position, hydrate_move_from_algebraic_move(&position, "c5d7".to_string())));
+    assert_eq!(0, piece_index_12(&position, hydrate_move_from_algebraic_move(&position, "e4e5".to_string())));
+
+    let position = get_position("1k5r/pP3ppp/3p2b1/1BN5/1Q2P1n1/P1B5/KP3P1P/7q b - - 0 1");
+    assert_eq!(7, piece_index_12(&position, hydrate_move_from_algebraic_move(&position, "g4f2".to_string())));
+    assert_eq!(6, piece_index_12(&position, hydrate_move_from_algebraic_move(&position, "d6d5".to_string())));
 }
