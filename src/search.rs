@@ -432,6 +432,7 @@ fn update_history(position: &Position, depth: u8, search_state: &mut SearchState
 
 #[inline(always)]
 pub fn piece_index_12(position: &Position, m: Move) -> usize {
+    return position.mover as usize;
     ((position.mover * 6) + match m & PIECE_MASK_FULL {
         PIECE_MASK_PAWN => 0,
         PIECE_MASK_KNIGHT => 1,
