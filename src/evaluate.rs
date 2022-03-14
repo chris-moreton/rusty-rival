@@ -38,6 +38,7 @@ pub fn evaluate(position: &Position) -> Score {
     if position.mover == WHITE { score } else { -score }
 }
 
+#[inline(always)]
 pub fn king_threat_score(position: &Position) -> Score {
     let wks = position.pieces[WHITE as usize].king_square;
     let bks = position.pieces[BLACK as usize].king_square;
