@@ -3,6 +3,7 @@ use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALU
 use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PIECE_MASK_BISHOP, PIECE_MASK_KNIGHT, PIECE_MASK_KING, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::opponent;
 use crate::search::{piece_index_12};
+use crate::see::static_exchange_evaluation;
 use crate::types::{Move, Pieces, Position, Score, SearchState, Square};
 use crate::utils::{from_square_part, linear_scale, to_square_part};
 
@@ -35,8 +36,7 @@ fn attacker_bonus(piece: Move) -> Score {
 }
 
 #[inline(always)]
-pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize) -> Score {
-    let enemy = position.pieces[opponent!(position.mover) as usize];
+pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
     let to_square = to_square_part(m);
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
@@ -67,13 +67,12 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     };
 
     let history_score = search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize];
-    score + linear_scale(history_score, 0, search_state.highest_history_score, 0, 500) as Score
+    score + linear_scale(history_score, search_state.lowest_history_score, search_state.highest_history_score, 0, 500) as Score
 
 }
 
 #[inline(always)]
-pub fn score_quiesce_move(position: &Position, m: Move) -> Score {
-    let enemy = position.pieces[opponent!(position.mover) as usize];
+pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces) -> Score {
     let to_square = to_square_part(m);
 
     let mut score = if m & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK {
@@ -87,6 +86,7 @@ pub fn score_quiesce_move(position: &Position, m: Move) -> Score {
     } else {
         0
     };
+
     score
 }
 

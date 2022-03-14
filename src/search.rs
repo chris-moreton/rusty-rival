@@ -111,6 +111,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         }
     }
     search_state.highest_history_score = 0;
+    search_state.lowest_history_score = 0;
 
     if search_state.history.is_empty() {
         search_state.history.push(position.zobrist_lock)
@@ -320,8 +321,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     }
 
     let these_moves = moves(position);
+    let enemy = &position.pieces[opponent!(position.mover) as usize];
     let mut move_scores: Vec<(Move, Score)> = these_moves.into_iter().map(|m| {
-        (m, score_move(position, m, search_state, ply as usize))
+        (m, score_move(position, m, search_state, ply as usize, enemy))
     }).collect();
     move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
     let move_list: Vec<Move> = move_scores.into_iter().map(|(m,_)| { m }).filter(|m| { *m != hash_move }).collect();
@@ -350,7 +352,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
             check_time!(search_state);
             if score < beta {
-                update_history(position, depth + these_extentions, search_state, m, false);
+                update_history(position, depth + these_extentions, search_state, m, -(depth as i64));
             }
             if score > best_movescore.1 {
                 best_movescore = (m, score);
@@ -392,32 +394,29 @@ fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Wi
 #[inline(always)]
 fn cutoff(position: &Position, hash_index: usize, depth: u8, ply: u8, search_state: &mut SearchState, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, new_position: &mut Position) -> Score {
     store_hash_entry(hash_index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
-    update_history(position, depth, search_state, m, true);
+    update_history(position, depth, search_state, m, depth as i64);
     update_killers(position, ply, search_state, m, new_position);
     best_movescore.1
 }
 
 #[inline(always)]
-fn update_history(position: &Position, depth: u8, search_state: &mut SearchState, m: Move, cutoff: bool) {
+fn update_history(position: &Position, depth: u8, search_state: &mut SearchState, m: Move, score: i64) {
     if depth < 8 && captured_piece_value(position, m) == 0 {
         let f = from_square_part(m) as usize;
         let t = to_square_part(m) as usize;
 
         let piece_index = piece_index_12(position, m);
 
-        search_state.history_moves[piece_index][f][t] += if cutoff {
-            (depth * depth) as HistoryScore
-        } else {
-            0 - (depth * depth) as HistoryScore
-        };
+        search_state.history_moves[piece_index][f][t] += score;
 
         if search_state.history_moves[piece_index][f][t] < 0 {
-            search_state.history_moves[piece_index][f][t] = 0;
+             search_state.history_moves[piece_index][f][t] = 0;
         }
 
         if search_state.history_moves[piece_index][f][t] > search_state.highest_history_score {
             search_state.highest_history_score = search_state.history_moves[piece_index][f][t];
         }
+
     }
 }
 
@@ -479,7 +478,6 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         return eval;
     }
 
-    let mut alpha = window.0;
     let beta = window.1;
 
     if eval >= beta {
@@ -489,8 +487,10 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
     let promote_from_rank = if position.mover == WHITE { RANK_7_BITS } else { RANK_2_BITS };
     let mut delta = QUEEN_VALUE;
     if position.pieces[position.mover as usize].pawn_bitboard & promote_from_rank != 0 {
-        delta += QUEEN_VALUE - (PAWN_VALUE * 2)
+        delta += QUEEN_VALUE - PAWN_VALUE
     }
+
+    let mut alpha = window.0;
 
     if eval < alpha - delta {
         return alpha;
@@ -501,31 +501,32 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
     }
 
     let in_check = is_check(position, position.mover);
+    let enemy = &position.pieces[opponent!(position.mover) as usize];
 
     let mut move_scores: MoveScoreList =
         if in_check {
             moves(position).into_iter().map(|m| {
-                (m, score_move(position, m, search_state, ply as usize))
+                (m, score_move(position, m, search_state, ply as usize, enemy))
             }).collect()
         } else {
             quiesce_moves(position).into_iter().map(|m| {
-                (m, score_quiesce_move(position, m))
+                (m, score_quiesce_move(position, m, enemy))
             }).collect()
         };
 
     move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
-    let move_list: MoveList = move_scores.into_iter().map(|(m,_)| { m }).collect();
 
     let mut legal_move_count = 0;
 
-    for m in move_list {
+    for ms in move_scores {
+        let m = ms.0;
         let mut new_position = *position;
 
-        if eval + captured_piece_value(position, m) + 200 > alpha {
+        if eval + captured_piece_value(position, m) + 125 > alpha {
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply+1, (-beta, -alpha), search_state));
+                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth-1, ply+1, (-beta, -alpha), search_state));
                 check_time!(search_state);
                 if score >= beta {
                     return beta;
