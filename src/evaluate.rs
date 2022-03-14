@@ -4,9 +4,9 @@ use crate::moves::{generate_knight_moves};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Move, Mover, Pieces, Position, Score, WHITE};
 
-pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 2, 6, 10, 13, 16, 18, 20, 22, 23, 24];
+pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8, 9, 10, 11, 12, 12];
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
-pub const VALUE_BISHOP_PAIR: Score = 20;
+pub const VALUE_BISHOP_PAIR: Score = 10;
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 15;
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24,26,30,36,44,56];
 pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 15;
