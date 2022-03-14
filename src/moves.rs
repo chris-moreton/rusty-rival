@@ -105,7 +105,7 @@ pub fn moves(position: &Position) -> MoveList {
 
 #[inline(always)]
 pub fn quiesce_moves(position: &Position) -> MoveList {
-    let mut move_list = Vec::with_capacity(10);
+    let mut move_list = Vec::with_capacity(4);
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];

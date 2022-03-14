@@ -55,7 +55,7 @@ pub fn run_command_test(uci_state: &mut UciState, search_state: &mut SearchState
 
 pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
 
-    let mut trimmed_line = replace_shortcuts(l).trim().clone().replace("  ", " ");
+    let mut trimmed_line = replace_shortcuts(l).trim().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
         trimmed_line = trimmed_line.replace("startpos", &*("fen ".to_string() + START_POS));
     }
@@ -145,12 +145,12 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
 
             uci_state.fen = fen.parse().unwrap();
 
-            return if re.is_match(&*fen) {
+            if re.is_match(&*fen) {
                 uci_state.fen = fen;
                 let mut position = get_position(&uci_state.fen);
                 let mut new_position = position;
                 search_state.history.push(new_position.zobrist_lock);
-                if moves.len() > 0 {
+                if !moves.is_empty() {
                     for m in moves {
                         if !is_legal_move(&new_position, &m) {
                             return Left("Illegal move found".parse::<String>().unwrap() + " " + &*m);
@@ -199,23 +199,23 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
     match *t {
         "perft" => {
             let depth = parts.get(2).unwrap().to_string().parse().unwrap();
-            cmd_perft(depth, &uci_state);
+            cmd_perft(depth, uci_state);
             Right(None)
         },
         "infinite" => {
             let position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
             let mv = iterative_deepening(&position, 200, search_state);
-            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
+            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv)))
         },
         "mate" => {
             let position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
             let mv = iterative_deepening(&position, 200, search_state);
-            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
+            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv)))
         },
         _ => {
-            let line = parts.join(" ").to_string();
+            let line = parts.join(" ");
             uci_state.wtime = extract_go_param("wtime", &line, 0);
             uci_state.btime = extract_go_param("btime", &line, 0);
             uci_state.winc = extract_go_param("winc", &line, 0);
@@ -236,7 +236,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
             let mv = iterative_deepening(&position, uci_state.depth as u8, search_state);
 
-            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv).clone()))
+            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv)))
         }
     }
 }

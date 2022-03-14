@@ -41,9 +41,7 @@ pub fn captured_piece_value(position: &Position, mv: Move) -> Score {
         _ => 0,
     };
 
-    promote_value + (if tsp == position.en_passant_square {
-        PAWN_VALUE
-    } else if enemy.pawn_bitboard & to_bb != 0 {
+    promote_value + (if tsp == position.en_passant_square || enemy.pawn_bitboard & to_bb != 0 {
         PAWN_VALUE
     }
     else if enemy.knight_bitboard & to_bb != 0 {

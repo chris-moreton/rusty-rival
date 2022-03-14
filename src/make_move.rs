@@ -162,8 +162,7 @@ fn make_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
     position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
 
     position.en_passant_square = if from ^ to == 16 {
-        let new = from + if position.mover == WHITE { 8 } else { -8 };
-        new
+        from + if position.mover == WHITE { 8 } else { -8 }
     } else {
         EN_PASSANT_NOT_AVAILABLE
     };

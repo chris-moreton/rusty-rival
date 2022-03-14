@@ -221,7 +221,7 @@ pub fn get_fen(position: &Position) -> String {
     for rank in (0..=7).rev() {
         for file in (0..=7).rev() {
             let sq = (rank * 8) + file;
-            assert!(sq >= 0 && sq <= 63);
+            assert!((0..=63).contains(&sq));
             let c = get_piece_on_square(position, sq);
             if c == '-' {
                 blanks += 1;

@@ -21,11 +21,8 @@ fn repl() {
                 let result = run_command(&mut uci_state, &mut search_state, l.as_str());
                 match result {
                     Right(message) => {
-                        match message {
-                            Some(m) => {
-                                println!("{}", m);
-                            },
-                            None => {}
+                        if let Some(m) = message {
+                            println!("{}", m);
                         }
                     },
                     Left(error) => {
