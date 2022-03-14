@@ -177,12 +177,12 @@ fn black_queen_piece_square_values(position: &Position) -> Score {
 pub fn white_bishop_piece_square_values(position: &Position) -> Score {
     let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
     let mut score = 0;
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    let valid_destinations = !position.pieces[WHITE as usize].all_pieces_bitboard;
+    //let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    //let valid_destinations = !position.pieces[WHITE as usize].all_pieces_bitboard;
     while bb != 0 {
         let sq = get_and_unset_lsb!(bb);
         score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
-        score += VALUE_BISHOP_MOBILITY[(magic_moves_bishop(sq, all_pieces) & valid_destinations).count_ones() as usize];
+        //score += VALUE_BISHOP_MOBILITY[(magic_moves_bishop(sq, all_pieces) & valid_destinations).count_ones() as usize];
     }
 
     score += bishop_pair_bonus(position.pieces[WHITE as usize].bishop_bitboard, position.pieces[WHITE as usize].pawn_bitboard);
@@ -193,12 +193,12 @@ pub fn white_bishop_piece_square_values(position: &Position) -> Score {
 pub fn black_bishop_piece_square_values(position: &Position) -> Score {
     let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
     let mut score = 0;
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    let valid_destinations = !position.pieces[BLACK as usize].all_pieces_bitboard;
+    //let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    //let valid_destinations = !position.pieces[BLACK as usize].all_pieces_bitboard;
     while bb != 0 {
         let sq = get_and_unset_lsb!(bb) as Square;
         score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
-        score += VALUE_BISHOP_MOBILITY[(magic_moves_bishop(sq, all_pieces) & valid_destinations).count_ones() as usize];
+        //score += VALUE_BISHOP_MOBILITY[(magic_moves_bishop(sq, all_pieces) & valid_destinations).count_ones() as usize];
     }
 
     score += bishop_pair_bonus(position.pieces[BLACK as usize].bishop_bitboard, position.pieces[BLACK as usize].pawn_bitboard);
