@@ -339,27 +339,29 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 0
             };
 
+            let real_depth = depth + these_extentions;
+
             let score = if scout_search {
-                let scout_score = search_wrapper(depth + these_extentions, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr, extension_limit - these_extentions);
+                let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr, extension_limit - these_extentions);
                 if scout_score > alpha {
-                    search_wrapper(depth + these_extentions, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+                    search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
                 } else {
                     alpha
                 }
             } else {
-                search_wrapper(depth + these_extentions, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
             };
 
             check_time!(search_state);
             if score < beta {
-                update_history(position, depth + these_extentions, search_state, m, -(depth as i64));
+                update_history(position, search_state, m, -((real_depth * real_depth) as i64));
             }
             if score > best_movescore.1 {
                 best_movescore = (m, score);
                 if best_movescore.1 > alpha {
                     alpha = best_movescore.1;
                     if alpha >= beta {
-                        return cutoff(position, index, depth, ply, search_state, best_movescore, hash_height, hash_version, m, &mut new_position);
+                        return cutoff(position, index, real_depth, ply, search_state, best_movescore, hash_height, hash_version, m, &mut new_position);
                     }
                     hash_flag = Exact;
                 }
@@ -393,15 +395,15 @@ fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Wi
 
 #[inline(always)]
 fn cutoff(position: &Position, hash_index: usize, depth: u8, ply: u8, search_state: &mut SearchState, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, new_position: &mut Position) -> Score {
-    store_hash_entry(hash_index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
-    update_history(position, depth, search_state, m, depth as i64);
+    store_hash_entry(hash_index, position.zobrist_lock, depth * depth, hash_height, hash_version, Lower, best_movescore, search_state);
+    update_history(position, search_state, m, depth as i64);
     update_killers(position, ply, search_state, m, new_position);
     best_movescore.1
 }
 
 #[inline(always)]
-fn update_history(position: &Position, depth: u8, search_state: &mut SearchState, m: Move, score: i64) {
-    if depth < 8 && captured_piece_value(position, m) == 0 {
+fn update_history(position: &Position, search_state: &mut SearchState, m: Move, score: i64) {
+    if captured_piece_value(position, m) == 0 {
         let f = from_square_part(m) as usize;
         let t = to_square_part(m) as usize;
 
