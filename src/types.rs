@@ -6,7 +6,6 @@ pub type Square = i8;
 pub type Bitboard = u64;
 pub type Move = u32;
 pub type MoveList = Vec<Move>;
-pub type Path = Vec<Move>;
 pub type MagicMovesArray = [[Bitboard; 4096]; 64];
 pub type Mover = i8;
 pub type Bound = Score;
@@ -15,6 +14,7 @@ pub type Score = i32;
 pub type HashLock = u128;
 pub type HashIndex = u32;
 pub type HashArray = [HashEntry; NUM_HASH_ENTRIES as usize];
+pub type PathScore = (Vec<Move>, Score);
 pub type MoveScore = (Move, Score);
 pub type MoveScoreList = Vec<MoveScore>;
 pub type PositionHistory = Vec<HashLock>;
@@ -55,7 +55,7 @@ pub fn default_uci_state() -> UciState {
 }
 
 pub struct SearchState {
-    pub current_best: MoveScore,
+    pub current_best: PathScore,
     pub start_time: Instant,
     pub end_time: Instant,
     pub iterative_depth: u8,
@@ -66,8 +66,6 @@ pub struct SearchState {
     pub history_moves: [[[HistoryScore; 64]; 64]; 12],
     pub highest_history_score: HistoryScore,
     pub lowest_history_score: HistoryScore,
-    pub pv: Path,
-    pub pv_score: Score,
     pub nodes: u64,
     pub hash_hits_exact: u64,
     pub is_on_null_move: bool,
@@ -77,7 +75,7 @@ pub struct SearchState {
 
 pub fn default_search_state() -> SearchState {
     SearchState {
-        current_best: (0, 0),
+        current_best: (vec![], 0),
         start_time: Instant::now(),
         end_time: Instant::now(),
         iterative_depth: 0,
@@ -102,8 +100,6 @@ pub fn default_search_state() -> SearchState {
         history_moves: [[[0; 64]; 64]; 12],
         highest_history_score: 0,
         lowest_history_score: 0,
-        pv: vec![],
-        pv_score: 0,
         nodes: 0,
         hash_hits_exact: 0,
         is_on_null_move: false,
