@@ -201,15 +201,6 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
 }
 
 #[inline(always)]
-pub fn store_hash_entry(index: usize, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
-    if height >= existing_height || search_state.hash_table_version > existing_version {
-        search_state.hash_table_height[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
-    } else {
-        search_state.hash_table_replace[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
-    }
-}
-
-#[inline(always)]
 pub fn pawn_push(position: &Position, m: Move) -> bool {
     let move_piece = m & PIECE_MASK_FULL;
     if move_piece == PIECE_MASK_PAWN {
@@ -226,6 +217,15 @@ pub fn pawn_push(position: &Position, m: Move) -> bool {
         }
     }
     false
+}
+
+#[inline(always)]
+pub fn store_hash_entry(index: usize, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
+    if height >= existing_height || search_state.hash_table_version > existing_version {
+        search_state.hash_table_height[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
+    } else if bound == Lower {
+        search_state.hash_table_replace[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
+    }
 }
 
 #[inline(always)]
