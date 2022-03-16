@@ -357,21 +357,28 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
-            let lmr = if these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
+            let mut lmr = if these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
                 1
             } else {
                 0
             };
 
-            let score = if scout_search {
-                let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr, extension_limit - these_extentions);
-                if scout_score > alpha {
-                    search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+            let score = loop {
+                let score = if scout_search {
+                    let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha-1, -alpha), &mut new_position, lmr, extension_limit - these_extentions);
+                    if scout_score > alpha {
+                        search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+                    } else {
+                        alpha
+                    }
                 } else {
-                    alpha
+                    search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+                };
+                if lmr == 0 || score < beta {
+                    break score
+                } else {
+                    lmr = 0
                 }
-            } else {
-                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
             };
 
             check_time!(search_state);
