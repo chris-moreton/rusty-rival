@@ -1,7 +1,7 @@
 use std::cmp::min;
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEPTH_REMAINING_FOR_NULLMOVE_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{DEPTH_REMAINING_FOR_NULLMOVE_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{ZOBRIST_KEY_MOVER_SWITCH};
@@ -110,6 +110,14 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             }
         }
     }
+
+    for i in 0..MAX_DEPTH  as usize {
+        search_state.mate_killer[i] = 0;
+        for j in 0..2 {
+            search_state.killer_moves[i][j] = 0;
+        }
+    }
+
     search_state.highest_history_score = 0;
     search_state.lowest_history_score = 0;
 
@@ -358,7 +366,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
             let mut lmr = if these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
-                1
+                2
             } else {
                 0
             };
@@ -426,7 +434,7 @@ fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Wi
 fn cutoff(position: &Position, hash_index: usize, depth: u8, ply: u8, search_state: &mut SearchState, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, new_position: &mut Position) -> PathScore {
     store_hash_entry(hash_index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
     update_history(position, search_state, m, depth as i64);
-    update_killers(position, ply, search_state, m, new_position);
+    update_killers(position, ply, search_state, m, new_position, best_movescore);
     (vec![best_movescore.0], best_movescore.1)
 }
 
@@ -472,10 +480,10 @@ fn adjust_mate_score_for_ply(ply: u8, score: Score) -> Score {
 }
 
 #[inline(always)]
-fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, new_position: &mut Position) {
+fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, new_position: &mut Position, move_score: MoveScore) {
     if search_state.killer_moves[ply as usize][0] != m {
         let opponent_index = opponent!(position.mover) as usize;
-        let was_capture = position.pieces[opponent_index].all_pieces_bitboard != new_position.pieces[opponent_index].all_pieces_bitboard;
+        let was_capture = position.pieces[opponent_index].all_pieces_bitboard.count_ones() != new_position.pieces[opponent_index].all_pieces_bitboard.count_ones();
         if (m & PROMOTION_FULL_MOVE_MASK == 0) && !was_capture {
             search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
             search_state.killer_moves[ply as usize][0] = m;
