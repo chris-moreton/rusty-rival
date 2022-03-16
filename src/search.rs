@@ -481,6 +481,9 @@ fn adjust_mate_score_for_ply(ply: u8, score: Score) -> Score {
 
 #[inline(always)]
 fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, new_position: &mut Position, move_score: MoveScore) {
+    if move_score.1 > MATE_START {
+        search_state.mate_killer[ply as usize] = m;
+    }
     if search_state.killer_moves[ply as usize][0] != m {
         let opponent_index = opponent!(position.mover) as usize;
         let was_capture = position.pieces[opponent_index].all_pieces_bitboard.count_ones() != new_position.pieces[opponent_index].all_pieces_bitboard.count_ones();
