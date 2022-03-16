@@ -1,7 +1,7 @@
 use std::cmp::min;
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{ZOBRIST_KEY_MOVER_SWITCH};
@@ -10,7 +10,7 @@ use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, 
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
-use crate::types::{Move, Position, MoveList, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, HistoryScore, Bitboard, BLACK, PathScore};
+use crate::types::{Move, Position, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, Bitboard, BLACK, PathScore};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
@@ -296,12 +296,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         return q;
     }
 
-    // if hash_move == 0 && depth > 3 {
-    //     search_state.history.push(position.zobrist_lock);
-    //     let score = adjust_mate_score_for_ply(1, -search(position, depth - 4, ply + 1, window, search_state, extension_limit).1);
-    //     search_state.history.pop();
-    // }
-
     search_state.nodes += 1;
 
     let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
@@ -316,6 +310,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             return (vec![0], beta);
         }
         switch_mover(&mut new_position);
+    }
+
+    if hash_move == 0 && depth > 5 {
+        search_state.history.push(position.zobrist_lock);
+        hash_move = search(position, depth - 2, ply, window, search_state, extension_limit).0[0];
+        search_state.history.pop();
     }
 
     let mut scout_search = false;
