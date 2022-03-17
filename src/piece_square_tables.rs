@@ -188,7 +188,7 @@ pub fn black_bishop_piece_square_values(position: &Position) -> Score {
     let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
     let mut score = 0;
     while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as Square;
+        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize];
         score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
     }
 

@@ -290,13 +290,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
         switch_mover(&mut new_position);
     }
-
-    if hash_move == 0 && depth > 5 {
-        search_state.history.push(position.zobrist_lock);
-        hash_move = search(position, depth - 2, ply, window, search_state, extension_limit).0[0];
-        search_state.history.pop();
-    }
-
+    
     let mut scout_search = false;
 
     let these_extentions = min(extension_limit, if in_check { 1 } else { 0 });
