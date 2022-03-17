@@ -219,8 +219,6 @@ pub fn pawn_push(position: &Position, m: Move) -> bool {
 pub fn store_hash_entry(index: usize, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
         search_state.hash_table_height[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
-    } else if bound == Lower {
-        search_state.hash_table_replace[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
     }
 }
 
@@ -267,33 +265,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             0
         }
     };
-
-    if hash_move == 0 {
-        hash_move = match search_state.hash_table_replace.get(index) {
-            Some(x) => {
-                if x.lock == position.zobrist_lock {
-                    if x.height >= depth {
-                        hash_height = x.height;
-                        hash_version = x.version;
-                        if x.bound == BoundType::Exact {
-                            search_state.hash_hits_exact += 1;
-                            return (vec![x.mv], x.score)
-                        }
-                        if x.bound == BoundType::Lower { alpha = x.score }
-                        if x.bound == BoundType::Upper { beta = x.score }
-                        if alpha >= beta { return (vec![x.mv], x.score) }
-                    }
-                    x.mv
-                } else {
-                    search_state.hash_clashes += 1;
-                    0
-                }
-            },
-            None => {
-                0
-            }
-        }
-    }
 
     if depth == 0 {
         let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
