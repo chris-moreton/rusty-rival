@@ -53,7 +53,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     } else if to_square == position.en_passant_square {
         1000 + PAWN_VALUE + PAWN_ATTACKER_BONUS
     } else {
-        if m == search_state.mate_killer[ply] { 12000 } else {
+        if m == search_state.mate_killer[ply] { 1000 } else {
             let killer_moves = search_state.killer_moves[ply];
             if m == killer_moves[0] { 750 }
             else if m == killer_moves[1] { 400 }
