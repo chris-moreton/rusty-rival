@@ -457,7 +457,7 @@ fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, 
     }
     if search_state.killer_moves[ply as usize][0] != m {
         let opponent_index = opponent!(position.mover) as usize;
-        let was_capture = position.pieces[opponent_index].all_pieces_bitboard.count_ones() != new_position.pieces[opponent_index].all_pieces_bitboard.count_ones();
+        let was_capture = position.pieces[opponent_index].all_pieces_bitboard != new_position.pieces[opponent_index].all_pieces_bitboard;
         if (m & PROMOTION_FULL_MOVE_MASK == 0) && !was_capture {
             search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
             search_state.killer_moves[ply as usize][0] = m;
