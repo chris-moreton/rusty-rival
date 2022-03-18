@@ -89,7 +89,7 @@ macro_rules! debug_out {
     }
 }
 
-pub const ASPIRATION_RADIUS: Score = 50;
+pub const ASPIRATION_RADIUS: Score = 25;
 
 pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mut SearchState) -> Move {
 
