@@ -234,7 +234,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
                 calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
             }
 
-            uci_state.move_time = max(10, uci_state.move_time - UCI_MILLIS_REDUCTION as u64) as u64;
+            // uci_state.move_time = max(10, uci_state.move_time - UCI_MILLIS_REDUCTION as u64) as u64;
 
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
             let mv = iterative_deepening(&position, uci_state.depth as u8, search_state);
@@ -256,7 +256,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220318-04-Aspiration-Belt-And-Braces|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220318-04-Aspiration-Belt-And-Braces-Revert|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -278,38 +278,30 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState) -> Ei
     let start = Instant::now();
 
     let positions = vec![
-        ("7R/r1p1q1pp/3k4/1p1n1Q2/3N4/8/1PP2PPP/2B3K1 w - - 1 0", 6),
-        ("8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1", 6),
-        ("6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", 6),
-        ("8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1", 6),
-        ("3Nk3/4p3/2p2p2/1bp2p2/3b1Pn1/2N5/1PP3PP/2BQK2R b K - 0 1", 7),
-        ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7),
-        ("8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28", 6),
-        ("r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1", 6),
-        ("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 4),
-        ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6),
-        ("r1b2k1b/1p3p2/pP2pNp1/P1p1P1P1/6q1/7P/3B3R/R4K2 w - - 0 32", 6),
-        ("8/R1N2k2/3R3p/6p1/2P3P1/1P5P/P4P2/4r1K1 w - - 3 45", 6),
-        ("5rk1/5ppp/8/1pPpR3/1p3P2/2nB4/q5PP/4Q1K1 w - - 1 24", 6),
-        ("r2q1rk1/3b2p1/p2p3p/1ppPbp2/4P3/1P1P3P/P3Q1PN/R1B2RK1 w - - 0 19", 6),
-        ("3r4/2p2p2/p7/1pb1p3/4Bk1p/1PN2P1P/P1P3K1/8 b - - 0 29", 6),
-        ("rnbqkbnr/1pp1pppp/p7/8/2pP4/2N2N2/PP2PPPP/R1BQKB1R b KQkq - 1 4", 6),
-        ("3r2k1/4bpp1/p3p3/1ppn1r1p/4q3/P1B1PNPP/1P2QPK1/4R1R1 b - - 1 26", 6),
-        ("rn1qkb1r/1pp1ppp1/p4n1p/3p1b2/3P1B2/2N1PN1P/PPP2PP1/R2QKB1R b KQkq - 2 6", 6),
-        ("2r1kb1r/p2p2pp/3n3n/1b2Nq2/4pP2/1B4P1/1BPN3P/R2QK2R w KQk - 0 18", 6),
+        ("1R6/1brk2p1/4p2p/p1P1Pp2/P7/6P1/1P4P1/2R3K1 w - - 0 1", "b8b7", 7),
+        ("r1b2rk1/ppq1bppp/2p1pn2/8/2NP4/2N1P3/PP2BPPP/2RQK2R w K - 0 1", "e1g1", 7),
+        ("r1bqrk2/pp1n1n1p/3p1p2/P1pP1P1Q/2PpP1NP/6R1/2PB4/4RBK1 w - - 0 1", "h5f7", 7),
+        ("N7/8/2KQ2rp/6k1/3p3p/2p4P/4PP2/5N2 w - - 0 1", "f2f4", 7),
     ];
 
+    let total = positions.len();
+
     let mut total_nodes = 0;
+    let mut total_correct = 0;
     for p in positions {
         println!("{}", p.0);
         let mut owned = "position fen ".to_owned();
         owned.push_str(p.0);
         run_command(uci_state, search_state, &owned);
-        run_command(uci_state, search_state, &format!("go depth {}", p.1));
+        run_command(uci_state, search_state, &format!("go depth {}", p.2));
+        if algebraic_move_from_move(search_state.current_best.0[0]) == p.1 {
+            total_correct += 1;
+        }
         total_nodes += search_state.nodes;
     }
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
+    println!("Time correct is: {:?}/{}", total_correct, total);
     let nps = (total_nodes as f64 / start.elapsed().as_millis() as f64) * 1000.0;
 
     println!("{} nodes {} nps", total_nodes, &*(nps as u64).to_string());

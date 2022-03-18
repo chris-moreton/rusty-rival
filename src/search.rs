@@ -14,7 +14,7 @@ use crate::types::{Move, Position, Score, SearchState, Window, MoveScoreList, Mo
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
-pub const MAX_SCORE: Score = 30000;
+pub const MAX_SCORE: Score = 10000;
 pub const MATE_MARGIN: Score = 1000;
 pub const MATE_START: Score = MAX_SCORE - MATE_MARGIN;
 

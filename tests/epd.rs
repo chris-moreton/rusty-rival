@@ -13,6 +13,7 @@ fn it_finds_the_best_move() {
         ("r1bqrk2/pp1n1n1p/3p1p2/P1pP1P1Q/2PpP1NP/6R1/2PB4/4RBK1 w - - 0 1", "h5f7", 7),
         ("rn1q1rk1/p2p1pb1/bp3np1/2pP2Bp/7P/P1N2N2/1PQ1PPP1/R3KB1R w KQ - 0 1", "g2g4", 7),
         ("N7/8/2KQ2rp/6k1/3p3p/2p4P/4PP2/5N2 w - - 0 1", "f2f4", 7),
+
         ("r1bqk2r/ppn1bppp/2n5/2p1p3/8/2NP1NP1/PP1BPPBP/R2Q1RK1 b kq - 0 1", "e8g8", 7),
         ("8/2p2kb1/np1p2p1/pN1Pp1Pp/2P1P2P/1P6/P4BK1/8 w - - 0 1", "b5c7", 7),
         ("4r1rk/p3qpp1/1pnp1n1p/5P2/P1PPP3/4Q2P/2BB2R1/6RK w - - 0 1", "g2g7", 7),
