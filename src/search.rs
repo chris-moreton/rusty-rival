@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::cmp::{max, min};
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
@@ -129,31 +129,43 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     search_state.current_best = (vec![0], -MAX_SCORE);
 
+    let aspiration_radius: [Score; 4] = [
+        150, 500, 1500, MAX_SCORE
+    ];
+
     for iterative_depth in 1..=max_depth {
+        let mut c = 0;
         let extension_limit = iterative_depth;
         search_state.iterative_depth = iterative_depth;
-        let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
-        if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-            search_state.current_best = aspire_best
-        } else {
-            if time_remains!(search_state.end_time) {
-                if aspire_best.1 <= aspiration_window.0 {
-                    aspire_best = start_search(position, &mut legal_moves, search_state, (-MAX_SCORE, aspiration_window.1), extension_limit);
-                } else if aspire_best.1 >= aspiration_window.1 {
-                    aspire_best = start_search(position, &mut legal_moves, search_state, (aspiration_window.0, MAX_SCORE), extension_limit);
-                };
-            }
-            if time_remains!(search_state.end_time) {
-                search_state.current_best = aspire_best
-            }
-        };
+        loop {
+            let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
-        if time_expired!(search_state) {
-            if search_state.current_best.0[0] == 0 {
-                panic!("Didn't have time to do anything.")
+            if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+                search_state.current_best = aspire_best;
+                break
+            } else {
+                if time_remains!(search_state.end_time) {
+                    if aspire_best.1 <= aspiration_window.0 {
+                        aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
+                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+                    } else if aspire_best.1 >= aspiration_window.1 {
+                        aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[c]);
+                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+                    };
+                    c += 1;
+                }
+                if time_remains!(search_state.end_time) {
+                    search_state.current_best = aspire_best
+                }
+            };
+
+            if time_expired!(search_state) {
+                if search_state.current_best.0[0] == 0 {
+                    panic!("Didn't have time to do anything.")
+                }
+                return search_state.current_best.0[0]
             }
-            return search_state.current_best.0[0]
         }
 
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
