@@ -4,7 +4,7 @@ use std::process::exit;
 use std::time::{Duration, Instant};
 use either::{Either, Left, Right};
 use regex::Regex;
-use crate::engine_constants::NUM_HASH_ENTRIES;
+use crate::engine_constants::{NUM_HASH_ENTRIES, UCI_MILLIS_REDUCTION};
 
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
@@ -234,7 +234,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
                 calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
             }
 
-            uci_state.move_time = max(10, uci_state.move_time - 50);
+            uci_state.move_time = max(10, uci_state.move_time - UCI_MILLIS_REDUCTION as u64) as u64;
 
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
             let mv = iterative_deepening(&position, uci_state.depth as u8, search_state);
@@ -256,7 +256,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220318-02-50ms-Reduction|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220318-03-Mover-Bonus|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {

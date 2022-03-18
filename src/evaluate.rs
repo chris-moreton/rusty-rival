@@ -33,7 +33,7 @@ pub fn evaluate(position: &Position) -> Score {
         passed_pawn_score(position) +
         doubled_and_isolated_pawn_score(position);
 
-    if position.mover == WHITE { score } else { -score }
+    10 + if position.mover == WHITE { score } else { -score }
 }
 
 #[inline(always)]
