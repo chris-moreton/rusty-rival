@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::cmp::{max, min};
 use std::ops::Add;
 use std::process::exit;
 use std::time::{Duration, Instant};
@@ -234,6 +234,8 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
                 calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
             }
 
+            uci_state.move_time = max(10, uci_state.move_time - 50);
+
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
             let mv = iterative_deepening(&position, uci_state.depth as u8, search_state);
 
@@ -254,7 +256,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220318-01-Widening-Aspiration|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220318-02-50ms-Reduction|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
