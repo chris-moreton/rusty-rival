@@ -4,7 +4,7 @@ use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
-use crate::hash::{ZOBRIST_KEY_MOVER_SWITCH};
+use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
 use crate::make_move::make_move;
 use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_KING, PIECE_MASK_BISHOP, PIECE_MASK_ROOK, PIECE_MASK_KNIGHT, PROMOTION_FULL_MOVE_MASK, EN_PASSANT_NOT_AVAILABLE};
 use crate::move_scores::{score_move, score_quiesce_move};
@@ -310,14 +310,20 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !in_check && evaluate(position) > beta {
         let mut new_position = *position;
         let ep = new_position.en_passant_square;
-        new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+        if new_position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
+            new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+            new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)]
+        }
         switch_mover(&mut new_position);
         let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit).1);
         if score >= beta {
             return (vec![0], beta);
         }
         switch_mover(&mut new_position);
-        new_position.en_passant_square = ep;
+        if ep != EN_PASSANT_NOT_AVAILABLE {
+            new_position.en_passant_square = ep;
+            new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)]
+        }
     }
 
     let mut scout_search = false;

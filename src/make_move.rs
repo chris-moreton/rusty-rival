@@ -11,7 +11,7 @@ use crate::utils::{from_square_part, to_square_part};
 #[inline(always)]
 pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
-    println!("{}", algebraic_move_from_move(mv));
+    // println!("{}", algebraic_move_from_move(mv));
 
     let from = from_square_part(mv);
     let to = to_square_part(mv);
@@ -61,7 +61,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     }
     new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
 
-    //assert_eq!(new_position.zobrist_lock, zobrist_lock(new_position));
+    // assert_eq!(new_position.zobrist_lock, zobrist_lock(new_position));
 
 }
 
