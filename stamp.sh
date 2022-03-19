@@ -4,5 +4,7 @@ cp target/release/rusty-rival ~/ChessEngines/rusty-rival-$1
 git add -A
 git commit -m "Tagged $1"
 git tag $1
+git push
+
 
 

@@ -224,12 +224,11 @@ pub fn white_pawn_piece_square_values(position: &Position, nppv: Score) -> Score
     let mut min_total = 0;
     let mut max_total = 0;
     while bb != 0 {
-        pawn_count += 1;
         let sq = get_and_unset_lsb!(bb) as usize;
         min_total += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
         max_total += PAWN_PIECE_SQUARE_TABLE[sq];
     }
-    linear_scale((nppv * pawn_count) as i64, (PAWN_STAGE_MATERIAL_LOW * pawn_count) as i64, (PAWN_STAGE_MATERIAL_HIGH * pawn_count) as i64, min_total as i64, max_total as i64) as Score
+    linear_scale(nppv as i64, PAWN_STAGE_MATERIAL_LOW as i64, PAWN_STAGE_MATERIAL_HIGH as i64, min_total as i64, max_total as i64) as Score
 }
 
 #[inline(always)]
@@ -244,7 +243,7 @@ pub fn black_pawn_piece_square_values(position: &Position, nppv: Score) -> Score
         min_total += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
         max_total += PAWN_PIECE_SQUARE_TABLE[sq];
     }
-    linear_scale((nppv * pawn_count) as i64, (PAWN_STAGE_MATERIAL_LOW * pawn_count) as i64, (PAWN_STAGE_MATERIAL_HIGH * pawn_count) as i64, min_total as i64, max_total as i64) as Score
+    linear_scale(nppv as i64, PAWN_STAGE_MATERIAL_LOW as i64, PAWN_STAGE_MATERIAL_HIGH as i64, min_total as i64, max_total as i64) as Score
 }
 
 #[inline(always)]
