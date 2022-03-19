@@ -6,7 +6,7 @@ use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
-use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_KING, PIECE_MASK_BISHOP, PIECE_MASK_ROOK, PIECE_MASK_KNIGHT, PROMOTION_FULL_MOVE_MASK};
+use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_KING, PIECE_MASK_BISHOP, PIECE_MASK_ROOK, PIECE_MASK_KNIGHT, PROMOTION_FULL_MOVE_MASK, EN_PASSANT_NOT_AVAILABLE};
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
@@ -309,12 +309,15 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !in_check && evaluate(position) > beta {
         let mut new_position = *position;
+        let ep = new_position.en_passant_square;
+        new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         switch_mover(&mut new_position);
         let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit).1);
         if score >= beta {
             return (vec![0], beta);
         }
         switch_mover(&mut new_position);
+        new_position.en_passant_square = ep;
     }
 
     let mut scout_search = false;

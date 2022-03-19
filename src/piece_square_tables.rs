@@ -227,6 +227,8 @@ pub fn white_pawn_piece_square_values(position: &Position, nppv: Score) -> Score
         min_total += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
         max_total += PAWN_PIECE_SQUARE_TABLE[sq];
     }
+    // assert_eq!(max_total, position.piece_square_values_start[WHITE as usize].pawn);
+    // assert_eq!(min_total, position.piece_square_values_end[WHITE as usize].pawn);
     linear_scale(nppv as i64, PAWN_STAGE_MATERIAL_LOW as i64, PAWN_STAGE_MATERIAL_HIGH as i64, min_total as i64, max_total as i64) as Score
 }
 
