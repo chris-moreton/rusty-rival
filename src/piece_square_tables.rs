@@ -220,7 +220,6 @@ fn black_rook_piece_square_values(position: &Position) -> Score {
 #[inline(always)]
 pub fn white_pawn_piece_square_values(position: &Position, nppv: Score) -> Score {
     let mut bb = position.pieces[WHITE as usize].pawn_bitboard;
-    let mut pawn_count = 0;
     let mut min_total = 0;
     let mut max_total = 0;
     while bb != 0 {
@@ -234,11 +233,9 @@ pub fn white_pawn_piece_square_values(position: &Position, nppv: Score) -> Score
 #[inline(always)]
 pub fn black_pawn_piece_square_values(position: &Position, nppv: Score) -> Score {
     let mut bb = position.pieces[BLACK as usize].pawn_bitboard;
-    let mut pawn_count = 0;
     let mut min_total = 0;
     let mut max_total = 0;
     while bb != 0 {
-        pawn_count += 1;
         let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
         min_total += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
         max_total += PAWN_PIECE_SQUARE_TABLE[sq];

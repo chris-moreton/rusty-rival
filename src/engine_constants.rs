@@ -18,7 +18,10 @@ pub const MAX_DEPTH: u8 = 250;
 
 pub const MAX_QUIESCE_DEPTH: u8 = 10;
 pub const IID_REDUCE_DEPTH: u8 = 3;
-pub const NUM_HASH_ENTRIES: u64 = 1024 * 1024 * 4;
+
+pub const HASH_ENTRY_BYTES: u64 = 22;
+pub const HASH_ENTRY_MB: u64 = 32;
+pub const NUM_HASH_ENTRIES: u64 = ((1024 * 1024 * HASH_ENTRY_MB) / HASH_ENTRY_BYTES) as u64;
 
 pub const TICKER_MILLIS: u16 = 500;
 

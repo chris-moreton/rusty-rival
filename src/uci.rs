@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::cmp::{min};
 use std::ops::Add;
 use std::process::exit;
 use std::time::{Duration, Instant};
