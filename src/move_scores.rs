@@ -52,23 +52,23 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         }
     } else if to_square == position.en_passant_square {
         1000 + PAWN_VALUE + PAWN_ATTACKER_BONUS
-    } else if m == search_state.mate_killer[ply] {
-        500
     } else {
-        let killer_moves = search_state.killer_moves[ply];
-        if m == killer_moves[0] { 375 }
-        else if m == killer_moves[1] { 200 }
-        else if ply > 2 {
-            let killer_moves = search_state.killer_moves[ply - 2];
-            if m == killer_moves[0] { 150 }
-            else if m == killer_moves[1] { 100 } else { 0 }
-        } else {
-            0
+        if m == search_state.mate_killer[ply] { 1000 } else {
+            let killer_moves = search_state.killer_moves[ply];
+            if m == killer_moves[0] { 750 }
+            else if m == killer_moves[1] { 400 }
+            else if ply > 2 {
+                let killer_moves = search_state.killer_moves[ply - 2];
+                if m == killer_moves[0] { 300 }
+                else if m == killer_moves[1] { 200 } else { 0 }
+            } else {
+                0
+            }
         }
     };
 
     let history_score = search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize];
-    score + linear_scale(history_score, search_state.lowest_history_score, search_state.highest_history_score, 0, 250) as Score
+    score + linear_scale(history_score, search_state.lowest_history_score, search_state.highest_history_score, 0, 500) as Score
 
 }
 

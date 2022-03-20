@@ -37,6 +37,7 @@ pub fn en_passant_zobrist_key_index(ep: i8) -> usize {
 
 pub fn zobrist_lock(position: &Position) -> HashLock {
 
+    println!("Hey!");
     let mut index=
         zobrist_piece(position.pieces[WHITE as usize].pawn_bitboard, WHITE, ZOBRIST_PIECE_INDEX_PAWN) ^
             zobrist_piece(position.pieces[WHITE as usize].knight_bitboard, WHITE, ZOBRIST_PIECE_INDEX_KNIGHT) ^
