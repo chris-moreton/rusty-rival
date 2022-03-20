@@ -24,41 +24,21 @@ pub fn evaluate(position: &Position) -> Score {
         return 0;
     }
 
-    let score =
-        material_score(position) +
-        piece_square_values(position) +
-        king_score(position, piece_count) +
-        king_threat_score(position) +
-        rook_eval(position) +
-        passed_pawn_score(position) +
-        doubled_and_isolated_pawn_score(position);
-
-    10 + if position.mover == WHITE { score } else { -score }
-}
-
-#[inline(always)]
-pub fn king_threat_score(position: &Position) -> Score {
     let wks = position.pieces[WHITE as usize].king_square;
     let bks = position.pieces[BLACK as usize].king_square;
 
     let white_king_danger_zone = bit(wks) | KING_MOVES_BITBOARDS[wks as usize] | (KING_MOVES_BITBOARDS[wks as usize] << 8);
     let black_king_danger_zone = bit (bks) | KING_MOVES_BITBOARDS[bks as usize] | (KING_MOVES_BITBOARDS[bks as usize] >> 8);
 
-    let mut score: Score = 0;
+    let score =
+        material_score(position) +
+        piece_square_values(position, white_king_danger_zone, black_king_danger_zone) +
+        king_score(position, piece_count) +
+        rook_eval(position) +
+        passed_pawn_score(position) +
+        doubled_and_isolated_pawn_score(position);
 
-    let mut bb = position.pieces[BLACK as usize].knight_bitboard;
-    while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        score -= (KNIGHT_MOVES_BITBOARDS[from_square as usize] & white_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
-    }
-
-    let mut bb = position.pieces[WHITE as usize].knight_bitboard;
-    while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        score += (KNIGHT_MOVES_BITBOARDS[from_square as usize] & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
-    }
-
-    score
+    10 + if position.mover == WHITE { score } else { -score }
 }
 
 #[inline(always)]

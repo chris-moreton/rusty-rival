@@ -1,6 +1,6 @@
 use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use rusty_rival::evaluate::{on_same_file_count, material, material_score, doubled_and_isolated_pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY, king_threat_score, KING_THREAT_BONUS};
+use rusty_rival::evaluate::{on_same_file_count, material, material_score, doubled_and_isolated_pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS};
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{BLACK, Score, WHITE};
 use rusty_rival::utils::{invert_fen, invert_pos};
@@ -91,24 +91,24 @@ fn it_gets_the_number_of_pieces_on_the_same_file_in_a_bitboard() {
     assert_eq!(material_score(&position), ROOK_VALUE + (PAWN_VALUE *2) - (ROOK_VALUE * 2) - QUEEN_VALUE - BISHOP_VALUE - KNIGHT_VALUE - (PAWN_VALUE * 5));
 }
 
-fn test_king_threats(fen: &str, score: Score) {
-    let position = get_position(fen);
-    assert_eq!(king_threat_score(&position), score);
-    assert_eq!(king_threat_score(&invert_pos(&position)), -score);
-}
-
-#[test]
-fn it_evaluates_king_threats() {
-    test_king_threats("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 0);
-    test_king_threats("rnbqkb1r/pppppppp/8/8/4n3/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", -(KING_THREAT_BONUS * 2));
-    test_king_threats("r1bqkb1r/pppppppp/8/8/4n2n/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", -(KING_THREAT_BONUS * 4));
-    test_king_threats("r1bqkb1r/pppppppp/8/8/4n2n/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", -(KING_THREAT_BONUS * 4));
-    test_king_threats("r1bqkb1r/pppppppp/8/4n3/7n/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", -KING_THREAT_BONUS * 3);
-    test_king_threats("rkbq1b1r/pppppppp/5N2/8/4n2n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1", -(KING_THREAT_BONUS * 4));
-    test_king_threats("rkbq1b1r/pppppppp/3n1N2/8/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1", -KING_THREAT_BONUS * 2);
-    test_king_threats("rkb4r/pppppppp/3n1N2/3b1q2/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1", -(KING_THREAT_BONUS * 2));
-    test_king_threats("rkb4r/1ppppppp/1p1n1N2/3b1q2/7n/R3BNP1/PPPPPP1P/2BQ1RK1 w - - 0 1", -KING_THREAT_BONUS * 2);
-}
+// fn test_king_threats(fen: &str, score: Score) {
+//     let position = get_position(fen);
+//     assert_eq!(king_threat_score(&position), score);
+//     assert_eq!(king_threat_score(&invert_pos(&position)), -score);
+// }
+//
+// #[test]
+// fn it_evaluates_king_threats() {
+//     test_king_threats("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 0);
+//     test_king_threats("rnbqkb1r/pppppppp/8/8/4n3/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", -(KING_THREAT_BONUS * 2));
+//     test_king_threats("r1bqkb1r/pppppppp/8/8/4n2n/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", -(KING_THREAT_BONUS * 4));
+//     test_king_threats("r1bqkb1r/pppppppp/8/8/4n2n/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", -(KING_THREAT_BONUS * 4));
+//     test_king_threats("r1bqkb1r/pppppppp/8/4n3/7n/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", -KING_THREAT_BONUS * 3);
+//     test_king_threats("rkbq1b1r/pppppppp/5N2/8/4n2n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1", -(KING_THREAT_BONUS * 4));
+//     test_king_threats("rkbq1b1r/pppppppp/3n1N2/8/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1", -KING_THREAT_BONUS * 2);
+//     test_king_threats("rkb4r/pppppppp/3n1N2/3b1q2/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1", -(KING_THREAT_BONUS * 2));
+//     test_king_threats("rkb4r/1ppppppp/1p1n1N2/3b1q2/7n/R3BNP1/PPPPPP1P/2BQ1RK1 w - - 0 1", -KING_THREAT_BONUS * 2);
+// }
 
 fn test_king_safety(fen: &str, white_score: Score, black_score: Score) {
     let position = get_position(fen);
