@@ -157,6 +157,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                     };
                     c += 1;
                     if c == aspiration_radius.len() {
+                        search_complete = aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1;
                         break
                     }
                 }
