@@ -1,10 +1,8 @@
 use crate::bitboards::bit;
-use crate::get_and_unset_lsb;
+
 use crate::hash::zobrist_lock;
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
-use crate::move_scores::BIT_FLIPPED_HORIZONTAL_AXIS;
-use crate::piece_square_tables::{BISHOP_PIECE_SQUARE_TABLE, KING_END_GAME_PIECE_SQUARE_TABLE, KING_PIECE_SQUARE_TABLE, KNIGHT_END_GAME_PIECE_SQUARE_TABLE, KNIGHT_PIECE_SQUARE_TABLE, PAWN_END_GAME_PIECE_SQUARE_TABLE, PAWN_PIECE_SQUARE_TABLE, QUEEN_PIECE_SQUARE_TABLE, ROOK_PIECE_SQUARE_TABLE};
-use crate::types::{Bitboard, BLACK, Move, Mover, Pieces, PieceSquareValues, Position, Square, WHITE};
+use crate::types::{Bitboard, BLACK, Move, Mover, Pieces, Position, Square, WHITE};
 use crate::utils::from_square_mask;
 
 const EN_PASSANT_UNAVAILABLE: i8 = -1;
@@ -172,14 +170,6 @@ pub fn get_position(fen: &str) -> Position {
             Pieces { pawn_bitboard: wp, knight_bitboard: wn, bishop_bitboard: wb, rook_bitboard: wr, queen_bitboard: wq, king_square: wk.trailing_zeros() as Square, all_pieces_bitboard: wp | wn | wb | wr | wq | wk },
             Pieces { pawn_bitboard: bp, knight_bitboard: bn, bishop_bitboard: bb, rook_bitboard: br, queen_bitboard: bq, king_square: bk.trailing_zeros() as Square, all_pieces_bitboard: bp | bn | bb | br | bq | bk },
         ],
-        piece_square_values_start: [
-            PieceSquareValues { pawn: 0, knight: 0, bishop: 0, rook: 0, queen: 0, king: 0, },
-            PieceSquareValues { pawn: 0, knight: 0, bishop: 0, rook: 0, queen: 0, king: 0, },
-        ],
-        piece_square_values_end: [
-            PieceSquareValues { pawn: 0, knight: 0, bishop: 0, rook: 0, queen: 0, king: 0, },
-            PieceSquareValues { pawn: 0, knight: 0, bishop: 0, rook: 0, queen: 0, king: 0, },
-        ],
         mover: get_mover(fen),
         en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square,
         castle_flags,
@@ -187,19 +177,6 @@ pub fn get_position(fen: &str) -> Position {
         move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
         zobrist_lock: 0,
     };
-    
-    white_pawn_piece_square_values(&mut position);
-    black_pawn_piece_square_values(&mut position);
-    white_knight_piece_square_values(&mut position);
-    black_knight_piece_square_values(&mut position);
-    white_bishop_piece_square_values(&mut position);
-    black_bishop_piece_square_values(&mut position);
-    white_rook_piece_square_values(&mut position);
-    black_rook_piece_square_values(&mut position);
-    white_queen_piece_square_values(&mut position);
-    black_queen_piece_square_values(&mut position);
-    white_king_piece_square_values(&mut position);
-    black_king_piece_square_values(&mut position);
 
     let lock = zobrist_lock(&position);
 
@@ -289,101 +266,3 @@ pub fn get_fen(position: &Position) -> String {
     fen
 }
 
-fn white_queen_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[WHITE as usize].queen_bitboard;
-    while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        position.piece_square_values_start[WHITE as usize].queen += QUEEN_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-fn black_queen_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[BLACK as usize].queen_bitboard;
-    let mut score = 0;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        position.piece_square_values_start[BLACK as usize].queen += QUEEN_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-pub fn white_bishop_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
-    while bb != 0 {
-        let sq = get_and_unset_lsb!(bb)  as usize;
-        position.piece_square_values_start[WHITE as usize].bishop += BISHOP_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-pub fn black_bishop_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize]  as usize;
-        position.piece_square_values_start[BLACK as usize].bishop += BISHOP_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-fn white_rook_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[WHITE as usize].rook_bitboard;
-    while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        position.piece_square_values_start[WHITE as usize].rook += ROOK_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-fn black_rook_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[BLACK as usize].rook_bitboard;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        position.piece_square_values_start[BLACK as usize].rook += ROOK_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-pub fn white_pawn_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[WHITE as usize].pawn_bitboard;
-    while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        position.piece_square_values_start[WHITE as usize].pawn += PAWN_PIECE_SQUARE_TABLE[sq];
-        position.piece_square_values_end[WHITE as usize].pawn += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-pub fn black_pawn_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[BLACK as usize].pawn_bitboard;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        position.piece_square_values_start[BLACK as usize].pawn += PAWN_PIECE_SQUARE_TABLE[sq];
-        position.piece_square_values_end[BLACK as usize].pawn += PAWN_END_GAME_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-pub fn white_knight_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[WHITE as usize].knight_bitboard;
-    let mut score = 0;
-    while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        position.piece_square_values_start[WHITE as usize].knight += KNIGHT_PIECE_SQUARE_TABLE[sq];
-        position.piece_square_values_end[WHITE as usize].knight += KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-pub fn black_knight_piece_square_values(position: &mut Position) {
-    let mut bb = position.pieces[BLACK as usize].knight_bitboard;
-    let mut score = 0;
-    while bb != 0 {
-        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize] as usize;
-        position.piece_square_values_start[BLACK as usize].knight += KNIGHT_PIECE_SQUARE_TABLE[sq];
-        position.piece_square_values_end[BLACK as usize].knight += KNIGHT_END_GAME_PIECE_SQUARE_TABLE[sq];
-    }
-}
-
-pub fn white_king_piece_square_values(position: &mut Position) {
-    let sq = position.pieces[WHITE as usize].king_square as usize;
-    position.piece_square_values_start[WHITE as usize].king += KING_PIECE_SQUARE_TABLE[sq];
-    position.piece_square_values_end[WHITE as usize].king += KING_END_GAME_PIECE_SQUARE_TABLE[sq];
-}
-
-pub fn black_king_piece_square_values(position: &mut Position) {
-    let sq = BIT_FLIPPED_HORIZONTAL_AXIS[position.pieces[BLACK as usize].king_square as usize] as usize;
-    position.piece_square_values_start[BLACK as usize].king += KING_PIECE_SQUARE_TABLE[sq];
-    position.piece_square_values_end[BLACK as usize].king += KING_END_GAME_PIECE_SQUARE_TABLE[sq];
-}

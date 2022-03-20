@@ -13,7 +13,7 @@ pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
     if is_check(&new_position, position.mover) {
         0
     } else {
-        see(captured_piece_value(position, mv), bit(to_square_part(mv)), &mut new_position)
+        see(captured_piece_value(position, mv), bit(to_square_part(mv)), &new_position)
     }
 }
 

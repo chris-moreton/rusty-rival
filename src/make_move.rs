@@ -1,10 +1,7 @@
 use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT, test_bit};
 use crate::move_constants::*;
 use crate::{opponent};
-use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_CASTLE, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEYS_PIECES, zobrist_lock, ZOBRIST_PIECE_INDEX_BISHOP, ZOBRIST_PIECE_INDEX_KING, ZOBRIST_PIECE_INDEX_KNIGHT, ZOBRIST_PIECE_INDEX_PAWN, ZOBRIST_PIECE_INDEX_QUEEN, ZOBRIST_PIECE_INDEX_ROOK};
-use crate::move_scores::BIT_FLIPPED_HORIZONTAL_AXIS;
-use crate::piece_square_tables::{PAWN_END_GAME_PIECE_SQUARE_TABLE, PAWN_PIECE_SQUARE_TABLE};
 use crate::types::{Bitboard, BLACK, Move, Position, Square, WHITE};
 use crate::utils::{from_square_part, to_square_part};
 
@@ -61,8 +58,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     }
     new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
 
-    // assert_eq!(new_position.zobrist_lock, zobrist_lock(new_position));
-
+    debug_assert_eq!(new_position.zobrist_lock, zobrist_lock(new_position));
 }
 
 #[inline(always)]
@@ -97,14 +93,6 @@ fn make_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
     position.zobrist_lock ^=
         ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][from as usize] ^
             ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][to as usize];
-
-    if position.mover == WHITE {
-        position.piece_square_values_start[position.mover as usize].pawn += (PAWN_PIECE_SQUARE_TABLE[to as usize] - PAWN_PIECE_SQUARE_TABLE[from as usize]);
-        position.piece_square_values_end[position.mover as usize].pawn += (PAWN_END_GAME_PIECE_SQUARE_TABLE[to as usize] - PAWN_END_GAME_PIECE_SQUARE_TABLE[from as usize]);
-    } else {
-        position.piece_square_values_start[position.mover as usize].pawn += (PAWN_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[to as usize] as usize] - PAWN_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[from as usize] as usize as usize]);
-        position.piece_square_values_end[position.mover as usize].pawn += (PAWN_END_GAME_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[to as usize] as usize] - PAWN_END_GAME_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[from as usize] as usize]);
-    }
 
     position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
 
@@ -181,15 +169,6 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     let opponent = opponent!(position.mover) as usize;
 
     position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][from as usize];
-
-    if position.mover == WHITE {
-        position.piece_square_values_start[position.mover as usize].pawn -= PAWN_PIECE_SQUARE_TABLE[from as usize];
-        position.piece_square_values_end[position.mover as usize].pawn -= PAWN_END_GAME_PIECE_SQUARE_TABLE[from as usize];
-    } else {
-        position.piece_square_values_start[position.mover as usize].pawn -= PAWN_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[from as usize] as usize];
-        position.piece_square_values_end[position.mover as usize].pawn -= PAWN_END_GAME_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[from as usize] as usize];
-
-    }
 
     position.pieces[position.mover as usize].all_pieces_bitboard ^= bit_from | bit_to;
 
@@ -294,14 +273,6 @@ pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square)
         let epcps = en_passant_captured_piece_square(position.en_passant_square) as usize;
         position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_PAWN][epcps];
 
-        if opponent == WHITE as usize {
-            position.piece_square_values_start[opponent].pawn -= PAWN_PIECE_SQUARE_TABLE[epcps];
-            position.piece_square_values_end[opponent].pawn -= PAWN_END_GAME_PIECE_SQUARE_TABLE[epcps];
-        } else {
-            position.piece_square_values_start[opponent].pawn -= PAWN_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[epcps] as usize];
-            position.piece_square_values_end[opponent].pawn -= PAWN_END_GAME_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[epcps] as usize];
-        }
-
         enemy.pawn_bitboard &= pawn_off;
         enemy.all_pieces_bitboard &= pawn_off;
     } else {
@@ -310,13 +281,6 @@ pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square)
             enemy.pawn_bitboard &= !bit_to;
             position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_PAWN][to as usize];
 
-            if opponent == WHITE as usize {
-                position.piece_square_values_start[opponent].pawn -= PAWN_PIECE_SQUARE_TABLE[to as usize];
-                position.piece_square_values_end[opponent].pawn -= PAWN_END_GAME_PIECE_SQUARE_TABLE[to as usize];
-            } else {
-                position.piece_square_values_start[opponent].pawn -= PAWN_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[to as usize] as usize];
-                position.piece_square_values_end[opponent].pawn -= PAWN_END_GAME_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[to as usize] as usize];
-            }
         }
         if enemy.knight_bitboard & bit_to != 0 {
             enemy.knight_bitboard &= !bit_to;
@@ -344,14 +308,6 @@ pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square)
     position.zobrist_lock ^=
         ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][from as usize] ^
             ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][to as usize];
-
-    if position.mover == WHITE {
-        position.piece_square_values_start[position.mover as usize].pawn += (PAWN_PIECE_SQUARE_TABLE[to as usize] - PAWN_PIECE_SQUARE_TABLE[from as usize]);
-        position.piece_square_values_end[position.mover as usize].pawn += (PAWN_END_GAME_PIECE_SQUARE_TABLE[to as usize] - PAWN_END_GAME_PIECE_SQUARE_TABLE[from as usize]);
-    } else {
-        position.piece_square_values_start[position.mover as usize].pawn += (PAWN_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[to as usize] as usize] - PAWN_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[from as usize] as usize as usize]);
-        position.piece_square_values_end[position.mover as usize].pawn += (PAWN_END_GAME_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[to as usize] as usize] - PAWN_END_GAME_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[from as usize] as usize]);
-    }
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
@@ -394,13 +350,6 @@ fn remove_captured_piece(position: &mut Position, to: Square) {
             enemy.pawn_bitboard &= !bit_to;
             position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_PAWN][to as usize];
 
-            if opponent == WHITE as usize {
-                position.piece_square_values_start[opponent].pawn -= PAWN_PIECE_SQUARE_TABLE[to as usize];
-                position.piece_square_values_end[opponent].pawn -= PAWN_END_GAME_PIECE_SQUARE_TABLE[to as usize];
-            } else {
-                position.piece_square_values_start[opponent].pawn -= PAWN_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[to as usize] as usize];
-                position.piece_square_values_end[opponent].pawn -= PAWN_END_GAME_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[to as usize] as usize];
-            }
         }
         if enemy.knight_bitboard & bit_to != 0 {
             enemy.knight_bitboard &= !bit_to;

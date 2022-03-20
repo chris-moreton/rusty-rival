@@ -199,8 +199,6 @@ impl PartialEq for Pieces {
 #[derive(Debug, Copy, Clone)]
 pub struct Position {
     pub pieces: [Pieces; 2],
-    pub piece_square_values_start: [PieceSquareValues; 2],
-    pub piece_square_values_end: [PieceSquareValues; 2],
     pub mover: Mover,
     pub en_passant_square: Square,
     pub castle_flags: u8,
