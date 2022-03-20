@@ -129,35 +129,34 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     search_state.current_best = (vec![0], -MAX_SCORE);
 
-    let aspiration_radius: [Score; 4] = [
-        150, 500, 1500, MAX_SCORE
+    let aspiration_radius: [Score; 5] = [
+        25, 150, 500, 1500, MAX_SCORE
     ];
 
     for iterative_depth in 1..=max_depth {
-        let mut c = 0;
+        let mut radius_index = 0;
         let extension_limit = iterative_depth;
         search_state.iterative_depth = iterative_depth;
-        let mut search_complete = false;
 
         loop {
             let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
             if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
                 search_state.current_best = aspire_best;
-                search_complete = true;
                 break
             } else {
                 if time_remains!(search_state.end_time) {
-                    if c == aspiration_radius.len() {
+                    radius_index += 1;
+                    if radius_index == aspiration_radius.len() {
                         aspiration_window = (-MAX_SCORE, MAX_SCORE);
                         start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+                        break
                     } else {
                         if aspire_best.1 <= aspiration_window.0 {
-                            aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
+                            aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[radius_index]);
                         } else if aspire_best.1 >= aspiration_window.1 {
-                            aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[c]);
+                            aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[radius_index]);
                         };
-                        c += 1;
                     }
                 }
                 if time_remains!(search_state.end_time) {
@@ -178,7 +177,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             (m.0, -MAX_SCORE)
         }).collect();
 
-        aspiration_window = (search_state.current_best.1 - ASPIRATION_RADIUS, search_state.current_best.1 + ASPIRATION_RADIUS)
+        aspiration_window = (search_state.current_best.1 - aspiration_radius[0], search_state.current_best.1 + aspiration_radius[0])
     }
 
     send_info(search_state);
