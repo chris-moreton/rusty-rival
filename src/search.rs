@@ -141,17 +141,25 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         loop {
             let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
-            if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-                search_state.current_best = aspire_best;
-                break
-            } else {
-                if time_remains!(search_state.end_time) {
+            if time_remains!(search_state.end_time) {
+                if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+                    search_state.current_best = aspire_best;
+                    break
+                } else if time_remains!(search_state.end_time) {
                     radius_index += 1;
+
                     if radius_index == aspiration_radius.len() {
+                        println!("No more expansion");
+                        // no more expansion to do, use full window
                         aspiration_window = (-MAX_SCORE, MAX_SCORE);
-                        start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+                        if time_remains!(search_state.end_time) {
+                            search_state.current_best = aspire_best
+                        }
                         break
                     } else {
+                        // expand in the direction of failure
+
                         if aspire_best.1 <= aspiration_window.0 {
                             aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[radius_index]);
                         } else if aspire_best.1 >= aspiration_window.1 {
@@ -159,10 +167,9 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                         };
                     }
                 }
-                if time_remains!(search_state.end_time) {
-                    search_state.current_best = aspire_best
-                }
-            };
+            } else {
+                break
+            }
         }
 
         if time_expired!(search_state) {
