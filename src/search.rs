@@ -129,8 +129,8 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     search_state.current_best = (vec![0], -MAX_SCORE);
 
-    let aspiration_radius: [Score; 5] = [
-        25, 150, 500, 1500, MAX_SCORE
+    let aspiration_radius: [Score; 3] = [
+        25, 500, MAX_SCORE
     ];
 
     for iterative_depth in 1..=max_depth {
@@ -149,7 +149,6 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                     radius_index += 1;
 
                     if radius_index == aspiration_radius.len() {
-                        println!("No more expansion");
                         // no more expansion to do, use full window
                         aspiration_window = (-MAX_SCORE, MAX_SCORE);
                         aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
@@ -159,7 +158,6 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                         break
                     } else {
                         // expand in the direction of failure
-
                         if aspire_best.1 <= aspiration_window.0 {
                             aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[radius_index]);
                         } else if aspire_best.1 >= aspiration_window.1 {
@@ -254,7 +252,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         return (vec![0], 0);
     }
 
-    if position.half_moves >= 50 {
+    if position.half_moves >= 100 {
         return (vec![0], 0);
     }
 

@@ -8,7 +8,7 @@ pub const BISHOP_VALUE: Score = 350;
 pub const ROOK_VALUE: Score = 550;
 pub const QUEEN_VALUE: Score = 900;
 
-pub const UCI_MILLIS_REDUCTION: u128 = 25;
+pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
