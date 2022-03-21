@@ -129,53 +129,52 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     search_state.current_best = (vec![0], -MAX_SCORE);
 
-    let aspiration_radius: [Score; 4] = [
-        150, 500, 1500, MAX_SCORE
+    let aspiration_radius: [Score; 3] = [
+        25, 500, MAX_SCORE
     ];
 
     for iterative_depth in 1..=max_depth {
-        let mut c = 0;
+        let mut radius_index = 0;
         let extension_limit = iterative_depth;
         search_state.iterative_depth = iterative_depth;
 
         loop {
             let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
-            let mut search_complete = false;
+            if time_remains!(search_state.end_time) {
+                if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+                    search_state.current_best = aspire_best;
+                    break
+                } else if time_remains!(search_state.end_time) {
+                    radius_index += 1;
 
-            if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-                search_state.current_best = aspire_best;
-                search_complete = true;
-                break
+                    if radius_index == aspiration_radius.len() {
+                        // no more expansion to do, use full window
+                        aspiration_window = (-MAX_SCORE, MAX_SCORE);
+                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+                        if time_remains!(search_state.end_time) {
+                            search_state.current_best = aspire_best
+                        }
+                        break
+                    } else {
+                        // expand in the direction of failure
+                        if aspire_best.1 <= aspiration_window.0 {
+                            aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[radius_index]);
+                        } else if aspire_best.1 >= aspiration_window.1 {
+                            aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[radius_index]);
+                        };
+                    }
+                }
             } else {
-                if time_remains!(search_state.end_time) {
-                    if aspire_best.1 <= aspiration_window.0 {
-                        aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
-                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
-                    } else if aspire_best.1 >= aspiration_window.1 {
-                        aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[c]);
-                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
-                    };
-                    c += 1;
-                }
-                if time_remains!(search_state.end_time) {
-                    search_state.current_best = aspire_best
-                }
-            };
-
-            // we may have failed on one bound, then failed on the opposite bound due to search instability
-            // if we get here without having found a move within any window, we will do a full search
-            if !search_complete {
-                aspiration_window = (-MAX_SCORE, MAX_SCORE);
-                aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+                break
             }
+        }
 
-            if time_expired!(search_state) {
-                if search_state.current_best.0[0] == 0 {
-                    panic!("Didn't have time to do anything.")
-                }
-                return search_state.current_best.0[0]
+        if time_expired!(search_state) {
+            if search_state.current_best.0[0] == 0 {
+                panic!("Didn't have time to do anything.")
             }
+            return search_state.current_best.0[0]
         }
 
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
@@ -309,21 +308,21 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !in_check && evaluate(position) > beta {
         let mut new_position = *position;
-        let ep = new_position.en_passant_square;
-        if new_position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
-            new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
-            new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)]
-        }
+        // let ep = new_position.en_passant_square;
+        // if new_position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
+        //     new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+        //     new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)]
+        // }
         switch_mover(&mut new_position);
         let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit).1);
         if score >= beta {
             return (vec![0], beta);
         }
         switch_mover(&mut new_position);
-        if ep != EN_PASSANT_NOT_AVAILABLE {
-            new_position.en_passant_square = ep;
-            new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)]
-        }
+        // if ep != EN_PASSANT_NOT_AVAILABLE {
+        //     new_position.en_passant_square = ep;
+        //     new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)]
+        // }
     }
 
     let mut scout_search = false;
