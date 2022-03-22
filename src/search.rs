@@ -253,6 +253,10 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         return (vec![0], 0);
     }
 
+    if position.half_moves >= 100 {
+        return (vec![0], 0);
+    }
+
     let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let mut alpha = window.0;
     let mut beta = window.1;
