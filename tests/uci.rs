@@ -149,6 +149,7 @@ fn test_wtime_btime(fen: &str, cmd: &str, max_millis: u128) {
 }
 
 #[test]
+#[ignore]
 pub fn it_handles_wtime_and_btime() {
     test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "go wtime 1000 btime 1000 movestogo 9", 100);
     test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "go wtime 5000 btime 10000 movestogo 24", 200);
