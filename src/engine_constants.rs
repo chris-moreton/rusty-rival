@@ -3,12 +3,14 @@ use crate::types::Score;
 pub const DEBUG: bool = false;
 
 pub const PAWN_VALUE: Score = 100;
-pub const KNIGHT_VALUE: Score = 350;
-pub const BISHOP_VALUE: Score = 350;
-pub const ROOK_VALUE: Score = 550;
-pub const QUEEN_VALUE: Score = 900;
+pub const KNIGHT_VALUE: Score = 390;
+pub const BISHOP_VALUE: Score = 390;
+pub const ROOK_VALUE: Score = 595;
+pub const QUEEN_VALUE: Score = 1175;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
+
+pub const ASPIRATION_RADIUS: Score = 25;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
