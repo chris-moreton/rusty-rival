@@ -1,7 +1,7 @@
-use crate::bitboards::{BISHOP_RAYS, bit, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, north_fill, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, south_fill};
+use crate::bitboards::{BISHOP_RAYS, bit, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, north_fill, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS, south_fill};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::get_and_unset_lsb;
-use crate::magic_bitboards::magic_moves_bishop;
+use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE, Square};
 use crate::utils::show_bitboard;
@@ -75,6 +75,22 @@ pub fn king_threat_score(position: &Position) -> Score {
         let from_square = get_and_unset_lsb!(bb);
         if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
             score += (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
+        }
+    }
+
+    let mut bb = position.pieces[BLACK as usize].queen_bitboard;
+    while bb != 0 {
+        let from_square = get_and_unset_lsb!(bb);
+        if ROOK_RAYS[from_square as usize] & white_king_danger_zone != 0 {
+            score -= (magic_moves_rook(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
+        }
+    }
+
+    let mut bb = position.pieces[WHITE as usize].queen_bitboard;;
+    while bb != 0 {
+        let from_square = get_and_unset_lsb!(bb);
+        if ROOK_RAYS[from_square as usize] & black_king_danger_zone != 0 {
+            score += (magic_moves_rook(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
         }
     }
 
