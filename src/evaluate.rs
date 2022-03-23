@@ -62,7 +62,7 @@ pub fn king_threat_score(position: &Position) -> Score {
         score += (KNIGHT_MOVES_BITBOARDS[from_square as usize] & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
     }
 
-    let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
+    let mut bb = position.pieces[BLACK as usize].bishop_bitboard | position.pieces[BLACK as usize].queen_bitboard;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
         if BISHOP_RAYS[from_square as usize] & white_king_danger_zone != 0 {
@@ -70,7 +70,7 @@ pub fn king_threat_score(position: &Position) -> Score {
         }
     }
 
-    let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
+    let mut bb = position.pieces[WHITE as usize].bishop_bitboard | position.pieces[WHITE as usize].queen_bitboard;;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
         if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
