@@ -60,7 +60,6 @@ pub struct SearchState {
     pub end_time: Instant,
     pub iterative_depth: u8,
     pub hash_table_height: Box<HashArray>,
-    pub hash_table_replace: Box<HashArray>,
     pub hash_table_version: u32,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
     pub mate_killer: [Move; MAX_DEPTH as usize],
@@ -81,14 +80,6 @@ pub fn default_search_state() -> SearchState {
         end_time: Instant::now(),
         iterative_depth: 0,
         hash_table_height: Box::try_from(vec![HashEntry {
-            score: 0,
-            version: 0,
-            height: 0,
-            mv: 0,
-            bound: BoundType::Exact,
-            lock: 0
-        }; NUM_HASH_ENTRIES as usize].into_boxed_slice()).unwrap(),
-        hash_table_replace: Box::try_from(vec![HashEntry {
             score: 0,
             version: 0,
             height: 0,
