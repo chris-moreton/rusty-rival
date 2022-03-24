@@ -310,7 +310,7 @@ pub fn rook_eval(position: &Position) -> Score {
         on_same_file_count(position.pieces[BLACK as usize].rook_bitboard, black_rook_files)) * VALUE_ROOKS_ON_SAME_FILE;
 
     score += (position.pieces[WHITE as usize].rook_bitboard & 0b0000000011111111000000000000000000000000000000000000000000000000).count_ones() -
-        (position.pieces[BLACK as usize].rook_bitboard & 0b0000000000000000000000000000000000000000000000001111111100000000).count_ones() * ROOK_ON_SEVENTH_RANK_BONUS;
+        (position.pieces[BLACK as usize].rook_bitboard & 0b0000000000000000000000000000000000000000000000001111111100000000).count_ones() * ROOKS_ON_SEVENTH_RANK_BONUS;
 
     score
 
