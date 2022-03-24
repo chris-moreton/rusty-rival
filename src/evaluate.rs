@@ -16,6 +16,7 @@ pub const DOUBLED_PAWN_PENALTY: Score = 15;
 pub const ISOLATED_PAWN_PENALTY: Score = 10;
 pub const PAWN_TRADE_BONUS_MAX: Score = 600;
 pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
+pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
 pub const KING_THREAT_BONUS: Score = 5;
 
 #[inline(always)]
@@ -62,12 +63,25 @@ pub fn king_threat_score(position: &Position) -> Score {
         score += (KNIGHT_MOVES_BITBOARDS[from_square as usize] & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
     }
 
-    let mut bb = position.pieces[BLACK as usize].queen_bitboard;
+    let mut bb = position.pieces[BLACK as usize].bishop_bitboard | position.pieces[BLACK as usize].queen_bitboard;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
         if BISHOP_RAYS[from_square as usize] & white_king_danger_zone != 0 {
             score -= (magic_moves_bishop(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
         }
+    }
+
+    let mut bb = position.pieces[WHITE as usize].bishop_bitboard | position.pieces[WHITE as usize].queen_bitboard;;
+    while bb != 0 {
+        let from_square = get_and_unset_lsb!(bb);
+        if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
+            score += (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
+        }
+    }
+
+    let mut bb = position.pieces[BLACK as usize].queen_bitboard;
+    while bb != 0 {
+        let from_square = get_and_unset_lsb!(bb);
         if ROOK_RAYS[from_square as usize] & white_king_danger_zone != 0 {
             score -= (magic_moves_rook(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
         }
@@ -76,9 +90,6 @@ pub fn king_threat_score(position: &Position) -> Score {
     let mut bb = position.pieces[WHITE as usize].queen_bitboard;;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
-        if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
-            score += (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
-        }
         if ROOK_RAYS[from_square as usize] & black_king_danger_zone != 0 {
             score += (magic_moves_rook(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
         }
@@ -295,6 +306,12 @@ pub fn rook_eval(position: &Position) -> Score {
     let white_rook_files: u8 = (south_fill(position.pieces[WHITE as usize].rook_bitboard) & RANK_1_BITS) as u8;
     let black_rook_files: u8 = (south_fill(position.pieces[BLACK as usize].rook_bitboard) & RANK_1_BITS) as u8;
 
-    (on_same_file_count(position.pieces[WHITE as usize].rook_bitboard, white_rook_files) -
-        on_same_file_count(position.pieces[BLACK as usize].rook_bitboard, black_rook_files)) * VALUE_ROOKS_ON_SAME_FILE
+    let mut score = (on_same_file_count(position.pieces[WHITE as usize].rook_bitboard, white_rook_files) -
+        on_same_file_count(position.pieces[BLACK as usize].rook_bitboard, black_rook_files)) * VALUE_ROOKS_ON_SAME_FILE;
+
+    score += (position.pieces[WHITE as usize].rook_bitboard & 0b0000000011111111000000000000000000000000000000000000000000000000).count_ones() -
+        (position.pieces[BLACK as usize].rook_bitboard & 0b0000000000000000000000000000000000000000000000001111111100000000).count_ones() * ROOK_ON_SEVENTH_RANK_BONUS;
+
+    score
+
 }
