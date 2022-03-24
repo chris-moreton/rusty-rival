@@ -283,6 +283,8 @@ pub fn passed_pawn_score(position: &Position) -> Score {
     passed_score -= (black_passed_pawns & RANK_7_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[0];
 
     let black_piece_values = piece_material(position, BLACK);
+    let white_piece_values = piece_material(position, WHITE);
+
     let mut passed_pawn_bonus = if black_piece_values < PAWN_ADJUST_MAX_MATERIAL {
         let king_x = position.pieces[BLACK as usize].king_square % 8;
         let king_y = position.pieces[BLACK as usize].king_square / 8;
@@ -300,7 +302,6 @@ pub fn passed_pawn_score(position: &Position) -> Score {
         0
     };
 
-    let white_piece_values = piece_material(position, WHITE);
     passed_pawn_bonus -= if white_piece_values < PAWN_ADJUST_MAX_MATERIAL {
         let king_x = position.pieces[WHITE as usize].king_square % 8;
         let king_y = position.pieces[WHITE as usize].king_square / 8;

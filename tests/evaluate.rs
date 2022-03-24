@@ -51,6 +51,7 @@ fn test_passed_pawns(fen: &str, score: Score) {
     let position = get_position(fen);
     assert_eq!(passed_pawn_score(&position), score);
 
+    println!("--------");
     let position = get_position(&invert_fen(fen));
     assert_eq!(passed_pawn_score(&position), -score);
 }
@@ -75,7 +76,39 @@ fn it_gets_the_passed_pawn_score() {
                           VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
                           (VALUE_PASSED_PAWN_BONUS[3]) // black pawn on 5th
     );
-
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/b7/4K3 w - - 0 1",
+                      (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
+                          VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
+                          (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
+                              VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
+                              VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                          (VALUE_PASSED_PAWN_BONUS[3]) // black pawn on 5th
+    );
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/4K3 w - - 0 1",
+                      (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
+                          VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
+                          (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
+                              VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
+                              VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                          (VALUE_PASSED_PAWN_BONUS[3]) // black pawn on 5th
+    );
+    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/7K w - - 0 1",
+                      (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
+                          (4 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) +
+                          (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
+                              VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
+                              VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                          (VALUE_PASSED_PAWN_BONUS[3]) // black pawn on 5th
+    );
+    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/7K b - - 0 1",
+                      -VALUE_KING_CANNOT_CATCH_PAWN +
+                      (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
+                          (4 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) +
+                          (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
+                              VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
+                              VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                          (VALUE_PASSED_PAWN_BONUS[3]) // black pawn on 5th
+    );
 }
 
 // fn test_backward_pawns(fen: &str, score: Score) {
