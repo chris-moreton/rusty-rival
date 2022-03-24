@@ -2,6 +2,7 @@ use crate::bitboards::bit;
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PIECE_MASK_BISHOP, PIECE_MASK_KNIGHT, PIECE_MASK_KING, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::search::{piece_index_12};
+use crate::see::static_exchange_evaluation;
 use crate::types::{Move, Pieces, Position, Score, SearchState, Square};
 use crate::utils::{from_square_part, linear_scale, to_square_part};
 
@@ -16,17 +17,17 @@ pub const PAWN_STAGE_MATERIAL_HIGH: Score  = QUEEN_VALUE + 2 * ROOK_VALUE + 2 * 
 pub const OPENING_PHASE_MATERIAL: Score = (TOTAL_PIECE_VALUE_PER_SIDE_AT_START as f32 * 0.8) as Score;
 pub const TOTAL_PIECE_VALUE_PER_SIDE_AT_START: Score = KNIGHT_VALUE * 2 + BISHOP_VALUE * 2 + ROOK_VALUE * 2 + QUEEN_VALUE;
 
-pub const PAWN_ATTACKER_BONUS: Score = 6;
+pub const PAWN_ATTACKER_BONUS: Score = 300;
 
 #[inline(always)]
 fn attacker_bonus(piece: Move) -> Score {
     match piece {
         PIECE_MASK_PAWN => PAWN_ATTACKER_BONUS,
-        PIECE_MASK_KNIGHT => 5,
-        PIECE_MASK_BISHOP => 4,
-        PIECE_MASK_ROOK => 3,
-        PIECE_MASK_QUEEN => 2,
-        PIECE_MASK_KING => 1,
+        PIECE_MASK_KNIGHT => 250,
+        PIECE_MASK_BISHOP => 200,
+        PIECE_MASK_ROOK => 150,
+        PIECE_MASK_QUEEN => 100,
+        PIECE_MASK_KING => 50,
         _ => {
             panic!("Expected piece")
         }
@@ -34,11 +35,43 @@ fn attacker_bonus(piece: Move) -> Score {
 }
 
 #[inline(always)]
+fn attacker_value(piece: Move) -> Score {
+    match piece {
+        PIECE_MASK_PAWN => PAWN_VALUE,
+        PIECE_MASK_KNIGHT => KNIGHT_VALUE,
+        PIECE_MASK_BISHOP => BISHOP_VALUE,
+        PIECE_MASK_ROOK => ROOK_VALUE,
+        PIECE_MASK_QUEEN => QUEEN_VALUE,
+        PIECE_MASK_KING => 10000,
+        _ => {
+            panic!("Expected piece")
+        }
+    }
+}
+
+
+#[inline(always)]
 pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
     let to_square = to_square_part(m);
 
+    const GOOD_CAPTURE_START: Score = 10000;
+    const MATE_KILLER_SCORE: Score = 1000;
+    const CURRENT_PLY_KILLER_1: Score = 750;
+    const CURRENT_PLY_KILLER_2: Score = 400;
+    const HISTORY_TOP: Score = 500;
+    const DISTANT_KILLER_1: Score = 350;
+    const DISTANT_KILLER_2: Score = 250;
+    const BAD_CAPTURE_START: Score = 100;
+    const HISTORY_START: Score = 0;
+
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
-        1000 + piece_value(enemy, to_square) + attacker_bonus(m & PIECE_MASK_FULL)
+        let pv = piece_value(enemy, to_square);
+        let bonus = if pv < attacker_value(m & PIECE_MASK_FULL) && static_exchange_evaluation(position, m) < 0 {
+            BAD_CAPTURE_START
+        } else {
+            GOOD_CAPTURE_START
+        };
+        bonus + pv + attacker_bonus(m & PIECE_MASK_FULL)
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         let mask = m & PROMOTION_FULL_MOVE_MASK;
         if mask == PROMOTION_ROOK_MOVE_MASK {
@@ -48,26 +81,37 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
             1
         } else {
-            1000 + QUEEN_VALUE
+            GOOD_CAPTURE_START + (QUEEN_VALUE - PAWN_VALUE)
         }
     } else if to_square == position.en_passant_square {
-        1000 + PAWN_VALUE + PAWN_ATTACKER_BONUS
-    } else if m == search_state.mate_killer[ply] { 1000 } else {
+        let bonus = if static_exchange_evaluation(position, m) < 0 {
+            BAD_CAPTURE_START
+        } else {
+            GOOD_CAPTURE_START
+        };
+        bonus + PAWN_VALUE + PAWN_ATTACKER_BONUS
+    } else if m == search_state.mate_killer[ply] { MATE_KILLER_SCORE } else {
         let killer_moves = search_state.killer_moves[ply];
-        if m == killer_moves[0] { 750 }
-        else if m == killer_moves[1] { 400 }
+        if m == killer_moves[0] { CURRENT_PLY_KILLER_1 }
+        else if m == killer_moves[1] { CURRENT_PLY_KILLER_2 }
         else if ply > 2 {
             let killer_moves = search_state.killer_moves[ply - 2];
-            if m == killer_moves[0] { 300 }
-            else if m == killer_moves[1] { 200 } else { 0 }
+            if m == killer_moves[0] { DISTANT_KILLER_1 }
+            else if m == killer_moves[1] { DISTANT_KILLER_2 } else { 0 }
         } else {
             0
         }
     };
 
-    let history_score = search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize];
-    score + linear_scale(history_score, search_state.lowest_history_score, search_state.highest_history_score, 0, 500) as Score
-
+    if score < MATE_KILLER_SCORE {
+        let history_score = linear_scale(
+            search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize],
+            search_state.lowest_history_score, search_state.highest_history_score, HISTORY_START as i64, HISTORY_TOP as i64
+        ) as Score;
+        history_score
+    } else {
+        score
+    }
 }
 
 #[inline(always)]

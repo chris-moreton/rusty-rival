@@ -584,6 +584,9 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 }
 
 fn send_info(search_state: &mut SearchState) {
+    if !search_state.show_info {
+        return
+    }
     if search_state.start_time.elapsed().as_millis() > 0 {
         let nps = (search_state.nodes as f64 / search_state.start_time.elapsed().as_millis() as f64) * 1000.0;
         let s = "info score cp ".to_string() + &*(search_state.current_best.1 as i64).to_string() +
