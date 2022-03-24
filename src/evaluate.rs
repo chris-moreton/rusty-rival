@@ -2,7 +2,6 @@ use std::cmp::{max, min};
 use crate::bitboards::{BISHOP_RAYS, bit, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, north_fill, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS, south_fill};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER};
 use crate::{get_and_unset_lsb, opponent};
-use crate::fen::algebraic_squareref_from_bitref;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE, Square};
@@ -312,7 +311,7 @@ pub fn passed_pawn_score(position: &Position) -> Score {
             let pawn_distance = min(5, sq/8);
             let king_distance = max((king_x - (sq % 8)).abs(), king_y.abs());
             score += linear_scale(white_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, (king_distance as Score * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) as i64, 0) as Score;
-            if (pawn_distance < (king_distance - opponent!(position.mover))) && (black_piece_values == 0) { score += VALUE_KING_CANNOT_CATCH_PAWN }
+            if (pawn_distance < (king_distance - opponent!(position.mover))) && (white_piece_values == 0) { score += VALUE_KING_CANNOT_CATCH_PAWN }
         }
         score
     } else {
