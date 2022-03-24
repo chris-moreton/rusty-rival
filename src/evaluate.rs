@@ -1,10 +1,12 @@
+use std::cmp::{max, min};
 use crate::bitboards::{BISHOP_RAYS, bit, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, north_fill, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS, south_fill};
-use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use crate::get_and_unset_lsb;
+use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER};
+use crate::{get_and_unset_lsb, opponent};
+use crate::fen::algebraic_squareref_from_bitref;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE, Square};
-use crate::utils::show_bitboard;
+use crate::utils::{linear_scale};
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8, 9, 10, 11, 12, 12];
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
@@ -71,7 +73,7 @@ pub fn king_threat_score(position: &Position) -> Score {
         }
     }
 
-    let mut bb = position.pieces[WHITE as usize].bishop_bitboard | position.pieces[WHITE as usize].queen_bitboard;;
+    let mut bb = position.pieces[WHITE as usize].bishop_bitboard | position.pieces[WHITE as usize].queen_bitboard;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
         if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
@@ -87,7 +89,7 @@ pub fn king_threat_score(position: &Position) -> Score {
         }
     }
 
-    let mut bb = position.pieces[WHITE as usize].queen_bitboard;;
+    let mut bb = position.pieces[WHITE as usize].queen_bitboard;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
         if ROOK_RAYS[from_square as usize] & black_king_danger_zone != 0 {
@@ -281,7 +283,43 @@ pub fn passed_pawn_score(position: &Position) -> Score {
     passed_score -= (black_passed_pawns & RANK_6_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[1];
     passed_score -= (black_passed_pawns & RANK_7_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[0];
 
-    guarded_score + passed_score
+    let black_piece_values = piece_material(position, BLACK);
+    let mut passed_pawn_bonus = if black_piece_values < PAWN_ADJUST_MAX_MATERIAL {
+        let king_x = position.pieces[BLACK as usize].king_square % 8;
+        let king_y = position.pieces[BLACK as usize].king_square / 8;
+        let mut bb = white_passed_pawns;
+        let mut score = 0;
+        while bb != 0 {
+            let sq = get_and_unset_lsb!(bb);
+            let pawn_distance = min(5, 7-(sq/8));
+            let king_distance = max((king_x-(sq%8)).abs(), (king_y-7).abs());
+            score += linear_scale(black_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, (king_distance as Score * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) as i64, 0) as Score;
+            if (pawn_distance < (king_distance - position.mover)) && (black_piece_values == 0) { score += VALUE_KING_CANNOT_CATCH_PAWN }
+        }
+        score
+    } else {
+        0
+    };
+
+    let white_piece_values = piece_material(position, WHITE);
+    passed_pawn_bonus -= if white_piece_values < PAWN_ADJUST_MAX_MATERIAL {
+        let king_x = position.pieces[WHITE as usize].king_square % 8;
+        let king_y = position.pieces[WHITE as usize].king_square / 8;
+        let mut bb = black_passed_pawns;
+        let mut score: Score = 0;
+        while bb != 0 {
+            let sq = get_and_unset_lsb!(bb);
+            let pawn_distance = min(5, sq/8);
+            let king_distance = max((king_x - (sq % 8)).abs(), king_y.abs());
+            score += linear_scale(white_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, (king_distance as Score * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) as i64, 0) as Score;
+            if (pawn_distance < (king_distance - opponent!(position.mover))) && (black_piece_values == 0) { score += VALUE_KING_CANNOT_CATCH_PAWN }
+        }
+        score
+    } else {
+        0
+    };
+
+    guarded_score + passed_score + passed_pawn_bonus
 }
 
 #[inline(always)]

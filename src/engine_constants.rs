@@ -16,6 +16,10 @@ pub const NUM_KILLER_MOVES: usize = 2;
 
 pub const NULL_MOVE_REDUCE_DEPTH: u8 = 2;
 
+pub const PAWN_ADJUST_MAX_MATERIAL: Score = (QUEEN_VALUE + ROOK_VALUE) as Score;
+pub const VALUE_KING_CANNOT_CATCH_PAWN: Score = 500;
+pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 4;
+
 pub const MAX_DEPTH: u8 = 250;
 
 pub const MAX_QUIESCE_DEPTH: u8 = 10;

@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{ASPIRATION_RADIUS, DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{ASPIRATION_RADIUS, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -10,7 +10,7 @@ use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, 
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
-use crate::types::{Move, Position, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, Bitboard, BLACK, PathScore, Bound};
+use crate::types::{Move, Position, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, Bitboard, BLACK, PathScore};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
@@ -139,11 +139,8 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         loop {
             let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
-            let mut search_complete = false;
-
             if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
                 search_state.current_best = aspire_best;
-                search_complete = true;
                 break
             } else {
                 if time_remains!(search_state.end_time) {
@@ -156,19 +153,16 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                     };
                     c += 1;
                 }
-                if time_remains!(search_state.end_time) {
-                    if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-                        search_state.current_best = aspire_best;
-                        search_complete = true;
-                        break
-                    }
+                if time_remains!(search_state.end_time) && aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+                    search_state.current_best = aspire_best;
+                    break
                 }
             };
 
             // we may have failed on one bound, then failed on the opposite bound due to search instability
             // if we get here without having found a move within any window, we will do a full search
             aspiration_window = (-MAX_SCORE, MAX_SCORE);
-            aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+            start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
             if time_expired!(search_state) {
                 if search_state.current_best.0[0] == 0 {
@@ -267,7 +261,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_version = 0;
     let mut best_movescore: MoveScore = (0,-MAX_SCORE);
 
-    let mut hash_move = match search_state.hash_table_height.get(index) {
+    let hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
             if x.lock == position.zobrist_lock {
                 if x.height >= depth {
@@ -396,14 +390,14 @@ fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extens
 
     let score = loop {
         let score = if scout_search {
-            let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), &mut new_position, lmr, extension_limit - these_extentions);
+            let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr, extension_limit - these_extentions);
             if scout_score > alpha {
                 search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
             } else {
                 alpha
             }
         } else {
-            search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+            search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions)
         };
         if lmr == 0 || score < beta {
             break score

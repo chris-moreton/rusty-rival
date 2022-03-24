@@ -1,5 +1,5 @@
 use rusty_rival::bitboards::south_fill;
-use rusty_rival::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use rusty_rival::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER};
 use rusty_rival::evaluate::{on_same_file_count, material, material_score, doubled_and_isolated_pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY, king_threat_score, KING_THREAT_BONUS};
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{BLACK, Score, WHITE};
@@ -59,11 +59,23 @@ fn test_passed_pawns(fen: &str, score: Score) {
 fn it_gets_the_passed_pawn_score() {
     //assert_eq!(passed_pawn_wrapper(START_POS), 0);
     test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1",
+                      (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
+                          VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
                (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
                 VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
                 VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
                    (VALUE_PASSED_PAWN_BONUS[3]) // black pawn on 5th
     );
+    test_passed_pawns("k7/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1",
+                      VALUE_KING_CANNOT_CATCH_PAWN + (2 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) +
+                          (4 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) + VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER -
+                          VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
+                      (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
+                          VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
+                          VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                          (VALUE_PASSED_PAWN_BONUS[3]) // black pawn on 5th
+    );
+
 }
 
 // fn test_backward_pawns(fen: &str, score: Score) {
