@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{ DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -126,8 +126,8 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     search_state.current_best = (vec![0], -MAX_SCORE);
 
-    let aspiration_radius: [Score; 3] = [
-        25, 200, MAX_SCORE
+    let aspiration_radius: Vec<Score> = vec![
+        25, 100, 300, 600, 1200, 2400, MAX_SCORE
     ];
 
     for iterative_depth in 1..=max_depth {
@@ -324,22 +324,34 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
     }
 
-    let these_moves = moves(position);
+    let these_moves = if legal_move_count == 0 {
+        moves(position)
+    } else {
+        moves(position).into_iter().filter(|m| { *m != hash_move }).collect()
+    };
+
     let enemy = &position.pieces[opponent!(position.mover) as usize];
     let mut move_scores: Vec<(Move, Score)> = these_moves.into_iter().map(|m| {
         (m, score_move(position, m, search_state, ply as usize, enemy))
     }).collect();
-    move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
-    let move_list: Vec<Move> = move_scores.into_iter().map(|(m,_)| { m }).filter(|m| { *m != hash_move }).collect();
 
-    for m in move_list {
+    move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
+
+    for ms in move_scores {
+        let m = ms.0;
         let mut new_position = *position;
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
 
-            let lmr = if these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
-                2
+            let lmr = if window.0 == alpha && these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
+                if  legal_move_count > 10 {
+                    3
+                } else if  legal_move_count > 7 {
+                    2
+                } else {
+                    1
+                }
             } else {
                 0
             };
@@ -377,7 +389,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extension_limit: u8, alpha: Score, beta: Score, scout_search: bool, these_extentions: u8, real_depth: u8, new_position: &mut Position) -> Score {
     loop {
         let score = if scout_search {
-            let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr, extension_limit - these_extentions);
+            let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha-1, -alpha), new_position, lmr, extension_limit - these_extentions);
             if scout_score > alpha {
                 search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions)
             } else {
@@ -389,6 +401,7 @@ fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extens
         if lmr == 0 || score < beta {
             break score
         } else {
+            // search to normal depth because score was >= beta
             lmr = 0
         }
     }
