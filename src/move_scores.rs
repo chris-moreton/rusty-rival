@@ -49,29 +49,24 @@ fn attacker_value(piece: Move) -> Score {
     }
 }
 
+const GOOD_CAPTURE_START: Score = 1000;
+const MATE_KILLER_SCORE: Score = 1000;
+const CURRENT_PLY_KILLER_1: Score = 750;
+const CURRENT_PLY_KILLER_2: Score = 400;
+const HISTORY_TOP: Score = 500;
+const DISTANT_KILLER_1: Score = 300;
+const DISTANT_KILLER_2: Score = 200;
+const GOOD_CAPTURE_BONUS: Score = 300;
+const HISTORY_START: Score = 0;
 
 #[inline(always)]
 pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
     let to_square = to_square_part(m);
 
-    const GOOD_CAPTURE_START: Score = 10000;
-    const MATE_KILLER_SCORE: Score = 1000;
-    const CURRENT_PLY_KILLER_1: Score = 750;
-    const CURRENT_PLY_KILLER_2: Score = 400;
-    const HISTORY_TOP: Score = 500;
-    const DISTANT_KILLER_1: Score = 350;
-    const DISTANT_KILLER_2: Score = 250;
-    const BAD_CAPTURE_START: Score = 10000;
-    const HISTORY_START: Score = 0;
-
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
         let pv = piece_value(enemy, to_square);
-        let bonus = if pv < attacker_value(m & PIECE_MASK_FULL) && static_exchange_evaluation(position, m) < 0 {
-            BAD_CAPTURE_START
-        } else {
-            GOOD_CAPTURE_START
-        };
-        bonus + pv + attacker_bonus(m & PIECE_MASK_FULL)
+        GOOD_CAPTURE_START + pv + attacker_bonus(m & PIECE_MASK_FULL) +
+            if pv < attacker_value(m & PIECE_MASK_FULL) { GOOD_CAPTURE_BONUS } else { 0 }
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         let mask = m & PROMOTION_FULL_MOVE_MASK;
         if mask == PROMOTION_ROOK_MOVE_MASK {
@@ -81,15 +76,10 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
             1
         } else {
-            GOOD_CAPTURE_START + (QUEEN_VALUE - PAWN_VALUE)
+            GOOD_CAPTURE_START + QUEEN_VALUE
         }
     } else if to_square == position.en_passant_square {
-        let bonus = if static_exchange_evaluation(position, m) < 0 {
-            BAD_CAPTURE_START
-        } else {
-            GOOD_CAPTURE_START
-        };
-        bonus + PAWN_VALUE + PAWN_ATTACKER_BONUS
+        GOOD_CAPTURE_START + PAWN_VALUE + PAWN_ATTACKER_BONUS
     } else if m == search_state.mate_killer[ply] { MATE_KILLER_SCORE } else {
         let killer_moves = search_state.killer_moves[ply];
         if m == killer_moves[0] { CURRENT_PLY_KILLER_1 }
@@ -103,15 +93,9 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         }
     };
 
-    if score < MATE_KILLER_SCORE {
-        let history_score = linear_scale(
-            search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize],
-            search_state.lowest_history_score, search_state.highest_history_score, HISTORY_START as i64, HISTORY_TOP as i64
-        ) as Score;
-        history_score
-    } else {
-        score
-    }
+    let history_score = search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize];
+    score + linear_scale(history_score, search_state.lowest_history_score, search_state.highest_history_score, HISTORY_START as i64, HISTORY_TOP as i64) as Score
+
 }
 
 #[inline(always)]
