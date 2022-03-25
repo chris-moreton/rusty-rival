@@ -61,7 +61,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     const HISTORY_TOP: Score = 500;
     const DISTANT_KILLER_1: Score = 350;
     const DISTANT_KILLER_2: Score = 250;
-    const BAD_CAPTURE_START: Score = 100;
+    const BAD_CAPTURE_START: Score = 10000;
     const HISTORY_START: Score = 0;
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
