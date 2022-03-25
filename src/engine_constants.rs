@@ -10,8 +10,6 @@ pub const QUEEN_VALUE: Score = 1175;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const ASPIRATION_RADIUS: Score = 25;
-
 pub const NUM_KILLER_MOVES: usize = 2;
 
 pub const NULL_MOVE_REDUCE_DEPTH: u8 = 2;
