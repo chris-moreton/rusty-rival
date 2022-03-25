@@ -53,10 +53,10 @@ const GOOD_CAPTURE_START: Score = 1000;
 const MATE_KILLER_SCORE: Score = 1000;
 const CURRENT_PLY_KILLER_1: Score = 750;
 const CURRENT_PLY_KILLER_2: Score = 400;
-const HISTORY_TOP: Score = 500;
 const DISTANT_KILLER_1: Score = 300;
 const DISTANT_KILLER_2: Score = 200;
-const GOOD_CAPTURE_BONUS: Score = 300;
+const HISTORY_TOP: Score = 200;
+const GOOD_CAPTURE_BONUS: Score = 1000;
 const HISTORY_START: Score = 0;
 
 #[inline(always)]
@@ -65,8 +65,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
         let pv = piece_value(enemy, to_square);
-        GOOD_CAPTURE_START + pv + attacker_bonus(m & PIECE_MASK_FULL) +
-            if pv < attacker_value(m & PIECE_MASK_FULL) { GOOD_CAPTURE_BONUS } else { 0 }
+        GOOD_CAPTURE_START + pv + attacker_bonus(m & PIECE_MASK_FULL)
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         let mask = m & PROMOTION_FULL_MOVE_MASK;
         if mask == PROMOTION_ROOK_MOVE_MASK {
@@ -94,7 +93,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     };
 
     let history_score = search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize];
-    score + linear_scale(history_score, search_state.lowest_history_score, search_state.highest_history_score, HISTORY_START as i64, HISTORY_TOP as i64) as Score
+    score + linear_scale(history_score, 0, search_state.highest_history_score, HISTORY_START as i64, HISTORY_TOP as i64) as Score
 
 }
 

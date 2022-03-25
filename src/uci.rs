@@ -12,8 +12,8 @@ use crate::make_move::make_move;
 use crate::move_constants::{START_POS};
 use crate::moves::{is_check, moves};
 use crate::perft::perft;
-use crate::search::{iterative_deepening, MATE_START};
-use crate::types::{BoundType, default_search_state, HashEntry, Position, SearchState, UciState, WHITE};
+use crate::search::{iterative_deepening};
+use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, WHITE};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -37,6 +37,7 @@ fn replace_shortcuts(l: &str) -> &str {
         "st01" => "position fen 8/8/8/8/4Q3/2P4k/8/5K2 w - - 0 1",
         "st02" => "position fen 8/8/8/8/4Q3/2P3k1/4K3/8 w - - 0 1",
         "st03" => "position fen 8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1",
+        "wac8" => "position fen r4q1k/p2bR1rp/2p2Q1N/5p2/5p2/2P5/PP3PPP/R5K1 w - - 0 1",
         "bench01" => "position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
         "bench02" => "position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
         "bench03" => "position fen 8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28",
@@ -258,7 +259,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220325-02-No-Check-Extensions|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220325-03-Aspiration-Fiddling|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -281,10 +282,10 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState) -> Ei
 
     let positions = vec![
         ("P2", "8/5p2/5k1p/p6P/PP2K1P1/8/8/8 b - - 0 67", "e2e4", 16),
-        ("P3", "8/6nk/8/1p2P1Q1/1P4PP/P4q2/8/6K1 w - - 3 56", "e2e4", 11),
+        ("P3", "8/6nk/8/1p2P1Q1/1P4PP/P4q2/8/6K1 w - - 3 56", "e2e4", 12),
         ("Rusty1", "1R6/1brk2p1/4p2p/p1P1Pp2/P7/6P1/1P4P1/2R3K1 w - - 0 1", "b8b7", 13),
         ("Rusty2", "r1b2rk1/ppq1bppp/2p1pn2/8/2NP4/2N1P3/PP2BPPP/2RQK2R w K - 0 1", "e1g1", 8),
-        ("Rusty4", "N7/8/2KQ2rp/6k1/3p3p/2p4P/4PP2/5N2 w - - 0 1", "f2f4", 9),
+        ("Rusty4", "N7/8/2KQ2rp/6k1/3p3p/2p4P/4PP2/5N2 w - - 0 1", "f2f4", 11),
         ("Passant", "rnbqkbnr/ppppp1pp/8/4P3/5pP1/8/PPPP1P1P/RNBQKBNR b QKqk g3 0 3", "e2e4", 9),
         ("Start", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "e2e4", 9),
         ("KQkrp 3", "8/8/1P6/5pr1/8/4R3/7k/2K5 w - - 0 1", "e2e4", 10),
@@ -297,27 +298,27 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState) -> Ei
         ("WAC 3", "5rk1/1ppb3p/p1pb4/6q1/3P1p1r/2P1R2P/PP1BQ1P1/5RKN w - - 0 1", "e2e4", 12),
         ("WAC 6", "7k/p7/1R5K/6r1/6p1/6P1/8/8 w - - 0 1 ", "e2e4", 17),
         ("WAC 7", "rnbqkb1r/pppp1ppp/8/4P3/6n1/7P/PPPNPPP1/R1BQKBNR b KQkq - 0 1 ", "e2e4", 12),
-        ("WAC 8", "r4q1k/p2bR1rp/2p2Q1N/5p2/5p2/2P5/PP3PPP/R5K1 w - - 0 1 ", "e2e4", 9),
+        ("WAC 8", "r4q1k/p2bR1rp/2p2Q1N/5p2/5p2/2P5/PP3PPP/R5K1 w - - 0 1", "e2e4", 10),
         ("WAC 10", "2br2k1/2q3rn/p2NppQ1/2p1P3/Pp5R/4P3/1P3PPP/3R2K1 w - - 0 1 ", "e2e4", 10),
-        ("WAC 11", "r1b1kb1r/3q1ppp/pBp1pn2/8/Np3P2/5B2/PPP3PP/R2Q1RK1 w kq - 0 1 ", "e2e4", 8),
+        ("WAC 11", "r1b1kb1r/3q1ppp/pBp1pn2/8/Np3P2/5B2/PPP3PP/R2Q1RK1 w kq - 0 1 ", "e2e4", 9),
         ("P1", "r3kbnr/pp1qpppp/3pb3/8/3BP3/2NB1N2/PPP2PPP/R3K2R b QKqk - 4 8", "e2e4", 9),
         ("Qc3 bad", "2r3k1/q4ppp/3p4/1r1Pp3/2n3P1/pN1R1P1P/P1P5/2KRQ3 w - - 8 1", "e2e4", 11),
         ("B Prom", "2r5/Br4pp/1P1k4/3P1p2/1R1R1P2/p6P/1n3P2/6K1 w - - 2 35", "e2e4", 12),
         ("Qa6 bad", "2r2rk1/p4ppp/2Q5/4b3/1q6/4P3/PP3PPP/R1B2K1R w - - 3 19", "e2e4", 11),
-        ("P4", "5rk1/1b3p1p/pp3p2/3n1N2/1P6/P1qB1PP1/3Q3P/4R1K1 w - - 0 1", "e2e4", 7),
+        ("P4", "5rk1/1b3p1p/pp3p2/3n1N2/1P6/P1qB1PP1/3Q3P/4R1K1 w - - 0 1", "e2e4", 8),
         ("Pawn Up", "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b - g3 0 56", "e2e4", 10),
         ("Heavy D", "4k3/1p3pp1/7p/1p6/1P2P2P/2PRKB2/4N1P1/2r1q3 b - - 0 40 ", "e2e4", 10),
         ("P6", "r2r3k/5ppp/p7/3p4/P1pN1Nq1/5nPP/1PR5/4RK2 w - - 0 1", "e2e4", 12),
-        ("P7", "r1b4k/1p1n4/p7/3Q4/8/2qBB2P/PrP2PP1/b2R2RK w - - 9 6", "e2e4", 6),
+        ("P7", "r1b4k/1p1n4/p7/3Q4/8/2qBB2P/PrP2PP1/b2R2RK w - - 9 6", "e2e4", 7),
         ("P8", "8/8/6p1/7p/7P/R4k2/p6K/r7 b - - 95 105", "e2e4", 15),
         ("P9", "8/8/R5p1/3k3p/7P/8/p6K/r7 b - - 95 104", "e2e4", 14),
         ("P10", "rq3rk1/2bn1ppn/2p1p3/p2p2PR/P1PP4/N3B3/4PP2/R2QKB2 b Q - 0 21", "e2e4", 8),
         ("P11", "r2r3k/5ppp/p7/Q2p4/P1pN1Nq1/5nPP/1PR5/4RK2 b - - 0 1", "e2e4", 11),
         ("P12", "8/2pb4/4k3/5pp1/8/r4PbB/8/3R2K1 w - f6 0 35", "e2e4", 11),
-        ("P13", "8/p5pp/4pk2/5p2/1QP5/P7/5P1P/R3K2N b Q - 0 5", "e2e4", 8),
+        ("P13", "8/p5pp/4pk2/5p2/1QP5/P7/5P1P/R3K2N b Q - 0 5", "e2e4", 9),
         ("P14", "2r3k1/1rnq1pb1/2Rp1npp/1p1Pp3/1P2P3/3BBPPN/3Q2K1/4R3 b - - 3 1", "e2e4", 9),
         ("P15", "r1b1kbnr/2ppqppp/p1n5/1p2p3/4P3/1B3N2/PPPP1PPP/RNBQK2R w QKqk - 2 6", "e2e4", 9),
-        ("B+N", "8/2k5/8/8/4K3/2B5/4N3/8 w - - 0 1", "e2e4", 12),
+        ("B+N", "8/2k5/8/8/4K3/2B5/4N3/8 w - - 0 1", "e2e4", 11),
         ("RvR", "8/8/3k4/6R1/8/4K3/r7/8 b - - 54 117", "e2e4", 10),
     ];
 
@@ -338,12 +339,6 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState) -> Ei
             total_correct += 1;
         }
         println!("{}: Nodes {}", p.0, search_state.nodes.to_formatted_string(&Locale::en));
-        if search_state.current_best.1.abs() > MATE_START {
-            println!("************************************************");
-        }
-        if search_state.nodes < 1000000 || search_state.nodes > 6000000 {
-            println!("================================================");
-        }
         total_nodes += search_state.nodes;
     }
     let duration = start.elapsed();

@@ -117,7 +117,6 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     }
 
     search_state.highest_history_score = 0;
-    search_state.lowest_history_score = 0;
 
     if search_state.history.is_empty() {
         search_state.history.push(position.zobrist_lock)
@@ -139,37 +138,26 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         loop {
             let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
-            if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-                search_state.current_best = aspire_best;
-                break
-            } else {
-                if time_remains!(search_state.end_time) {
-                    if aspire_best.1 <= aspiration_window.0 {
-                        aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
-                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
-                    } else if aspire_best.1 >= aspiration_window.1 {
-                        aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[c]);
-                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
-                    };
-                    c += 1;
-                }
-                if time_remains!(search_state.end_time) && aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-                    search_state.current_best = aspire_best;
-                    break
-                }
-            };
-
-            // we may have failed on one bound, then failed on the opposite bound due to search instability
-            // if we get here without having found a move within any window, we will do a full search
-            aspiration_window = (-MAX_SCORE, MAX_SCORE);
-            start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
-
             if time_expired!(search_state) {
                 if search_state.current_best.0[0] == 0 {
                     panic!("Didn't have time to do anything.")
                 }
                 return search_state.current_best.0[0]
             }
+
+            if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+                search_state.current_best = aspire_best;
+                break
+            } else {
+                if c == aspiration_radius.len() {
+                    aspiration_window = (-MAX_SCORE, MAX_SCORE);
+                } else if aspire_best.1 <= aspiration_window.0 {
+                    aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
+                } else if aspire_best.1 >= aspiration_window.1 {
+                    aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[c]);
+                };
+                c += 1;
+            };
         }
 
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
@@ -386,13 +374,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 }
 
 #[inline(always)]
-fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extension_limit: u8, alpha: Score, beta: Score, scout_search: bool, these_extentions: u8, real_depth: u8, mut new_position: &mut Position) -> Score {
-
-    let score = loop {
+fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extension_limit: u8, alpha: Score, beta: Score, scout_search: bool, these_extentions: u8, real_depth: u8, new_position: &mut Position) -> Score {
+    loop {
         let score = if scout_search {
             let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr, extension_limit - these_extentions);
             if scout_score > alpha {
-                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions)
             } else {
                 alpha
             }
@@ -404,8 +391,7 @@ fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extens
         } else {
             lmr = 0
         }
-    };
-    score
+    }
 }
 
 #[inline(always)]
