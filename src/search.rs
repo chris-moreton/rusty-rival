@@ -311,7 +311,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let these_extentions = min(extension_limit, if in_check { 0 } else { 0 });
     let real_depth = depth + these_extentions;
 
-    if verify_move(position, hash_move) {
+    let these_moves = if verify_move(position, hash_move) {
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
         if !is_check(&new_position, position.mover) {
@@ -329,18 +329,22 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 }
                 scout_search = true;
             }
+            moves(position).into_iter().filter(|m| { *m != hash_move }).collect()
+        } else {
+            moves(position)
         }
-    }
+    } else {
+        moves(position)
+    };
 
-    let these_moves = moves(position);
     let enemy = &position.pieces[opponent!(position.mover) as usize];
     let mut move_scores: Vec<(Move, Score)> = these_moves.into_iter().map(|m| {
         (m, score_move(position, m, search_state, ply as usize, enemy))
     }).collect();
     move_scores.sort_by(|(_, a), (_, b) | b.cmp(a));
-    let move_list: Vec<Move> = move_scores.into_iter().map(|(m,_)| { m }).filter(|m| { *m != hash_move }).collect();
 
-    for m in move_list {
+    for ms in move_scores {
+        let m = ms.0;
         let mut new_position = *position;
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
