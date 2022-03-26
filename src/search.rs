@@ -145,11 +145,12 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                 if time_remains!(search_state.end_time) {
                     if aspire_best.1 <= aspiration_window.0 {
                         aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
-                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
                     } else if aspire_best.1 >= aspiration_window.1 {
                         aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[c]);
-                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
-                    };
+                    } else {
+                        panic!("This doesn't make sense");
+                    }
+                    aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
                     c += 1;
                 }
                 if time_remains!(search_state.end_time) && aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
