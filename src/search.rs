@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{ASPIRATION_RADIUS, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{ASPIRATION_RADIUS, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -350,7 +350,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             legal_move_count += 1;
 
             let lmr = if these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
-                2
+                LMR_REDUCTION
             } else {
                 0
             };
@@ -385,13 +385,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 }
 
 #[inline(always)]
-fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extension_limit: u8, alpha: Score, beta: Score, scout_search: bool, these_extentions: u8, real_depth: u8, mut new_position: &mut Position) -> Score {
-
-    let score = loop {
+fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extension_limit: u8, alpha: Score, beta: Score, scout_search: bool, these_extentions: u8, real_depth: u8, new_position: &mut Position) -> Score {
+    loop {
         let score = if scout_search {
-            let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr, extension_limit - these_extentions);
+            let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha-1, -alpha), new_position, lmr, extension_limit - these_extentions);
             if scout_score > alpha {
-                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions)
+                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions)
             } else {
                 alpha
             }
@@ -401,10 +400,10 @@ fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extens
         if lmr == 0 || score < beta {
             break score
         } else {
+            // search to normal depth because score was >= beta
             lmr = 0
         }
-    };
-    score
+    }
 }
 
 #[inline(always)]

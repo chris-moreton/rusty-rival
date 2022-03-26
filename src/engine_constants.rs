@@ -35,5 +35,6 @@ pub const DEPTH_REMAINING_FOR_RD_INCREASE: u8 = 6;
 
 pub const LMR_LEGALMOVES_BEFORE_ATTEMPT: u8 = 4;
 pub const LMR_MIN_DEPTH: u8 = 3;
+pub const LMR_REDUCTION: u8 = 2;
 
 pub const SCOUT_MINIMUM_DISTANCE_FROM_LEAF: u8 = 2;
