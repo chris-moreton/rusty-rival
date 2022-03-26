@@ -117,7 +117,6 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     }
 
     search_state.highest_history_score = 0;
-    search_state.lowest_history_score = 0;
 
     if search_state.history.is_empty() {
         search_state.history.push(position.zobrist_lock)
