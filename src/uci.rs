@@ -260,7 +260,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220327-11-Fail-Low-On-Best-Max-Window|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |Contest-Abandon|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
@@ -347,7 +347,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState) -> Ei
     }
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
-    println!("Correct is: {:?}/{}", total_correct, total);
+    println!("Correct: {:?}/{}", total_correct, total);
     let nps = (total_nodes as f64 / start.elapsed().as_millis() as f64) * 1000.0;
 
     println!("{} nodes {} nps", total_nodes.to_formatted_string(&Locale::en), &*(nps as u64).to_string());

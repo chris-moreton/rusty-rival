@@ -134,7 +134,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     search_state.current_best = (vec![0], -MAX_SCORE);
 
     let aspiration_radius: Vec<Score> = vec![
-        25, 100, 1000
+        25, 50, 100, 200, 400
     ];
 
     for iterative_depth in 1..=max_depth {
@@ -166,12 +166,12 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                 // Is this the best move from the previous iteration?
                 if aspire_best.0[0] == search_state.current_best.0[0] {
                     debug_out!(println!("Failed low on current best move"));
-                    break false
+                    aspiration_window.0 = -MAX_SCORE;
                 } else {
-                    aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[aspiration_width_index]);
+                    aspiration_window.0 = max(-MAX_SCORE, search_state.current_best.1 - aspiration_radius[aspiration_width_index]);
                 }
             } else if aspire_best.1 >= aspiration_window.1 {
-                aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[aspiration_width_index]);
+                aspiration_window.1 = min(MAX_SCORE, search_state.current_best.1 + aspiration_radius[aspiration_width_index]);
             };
 
         };
@@ -207,13 +207,22 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
 
     let mut current_best: PathScore = (vec![legal_moves[0].0], -MAX_SCORE);
 
+    let mut move_number = 0;
+
     for mv in legal_moves {
+        move_number += 1;
         let mut new_position = *position;
         make_move(position, mv.0, &mut new_position);
         search_state.history.push(new_position.zobrist_lock);
 
         let mut path_score = search(&new_position, search_state.iterative_depth-1, 1, (-aspiration_window.1, -aspiration_window.0), search_state, extension_limit);
         path_score.1 = -path_score.1;
+
+        if path_score.1 <= aspiration_window.0 && move_number == 1 {
+            // PVS move has failed low, return immediately so the caller can decide what to do - probably abandon aspiration search and do a full-window search
+            return current_best;
+        }
+
         if path_score.1 > MATE_START { path_score.1 -= 1 } else if path_score.1 < -MATE_START { path_score.1 += 1 };
 
         search_state.history.pop();
@@ -226,6 +235,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
         if time_expired!(search_state) {
             return current_best;
         }
+
     }
     current_best
 
@@ -329,8 +339,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
     }
 
-    let mut scout_search = false;
-
     let these_extentions = min(extension_limit, if in_check { 0 } else { 0 });
     let real_depth = depth + these_extentions;
 
@@ -350,7 +358,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     }
                     hash_flag = Exact;
                 }
-                scout_search = true;
             }
             moves(position).into_iter().filter(|m| { *m != hash_move }).collect()
         } else {
@@ -379,7 +386,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 0
             };
 
-            let score = lmr_scout_search(lmr, ply, search_state, extension_limit, alpha, beta, scout_search, these_extentions, real_depth, &mut new_position);
+            let score = lmr_scout_search(lmr, ply, search_state, extension_limit, alpha, beta, true, these_extentions, real_depth, &mut new_position);
 
             check_time!(search_state);
             if score < beta {
@@ -394,7 +401,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     }
                     hash_flag = Exact;
                 }
-                scout_search = true;
             }
         }
     }
