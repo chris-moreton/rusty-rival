@@ -144,7 +144,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             } else {
                 if time_remains!(search_state.end_time) {
                     c += 1;
-                    if c = aspiration_radius.len() {
+                    if c == aspiration_radius.len() {
                         break false
                     }
                     if aspire_best.1 <= aspiration_window.0 {
