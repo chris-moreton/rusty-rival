@@ -177,6 +177,9 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                 // if we get here without having found a move within any window, we will do a full search
 
                 search_state.current_best = start_search(position, &mut legal_moves, search_state, (-MAX_SCORE, MAX_SCORE), extension_limit);
+                if time_remains!(search_state.end_time) {
+                    search_state.current_best = aspire_best;
+                }
             }
         } else {
             debug_out!(println!("Aspiration was success"));
