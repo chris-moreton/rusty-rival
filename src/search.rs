@@ -134,7 +134,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     search_state.current_best = (vec![legal_moves[0].0], -MAX_SCORE);
 
     let aspiration_radius: Vec<Score> = vec![
-        25, 50, 100, 200, 400
+        25
     ];
 
     for iterative_depth in 1..=max_depth {
@@ -324,6 +324,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
     }
 
+    let mut scout_search = false;
+
     let these_extentions = min(extension_limit, if in_check { 0 } else { 0 });
     let real_depth = depth + these_extentions;
 
@@ -343,6 +345,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     }
                     hash_flag = Exact;
                 }
+                scout_search = true;
             }
             moves(position).into_iter().filter(|m| { *m != hash_move }).collect()
         } else {
@@ -371,7 +374,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 0
             };
 
-            let score = lmr_scout_search(lmr, ply, search_state, extension_limit, alpha, beta, true, these_extentions, real_depth, &mut new_position);
+            let score = lmr_scout_search(lmr, ply, search_state, extension_limit, alpha, beta, scout_search, these_extentions, real_depth, &mut new_position);
 
             check_time!(search_state);
             if score < beta {
@@ -386,6 +389,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     }
                     hash_flag = Exact;
                 }
+                scout_search = true;
             }
         }
     }
