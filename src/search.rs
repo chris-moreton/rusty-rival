@@ -58,6 +58,9 @@ macro_rules! time_expired {
     ($search_state:expr) => {
         if Instant::now() >= $search_state.end_time {
             send_info($search_state);
+            if $search_state.current_best.0[0] == 0 {
+                panic!("Didn't have time to do anything.")
+            }
             true
         } else {
             false
@@ -87,6 +90,10 @@ macro_rules! debug_out {
             $s
         }
     }
+}
+
+fn search_success(aspiration_window: (Score, Score), aspire_result: &PathScore) -> bool {
+    aspire_result.1 > aspiration_window.0 && aspire_result.1 < aspiration_window.1
 }
 
 pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mut SearchState) -> Move {
@@ -126,52 +133,53 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     search_state.current_best = (vec![0], -MAX_SCORE);
 
-    let aspiration_radius: [Score; 2] = [
-        25, 25
+    let aspiration_radius: Vec<Score> = vec![
+        25, 150, 1000
     ];
 
     for iterative_depth in 1..=max_depth {
-        let mut c = 0;
+        let mut aspiration_width_index = 0;
         let extension_limit = iterative_depth;
         search_state.iterative_depth = iterative_depth;
 
-        if !loop {
+        let success = loop {
             let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+            if time_expired!(search_state) { return search_state.current_best.0[0] }
 
-            if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+            if search_success(aspiration_window, &aspire_best) {
                 search_state.current_best = aspire_best;
                 break true
-            } else {
-                if time_remains!(search_state.end_time) {
-                    c += 1;
-                    if c == aspiration_radius.len() {
-                        break false
-                    }
-                    if aspire_best.1 <= aspiration_window.0 {
-                        aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
-                    } else if aspire_best.1 >= aspiration_window.1 {
-                        aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[c]);
-                    };
-                    aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
-                }
-                if time_remains!(search_state.end_time) && aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-                    search_state.current_best = aspire_best;
-                    break true
-                }
-            };
-        } {
-            // we may have failed on one bound, then failed on the opposite bound due to search instability
-            // if we get here without having found a move within any window, we will do a full search
-            aspiration_window = (-MAX_SCORE, MAX_SCORE);
-            start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+            }
 
-            if time_expired!(search_state) {
-                if search_state.current_best.0[0] == 0 {
-                    panic!("Didn't have time to do anything.")
-                }
-                return search_state.current_best.0[0]
+            aspiration_width_index += 1;
+            if aspiration_width_index == aspiration_radius.len() {
+                break false
+            }
+            if aspire_best.1 <= aspiration_window.0 {
+                aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[aspiration_width_index]);
+            } else if aspire_best.1 >= aspiration_window.1 {
+                aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[aspiration_width_index]);
+            };
+
+            aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+            if time_expired!(search_state) { return search_state.current_best.0[0] }
+
+            if search_success(aspiration_window, &aspire_best) {
+                search_state.current_best = aspire_best;
+                break true
+            }
+        };
+
+        if !success {
+            if time_remains!(search_state.end_time) {
+                // we may have failed on one bound, then failed on the opposite bound due to search instability
+                // if we get here without having found a move within any window, we will do a full search
+
+                search_state.current_best = start_search(position, &mut legal_moves, search_state, (-MAX_SCORE, MAX_SCORE), extension_limit);
             }
         }
+
+        if time_expired!(search_state) { return search_state.current_best.0[0] }
 
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
         legal_moves = legal_moves.into_iter().map(|m| {
