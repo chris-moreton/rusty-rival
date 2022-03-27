@@ -134,18 +134,19 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         let mut c = 0;
         let extension_limit = iterative_depth;
         search_state.iterative_depth = iterative_depth;
-        let mut aspiration_success = false;
 
-        loop {
+        if !loop {
             let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
             if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
                 search_state.current_best = aspire_best;
-                aspiration_success = true;
-                break
+                break true
             } else {
                 if time_remains!(search_state.end_time) {
                     c += 1;
+                    if c = aspiration_radius.len() {
+                        break false
+                    }
                     if aspire_best.1 <= aspiration_window.0 {
                         aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
                     } else if aspire_best.1 >= aspiration_window.1 {
@@ -155,13 +156,10 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                 }
                 if time_remains!(search_state.end_time) && aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
                     search_state.current_best = aspire_best;
-                    aspiration_success = true;
-                    break
+                    break true
                 }
             };
-        }
-
-        if !aspiration_success {
+        } {
             // we may have failed on one bound, then failed on the opposite bound due to search instability
             // if we get here without having found a move within any window, we will do a full search
             aspiration_window = (-MAX_SCORE, MAX_SCORE);
