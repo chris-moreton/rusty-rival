@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, ASPIRATION_RADIUS, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -131,7 +131,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     let mut aspiration_window = (-MAX_SCORE, MAX_SCORE);
 
-    search_state.current_best = (vec![0], -MAX_SCORE);
+    search_state.current_best = (vec![legal_moves[0].0], -MAX_SCORE);
 
     let aspiration_radius: Vec<Score> = vec![
         25, 50, 100, 200, 400
@@ -145,7 +145,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
         let success = loop {
             debug_out!(println!("Window {} {}", aspiration_window.0, aspiration_window.1));
-            let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+            let aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
             debug_out!(println!("Aspire best {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
             if time_expired!(search_state) { return search_state.current_best.0[0] }
 
@@ -162,14 +162,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             }
 
             if aspire_best.1 <= aspiration_window.0 {
-                // Fail low
-                // Is this the best move from the previous iteration?
-                if false && aspire_best.0[0] == search_state.current_best.0[0] {
-                    debug_out!(println!("Failed low on current best move"));
-                    aspiration_window.0 = -MAX_SCORE;
-                } else {
-                    aspiration_window.0 = max(-MAX_SCORE, search_state.current_best.1 - aspiration_radius[aspiration_width_index]);
-                }
+                aspiration_window.0 = max(-MAX_SCORE, search_state.current_best.1 - aspiration_radius[aspiration_width_index]);
             } else if aspire_best.1 >= aspiration_window.1 {
                 aspiration_window.1 = min(MAX_SCORE, search_state.current_best.1 + aspiration_radius[aspiration_width_index]);
             };
@@ -207,21 +200,13 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
 
     let mut current_best: PathScore = (vec![legal_moves[0].0], -MAX_SCORE);
 
-    let mut move_number = 0;
-
     for mv in legal_moves {
-        move_number += 1;
         let mut new_position = *position;
         make_move(position, mv.0, &mut new_position);
         search_state.history.push(new_position.zobrist_lock);
 
         let mut path_score = search(&new_position, search_state.iterative_depth-1, 1, (-aspiration_window.1, -aspiration_window.0), search_state, extension_limit);
         path_score.1 = -path_score.1;
-
-        // if path_score.1 <= aspiration_window.0 && move_number == 1 {
-        //     // PVS move has failed low, return immediately so the caller can decide what to do - probably abandon aspiration search and do a full-window search
-        //     return current_best;
-        // }
 
         if path_score.1 > MATE_START { path_score.1 -= 1 } else if path_score.1 < -MATE_START { path_score.1 += 1 };
 

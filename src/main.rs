@@ -1,6 +1,7 @@
 use std::{io};
 use std::io::BufRead;
 use either::{Left, Right};
+use rusty_rival::fen::algebraic_move_from_move;
 use rusty_rival::types::{default_search_state, default_uci_state};
 use rusty_rival::uci::run_command;
 
