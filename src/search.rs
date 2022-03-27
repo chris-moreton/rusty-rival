@@ -164,7 +164,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             if aspire_best.1 <= aspiration_window.0 {
                 // Fail low
                 // Is this the best move from the previous iteration?
-                if aspire_best.0[0] == search_state.current_best.0[0] {
+                if false && aspire_best.0[0] == search_state.current_best.0[0] {
                     debug_out!(println!("Failed low on current best move"));
                     aspiration_window.0 = -MAX_SCORE;
                 } else {
@@ -218,10 +218,10 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
         let mut path_score = search(&new_position, search_state.iterative_depth-1, 1, (-aspiration_window.1, -aspiration_window.0), search_state, extension_limit);
         path_score.1 = -path_score.1;
 
-        if path_score.1 <= aspiration_window.0 && move_number == 1 {
-            // PVS move has failed low, return immediately so the caller can decide what to do - probably abandon aspiration search and do a full-window search
-            return current_best;
-        }
+        // if path_score.1 <= aspiration_window.0 && move_number == 1 {
+        //     // PVS move has failed low, return immediately so the caller can decide what to do - probably abandon aspiration search and do a full-window search
+        //     return current_best;
+        // }
 
         if path_score.1 > MATE_START { path_score.1 -= 1 } else if path_score.1 < -MATE_START { path_score.1 += 1 };
 
