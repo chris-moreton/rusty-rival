@@ -19,6 +19,7 @@ use crate::utils::hydrate_move_from_algebraic_move;
 fn replace_shortcuts(l: &str) -> &str {
     match l {
         "p3" => "position fen 8/6nk/8/1p2P1Q1/1P4PP/P4q2/8/6K1 w - - 3 56",
+        "p5" => "position fen 2r5/p2Qbkpp/4p3/5p2/2P4q/P2P2N1/1r3P1P/R3K2b w Q - 0 20",
         "mate201" => "position fen 8/8/8/8/4Q3/2P4k/8/5K2 w - - 0 1",
         "mate301" => "position fen 1k5r/pP3ppp/3p2b1/1BN1n3/1Q2P3/P1B5/KP3P1P/7q w - - 1 0",
         "mate302" => "position fen 3r4/pR2N3/2pkb3/5p2/8/2B5/qP3PPP/4R1K1 w - - 1 0",
@@ -259,7 +260,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220327-10-Aspiration-Rework|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220327-11-Fail-Low-On-Best-Max-Window|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
