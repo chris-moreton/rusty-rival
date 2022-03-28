@@ -1,9 +1,10 @@
-use crate::bitboards::{bit, G1_BIT, C1_BIT, G8_BIT, C8_BIT, E8_BIT, E1_BIT};
+use crate::bitboards::{bit, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::fen::{get_fen, get_position, move_from_algebraic_move};
 use crate::move_constants::{BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
-                            PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
+                            PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK};
 use crate::opponent;
+use crate::search::{BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
 use crate::types::{Bitboard, BLACK, Move, Position, Score, Square, WHITE};
 
 #[inline(always)]
@@ -178,4 +179,23 @@ pub fn invert_fen(fen: &str) -> String {
             board_parts[7], board_parts[6], board_parts[5], board_parts[4], board_parts[3], board_parts[2], board_parts[1], board_parts[0],
             fen_parts[1], fen_parts[2], en_passant_part, fen_parts[4], fen_parts[5])
 
+}
+
+#[inline(always)]
+pub fn pawn_push(position: &Position, m: Move) -> bool {
+    let move_piece = m & PIECE_MASK_FULL;
+    if move_piece == PIECE_MASK_PAWN {
+        let to_square = to_square_part(m);
+        if to_square >= 48 || to_square <= 15 {
+            return true;
+        }
+        if position.mover == WHITE {
+            if (40..=47).contains(&to_square) {
+                return position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0;
+            }
+        } else if (16..=23).contains(&to_square) {
+            return position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0;
+        }
+    }
+    false
 }

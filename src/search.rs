@@ -1,16 +1,16 @@
 use std::cmp::{max, min};
-use std::time::{Instant};
+use std::time::Instant;
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{ASPIRATION_RADIUS, DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
-use crate::evaluate::{evaluate};
-use crate::fen::{algebraic_move_from_move};
+use crate::evaluate::evaluate;
+use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
 use crate::make_move::make_move;
-use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_KING, PIECE_MASK_BISHOP, PIECE_MASK_ROOK, PIECE_MASK_KNIGHT, PROMOTION_FULL_MOVE_MASK, EN_PASSANT_NOT_AVAILABLE};
+use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK};
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
-use crate::types::{Move, Position, Score, SearchState, Window, MoveScoreList, MoveScore, HashLock, HashEntry, BoundType, WHITE, Mover, Bitboard, BLACK, PathScore};
+use crate::types::{Bitboard, BLACK, BoundType, HashEntry, HashLock, Move, Mover, MoveScore, MoveScoreList, PathScore, Position, Score, SearchState, WHITE, Window};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
 
@@ -127,7 +127,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     search_state.current_best = (vec![0], -MAX_SCORE);
 
     let aspiration_radius: Vec<Score> = vec![
-        25, 50, 250
+        25, 75, 250, 500
     ];
 
     for iterative_depth in 1..=max_depth {
@@ -151,6 +151,8 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                     debug_out!(println!("Search failure {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
 
                     if time_remains!(search_state.end_time) {
+                        aspiration_width_index += 1;
+
                         if aspiration_width_index == aspiration_radius.len() {
                             aspiration_window = (-MAX_SCORE, MAX_SCORE);
                         } else {
@@ -161,7 +163,6 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                                 aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[aspiration_width_index]);
                                 debug_out!(println!("*** Window {} {}", aspiration_window.0, aspiration_window.1));
                             };
-                            aspiration_width_index += 1;
                         }
                     }
                 };
@@ -182,7 +183,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             (m.0, -MAX_SCORE)
         }).collect();
 
-        aspiration_window = (search_state.current_best.1 - ASPIRATION_RADIUS, search_state.current_best.1 + ASPIRATION_RADIUS)
+        aspiration_window = (search_state.current_best.1 - aspiration_radius[0], search_state.current_best.1 + aspiration_radius[0])
     }
 
     send_info(search_state);
@@ -215,25 +216,6 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
     }
     current_best
 
-}
-
-#[inline(always)]
-pub fn pawn_push(position: &Position, m: Move) -> bool {
-    let move_piece = m & PIECE_MASK_FULL;
-    if move_piece == PIECE_MASK_PAWN {
-        let to_square = to_square_part(m);
-        if to_square >= 48 || to_square <= 15 {
-            return true;
-        }
-        if position.mover == WHITE {
-            if (40..=47).contains(&to_square) {
-                return position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0;
-            }
-        } else if (16..=23).contains(&to_square) {
-            return position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0;
-        }
-    }
-    false
 }
 
 #[inline(always)]
@@ -272,12 +254,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 if x.height >= depth {
                     hash_height = x.height;
                     hash_version = x.version;
-                    if x.bound == BoundType::Exact {
+                    if x.bound == Exact {
                         search_state.hash_hits_exact += 1;
                         return (vec![x.mv], x.score)
                     }
-                    if x.bound == BoundType::Lower { alpha = x.score }
-                    if x.bound == BoundType::Upper { beta = x.score }
+                    if x.bound == Lower && x.score > alpha { alpha = x.score }
+                    if x.bound == Upper && x.score < beta { beta = x.score }
                     if alpha >= beta { return (vec![x.mv], x.score) }
                 }
                 x.mv

@@ -1,9 +1,9 @@
 use std::ops::Add;
 use std::time::{Duration, Instant};
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::search::{iterative_deepening, pawn_push, piece_index_12};
-use rusty_rival::types::{default_search_state};
-use rusty_rival::utils::hydrate_move_from_algebraic_move;
+use rusty_rival::search::{iterative_deepening, piece_index_12};
+use rusty_rival::types::default_search_state;
+use rusty_rival::utils::{hydrate_move_from_algebraic_move, pawn_push};
 
 #[test]
 fn it_returns_the_best_move_at_depth_1() {
