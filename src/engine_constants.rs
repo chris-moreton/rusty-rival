@@ -1,6 +1,6 @@
 use crate::types::Score;
 
-pub const DEBUG: bool = true;
+pub const DEBUG: bool = false;
 
 pub const PAWN_VALUE: Score = 100;
 pub const KNIGHT_VALUE: Score = 390;

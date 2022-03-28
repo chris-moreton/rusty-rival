@@ -127,7 +127,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     search_state.current_best = (vec![0], -MAX_SCORE);
 
     let aspiration_radius: Vec<Score> = vec![
-        25
+        25, 50, 250
     ];
 
     for iterative_depth in 1..=max_depth {
@@ -142,36 +142,32 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
             debug_out!(println!("Aspire best {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
 
-            if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-                debug_out!(println!("Search success {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
-
-                search_state.current_best = aspire_best;
-                break
-            } else {
-                debug_out!(println!("Search failure {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
-
-                if time_remains!(search_state.end_time) {
-                    if aspire_best.1 <= aspiration_window.0 {
-                        aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[aspiration_width_index]);
-                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
-                    } else if aspire_best.1 >= aspiration_window.1 {
-                        aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[aspiration_width_index]);
-                        aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
-                    };
-                    aspiration_width_index += 1;
-                }
-                if time_remains!(search_state.end_time) && aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+            if time_remains!(search_state.end_time) {
+                if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+                    debug_out!(println!("Search success {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
                     search_state.current_best = aspire_best;
                     break
-                }
-            };
+                } else {
+                    debug_out!(println!("Search failure {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
 
-            debug_out!(println!("Aspiration was total failure"));
+                    if time_remains!(search_state.end_time) {
+                        if aspiration_width_index == aspiration_radius.len() {
+                            aspiration_window = (-MAX_SCORE, MAX_SCORE);
+                        } else {
+                            if aspire_best.1 <= aspiration_window.0 {
+                                aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[aspiration_width_index]);
+                                debug_out!(println!("*** Window {} {}", aspiration_window.0, aspiration_window.1));
+                            } else if aspire_best.1 >= aspiration_window.1 {
+                                aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[aspiration_width_index]);
+                                debug_out!(println!("*** Window {} {}", aspiration_window.0, aspiration_window.1));
+                            };
+                            aspiration_width_index += 1;
+                        }
+                    }
+                };
+            }
 
-            // we may have failed on one bound, then failed on the opposite bound due to search instability
-            // if we get here without having found a move within any window, we will do a full search
-            aspiration_window = (-MAX_SCORE, MAX_SCORE);
-            //start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+            debug_out!(println!("Aspiration looping"));
 
             if time_expired!(search_state) {
                 if search_state.current_best.0[0] == 0 {
