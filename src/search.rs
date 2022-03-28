@@ -127,7 +127,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     search_state.current_best = (vec![legal_moves[0].0], -MAX_SCORE);
 
     let aspiration_radius: Vec<Score> = vec![
-        25, 75, 250, 500, 1000
+        25, 250, 1000
     ];
 
     for iterative_depth in 1..=max_depth {
