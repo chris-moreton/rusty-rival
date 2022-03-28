@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::time::{Instant};
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{ASPIRATION_RADIUS, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{ASPIRATION_RADIUS, DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
 use crate::evaluate::{evaluate};
 use crate::fen::{algebraic_move_from_move};
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -131,17 +131,26 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     ];
 
     for iterative_depth in 1..=max_depth {
+        debug_out!(println!("==================================\nIterative Depth {}", iterative_depth));
+
         let mut c = 0;
         let extension_limit = iterative_depth;
         search_state.iterative_depth = iterative_depth;
 
         loop {
+            debug_out!(println!("Window {} {}", aspiration_window.0, aspiration_window.1));
+
             let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+            debug_out!(println!("Aspire best {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
 
             if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
+                debug_out!(println!("Search success {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
+
                 search_state.current_best = aspire_best;
                 break
             } else {
+                debug_out!(println!("Search failure {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1));
+
                 if time_remains!(search_state.end_time) {
                     if aspire_best.1 <= aspiration_window.0 {
                         aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
@@ -157,6 +166,8 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                     break
                 }
             };
+
+            debug_out!(println!("Aspiration was total failure"));
 
             // we may have failed on one bound, then failed on the opposite bound due to search instability
             // if we get here without having found a move within any window, we will do a full search
