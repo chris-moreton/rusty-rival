@@ -172,7 +172,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             // we may have failed on one bound, then failed on the opposite bound due to search instability
             // if we get here without having found a move within any window, we will do a full search
             aspiration_window = (-MAX_SCORE, MAX_SCORE);
-            start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+            //start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
 
             if time_expired!(search_state) {
                 if search_state.current_best.0[0] == 0 {
