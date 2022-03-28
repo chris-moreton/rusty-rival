@@ -175,8 +175,11 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             if time_remains!(search_state.end_time) {
                 // we may have failed on one bound, then failed on the opposite bound due to search instability
                 // if we get here without having found a move within any window, we will do a full search
+                debug_out!(println!("Window {} {}", -MAX_SCORE, MAX_SCORE));
 
                 let result = start_search(position, &mut legal_moves, search_state, (-MAX_SCORE, MAX_SCORE), extension_limit);
+                debug_out!(println!("Aspire best {} {}", algebraic_move_from_move(result.0[0]), result.1));
+
                 if time_remains!(search_state.end_time) {
                     search_state.current_best = result;
                 }
