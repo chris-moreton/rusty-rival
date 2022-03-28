@@ -124,7 +124,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     let mut aspiration_window = (-MAX_SCORE, MAX_SCORE);
 
-    search_state.current_best = (vec![0], -MAX_SCORE);
+    search_state.current_best = (vec![legal_moves[0].0], -MAX_SCORE);
 
     let aspiration_radius: Vec<Score> = vec![
         25, 75, 250, 500
@@ -171,9 +171,6 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             debug_out!(println!("Aspiration looping"));
 
             if time_expired!(search_state) {
-                if search_state.current_best.0[0] == 0 {
-                    panic!("Didn't have time to do anything.")
-                }
                 return search_state.current_best.0[0]
             }
         }
