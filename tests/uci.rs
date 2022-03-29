@@ -144,12 +144,11 @@ fn test_wtime_btime(fen: &str, cmd: &str, max_millis: u128) {
     let result = run_command_test(&mut uci_state, &mut search_state, cmd);
     let millis = (Instant::now() - start).as_millis();
     let adjusted_max_millis: u128 = max(10, (max_millis - UCI_MILLIS_REDUCTION));
-    assert!(millis as f64 > adjusted_max_millis as f64 * 0.9 && millis < max_millis);
+    assert!(millis as f64 > adjusted_max_millis as f64 * 0.9 && millis < max_millis + 50);
     assert_success_message(result, |message| { message.contains("bestmove") });
 }
 
 #[test]
-#[ignore]
 pub fn it_handles_wtime_and_btime() {
     test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "go wtime 1000 btime 1000 movestogo 9", 100);
     test_wtime_btime("rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1", "go wtime 5000 btime 10000 movestogo 24", 200);
