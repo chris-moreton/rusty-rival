@@ -69,7 +69,7 @@ macro_rules! time_expired {
 #[macro_export]
 macro_rules! check_time {
     ($search_state:expr) => {
-        if $search_state.nodes % 100000 == 0 {
+        if $search_state.nodes % 1000 == 0 {
             if $search_state.end_time < Instant::now() {
                 send_info($search_state);
                 return (vec![0], 0);
@@ -220,6 +220,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         return (vec![0], 0);
     }
 
+    let scouting = window.1 - window.0 == 1;
+
     let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let mut alpha = window.0;
     let mut beta = window.1;
@@ -270,7 +272,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let in_check = is_check(position, position.mover);
 
-    if !search_state.is_on_null_move && depth > null_move_reduce_depth && null_move_material(position) && !in_check && evaluate(position) > beta {
+    if scouting && depth > null_move_reduce_depth && null_move_material(position) && !in_check && evaluate(position) > beta {
         let mut new_position = *position;
         make_null_move(&mut new_position);
         let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit).1);
@@ -530,21 +532,19 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
     for ms in move_scores {
         let m = ms.0;
-        if static_exchange_evaluation(position, m) > 0 {
-            let mut new_position = *position;
+        let mut new_position = *position;
 
-            if eval + captured_piece_value(position, m) + 125 > alpha {
-                make_move(position, m, &mut new_position);
-                if !is_check(&new_position, position.mover) {
-                    legal_move_count += 1;
-                    let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1);
-                    check_time!(search_state);
-                    if score >= beta {
-                        return (vec![m], beta);
-                    }
-                    if score > alpha {
-                        alpha = score;
-                    }
+        if eval + captured_piece_value(position, m) + 125 > alpha {
+            make_move(position, m, &mut new_position);
+            if !is_check(&new_position, position.mover) {
+                legal_move_count += 1;
+                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1);
+                check_time!(search_state);
+                if score >= beta {
+                    return (vec![m], beta);
+                }
+                if score > alpha {
+                    alpha = score;
                 }
             }
         }
