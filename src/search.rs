@@ -15,9 +15,9 @@ use crate::types::{Bitboard, BLACK, BoundType, HashEntry, HashLock, Move, Mover,
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, pawn_push, to_square_part};
 
-pub const MAX_SCORE: Score = 10000;
+pub const MATE_SCORE: Score = 10000;
 pub const MATE_MARGIN: Score = 1000;
-pub const MATE_START: Score = MAX_SCORE - MATE_MARGIN;
+pub const MATE_START: Score = MATE_SCORE - MATE_MARGIN;
 
 pub const WHITE_PASSED_PAWN_MASK: [Bitboard; 64] =
 [
@@ -99,7 +99,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         make_move(position, *m, &mut new_position);
         !is_check(&new_position, position.mover)
     }).map(|m| {
-        (m, -MAX_SCORE)
+        (m, -MATE_SCORE)
     }).collect();
 
     for i in 0..12 {
@@ -123,9 +123,9 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         search_state.history.push(position.zobrist_lock)
     }
 
-    let mut aspiration_window = (-MAX_SCORE, MAX_SCORE);
+    let mut aspiration_window = (-MATE_SCORE, MATE_SCORE);
 
-    search_state.current_best = (vec![0], -MAX_SCORE);
+    search_state.current_best = (vec![0], -MATE_SCORE);
 
     let aspiration_radius: Vec<Score> = vec![
         35, 85, 175
@@ -148,12 +148,12 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             } else {
                 c += 1;
                 if c == aspiration_radius.len() {
-                    aspiration_window = (-MAX_SCORE, MAX_SCORE);
+                    aspiration_window = (-MATE_SCORE, MATE_SCORE);
                 } else {
                     if aspire_best.1 <= aspiration_window.0 {
-                        aspiration_window.0 = max(-MAX_SCORE, aspiration_window.0 - aspiration_radius[c]);
+                        aspiration_window.0 = max(-MATE_SCORE, aspiration_window.0 - aspiration_radius[c]);
                     } else if aspire_best.1 >= aspiration_window.1 {
-                        aspiration_window.1 = min(MAX_SCORE, aspiration_window.1 + aspiration_radius[c]);
+                        aspiration_window.1 = min(MATE_SCORE, aspiration_window.1 + aspiration_radius[c]);
                     };
                 }
             };
@@ -162,7 +162,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
         legal_moves.sort_by(|(_, a), (_, b) | b.cmp(a));
         legal_moves = legal_moves.into_iter().map(|m| {
-            (m.0, -MAX_SCORE)
+            (m.0, -MATE_SCORE)
         }).collect();
 
         aspiration_window = (search_state.current_best.1 - aspiration_radius[0], search_state.current_best.1 + aspiration_radius[0])
@@ -174,7 +174,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
 pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, aspiration_window: Window, extension_limit: u8) -> PathScore {
 
-    let mut current_best: PathScore = (vec![legal_moves[0].0], -MAX_SCORE);
+    let mut current_best: PathScore = (vec![legal_moves[0].0], -MATE_SCORE);
 
     for mv in legal_moves {
         let mut new_position = *position;
@@ -182,8 +182,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
         search_state.history.push(new_position.zobrist_lock);
 
         let mut path_score = search(&new_position, search_state.iterative_depth-1, 1, (-aspiration_window.1, -aspiration_window.0), search_state, extension_limit);
-        path_score.1 = -path_score.1;
-        if path_score.1 > MATE_START { path_score.1 -= 1 } else if path_score.1 < -MATE_START { path_score.1 += 1 };
+        path_score.1 = adjust_mate_score(-path_score.1, 1);
 
         search_state.history.pop();
         mv.1 = path_score.1;
@@ -203,7 +202,14 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
 #[inline(always)]
 pub fn store_hash_entry(index: usize, lock: HashLock, height: u8, existing_height: u8, existing_version: u32, bound: BoundType, movescore: MoveScore, search_state: &mut SearchState) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
-        search_state.hash_table_height[index] = HashEntry { score: movescore.1, version: search_state.hash_table_version, height, mv: movescore.0, bound, lock, };
+        search_state.hash_table_height[index] = HashEntry {
+            score: movescore.1,
+            version: search_state.hash_table_version,
+            height,
+            mv: movescore.0,
+            bound,
+            lock,
+        };
     }
 }
 
@@ -230,7 +236,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_height = 0;
     let mut hash_flag = Upper;
     let mut hash_version = 0;
-    let mut best_movescore: MoveScore = (0,-MAX_SCORE);
+    let mut best_movescore: MoveScore = (0,-MATE_SCORE);
 
     let hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
@@ -242,8 +248,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                         search_state.hash_hits_exact += 1;
                         return (vec![x.mv], x.score)
                     }
-                    if x.bound == Lower && x.score > alpha { alpha = x.score }
-                    if x.bound == Upper && x.score < beta { beta = x.score }
+                    if x.bound == Lower && x.score > alpha && x.score.abs() < MATE_START { alpha = x.score }
+                    if x.bound == Upper && x.score < beta && x.score.abs() < MATE_START { beta = x.score }
                     if alpha >= beta { return (vec![x.mv], x.score) }
                 }
                 x.mv
@@ -275,7 +281,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     if scouting && depth > null_move_reduce_depth && null_move_material(position) && !in_check && evaluate(position) > beta {
         let mut new_position = *position;
         make_null_move(&mut new_position);
-        let score = adjust_mate_score_for_ply(1, -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit).1);
+        let score = adjust_mate_score(-search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit).1, ply);
         if score >= beta {
             return (vec![0], beta);
         }
@@ -359,7 +365,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     store_hash_entry(index, position.zobrist_lock, real_depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
 
-    (vec![best_movescore.0], adjust_mate_score_for_ply(0, best_movescore.1))
+    (vec![best_movescore.0], best_movescore.1)
 }
 
 #[inline(always)]
@@ -397,7 +403,8 @@ fn make_null_move(new_position: &mut Position) {
 #[inline(always)]
 fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &mut Position, lmr: u8, extension_limit: u8) -> Score {
     search_state.history.push(new_position.zobrist_lock);
-    let score = adjust_mate_score_for_ply(1, -search(new_position, depth - 1 - lmr, ply + 1, window, search_state, extension_limit).1);
+    let s = -search(new_position, depth - 1 - lmr, ply + 1, window, search_state, extension_limit).1;
+    let score = adjust_mate_score(s, ply);
     search_state.history.pop();
     score
 }
@@ -446,9 +453,10 @@ pub fn piece_index_12(position: &Position, m: Move) -> usize {
     }) as usize
 }
 
+
 #[inline(always)]
-fn adjust_mate_score_for_ply(ply: u8, score: Score) -> Score {
-    if score > MATE_START { score - ply as Score } else if score < -MATE_START { score + ply as Score } else { score }
+fn adjust_mate_score(score: Score, ply: u8) -> Score {
+    if score > MATE_START { score - 1 } else if score < -MATE_START { score + 1 } else { score }
 }
 
 #[inline(always)]
@@ -536,11 +544,11 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         let m = ms.0;
         let mut new_position = *position;
 
-        if eval + captured_piece_value(position, m) + 125 > alpha {
+        if in_check || (eval + captured_piece_value(position, m) + 125 > alpha) {
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
-                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1);
+                let score = adjust_mate_score(-quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1, ply);
                 check_time!(search_state);
                 if score >= beta {
                     return (vec![m], beta);
@@ -553,7 +561,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
     }
 
     if legal_move_count == 0 && in_check {
-        (vec![0], -MAX_SCORE + ply as Score)
+        (vec![0], -MATE_SCORE as Score)
     } else {
         (vec![0], alpha)
     }
