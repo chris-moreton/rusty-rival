@@ -13,7 +13,7 @@ use crate::opponent;
 use crate::see::static_exchange_evaluation;
 use crate::types::{Bitboard, BLACK, BoundType, HashEntry, HashLock, Move, Mover, MoveScore, MoveScoreList, PathScore, Position, Score, SearchState, WHITE, Window};
 use crate::types::BoundType::{Exact, Lower, Upper};
-use crate::utils::{captured_piece_value, from_square_part, to_square_part};
+use crate::utils::{captured_piece_value, from_square_part, pawn_push, to_square_part};
 
 pub const MAX_SCORE: Score = 10000;
 pub const MATE_MARGIN: Score = 1000;
@@ -283,12 +283,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut scout_search = false;
 
-    let these_extentions = min(extension_limit, if in_check { 0 } else { 0 });
+    let these_extentions = min(extension_limit, if in_check { 1 } else { 0 });
+
     let real_depth = depth + these_extentions;
 
     let these_moves = if verify_move(position, hash_move) {
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
+
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
             let score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions);
@@ -325,7 +327,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
 
-            let lmr = if scouting && these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
+            let lmr = if these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && real_depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
                 LMR_REDUCTION
             } else {
                 0
@@ -355,7 +357,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         best_movescore.1 = 0
     };
 
-    store_hash_entry(index, position.zobrist_lock, depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
+    store_hash_entry(index, position.zobrist_lock, real_depth, hash_height, hash_version, hash_flag, best_movescore, search_state);
 
     (vec![best_movescore.0], adjust_mate_score_for_ply(0, best_movescore.1))
 }
@@ -532,21 +534,19 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
     for ms in move_scores {
         let m = ms.0;
-        if static_exchange_evaluation(position, m) > 0 {
-            let mut new_position = *position;
+        let mut new_position = *position;
 
-            if eval + captured_piece_value(position, m) + 125 > alpha {
-                make_move(position, m, &mut new_position);
-                if !is_check(&new_position, position.mover) {
-                    legal_move_count += 1;
-                    let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1);
-                    check_time!(search_state);
-                    if score >= beta {
-                        return (vec![m], beta);
-                    }
-                    if score > alpha {
-                        alpha = score;
-                    }
+        if eval + captured_piece_value(position, m) + 125 > alpha {
+            make_move(position, m, &mut new_position);
+            if !is_check(&new_position, position.mover) {
+                legal_move_count += 1;
+                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1);
+                check_time!(search_state);
+                if score >= beta {
+                    return (vec![m], beta);
+                }
+                if score > alpha {
+                    alpha = score;
                 }
             }
         }
