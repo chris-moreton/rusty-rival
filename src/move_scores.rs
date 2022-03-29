@@ -1,10 +1,10 @@
 use crate::bitboards::bit;
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PIECE_MASK_BISHOP, PIECE_MASK_KNIGHT, PIECE_MASK_KING, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
-use crate::search::{piece_index_12};
+use crate::search::{BLACK_PASSED_PAWN_MASK, piece_index_12, WHITE_PASSED_PAWN_MASK};
 use crate::see::static_exchange_evaluation;
-use crate::types::{Move, Pieces, Position, Score, SearchState, Square};
-use crate::utils::{from_square_part, linear_scale, to_square_part};
+use crate::types::{BLACK, Move, Pieces, Position, Score, SearchState, Square, WHITE};
+use crate::utils::{from_square_part, linear_scale, pawn_push, to_square_part};
 
 pub const BIT_FLIPPED_HORIZONTAL_AXIS: [Square; 64] = [
     56, 57, 58, 59, 60, 61, 62, 63, 48, 49, 50, 51, 52, 53, 54, 55, 40, 41, 42, 43, 44, 45, 46, 47, 32, 33, 34, 35, 36, 37, 38, 39, 24, 25, 26, 27, 28, 29, 30, 31, 16, 17, 18, 19, 20, 21, 22, 23, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7
@@ -58,6 +58,8 @@ const DISTANT_KILLER_1: Score = 300;
 const DISTANT_KILLER_2: Score = 200;
 const GOOD_CAPTURE_BONUS: Score = 300;
 const HISTORY_START: Score = 0;
+const PAWN_PUSH_1: Score = 250;
+const PAWN_PUSH_2: Score = 50;
 
 #[inline(always)]
 pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
@@ -93,8 +95,31 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         }
     };
 
+    let pawn_push_score = if m & PIECE_MASK_FULL == PIECE_MASK_PAWN {
+        let to_square = to_square_part(m);
+        if to_square >= 48 || to_square <= 15 {
+            PAWN_PUSH_1
+        } else {
+            if position.mover == WHITE {
+                if (40..=47).contains(&to_square) &&position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0 {
+                    PAWN_PUSH_2
+                } else {
+                    0
+                }
+            } else {
+                if (16..=23).contains(&to_square) && position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0 {
+                    PAWN_PUSH_2
+                } else {
+                    0
+                }
+            }
+        }
+    } else {
+        0
+    };
+
     let history_score = search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize];
-    score + linear_scale(history_score, 0, search_state.highest_history_score, HISTORY_START as i64, HISTORY_TOP as i64) as Score
+    score + pawn_push_score + linear_scale(history_score, 0, search_state.highest_history_score, HISTORY_START as i64, HISTORY_TOP as i64) as Score
 
 }
 
