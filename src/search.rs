@@ -186,7 +186,7 @@ pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search
 
         search_state.history.pop();
         mv.1 = path_score.1;
-        if path_score.1 > current_best.1 && time_remains!(search_state.end_time){
+        if path_score.1 > current_best.1 && time_remains!(search_state.end_time) {
             current_best.0[0] = mv.0;
             current_best.1 = mv.1;
         }
@@ -248,8 +248,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                         search_state.hash_hits_exact += 1;
                         return (vec![x.mv], x.score)
                     }
-                    if x.bound == Lower && x.score > alpha && x.score.abs() < MATE_START { alpha = x.score }
-                    if x.bound == Upper && x.score < beta && x.score.abs() < MATE_START { beta = x.score }
+                    if x.bound == Lower && x.score > alpha { alpha = x.score }
+                    if x.bound == Upper && x.score < beta { beta = x.score }
                     if alpha >= beta { return (vec![x.mv], x.score) }
                 }
                 x.mv
@@ -456,7 +456,7 @@ pub fn piece_index_12(position: &Position, m: Move) -> usize {
 
 #[inline(always)]
 fn adjust_mate_score(score: Score, ply: u8) -> Score {
-    if score > MATE_START { score - 1 } else if score < -MATE_START { score + 1 } else { score }
+    if score > MATE_START { MATE_SCORE - 1 } else if score < -MATE_START { -MATE_SCORE + 1 } else { score }
 }
 
 #[inline(always)]
