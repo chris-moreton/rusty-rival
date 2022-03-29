@@ -10,6 +10,7 @@ use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_M
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
+use crate::see::static_exchange_evaluation;
 use crate::types::{Bitboard, BLACK, BoundType, HashEntry, HashLock, Move, Mover, MoveScore, MoveScoreList, PathScore, Position, Score, SearchState, WHITE, Window};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, to_square_part};
@@ -490,7 +491,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
     let beta = window.1;
 
     if eval >= beta {
-        return (vec![0], beta);
+        return (vec![0], eval);
     }
 
     let promote_from_rank = if position.mover == WHITE { RANK_7_BITS } else { RANK_2_BITS };
@@ -529,19 +530,21 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
     for ms in move_scores {
         let m = ms.0;
-        let mut new_position = *position;
+        if static_exchange_evaluation(position, m) > 0 {
+            let mut new_position = *position;
 
-        if eval + captured_piece_value(position, m) + 125 > alpha {
-            make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) {
-                legal_move_count += 1;
-                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth-1, ply+1, (-beta, -alpha), search_state).1);
-                check_time!(search_state);
-                if score >= beta {
-                    return (vec![m], beta);
-                }
-                if score > alpha {
-                    alpha = score;
+            if eval + captured_piece_value(position, m) + 125 > alpha {
+                make_move(position, m, &mut new_position);
+                if !is_check(&new_position, position.mover) {
+                    legal_move_count += 1;
+                    let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1);
+                    check_time!(search_state);
+                    if score >= beta {
+                        return (vec![m], beta);
+                    }
+                    if score > alpha {
+                        alpha = score;
+                    }
                 }
             }
         }
