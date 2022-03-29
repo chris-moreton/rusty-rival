@@ -325,7 +325,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
 
-            let lmr = if these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
+            let lmr = if scouting && these_extentions == 0 && legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT && depth > LMR_MIN_DEPTH && !is_check(&new_position, new_position.mover) && captured_piece_value(position, m) == 0 {
                 LMR_REDUCTION
             } else {
                 0
@@ -532,19 +532,21 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
     for ms in move_scores {
         let m = ms.0;
-        let mut new_position = *position;
+        if static_exchange_evaluation(position, m) > 0 {
+            let mut new_position = *position;
 
-        if eval + captured_piece_value(position, m) + 125 > alpha {
-            make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) {
-                legal_move_count += 1;
-                let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1);
-                check_time!(search_state);
-                if score >= beta {
-                    return (vec![m], beta);
-                }
-                if score > alpha {
-                    alpha = score;
+            if eval + captured_piece_value(position, m) + 125 > alpha {
+                make_move(position, m, &mut new_position);
+                if !is_check(&new_position, position.mover) {
+                    legal_move_count += 1;
+                    let score = adjust_mate_score_for_ply(ply, -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1);
+                    check_time!(search_state);
+                    if score >= beta {
+                        return (vec![m], beta);
+                    }
+                    if score > alpha {
+                        alpha = score;
+                    }
                 }
             }
         }
