@@ -1,8 +1,8 @@
 use std::cmp::{max, min};
 use std::time::Instant;
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE};
-use crate::evaluate::evaluate;
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, HISTORY_BELOW_ALPHA_MULTIPLIER, HISTORY_BELOW_BETA_MULTIPLIER, HISTORY_GOOD_MULTIPLIER, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::evaluate::{evaluate, material_score, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
 use crate::make_move::make_move;
@@ -10,7 +10,7 @@ use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_M
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
-use crate::types::{Bitboard, BoundType, HashEntry, HashLock, Move, Mover, MoveScore, MoveScoreList, PathScore, Position, Score, SearchState, WHITE, Window};
+use crate::types::{Bitboard, BLACK, BoundType, HashEntry, HashLock, Move, Mover, MoveScore, MoveScoreList, PathScore, Position, Score, SearchState, WHITE, Window};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, pawn_push, to_square_part};
 
@@ -101,22 +101,8 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         (m, -MATE_SCORE)
     }).collect();
 
-    for i in 0..12 {
-        for j in 0..64 {
-            for k in 0..64 {
-                search_state.history_moves[i][j][k] = 0;
-            }
-        }
-    }
-
-    for i in 0..MAX_DEPTH  as usize {
-        search_state.mate_killer[i] = 0;
-        for j in 0..2 {
-            search_state.killer_moves[i][j] = 0;
-        }
-    }
-
-    search_state.highest_history_score = 0;
+    clear_history_table(search_state);
+    clear_killers(search_state);
 
     if search_state.history.is_empty() {
         search_state.history.push(position.zobrist_lock)
@@ -171,6 +157,26 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     legal_moves[0].0
 }
 
+fn clear_killers(search_state: &mut SearchState) {
+    for i in 0..MAX_DEPTH as usize {
+        search_state.mate_killer[i] = 0;
+        for j in 0..2 {
+            search_state.killer_moves[i][j] = 0;
+        }
+    }
+}
+
+fn clear_history_table(search_state: &mut SearchState) {
+    for i in 0..12 {
+        for j in 0..64 {
+            for k in 0..64 {
+                search_state.history_moves[i][j][k] = 0;
+            }
+        }
+    }
+    search_state.highest_history_score = 0;
+}
+
 pub fn start_search(position: &Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, aspiration_window: Window, extension_limit: u8) -> PathScore {
 
     let mut current_best: PathScore = (vec![legal_moves[0].0], -MATE_SCORE);
@@ -213,16 +219,32 @@ pub fn store_hash_entry(index: usize, lock: HashLock, height: u8, existing_heigh
 }
 
 #[inline(always)]
+fn is_end_game(position: &Position) -> bool {
+    let piece_material = piece_material(position, WHITE) + piece_material(position, BLACK);
+    let pawn_material = pawn_material(position, WHITE) + pawn_material(position, BLACK);
+    return piece_material + pawn_material < ROOK_VALUE * 4;
+}
+
+#[inline(always)]
+fn draw_value(position: &Position) -> Score {
+    if is_end_game(position) {
+        0
+    } else {
+        -75
+    }
+}
+
+#[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, extension_limit: u8) -> PathScore {
 
     check_time!(search_state);
 
     if search_state.history.iter().rev().take(position.half_moves as usize).filter(|p| position.zobrist_lock == **p).count() > 1 {
-        return (vec![0], 0);
+        return (vec![0], draw_value(position));
     }
 
     if position.half_moves >= 100 {
-        return (vec![0], 0);
+        return (vec![0], draw_value(position));
     }
 
     let scouting = window.1 - window.0 == 1;
@@ -346,8 +368,11 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             let score = lmr_scout_search(lmr, ply, search_state, extension_limit, alpha, beta, scout_search, these_extentions, real_depth, &mut new_position);
 
             check_time!(search_state);
+            if score < alpha {
+                update_history(position, search_state, m, -(real_depth as i64 * HISTORY_BELOW_ALPHA_MULTIPLIER));
+            }
             if score < beta {
-                update_history(position, search_state, m, -(real_depth as i64));
+                update_history(position, search_state, m, -(real_depth as i64 * HISTORY_BELOW_BETA_MULTIPLIER));
             }
             if score > best_movescore.1 {
                 best_movescore = (m, score);
@@ -367,7 +392,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if is_check(position, position.mover) {
             best_movescore.1 = -MATE_SCORE + ply as Score
         } else {
-            best_movescore.1 = 0
+            best_movescore.1 = draw_value(position)
         }
     };
 
@@ -420,7 +445,7 @@ fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Wi
 #[inline(always)]
 fn cutoff(position: &Position, hash_index: usize, depth: u8, ply: u8, search_state: &mut SearchState, best_movescore: MoveScore, hash_height: u8, hash_version: u32, m: Move, new_position: &mut Position) -> PathScore {
     store_hash_entry(hash_index, position.zobrist_lock, depth, hash_height, hash_version, Lower, best_movescore, search_state);
-    update_history(position, search_state, m, depth as i64);
+    update_history(position, search_state, m, depth as i64 * depth as i64);
     update_killers(position, ply, search_state, m, new_position, best_movescore);
     (vec![best_movescore.0], best_movescore.1)
 }
@@ -433,16 +458,30 @@ fn update_history(position: &Position, search_state: &mut SearchState, m: Move, 
 
         let piece_index = piece_index_12(position, m);
 
-        search_state.history_moves[piece_index][f][t] += score;
+        search_state.history_moves[piece_index][f][t] += score * HISTORY_GOOD_MULTIPLIER;
 
         if search_state.history_moves[piece_index][f][t] < 0 {
              search_state.history_moves[piece_index][f][t] = 0;
         }
 
-        if search_state.history_moves[piece_index][f][t] > search_state.highest_history_score {
-            search_state.highest_history_score = search_state.history_moves[piece_index][f][t];
-        }
+        halve_history_scores_if_required(search_state, f, t, piece_index)
 
+    }
+}
+
+#[inline(always)]
+fn halve_history_scores_if_required(search_state: &mut SearchState, f: usize, t: usize, piece_index: usize) {
+    if search_state.history_moves[piece_index][f][t] > search_state.highest_history_score {
+        search_state.highest_history_score = search_state.history_moves[piece_index][f][t];
+        if search_state.highest_history_score > (i64::MAX / 2) {
+            for i in 0..12 {
+                for j in 0..64 {
+                    for k in 0..64 {
+                        search_state.history_moves[i][j][k] /= 2;
+                    }
+                }
+            }
+        }
     }
 }
 

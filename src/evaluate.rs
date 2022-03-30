@@ -209,15 +209,15 @@ pub fn material_score(position: &Position) -> Score {
 
 #[inline(always)]
 pub fn piece_material(position: &Position, mover: Mover) -> Score {
-    position.pieces[mover as usize].knight_bitboard.count_ones() as Score +
-    position.pieces[mover as usize].rook_bitboard.count_ones() as Score +
-    position.pieces[mover as usize].bishop_bitboard.count_ones() as Score +
-    position.pieces[mover as usize].queen_bitboard.count_ones() as Score
+    position.pieces[mover as usize].knight_bitboard.count_ones() as Score * KNIGHT_VALUE +
+    position.pieces[mover as usize].rook_bitboard.count_ones() as Score * ROOK_VALUE +
+    position.pieces[mover as usize].bishop_bitboard.count_ones() as Score * BISHOP_VALUE +
+    position.pieces[mover as usize].queen_bitboard.count_ones() as Score * QUEEN_VALUE
 }
 
 #[inline(always)]
 pub fn pawn_material(position: &Position, mover: Mover) -> Score {
-    position.pieces[mover as usize].pawn_bitboard.count_ones() as Score
+    position.pieces[mover as usize].pawn_bitboard.count_ones() as Score * PAWN_VALUE
 }
 
 #[inline(always)]
@@ -289,15 +289,15 @@ pub fn passed_pawn_score(position: &Position) -> Score {
         let king_x = position.pieces[BLACK as usize].king_square % 8;
         let king_y = position.pieces[BLACK as usize].king_square / 8;
         let mut bb = white_passed_pawns;
-        let mut score = 0;
+        let mut score: Score = 0;
         while bb != 0 {
             let sq = get_and_unset_lsb!(bb);
             let pawn_distance = min(5, 7-(sq/8));
             let king_distance = max((king_x-(sq%8)).abs(), (king_y-7).abs());
-            score += linear_scale(black_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, (king_distance as Score * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) as i64, 0) as Score;
+            score += king_distance as Score * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER;
             if (pawn_distance < (king_distance - position.mover)) && (black_piece_values == 0) { score += VALUE_KING_CANNOT_CATCH_PAWN }
         }
-        score
+        linear_scale(black_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, score as i64, 0) as Score
     } else {
         0
     };
@@ -311,10 +311,10 @@ pub fn passed_pawn_score(position: &Position) -> Score {
             let sq = get_and_unset_lsb!(bb);
             let pawn_distance = min(5, sq/8);
             let king_distance = max((king_x - (sq % 8)).abs(), king_y.abs());
-            score += linear_scale(white_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, (king_distance as Score * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) as i64, 0) as Score;
+            score += king_distance as Score * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER;
             if (pawn_distance < (king_distance - opponent!(position.mover))) && (white_piece_values == 0) { score += VALUE_KING_CANNOT_CATCH_PAWN }
         }
-        score
+        linear_scale(white_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, score as i64, 0) as Score
     } else {
         0
     };
