@@ -9,9 +9,6 @@ pub const ROOK_VALUE: Score = 595;
 pub const QUEEN_VALUE: Score = 1175;
 
 pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
-pub const HISTORY_GOOD_MULTIPLIER: HistoryScore = 2;
-pub const HISTORY_BELOW_ALPHA_MULTIPLIER: HistoryScore = 1;
-pub const HISTORY_BELOW_BETA_MULTIPLIER: HistoryScore = 1;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 

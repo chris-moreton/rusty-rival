@@ -297,7 +297,6 @@ pub fn passed_pawn_score(position: &Position) -> Score {
     passed_score += (white_passed_pawns & RANK_6_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[4];
     passed_score += (white_passed_pawns & RANK_7_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[5];
 
-
     passed_score -= (black_passed_pawns & RANK_2_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[5];
     passed_score -= (black_passed_pawns & RANK_3_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[4];
     passed_score -= (black_passed_pawns & RANK_4_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[3];

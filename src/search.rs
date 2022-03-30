@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::time::Instant;
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, HISTORY_BELOW_ALPHA_MULTIPLIER, HISTORY_BELOW_BETA_MULTIPLIER, HISTORY_GOOD_MULTIPLIER, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::evaluate::{evaluate, material_score, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -10,6 +10,7 @@ use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_M
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
+use crate::see::static_exchange_evaluation;
 use crate::types::{Bitboard, BLACK, BoundType, HashEntry, HashLock, Move, Mover, MoveScore, MoveScoreList, PathScore, Position, Score, SearchState, WHITE, Window};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::utils::{captured_piece_value, from_square_part, pawn_push, to_square_part};
@@ -239,6 +240,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     check_time!(search_state);
 
+    search_state.nodes += 1;
+
     if search_state.history.iter().rev().take(position.half_moves as usize).filter(|p| position.zobrist_lock == **p).count() > 1 {
         return (vec![0], draw_value(position));
     }
@@ -290,6 +293,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     };
 
     if depth == 0 {
+        // Otherwise we'll get +2 for this node, as quiesce does a +1 on entry
+        search_state.nodes -= 1;
         let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
         let bound = if q.1 <= alpha { Upper } else if q.1 >= beta { Lower } else { Exact };
         if bound == Exact {
@@ -297,8 +302,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
         return q;
     }
-
-    search_state.nodes += 1;
 
     let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
 
@@ -369,10 +372,10 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
             check_time!(search_state);
             if score < alpha {
-                update_history(position, search_state, m, -(real_depth as i64 * HISTORY_BELOW_ALPHA_MULTIPLIER));
+                update_history(position, search_state, m, -(real_depth as i64));
             }
             if score < beta {
-                update_history(position, search_state, m, -(real_depth as i64 * HISTORY_BELOW_BETA_MULTIPLIER));
+                update_history(position, search_state, m, -(real_depth as i64));
             }
             if score > best_movescore.1 {
                 best_movescore = (m, score);
@@ -458,7 +461,7 @@ fn update_history(position: &Position, search_state: &mut SearchState, m: Move, 
 
         let piece_index = piece_index_12(position, m);
 
-        search_state.history_moves[piece_index][f][t] += score * HISTORY_GOOD_MULTIPLIER;
+        search_state.history_moves[piece_index][f][t] += score;
 
         if search_state.history_moves[piece_index][f][t] < 0 {
              search_state.history_moves[piece_index][f][t] = 0;
@@ -517,11 +520,11 @@ fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, 
 
 #[inline(always)]
 fn null_move_material(position: &Position) -> bool {
-    side_total_non_pawn_values(position, position.mover) >= 2
+    side_total_non_pawn_count(position, position.mover) + side_total_non_pawn_count(position, opponent!(position.mover)) >= 2
 }
 
 #[inline(always)]
-fn side_total_non_pawn_values(position: &Position, side: Mover) -> u32 {
+fn side_total_non_pawn_count(position: &Position, side: Mover) -> u32 {
     (position.pieces[side as usize].bishop_bitboard |
     position.pieces[side as usize].knight_bitboard |
     position.pieces[side as usize].rook_bitboard |
@@ -583,12 +586,22 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
     for ms in move_scores {
         let m = ms.0;
-        let mut new_position = *position;
 
-        if in_check || (eval + captured_piece_value(position, m) + 125 > alpha) {
+        let needs_searching = (eval + captured_piece_value(position, m) + 500 > alpha) && static_exchange_evaluation(position, m) > 0;
+
+        if in_check || needs_searching {
+            let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
                 legal_move_count += 1;
+
+                if !needs_searching {
+                    // We only get here if we were in check before the move.
+                    // We had to see if the move was legal in order to detect mates
+                    // but we don't want to search it if it was a prunable move.
+                    continue
+                }
+
                 let score = -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1;
                 check_time!(search_state);
                 if score >= beta {
@@ -601,11 +614,11 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         }
     }
 
-    // if legal_move_count == 0 && in_check {
-    //     (vec![0], -MATE_SCORE + ply as Score)
-    // } else {
+    if legal_move_count == 0 && in_check {
+        (vec![0], -MATE_SCORE + ply as Score)
+    } else {
         (vec![0], alpha)
-//    }
+    }
 }
 
 fn send_info(search_state: &mut SearchState) {
