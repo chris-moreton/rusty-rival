@@ -36,6 +36,7 @@ pub fn evaluate(position: &Position) -> Score {
         king_threat_score(position) +
         rook_eval(position) +
         passed_pawn_score(position) +
+        knight_outpost_scores(position) +
         doubled_and_isolated_pawn_score(position);
 
     10 + if position.mover == WHITE { score } else { -score }
@@ -266,9 +267,7 @@ pub fn knight_outpost_scores(position: &Position) -> Score {
 
     let white_passed_knights: Bitboard = white_knights & !south_fill(black_pawn_attacks);
     let black_passed_knights: Bitboard = black_knights & !north_fill(white_pawn_attacks);
-
-    show_bitboard("White Passed Knights", white_passed_knights);
-
+    
     let white_guarded_passed_knights = white_passed_knights & (((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7));
     let black_guarded_passed_knights = black_passed_knights & (((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9));
 
