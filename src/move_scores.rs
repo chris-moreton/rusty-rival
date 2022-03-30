@@ -2,9 +2,8 @@ use crate::bitboards::bit;
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_constants::{PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PIECE_MASK_BISHOP, PIECE_MASK_KNIGHT, PIECE_MASK_KING, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK};
 use crate::search::{BLACK_PASSED_PAWN_MASK, piece_index_12, WHITE_PASSED_PAWN_MASK};
-use crate::see::static_exchange_evaluation;
 use crate::types::{BLACK, Move, Pieces, Position, Score, SearchState, Square, WHITE};
-use crate::utils::{from_square_part, linear_scale, pawn_push, to_square_part};
+use crate::utils::{from_square_part, linear_scale, to_square_part};
 
 pub const BIT_FLIPPED_HORIZONTAL_AXIS: [Square; 64] = [
     56, 57, 58, 59, 60, 61, 62, 63, 48, 49, 50, 51, 52, 53, 54, 55, 40, 41, 42, 43, 44, 45, 46, 47, 32, 33, 34, 35, 36, 37, 38, 39, 24, 25, 26, 27, 28, 29, 30, 31, 16, 17, 18, 19, 20, 21, 22, 23, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7
