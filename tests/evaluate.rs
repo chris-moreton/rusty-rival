@@ -1,6 +1,6 @@
 use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER};
-use rusty_rival::evaluate::{on_same_file_count, material, material_score, doubled_and_isolated_pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY, king_threat_score, KING_THREAT_BONUS};
+use rusty_rival::evaluate::{on_same_file_count, material, material_score, doubled_and_isolated_pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY, king_threat_score, KING_THREAT_BONUS, VALUE_KNIGHT_OUTPOST, knight_outpost_scores};
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{BLACK, Score, WHITE};
 use rusty_rival::utils::{invert_fen, invert_pos};
@@ -51,7 +51,6 @@ fn test_passed_pawns(fen: &str, score: Score) {
     let position = get_position(fen);
     assert_eq!(passed_pawn_score(&position), score);
 
-    println!("--------");
     let position = get_position(&invert_fen(fen));
     assert_eq!(passed_pawn_score(&position), -score);
 }
@@ -109,6 +108,34 @@ fn it_gets_the_passed_pawn_score() {
                               VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
                           (VALUE_PASSED_PAWN_BONUS[3]) // black pawn on 5th
     );
+}
+
+fn test_knight_outposts(fen: &str, score: Score) {
+    let position = get_position(fen);
+    assert_eq!(knight_outpost_scores(&position), score);
+
+    let position = get_position(&invert_fen(fen));
+    assert_eq!(knight_outpost_scores(&position), -score);
+}
+
+#[test]
+fn it_gets_the_passed_knight_score() {
+    test_knight_outposts("4k3/8/7p/1P2Pp1P/2Pp1PP1/3N4/8/4K3 w - - 0 1", 0);
+    test_knight_outposts("4k3/8/7p/4Pp1P/2Pp1PP1/3N4/2P5/4K3 w - - 0 1", VALUE_KNIGHT_OUTPOST);
+    test_knight_outposts("r1b1kbnr/2p2ppp/ppn5/1B1Np3/4N3/8/PPPP1PPP/R1BQ1RK1 w kq - 0 1", 0);
+    test_knight_outposts("r1b1kbnr/2p2ppp/ppn5/1B1Np3/2P1N3/3P4/PP3PPP/R1BQ1RK1 w kq - 0 1", 0);
+    test_knight_outposts("r1b1kbnr/2p3pp/ppn3p1/1B1Np3/4N3/8/PPPP1PPP/R1BQ1RK1 w kq - 0 1",  0);
+    test_knight_outposts("r1b1kbnr/2p3pp/ppn3p1/1B1Np3/2P1N3/3P4/PP3PPP/R1BQ1RK1 w kq - 0 1", VALUE_KNIGHT_OUTPOST);
+
+    test_knight_outposts("r1b1kbnr/6pp/ppn3p1/1p1Np3/4N3/8/PPPP1PPP/R1BQ1RK1 w kq - 0 1", 0);
+    test_knight_outposts("r1b1kbnr/6pp/ppn3p1/1p1Np3/4N3/3P4/PPP2PPP/R1BQ1RK1 w kq - 0 1", VALUE_KNIGHT_OUTPOST);
+    test_knight_outposts("r1b1kbnr/6pp/ppn3p1/1p1Np3/2P1N3/3P4/PP3PPP/R1BQ1RK1 w kq - 0 1", VALUE_KNIGHT_OUTPOST * 2);
+
+    test_knight_outposts("r1b1kb1r/6pp/ppn3p1/1p1Np3/4N1n1/3P4/PPPP1PP1/R1BQ1RK1 w kq - 0 1", VALUE_KNIGHT_OUTPOST);
+    test_knight_outposts("r1b1kb1r/6pp/ppn3p1/1p1Np3/4N1n1/P2P4/PPPP2P1/R1BQ1RK1 w kq - 0 1", VALUE_KNIGHT_OUTPOST);
+    test_knight_outposts("r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/P2P4/PPPP2P1/R1BQ1RK1 w kq - 0 1", 0);
+
+    test_knight_outposts("r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/6P1/PPPPP1P1/R1BQ1RK1 w kq - 0 1", -VALUE_KNIGHT_OUTPOST);
 }
 
 // fn test_backward_pawns(fen: &str, score: Score) {

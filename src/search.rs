@@ -230,7 +230,7 @@ fn draw_value(position: &Position) -> Score {
     if is_end_game(position) {
         0
     } else {
-        -75
+        -15
     }
 }
 

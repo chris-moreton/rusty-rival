@@ -5,12 +5,13 @@ use crate::{get_and_unset_lsb, opponent};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE, Square};
-use crate::utils::{linear_scale};
+use crate::utils::{linear_scale, show_bitboard};
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8, 9, 10, 11, 12, 12];
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
 pub const VALUE_BISHOP_PAIR: Score = 10;
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 15;
+pub const VALUE_KNIGHT_OUTPOST: Score = 20;
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24,26,30,36,44,56];
 pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 15;
 pub const DOUBLED_PAWN_PENALTY: Score = 15;
@@ -250,6 +251,28 @@ pub fn doubled_and_isolated_pawn_score(position: &Position) -> Score {
     let isolated = (isolated_pawn_count(black_pawn_files) - isolated_pawn_count(white_pawn_files)) * ISOLATED_PAWN_PENALTY;
 
     doubled + isolated
+}
+
+#[inline(always)]
+pub fn knight_outpost_scores(position: &Position) -> Score {
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+
+    let white_knights = position.pieces[WHITE as usize].knight_bitboard;
+    let black_knights = position.pieces[BLACK as usize].knight_bitboard;
+
+    let white_pawn_attacks = ((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7);
+    let black_pawn_attacks = ((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9);
+
+    let white_passed_knights: Bitboard = white_knights & !south_fill(black_pawn_attacks);
+    let black_passed_knights: Bitboard = black_knights & !north_fill(white_pawn_attacks);
+
+    show_bitboard("White Passed Knights", white_passed_knights);
+
+    let white_guarded_passed_knights = white_passed_knights & (((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7));
+    let black_guarded_passed_knights = black_passed_knights & (((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9));
+
+    (white_guarded_passed_knights.count_ones() as Score - black_guarded_passed_knights.count_ones() as Score) * VALUE_KNIGHT_OUTPOST
 }
 
 #[inline(always)]
