@@ -11,7 +11,7 @@ pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8,
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
 pub const VALUE_BISHOP_PAIR: Score = 10;
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 15;
-pub const VALUE_KNIGHT_OUTPOST: Score = 20;
+pub const VALUE_KNIGHT_OUTPOST: Score = 7;
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24,26,30,36,44,56];
 pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 15;
 pub const DOUBLED_PAWN_PENALTY: Score = 15;
@@ -267,7 +267,7 @@ pub fn knight_outpost_scores(position: &Position) -> Score {
 
     let white_passed_knights: Bitboard = white_knights & !south_fill(black_pawn_attacks);
     let black_passed_knights: Bitboard = black_knights & !north_fill(white_pawn_attacks);
-    
+
     let white_guarded_passed_knights = white_passed_knights & (((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7));
     let black_guarded_passed_knights = black_passed_knights & (((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9));
 
