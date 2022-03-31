@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::time::Instant;
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, BETA_PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE, ALPHA_PRUNE_MARGINS};
 use crate::evaluate::{evaluate, material_score, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -294,8 +294,11 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let in_check = is_check(position, position.mover);
 
+    let mut lazy_eval: Score = -Score::MAX;
+
     if scouting && !in_check && beta < MATE_START {
-        if evaluate(position) - PRUNE_MARGIN_PER_DEPTH * depth as Score > beta {
+        lazy_eval = evaluate(position);
+        if lazy_eval - BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score > beta {
             return (vec![0], beta)
         }
     }
@@ -310,6 +313,16 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
         return q;
     }
+
+    let alpha_prune_flag = if depth <= 8 && scouting && !in_check && alpha < MATE_START {
+        if lazy_eval == -Score::MAX {
+            lazy_eval = evaluate(position);
+        }
+
+        lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize] < alpha
+    } else {
+        false
+    };
 
     let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
 
@@ -368,11 +381,16 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
 
+            let is_capture = captured_piece_value(position, m) > 0;
+            if legal_move_count > 1 && alpha_prune_flag && !is_capture && !is_check(&new_position, new_position.mover) {
+                continue;
+            }
+
             let lmr = if these_extentions == 0 &&
                 legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT &&
                 real_depth > LMR_MIN_DEPTH &&
                 !is_check(&new_position, new_position.mover) &&
-                captured_piece_value(position, m) == 0 &&
+                !is_capture &&
                 !pawn_push(position, m) &&
                 search_state.killer_moves[ply as usize][0] != m &&
                 search_state.killer_moves[ply as usize][1] != m

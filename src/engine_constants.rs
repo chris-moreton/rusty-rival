@@ -13,7 +13,7 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
 pub const ASPIRATION_RADIUS: Score = 25;
-pub const PRUNE_MARGIN_PER_DEPTH: Score = 150;
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 150;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
@@ -31,6 +31,7 @@ pub const IID_REDUCE_DEPTH: u8 = 3;
 pub const HASH_ENTRY_BYTES: u64 = 22;
 pub const HASH_ENTRY_MB: u64 = 128;
 pub const NUM_HASH_ENTRIES: u64 = ((1024 * 1024 * HASH_ENTRY_MB) / HASH_ENTRY_BYTES) as u64;
+pub const ALPHA_PRUNE_MARGINS: [Score; 9] = [0, 100, 160, 220, 280, 340, 400, 460, 520];
 
 pub const TICKER_MILLIS: u16 = 500;
 
