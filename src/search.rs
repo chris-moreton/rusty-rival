@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::time::Instant;
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, BETA_PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE, ALPHA_PRUNE_MARGINS};
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, BETA_PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MAX_DEPTH};
 use crate::evaluate::{evaluate, material_score, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -294,6 +294,16 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let in_check = is_check(position, position.mover);
 
+    let mut lazy_eval: Score = -Score::MAX;
+
+    if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
+        lazy_eval = evaluate(position);
+        let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
+        if lazy_eval - margin as Score >= beta {
+            return (vec![0], lazy_eval - margin)
+        }
+    }
+
     if depth == 0 {
         // Otherwise we'll get +2 for this node, as quiesce does a +1 on entry
         search_state.nodes -= 1;
@@ -305,9 +315,11 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         return q;
     }
 
-    let mut lazy_eval: Score = -Score::MAX;
     let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
-        lazy_eval = evaluate(position);
+        if lazy_eval == -Score::MAX {
+            lazy_eval = evaluate(position);
+        }
+
         lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize -1] < alpha
     } else {
         false
