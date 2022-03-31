@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::time::Instant;
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE};
 use crate::evaluate::{evaluate, material_score, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -292,6 +292,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         }
     };
 
+    let in_check = is_check(position, position.mover);
+
+    if scouting && !in_check && beta < MATE_START {
+        if evaluate(position) - PRUNE_MARGIN_PER_DEPTH * depth as Score > beta {
+            return (vec![0], beta)
+        }
+    }
+
     if depth == 0 {
         // Otherwise we'll get +2 for this node, as quiesce does a +1 on entry
         search_state.nodes -= 1;
@@ -304,8 +312,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     }
 
     let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
-
-    let in_check = is_check(position, position.mover);
 
     if scouting && depth > null_move_reduce_depth && null_move_material(position) && !in_check && evaluate(position) > beta {
         let mut new_position = *position;
