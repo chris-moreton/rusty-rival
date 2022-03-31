@@ -294,15 +294,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let in_check = is_check(position, position.mover);
 
-    let mut lazy_eval: Score = -Score::MAX;
-
-    if scouting && !in_check && beta < MATE_START {
-        lazy_eval = evaluate(position);
-        if lazy_eval - BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score > beta {
-            return (vec![0], beta)
-        }
-    }
-
     if depth == 0 {
         // Otherwise we'll get +2 for this node, as quiesce does a +1 on entry
         search_state.nodes -= 1;
@@ -314,24 +305,27 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         return q;
     }
 
-    let alpha_prune_flag = if depth <= 8 && scouting && !in_check && alpha < MATE_START {
-        if lazy_eval == -Score::MAX {
-            lazy_eval = evaluate(position);
-        }
-
-        lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize] < alpha
+    let mut lazy_eval: Score = -Score::MAX;
+    let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
+        lazy_eval = evaluate(position);
+        lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize -1] < alpha
     } else {
         false
     };
 
     let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE { NULL_MOVE_REDUCE_DEPTH + 1 } else { NULL_MOVE_REDUCE_DEPTH };
 
-    if scouting && depth > null_move_reduce_depth && null_move_material(position) && !in_check && evaluate(position) > beta {
-        let mut new_position = *position;
-        make_null_move(&mut new_position);
-        let score = -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit).1;
-        if score >= beta {
+    if scouting && depth > null_move_reduce_depth && null_move_material(position) && !in_check {
+        if lazy_eval == -Score::MAX {
+            lazy_eval = evaluate(position);
+        }
+        if lazy_eval > beta {
+            let mut new_position = *position;
+            make_null_move(&mut new_position);
+            let score = -search(&new_position, depth - 1 - NULL_MOVE_REDUCE_DEPTH, ply + 1, (-beta, (-beta) + 1), search_state, extension_limit).1;
+            if score >= beta {
             return (vec![0], beta);
+            }
         }
     }
 
