@@ -367,7 +367,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 real_depth > LMR_MIN_DEPTH &&
                 !is_check(&new_position, new_position.mover) &&
                 captured_piece_value(position, m) == 0 &&
-                !pawn_push(position, m)
+                !pawn_push(position, m) &&
                 search_state.killer_moves[ply as usize][0] != m &&
                 search_state.killer_moves[ply as usize][1] != m
             {
