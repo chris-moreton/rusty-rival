@@ -93,7 +93,6 @@ fn it_avoids_thinking_stalemate_is_checkmate() {
 }
 
 #[test]
-#[ignore]
 fn it_finds_a_mate_in_6() {
     assert_move("8/8/8/1K6/4Q3/2P5/5k2/8 w - - 0 1", 13, 10000000, "b5c5,b5c4,e4g4");
 }

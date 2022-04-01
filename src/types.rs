@@ -99,6 +99,30 @@ pub fn default_search_state() -> SearchState {
     }
 }
 
+pub struct EvaluateCache {
+    pub white_pawn_files: Option<u8>,
+    pub black_pawn_files: Option<u8>,
+    pub white_pawn_attacks: Option<Bitboard>,
+    pub black_pawn_attacks: Option<Bitboard>,
+    pub white_passed_knights: Option<Bitboard>,
+    pub black_passed_knights: Option<Bitboard>,
+    pub white_guarded_passed_knights: Option<Bitboard>,
+    pub black_guarded_passed_knights: Option<Bitboard>,
+}
+
+pub fn default_evaluate_cache() -> EvaluateCache {
+    EvaluateCache {
+        white_pawn_files: None,
+        black_pawn_files: None,
+        white_pawn_attacks: None,
+        black_pawn_attacks: None,
+        white_passed_knights: None,
+        black_passed_knights: None,
+        white_guarded_passed_knights: None,
+        black_guarded_passed_knights: None,
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct HashEntry {
     pub score: Score,

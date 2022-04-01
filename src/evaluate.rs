@@ -4,7 +4,7 @@ use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_ADJUST_MAX_MATERI
 use crate::{get_and_unset_lsb, opponent};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
-use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE, Square};
+use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE, Square, EvaluateCache, default_evaluate_cache};
 use crate::utils::{linear_scale, show_bitboard};
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8, 9, 10, 11, 12, 12];
@@ -29,15 +29,17 @@ pub fn evaluate(position: &Position) -> Score {
         return 0;
     }
 
+    let mut cache = default_evaluate_cache();
+
     let score =
         material_score(position) +
         piece_square_values(position) +
         king_score(position, piece_count) +
         king_threat_score(position) +
         rook_eval(position) +
-        passed_pawn_score(position) +
-        knight_outpost_scores(position) +
-        doubled_and_isolated_pawn_score(position);
+        passed_pawn_score(position, &mut cache) +
+        knight_outpost_scores(position, &mut cache) +
+        doubled_and_isolated_pawn_score(position, &mut cache);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -237,13 +239,16 @@ pub fn isolated_pawn_count(pawn_files: u8) -> Score {
 }
 
 #[inline(always)]
-pub fn doubled_and_isolated_pawn_score(position: &Position) -> Score {
+pub fn doubled_and_isolated_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Score {
 
     let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
     let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
 
-    let white_pawn_files: u8 = (south_fill(white_pawns) & RANK_1_BITS) as u8;
-    let black_pawn_files: u8 = (south_fill(black_pawns) & RANK_1_BITS) as u8;
+    if cache.white_pawn_files == None { cache.white_pawn_files = Option::from((south_fill(white_pawns) & RANK_1_BITS) as u8) }
+    if cache.black_pawn_files == None { cache.black_pawn_files = Option::from((south_fill(black_pawns) & RANK_1_BITS) as u8) }
+
+    let white_pawn_files = cache.white_pawn_files.unwrap();
+    let black_pawn_files = cache.black_pawn_files.unwrap();
 
     let doubled = ((on_same_file_count(position.pieces[BLACK as usize].pawn_bitboard, black_pawn_files) -
         on_same_file_count(position.pieces[WHITE as usize].pawn_bitboard, white_pawn_files)) as Score
@@ -255,15 +260,18 @@ pub fn doubled_and_isolated_pawn_score(position: &Position) -> Score {
 }
 
 #[inline(always)]
-pub fn knight_outpost_scores(position: &Position) -> Score {
+pub fn knight_outpost_scores(position: &Position, cache: &mut EvaluateCache) -> Score {
     let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
     let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
 
     let white_knights = position.pieces[WHITE as usize].knight_bitboard;
     let black_knights = position.pieces[BLACK as usize].knight_bitboard;
 
-    let white_pawn_attacks = ((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7);
-    let black_pawn_attacks = ((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9);
+    if cache.white_pawn_attacks == None { cache.white_pawn_attacks = Option::from(((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7)) }
+    if cache.black_pawn_attacks == None { cache.black_pawn_attacks = Option::from(((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9)) }
+
+    let white_pawn_attacks = cache.white_pawn_attacks.unwrap();
+    let black_pawn_attacks = cache.black_pawn_attacks.unwrap();
 
     let white_passed_knights: Bitboard = white_knights & !south_fill(black_pawn_attacks);
     let black_passed_knights: Bitboard = black_knights & !north_fill(white_pawn_attacks);
@@ -275,12 +283,15 @@ pub fn knight_outpost_scores(position: &Position) -> Score {
 }
 
 #[inline(always)]
-pub fn passed_pawn_score(position: &Position) -> Score {
+pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Score {
     let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
     let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
 
-    let white_pawn_attacks = ((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7);
-    let black_pawn_attacks = ((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9);
+    if cache.white_pawn_attacks == None { cache.white_pawn_attacks = Option::from(((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7)) }
+    if cache.black_pawn_attacks == None { cache.black_pawn_attacks = Option::from(((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9)) }
+
+    let white_pawn_attacks = cache.white_pawn_attacks.unwrap();
+    let black_pawn_attacks = cache.black_pawn_attacks.unwrap();
 
     let white_passed_pawns: Bitboard = white_pawns & !south_fill(black_pawns | black_pawn_attacks | (white_pawns >> 8));
     let black_passed_pawns: Bitboard = black_pawns & !north_fill(white_pawns | white_pawn_attacks | (black_pawns << 8));

@@ -2,15 +2,15 @@ use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER};
 use rusty_rival::evaluate::{on_same_file_count, material, material_score, doubled_and_isolated_pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY, king_threat_score, KING_THREAT_BONUS, VALUE_KNIGHT_OUTPOST, knight_outpost_scores};
 use rusty_rival::fen::get_position;
-use rusty_rival::types::{BLACK, Score, WHITE};
+use rusty_rival::types::{BLACK, default_evaluate_cache, Score, WHITE};
 use rusty_rival::utils::{invert_fen, invert_pos};
 
 fn test_doubled_pawns(fen: &str, score: Score) {
     let position = get_position(fen);
-    assert_eq!(doubled_and_isolated_pawn_score(&position), score);
+    assert_eq!(doubled_and_isolated_pawn_score(&position, &mut default_evaluate_cache()), score);
 
     let position = get_position(&invert_fen(fen));
-    assert_eq!(doubled_and_isolated_pawn_score(&position), -score);
+    assert_eq!(doubled_and_isolated_pawn_score(&position, &mut default_evaluate_cache()), -score);
 }
 
 #[test]
@@ -49,10 +49,10 @@ fn it_gets_material_advantage() {
 
 fn test_passed_pawns(fen: &str, score: Score) {
     let position = get_position(fen);
-    assert_eq!(passed_pawn_score(&position), score);
+    assert_eq!(passed_pawn_score(&position, &mut default_evaluate_cache()), score);
 
     let position = get_position(&invert_fen(fen));
-    assert_eq!(passed_pawn_score(&position), -score);
+    assert_eq!(passed_pawn_score(&position, &mut default_evaluate_cache()), -score);
 }
 
 #[test]
@@ -112,10 +112,10 @@ fn it_gets_the_passed_pawn_score() {
 
 fn test_knight_outposts(fen: &str, score: Score) {
     let position = get_position(fen);
-    assert_eq!(knight_outpost_scores(&position), score);
+    assert_eq!(knight_outpost_scores(&position, &mut default_evaluate_cache()), score);
 
     let position = get_position(&invert_fen(fen));
-    assert_eq!(knight_outpost_scores(&position), -score);
+    assert_eq!(knight_outpost_scores(&position, &mut default_evaluate_cache()), -score);
 }
 
 #[test]
