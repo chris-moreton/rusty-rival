@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, BETA_PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MAX_DEPTH};
+use crate::engine_constants::{DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, BETA_PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MAX_DEPTH, IID_SEARCH_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH};
 use crate::evaluate::{evaluate, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -261,7 +261,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_version = 0;
     let mut best_movescore: MoveScore = (0,-MATE_SCORE);
 
-    let hash_move = match search_state.hash_table_height.get(index) {
+    let mut hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
             if x.lock == position.zobrist_lock {
                 let score = match x.score {
@@ -345,6 +345,10 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let these_extentions = min(extension_limit, if in_check { 1 } else { 0 });
 
     let real_depth = depth + these_extentions;
+
+    if hash_move == 0 && depth > IID_MIN_DEPTH {
+        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0, extension_limit).0[0];
+    }
 
     let these_moves = if verify_move(position, hash_move) {
         let mut new_position = *position;
@@ -475,7 +479,7 @@ fn make_null_move(new_position: &mut Position) {
 }
 
 #[inline(always)]
-fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &mut Position, lmr: u8, extension_limit: u8) -> PathScore {
+fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &Position, lmr: u8, extension_limit: u8) -> PathScore {
     search_state.history.push(new_position.zobrist_lock);
     let path_score = search(new_position, depth - 1 - lmr, ply + 1, window, search_state, extension_limit);
     search_state.history.pop();

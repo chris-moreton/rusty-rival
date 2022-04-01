@@ -18,6 +18,12 @@ use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
     match l {
+        "bl1" => "position fen 6k1/5pp1/5b1p/1Pp1pP2/2Pq4/3p1Q2/3B1PPP/r4RK1 w - - 2 34",
+        "bl2" => "position fen 6k1/3q1pp1/5b1p/1Pp1pP2/2Pp4/3Q4/5PPP/r1B2RK1 w - - 0 32", // d3f3 is a blunder, bm d3e4
+
+        "bl4" => "position fen 2r3k1/3q1pp1/p7/3n2R1/2Nb3p/1Pp2P1P/P1Q5/K3R3 w - - 0 35", // bm a3
+        "bl5" => "position fen 2r3k1/3q1p2/p5p1/3n4/2Nb3R/1Pp2P1P/P1Q5/K3R3 b - - 0 36", // bm Nb4
+
         "p3" => "position fen 8/6nk/8/1p2P1Q1/1P4PP/P4q2/8/6K1 w - - 3 56",
         "p5" => "position fen 2r5/p2Qbkpp/4p3/5p2/2P4q/P2P2N1/1r3P1P/R3K2b w Q - 0 20",
         "mate201" => "position fen 8/8/8/8/4Q3/2P4k/8/5K2 w - - 0 1",
@@ -260,7 +266,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 }
 
 fn cmd_uci() -> Either<String, Option<String>> {
-    Right(Some("id name Rusty Rival |20220401-04-Insufficient-Material-Pawn-Fox|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
+    Right(Some("id name Rusty Rival |20220401-05-IID-NullMoveReduce-3|\nid author Chris Moreton\noption name Clear Hash type button\nuciok".parse().unwrap()))
 }
 
 fn cmd_isready() -> Either<String, Option<String>> {
