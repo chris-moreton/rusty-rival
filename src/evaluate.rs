@@ -24,17 +24,18 @@ pub const KING_THREAT_BONUS: Score = 5;
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {
 
-    let piece_count = position.pieces[WHITE as usize].all_pieces_bitboard.count_ones() + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones();
-    if piece_count == 2 {
-        return 0;
+    let mut cache = default_evaluate_cache();
+
+    if insufficient_material(position, &mut cache) {
+        return 0
     }
 
-    let mut cache = default_evaluate_cache();
+    cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones() + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
 
     let score =
         material_score(position) +
         piece_square_values(position) +
-        king_score(position, piece_count) +
+        king_score(position, &mut cache) +
         king_threat_score(position) +
         rook_eval(position) +
         passed_pawn_score(position, &mut cache) +
@@ -42,6 +43,37 @@ pub fn evaluate(position: &Position) -> Score {
         doubled_and_isolated_pawn_score(position, &mut cache);
 
     10 + if position.mover == WHITE { score } else { -score }
+}
+
+#[inline(always)]
+pub fn insufficient_material(position: &Position, cache: &mut EvaluateCache) -> bool {
+
+    if cache.piece_count == 2 {
+        return true;
+    }
+
+    let w = position.pieces[WHITE as usize];
+    let b = position.pieces[BLACK as usize];
+
+    let major_bitboard = w.queen_bitboard | w.rook_bitboard | b.queen_bitboard | b.rook_bitboard;
+
+    if major_bitboard != 0 {
+        return false;
+    }
+
+    if (w.bishop_bitboard | w.knight_bitboard | b.bishop_bitboard | b.knight_bitboard).count_ones() == 1 {
+        return true;
+    }
+
+    return w.knight_bitboard == 0 && b.knight_bitboard == 0 &&
+        w.bishop_bitboard.count_ones() == 1 && b.bishop_bitboard.count_ones() == 1 &&
+        single_bishop_square_colour(w.bishop_bitboard) == single_bishop_square_colour(b.bishop_bitboard)
+
+}
+
+#[inline(always)]
+pub fn single_bishop_square_colour(bb: Bitboard) -> Mover {
+    if bb & DARK_SQUARES_BITS != 0 { BLACK } else { WHITE }
 }
 
 #[inline(always)]
@@ -104,10 +136,10 @@ pub fn king_threat_score(position: &Position) -> Score {
 }
 
 #[inline(always)]
-pub fn king_score(position: &Position, piece_count: u32) -> Score {
+pub fn king_score(position: &Position, cache: &EvaluateCache) -> Score {
     let mut score = 0;
 
-    if piece_count > 10 {
+    if cache.piece_count > 10 {
         score += king_early_safety(position);
     }
 

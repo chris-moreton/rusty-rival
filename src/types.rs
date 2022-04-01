@@ -100,6 +100,7 @@ pub fn default_search_state() -> SearchState {
 }
 
 pub struct EvaluateCache {
+    pub piece_count: u8,
     pub white_pawn_files: Option<u8>,
     pub black_pawn_files: Option<u8>,
     pub white_pawn_attacks: Option<Bitboard>,
@@ -112,6 +113,7 @@ pub struct EvaluateCache {
 
 pub fn default_evaluate_cache() -> EvaluateCache {
     EvaluateCache {
+        piece_count: 0,
         white_pawn_files: None,
         black_pawn_files: None,
         white_pawn_attacks: None,

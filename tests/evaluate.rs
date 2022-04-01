@@ -1,6 +1,6 @@
 use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER};
-use rusty_rival::evaluate::{on_same_file_count, material_score, doubled_and_isolated_pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY, king_threat_score, KING_THREAT_BONUS, VALUE_KNIGHT_OUTPOST, knight_outpost_scores};
+use rusty_rival::evaluate::{on_same_file_count, material_score, doubled_and_isolated_pawn_score, isolated_pawn_count, white_king_early_safety, black_king_early_safety, passed_pawn_score, DOUBLED_PAWN_PENALTY, VALUE_PASSED_PAWN_BONUS, VALUE_GUARDED_PASSED_PAWN, ISOLATED_PAWN_PENALTY, king_threat_score, KING_THREAT_BONUS, VALUE_KNIGHT_OUTPOST, knight_outpost_scores, insufficient_material};
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{BLACK, default_evaluate_cache, Score, WHITE};
 use rusty_rival::utils::{invert_fen, invert_pos};
@@ -11,6 +11,35 @@ fn test_doubled_pawns(fen: &str, score: Score) {
 
     let position = get_position(&invert_fen(fen));
     assert_eq!(doubled_and_isolated_pawn_score(&position, &mut default_evaluate_cache()), -score);
+}
+
+fn test_insufficient_material(fen: &str, result: bool) {
+    let mut cache = default_evaluate_cache();
+
+    let position = get_position(fen);
+    cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones() + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
+
+    assert_eq!(insufficient_material(&position, &mut cache), result);
+
+    let position = get_position(&invert_fen(fen));
+    cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones() + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
+    assert_eq!(insufficient_material(&position, &mut cache), result);
+}
+
+#[test]
+fn it_knows_insufficient_material() {
+    test_insufficient_material("r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/6P1/PPPPP1P1/R1BQ1RK1 w kq - 0 1", false);
+    test_insufficient_material("r1b1kb2/6p1/ppn5/3N3p/4N1n1/6P1/PP1PP3/R2Q1RK1 w q - 0 1", false);
+    test_insufficient_material("2b1k3/6p1/2n5/3N4/8/8/3PP3/R4RK1 w - - 0 1", false);
+    test_insufficient_material("2b1k3/8/2n5/3N4/8/8/8/R5K1 w - - 0 1", false);
+    test_insufficient_material("2b1k3/8/2n5/3N4/8/8/8/6K1 w - - 0 1", false);
+    test_insufficient_material("4k3/8/2n5/3N4/8/8/8/6K1 w - - 0 1", false);
+    test_insufficient_material("4k3/8/2n5/8/8/8/8/6K1 w - - 0 1", true);
+    test_insufficient_material("4k3/8/2n5/8/4B3/8/8/6K1 w - - 0 1", false);
+    test_insufficient_material("4k3/8/8/8/4B3/8/8/6K1 w - - 0 1", true);
+    test_insufficient_material("4k3/8/8/8/8/8/8/6K1 w - - 0 1", true);
+    test_insufficient_material("4k3/2b5/8/8/4B3/8/8/6K1 w - - 0 1", false);
+    test_insufficient_material("4k3/8/8/8/2b1B3/8/8/6K1 w - - 0 1", true);
 }
 
 #[test]
