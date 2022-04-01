@@ -98,19 +98,17 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         let to_square = to_square_part(m);
         if to_square >= 48 || to_square <= 15 {
             PAWN_PUSH_1
-        } else {
-            if position.mover == WHITE {
-                if (40..=47).contains(&to_square) &&position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0 {
-                    PAWN_PUSH_2
-                } else {
-                    0
-                }
+        } else if position.mover == WHITE {
+            if (40..=47).contains(&to_square) &&position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0 {
+                PAWN_PUSH_2
             } else {
-                if (16..=23).contains(&to_square) && position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0 {
-                    PAWN_PUSH_2
-                } else {
-                    0
-                }
+                0
+            }
+        } else {
+            if (16..=23).contains(&to_square) && position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0 {
+                PAWN_PUSH_2
+            } else {
+                0
             }
         }
     } else {

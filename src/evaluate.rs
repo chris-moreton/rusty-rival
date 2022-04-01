@@ -4,8 +4,8 @@ use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_ADJUST_MAX_MATERI
 use crate::{get_and_unset_lsb, opponent};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
-use crate::types::{Bitboard, BLACK, Mover, Pieces, Position, Score, WHITE, Square, EvaluateCache, default_evaluate_cache};
-use crate::utils::{linear_scale, show_bitboard};
+use crate::types::{Bitboard, BLACK, Mover, Position, Score, WHITE, Square, EvaluateCache, default_evaluate_cache};
+use crate::utils::{linear_scale};
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8, 9, 10, 11, 12, 12];
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
@@ -191,15 +191,6 @@ pub fn black_king_early_safety(position: &Position) -> Score {
         }
     }
     score
-}
-
-#[inline(always)]
-pub fn material(pieces: &Pieces) -> Score {
-    (pieces.pawn_bitboard.count_ones() as Score * PAWN_VALUE +
-    pieces.knight_bitboard.count_ones() as Score * KNIGHT_VALUE +
-    pieces.rook_bitboard.count_ones() as Score * ROOK_VALUE +
-    pieces.bishop_bitboard.count_ones() as Score * BISHOP_VALUE +
-    pieces.queen_bitboard.count_ones() as Score * QUEEN_VALUE) as Score
 }
 
 #[inline(always)]

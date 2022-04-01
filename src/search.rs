@@ -1,8 +1,9 @@
+use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEBUG, DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, BETA_PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MAX_DEPTH};
-use crate::evaluate::{evaluate, material_score, pawn_material, piece_material};
+use crate::engine_constants::{DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, BETA_PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MAX_DEPTH};
+use crate::evaluate::{evaluate, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
 use crate::make_move::make_move;
@@ -123,7 +124,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         search_state.iterative_depth = iterative_depth;
 
         loop {
-            let mut aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
+            let aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window, extension_limit);
             if time_expired!(search_state) {
                 return search_state.current_best.0[0]
             }
@@ -135,12 +136,10 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                 c += 1;
                 if c == aspiration_radius.len() {
                     aspiration_window = (-MATE_SCORE, MATE_SCORE);
-                } else {
-                    if aspire_best.1 <= aspiration_window.0 {
-                        aspiration_window.0 = max(-MATE_SCORE, aspiration_window.0 - aspiration_radius[c]);
-                    } else if aspire_best.1 >= aspiration_window.1 {
-                        aspiration_window.1 = min(MATE_SCORE, aspiration_window.1 + aspiration_radius[c]);
-                    };
+                } else if aspire_best.1 <= aspiration_window.0 {
+                    aspiration_window.0 = max(-MATE_SCORE, aspiration_window.0 - aspiration_radius[c]);
+                } else if aspire_best.1 >= aspiration_window.1 {
+                    aspiration_window.1 = min(MATE_SCORE, aspiration_window.1 + aspiration_radius[c]);
                 }
             };
 
@@ -223,7 +222,7 @@ pub fn store_hash_entry(index: usize, lock: HashLock, height: u8, existing_heigh
 fn is_end_game(position: &Position) -> bool {
     let piece_material = piece_material(position, WHITE) + piece_material(position, BLACK);
     let pawn_material = pawn_material(position, WHITE) + pawn_material(position, BLACK);
-    return piece_material + pawn_material < ROOK_VALUE * 4;
+    piece_material + pawn_material < ROOK_VALUE * 4
 }
 
 #[inline(always)]
@@ -395,11 +394,10 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             let lmr = if these_extentions == 0 &&
                 legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT &&
                 real_depth > LMR_MIN_DEPTH &&
-                !is_check(&new_position, new_position.mover) &&
                 !is_capture &&
+                !search_state.killer_moves[ply as usize].contains(m.borrow()) &&
                 !pawn_push(position, m) &&
-                search_state.killer_moves[ply as usize][0] != m &&
-                search_state.killer_moves[ply as usize][1] != m
+                !is_check(&new_position, new_position.mover)
             {
                 LMR_REDUCTION
             } else {
@@ -430,7 +428,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     }
 
     if legal_move_count == 0 {
-        if is_check(position, position.mover) {
+        if in_check {
             best_movescore.1 = -MATE_SCORE + ply as Score
         } else {
             best_movescore.1 = draw_value(position)

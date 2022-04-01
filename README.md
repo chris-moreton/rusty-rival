@@ -2,12 +2,12 @@
 
 A [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) chess engine written in Rust.
 
+```
+RUSTFLAGS="-C target-cpu=native" cargo run --release
+
 ## Running Perft
 
 Use *perft*, to determine the total number of positions encountered while playing through every move and every response to a certain depth.
-
-```
-cargo run --release
 
 position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
 READY

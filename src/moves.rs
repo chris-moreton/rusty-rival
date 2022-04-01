@@ -261,7 +261,7 @@ pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked
     let enemy = position.pieces[opponent!(attacked) as usize];
 
     enemy.pawn_bitboard & PAWN_MOVES_CAPTURE[attacked as usize][attacked_square as usize] != 0 ||
-    enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0 ||
+    (enemy.knight_bitboard > 0 && enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0) ||
     bit(enemy.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0 || {
         let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
         is_square_attacked_by_straight_slider(enemy.rook_bitboard | enemy.queen_bitboard, attacked_square, all_pieces) ||
@@ -271,12 +271,14 @@ pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked
 
 #[inline(always)]
 pub fn is_square_attacked_by_straight_slider(attacking_sliders: Bitboard, attacked_square: Square, all_pieces: Bitboard) -> bool {
+    attacking_sliders > 0 &&
     ROOK_RAYS[attacked_square as usize] & attacking_sliders > 0 && // any sliders on the rays, worth checking properly?
     magic_moves_rook(attacked_square, all_pieces) & attacking_sliders != 0
 }
 
 #[inline(always)]
 pub fn is_square_attacked_by_diagonal_slider(attacking_sliders: Bitboard, attacked_square: Square, all_pieces: Bitboard) -> bool {
+    attacking_sliders > 0 &&
     BISHOP_RAYS[attacked_square as usize] & attacking_sliders > 0 && // any sliders on the rays, worth checking properly?
     magic_moves_bishop(attacked_square, all_pieces) & attacking_sliders != 0
 }
