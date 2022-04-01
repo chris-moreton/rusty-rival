@@ -40,6 +40,7 @@ fn it_knows_insufficient_material() {
     test_insufficient_material("4k3/8/8/8/8/8/8/6K1 w - - 0 1", true);
     test_insufficient_material("4k3/2b5/8/8/4B3/8/8/6K1 w - - 0 1", false);
     test_insufficient_material("4k3/8/8/8/2b1B3/8/8/6K1 w - - 0 1", true);
+    test_insufficient_material("4k3/4p3/8/8/2b1B3/8/4PP2/6K1 w - - 0 1", false);
 }
 
 #[test]

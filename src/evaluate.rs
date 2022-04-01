@@ -55,9 +55,9 @@ pub fn insufficient_material(position: &Position, cache: &mut EvaluateCache) -> 
     let w = position.pieces[WHITE as usize];
     let b = position.pieces[BLACK as usize];
 
-    let major_bitboard = w.queen_bitboard | w.rook_bitboard | b.queen_bitboard | b.rook_bitboard;
+    let non_minor_bitboard = w.pawn_bitboard | b.pawn_bitboard | w.queen_bitboard | w.rook_bitboard | b.queen_bitboard | b.rook_bitboard;
 
-    if major_bitboard != 0 {
+    if non_minor_bitboard != 0 {
         return false;
     }
 

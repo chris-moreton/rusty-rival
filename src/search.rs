@@ -352,7 +352,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
-            let score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions);
+            let score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0, extension_limit - these_extentions).1;
             check_time!(search_state);
             if score > best_movescore.1 {
                 best_movescore = (hash_move, score);
@@ -444,14 +444,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extension_limit: u8, alpha: Score, beta: Score, scout_search: bool, these_extentions: u8, real_depth: u8, new_position: &mut Position) -> Score {
     loop {
         let score = if scout_search {
-            let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha-1, -alpha), new_position, lmr, extension_limit - these_extentions);
+            let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha-1, -alpha), new_position, lmr, extension_limit - these_extentions).1;
             if scout_score > alpha {
-                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions)
+                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions).1
             } else {
                 alpha
             }
         } else {
-            search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions)
+            search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions).1
         };
         if lmr == 0 || score < beta {
             break score
@@ -473,12 +473,11 @@ fn make_null_move(new_position: &mut Position) {
 }
 
 #[inline(always)]
-fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &mut Position, lmr: u8, extension_limit: u8) -> Score {
+fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &mut Position, lmr: u8, extension_limit: u8) -> PathScore {
     search_state.history.push(new_position.zobrist_lock);
-    let s = -search(new_position, depth - 1 - lmr, ply + 1, window, search_state, extension_limit).1;
-    let score = s;
+    let path_score = search(new_position, depth - 1 - lmr, ply + 1, window, search_state, extension_limit);
     search_state.history.pop();
-    score
+    (path_score.0, -path_score.1)
 }
 
 #[inline(always)]
