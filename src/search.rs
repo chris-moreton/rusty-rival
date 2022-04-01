@@ -404,7 +404,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 0
             };
 
-            let score = lmr_scout_search(lmr, ply, search_state, extension_limit, alpha, beta, scout_search, these_extentions, real_depth, &mut new_position);
+            let path_score = lmr_scout_search(lmr, ply, search_state, extension_limit, alpha, beta, scout_search, these_extentions, real_depth, &mut new_position);
+            let score = path_score.1;
 
             check_time!(search_state);
             if score < alpha {
@@ -441,20 +442,21 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 }
 
 #[inline(always)]
-fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extension_limit: u8, alpha: Score, beta: Score, scout_search: bool, these_extentions: u8, real_depth: u8, new_position: &mut Position) -> Score {
+fn lmr_scout_search(mut lmr: u8, ply: u8, search_state: &mut SearchState, extension_limit: u8, alpha: Score, beta: Score, scout_search: bool, these_extentions: u8, real_depth: u8, new_position: &mut Position) -> PathScore {
     loop {
-        let score = if scout_search {
-            let scout_score = search_wrapper(real_depth, ply, search_state, (-alpha-1, -alpha), new_position, lmr, extension_limit - these_extentions).1;
-            if scout_score > alpha {
-                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions).1
+        let path_score = if scout_search {
+            let scout_path = search_wrapper(real_depth, ply, search_state, (-alpha-1, -alpha), new_position, lmr, extension_limit - these_extentions);
+            if scout_path.1 > alpha {
+                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions)
             } else {
-                alpha
+                (vec![0], alpha)
             }
         } else {
-            search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions).1
+            search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, extension_limit - these_extentions)
         };
+        let score = path_score.1;
         if lmr == 0 || score < beta {
-            break score
+            break path_score
         } else {
             // search to normal depth because score was >= beta
             lmr = 0
