@@ -247,7 +247,6 @@ pub fn iterative_deepening(
 
     for iterative_depth in 1..=max_depth {
         let mut c = 0;
-        let extension_limit = iterative_depth;
         search_state.iterative_depth = iterative_depth;
 
         loop {
@@ -256,7 +255,6 @@ pub fn iterative_deepening(
                 &mut legal_moves,
                 search_state,
                 aspiration_window,
-                extension_limit,
             );
             if time_expired!(search_state) {
                 return search_state.current_best.0[0];
@@ -320,7 +318,6 @@ pub fn start_search(
     legal_moves: &mut MoveScoreList,
     search_state: &mut SearchState,
     aspiration_window: Window,
-    extension_limit: u8,
 ) -> PathScore {
     let mut current_best: PathScore = (vec![legal_moves[0].0], -MATE_SCORE);
 
@@ -335,7 +332,6 @@ pub fn start_search(
             1,
             (-aspiration_window.1, -aspiration_window.0),
             search_state,
-            extension_limit,
         );
         path_score.1 = -path_score.1;
 
@@ -400,7 +396,6 @@ pub fn search(
     ply: u8,
     window: Window,
     search_state: &mut SearchState,
-    extension_limit: u8,
 ) -> PathScore {
     check_time!(search_state);
 
@@ -545,7 +540,6 @@ pub fn search(
                 ply + 1,
                 (-beta, (-beta) + 1),
                 search_state,
-                extension_limit,
             )
             .1;
             if score >= beta {
@@ -556,7 +550,7 @@ pub fn search(
 
     let mut scout_search = false;
 
-    let these_extentions = min(extension_limit, if in_check { 1 } else { 0 });
+    let these_extentions = if in_check { 1 } else { 0 };
 
     let real_depth = depth + these_extentions;
 
@@ -568,7 +562,6 @@ pub fn search(
             (-alpha - 1, -alpha),
             position,
             0,
-            extension_limit,
         )
         .0[0];
     }
@@ -586,7 +579,6 @@ pub fn search(
                 (-beta, -alpha),
                 &new_position,
                 0,
-                extension_limit - these_extentions,
             )
             .1;
             check_time!(search_state);
@@ -668,9 +660,7 @@ pub fn search(
                 lmr,
                 ply,
                 search_state,
-                extension_limit,
-                alpha,
-                beta,
+                (alpha, beta),
                 scout_search,
                 these_extentions,
                 real_depth,
@@ -738,14 +728,14 @@ fn lmr_scout_search(
     mut lmr: u8,
     ply: u8,
     search_state: &mut SearchState,
-    extension_limit: u8,
-    alpha: Score,
-    beta: Score,
+    window: Window,
     scout_search: bool,
     these_extentions: u8,
     real_depth: u8,
     new_position: &mut Position,
 ) -> PathScore {
+    let alpha = window.0;
+    let beta = window.1;
     loop {
         let path_score = if scout_search {
             let scout_path = search_wrapper(
@@ -755,7 +745,6 @@ fn lmr_scout_search(
                 (-alpha - 1, -alpha),
                 new_position,
                 lmr,
-                extension_limit - these_extentions,
             );
             if scout_path.1 > alpha {
                 search_wrapper(
@@ -765,7 +754,6 @@ fn lmr_scout_search(
                     (-beta, -alpha),
                     new_position,
                     0,
-                    extension_limit - these_extentions,
                 )
             } else {
                 (vec![0], alpha)
@@ -778,7 +766,6 @@ fn lmr_scout_search(
                 (-beta, -alpha),
                 new_position,
                 0,
-                extension_limit - these_extentions,
             )
         };
         let score = path_score.1;
@@ -810,7 +797,6 @@ fn search_wrapper(
     window: Window,
     new_position: &Position,
     lmr: u8,
-    extension_limit: u8,
 ) -> PathScore {
     search_state.history.push(new_position.zobrist_lock);
     let path_score = search(
@@ -819,7 +805,6 @@ fn search_wrapper(
         ply + 1,
         window,
         search_state,
-        extension_limit,
     );
     search_state.history.pop();
     (path_score.0, -path_score.1)
