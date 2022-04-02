@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGALMOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, BETA_PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MAX_DEPTH, IID_SEARCH_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH};
+use crate::engine_constants::{DEPTH_REMAINING_FOR_RD_INCREASE, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, BETA_PRUNE_MARGIN_PER_DEPTH, QUEEN_VALUE, ROOK_VALUE, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MAX_DEPTH, IID_SEARCH_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH};
 use crate::evaluate::{evaluate, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_KEYS_EN_PASSANT};
@@ -396,7 +396,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             }
 
             let lmr = if these_extentions == 0 &&
-                legal_move_count > LMR_LEGALMOVES_BEFORE_ATTEMPT &&
+                legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT &&
                 real_depth > LMR_MIN_DEPTH &&
                 !is_capture &&
                 !search_state.killer_moves[ply as usize].contains(m.borrow()) &&

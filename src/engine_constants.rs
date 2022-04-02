@@ -41,7 +41,7 @@ pub const IID_MIN_DEPTH: u8 = 5;
 pub const IID_SEARCH_DEPTH: u8 = 2;
 pub const IID_REDUCE_DEPTH: u8 = 1;
 
-pub const LMR_LEGALMOVES_BEFORE_ATTEMPT: u8 = 4;
+pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 4;
 pub const LMR_MIN_DEPTH: u8 = 3;
 pub const LMR_REDUCTION: u8 = 2;
 
