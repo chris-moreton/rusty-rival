@@ -1,4 +1,4 @@
-use either::{Either, Left, Right};
+use either::{Left, Right};
 use rusty_rival::types::{default_search_state, default_uci_state};
 use rusty_rival::uci::run_command_test;
 

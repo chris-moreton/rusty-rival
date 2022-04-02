@@ -4,7 +4,7 @@ use rusty_rival::fen::get_position;
 use rusty_rival::move_constants::START_POS;
 use rusty_rival::types::{default_search_state, default_uci_state, BoundType, HashEntry};
 use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
-use std::cmp::{max, min};
+use std::cmp::{max};
 use std::time::Instant;
 
 #[test]
@@ -192,7 +192,7 @@ fn test_wtime_btime(fen: &str, cmd: &str, max_millis: u128) {
     let start = Instant::now();
     let result = run_command_test(&mut uci_state, &mut search_state, cmd);
     let millis = (Instant::now() - start).as_millis();
-    let adjusted_max_millis: u128 = max(10, (max_millis - UCI_MILLIS_REDUCTION));
+    let adjusted_max_millis: u128 = max(10, max_millis - UCI_MILLIS_REDUCTION);
     println!("{}", millis);
     assert!(millis as f64 > adjusted_max_millis as f64 * 0.9 && millis <= max_millis);
     assert_success_message(result, |message| message.contains("bestmove"));
