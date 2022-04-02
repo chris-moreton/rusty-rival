@@ -1,6 +1,6 @@
-use std::time::Instant;
 use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
+use std::time::Instant;
 
 pub type Square = i8;
 pub type Bitboard = u64;
@@ -78,16 +78,23 @@ pub fn default_search_state() -> SearchState {
         start_time: Instant::now(),
         end_time: Instant::now(),
         iterative_depth: 0,
-        hash_table_height: Box::try_from(vec![HashEntry {
-            score: 0,
-            version: 0,
-            height: 0,
-            mv: 0,
-            bound: BoundType::Exact,
-            lock: 0
-        }; NUM_HASH_ENTRIES as usize].into_boxed_slice()).unwrap(),
+        hash_table_height: Box::try_from(
+            vec![
+                HashEntry {
+                    score: 0,
+                    version: 0,
+                    height: 0,
+                    mv: 0,
+                    bound: BoundType::Exact,
+                    lock: 0
+                };
+                NUM_HASH_ENTRIES as usize
+            ]
+            .into_boxed_slice(),
+        )
+        .unwrap(),
         hash_table_version: 1,
-        killer_moves: [[0,0]; MAX_DEPTH as usize],
+        killer_moves: [[0, 0]; MAX_DEPTH as usize],
         mate_killer: [0; MAX_DEPTH as usize],
         history_moves: [[[0; 64]; 64]; 12],
         highest_history_score: 0,
@@ -137,33 +144,47 @@ pub struct HashEntry {
 
 #[macro_export]
 macro_rules! opponent {
-    ($a:expr) => { $a ^ 1 }
+    ($a:expr) => {
+        $a ^ 1
+    };
 }
 
 #[macro_export]
 macro_rules! unset_lsb {
-    ($a:expr) => { $a &= $a - 1 }
+    ($a:expr) => {
+        $a &= $a - 1
+    };
 }
 
 #[macro_export]
 macro_rules! get_and_unset_lsb {
-    ($a:expr) => {
-        {
-            let lsb = $a.trailing_zeros() as Square;
-            $a &= $a - 1;
-            lsb
-        }
-    }
+    ($a:expr) => {{
+        let lsb = $a.trailing_zeros() as Square;
+        $a &= $a - 1;
+        lsb
+    }};
 }
 
 pub const WHITE: Mover = 0;
 pub const BLACK: Mover = 1;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub enum Piece { Pawn, King, Queen, Bishop, Knight, Rook, Empty }
+pub enum Piece {
+    Pawn,
+    King,
+    Queen,
+    Bishop,
+    Knight,
+    Rook,
+    Empty,
+}
 
 #[derive(Debug, PartialEq)]
-pub enum BoundType { Exact, Lower, Upper }
+pub enum BoundType {
+    Exact,
+    Lower,
+    Upper,
+}
 
 impl Clone for BoundType {
     fn clone(&self) -> Self {
@@ -171,21 +192,33 @@ impl Clone for BoundType {
     }
 }
 
-impl Copy for BoundType { }
+impl Copy for BoundType {}
 
 #[inline(always)]
-pub fn unset_white_castles(position: &mut Position) { position.castle_flags &= !(WK_CASTLE | WQ_CASTLE) }
+pub fn unset_white_castles(position: &mut Position) {
+    position.castle_flags &= !(WK_CASTLE | WQ_CASTLE)
+}
 #[inline(always)]
-pub fn unset_black_castles(position: &mut Position) { position.castle_flags &= !(BK_CASTLE | BQ_CASTLE) }
+pub fn unset_black_castles(position: &mut Position) {
+    position.castle_flags &= !(BK_CASTLE | BQ_CASTLE)
+}
 
 #[inline(always)]
-pub fn is_wk_castle_available(position: &Position) -> bool { position.castle_flags & WK_CASTLE != 0 }
+pub fn is_wk_castle_available(position: &Position) -> bool {
+    position.castle_flags & WK_CASTLE != 0
+}
 #[inline(always)]
-pub fn is_wq_castle_available(position: &Position) -> bool { position.castle_flags & WQ_CASTLE != 0 }
+pub fn is_wq_castle_available(position: &Position) -> bool {
+    position.castle_flags & WQ_CASTLE != 0
+}
 #[inline(always)]
-pub fn is_bk_castle_available(position: &Position) -> bool { position.castle_flags & BK_CASTLE != 0 }
+pub fn is_bk_castle_available(position: &Position) -> bool {
+    position.castle_flags & BK_CASTLE != 0
+}
 #[inline(always)]
-pub fn is_bq_castle_available(position: &Position) -> bool { position.castle_flags & BQ_CASTLE != 0 }
+pub fn is_bq_castle_available(position: &Position) -> bool {
+    position.castle_flags & BQ_CASTLE != 0
+}
 
 #[derive(Debug, Copy, Clone)]
 pub struct Pieces {
@@ -195,18 +228,18 @@ pub struct Pieces {
     pub queen_bitboard: Bitboard,
     pub king_square: Square,
     pub rook_bitboard: Bitboard,
-    pub all_pieces_bitboard: Bitboard
+    pub all_pieces_bitboard: Bitboard,
 }
 
 impl PartialEq for Pieces {
     fn eq(&self, other: &Self) -> bool {
-        self.pawn_bitboard == other.pawn_bitboard &&
-        self.knight_bitboard == other.knight_bitboard &&
-        self.bishop_bitboard == other.bishop_bitboard &&
-        self.queen_bitboard == other.queen_bitboard &&
-        self.king_square == other.king_square &&
-        self.rook_bitboard == other.rook_bitboard &&
-        self.all_pieces_bitboard == other.all_pieces_bitboard
+        self.pawn_bitboard == other.pawn_bitboard
+            && self.knight_bitboard == other.knight_bitboard
+            && self.bishop_bitboard == other.bishop_bitboard
+            && self.queen_bitboard == other.queen_bitboard
+            && self.king_square == other.king_square
+            && self.rook_bitboard == other.rook_bitboard
+            && self.all_pieces_bitboard == other.all_pieces_bitboard
     }
 }
 
@@ -223,12 +256,12 @@ pub struct Position {
 
 impl PartialEq for Position {
     fn eq(&self, other: &Self) -> bool {
-        self.pieces[0] == other.pieces[0] &&
-        self.pieces[1] == other.pieces[1] &&
-        self.mover == other.mover &&
-        self.en_passant_square == other.en_passant_square &&
-        self.castle_flags == other.castle_flags &&
-        self.half_moves == other.half_moves &&
-        self.move_number == other.move_number
+        self.pieces[0] == other.pieces[0]
+            && self.pieces[1] == other.pieces[1]
+            && self.mover == other.mover
+            && self.en_passant_square == other.en_passant_square
+            && self.castle_flags == other.castle_flags
+            && self.half_moves == other.half_moves
+            && self.move_number == other.move_number
     }
 }

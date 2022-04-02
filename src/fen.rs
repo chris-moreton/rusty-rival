@@ -1,7 +1,11 @@
 use crate::bitboards::bit;
 use crate::hash::zobrist_lock;
-use crate::move_constants::{BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE};
-use crate::types::{Bitboard, BLACK, Move, Mover, Pieces, Position, Square, WHITE};
+use crate::move_constants::{
+    BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK,
+    PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE,
+    WQ_CASTLE,
+};
+use crate::types::{Bitboard, Move, Mover, Pieces, Position, Square, BLACK, WHITE};
 use crate::utils::from_square_mask;
 
 const EN_PASSANT_UNAVAILABLE: i8 = -1;
@@ -68,35 +72,41 @@ pub fn algebraic_squareref_from_bitref(bitref: Square) -> String {
 pub fn algebraic_move_from_move(m: Move) -> String {
     let from_square = ((m >> 16) as u8 & 63) as Square;
     let to_square = (m & 63) as u8 as Square;
-    algebraic_squareref_from_bitref(from_square) + &*algebraic_squareref_from_bitref(to_square) + &*promotion_part(m)
+    algebraic_squareref_from_bitref(from_square)
+        + &*algebraic_squareref_from_bitref(to_square)
+        + &*promotion_part(m)
 }
 
 pub fn promotion_mask(piece_char: String) -> Move {
-    if piece_char == "q" { PROMOTION_QUEEN_MOVE_MASK }
-    else if piece_char == "b" { PROMOTION_BISHOP_MOVE_MASK }
-    else if piece_char == "r" { PROMOTION_ROOK_MOVE_MASK }
-    else if piece_char == "n" { PROMOTION_KNIGHT_MOVE_MASK }
-    else { 0 }
+    if piece_char == "q" {
+        PROMOTION_QUEEN_MOVE_MASK
+    } else if piece_char == "b" {
+        PROMOTION_BISHOP_MOVE_MASK
+    } else if piece_char == "r" {
+        PROMOTION_ROOK_MOVE_MASK
+    } else if piece_char == "n" {
+        PROMOTION_KNIGHT_MOVE_MASK
+    } else {
+        0
+    }
 }
 
 pub fn move_from_algebraic_move(a: String, piece_mask: Move) -> Move {
     let s = if a.len() == 4 { a + " " } else { a };
-    from_square_mask(bitref_from_algebraic_squareref(s[0..2].to_string())) | (piece_mask +
-        bitref_from_algebraic_squareref(s[2..4].to_string()) as Move +
-        promotion_mask(s[4..5].to_string()))
+    from_square_mask(bitref_from_algebraic_squareref(s[0..2].to_string()))
+        | (piece_mask
+            + bitref_from_algebraic_squareref(s[2..4].to_string()) as Move
+            + promotion_mask(s[4..5].to_string()))
 }
 
 pub fn promotion_part(m: Move) -> String {
     if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_QUEEN_MOVE_MASK {
         "q".to_string()
-    }
-    else if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_ROOK_MOVE_MASK {
+    } else if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_ROOK_MOVE_MASK {
         "r".to_string()
-    }
-    else if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_BISHOP_MOVE_MASK {
+    } else if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_BISHOP_MOVE_MASK {
         "b".to_string()
-    }
-    else if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_KNIGHT_MOVE_MASK {
+    } else if PROMOTION_FULL_MOVE_MASK & m == PROMOTION_KNIGHT_MOVE_MASK {
         "n".to_string()
     } else {
         "".to_string()
@@ -118,7 +128,11 @@ pub fn fen_board_part(fen: &str) -> String {
 
 pub fn get_mover(fen: &str) -> Mover {
     let m = fen_part(fen, 1);
-    if m == "w" { WHITE } else { BLACK }
+    if m == "w" {
+        WHITE
+    } else {
+        BLACK
+    }
 }
 
 pub fn piece_bitboard(fen_ranks: &[String], piece: char) -> Bitboard {
@@ -159,15 +173,39 @@ pub fn get_position(fen: &str) -> Position {
     let bq = piece_bitboard(&fen_ranks, 'q');
     let castle_part = fen_part(fen, 2);
     let mut castle_flags = 0;
-    if castle_part.contains('K') { castle_flags |= WK_CASTLE };
-    if castle_part.contains('Q') { castle_flags |= WQ_CASTLE };
-    if castle_part.contains('k') { castle_flags |= BK_CASTLE };
-    if castle_part.contains('q') { castle_flags |= BQ_CASTLE };
+    if castle_part.contains('K') {
+        castle_flags |= WK_CASTLE
+    };
+    if castle_part.contains('Q') {
+        castle_flags |= WQ_CASTLE
+    };
+    if castle_part.contains('k') {
+        castle_flags |= BK_CASTLE
+    };
+    if castle_part.contains('q') {
+        castle_flags |= BQ_CASTLE
+    };
 
     let mut position = Position {
         pieces: [
-            Pieces { pawn_bitboard: wp, knight_bitboard: wn, bishop_bitboard: wb, rook_bitboard: wr, queen_bitboard: wq, king_square: wk.trailing_zeros() as Square, all_pieces_bitboard: wp | wn | wb | wr | wq | wk },
-            Pieces { pawn_bitboard: bp, knight_bitboard: bn, bishop_bitboard: bb, rook_bitboard: br, queen_bitboard: bq, king_square: bk.trailing_zeros() as Square, all_pieces_bitboard: bp | bn | bb | br | bq | bk },
+            Pieces {
+                pawn_bitboard: wp,
+                knight_bitboard: wn,
+                bishop_bitboard: wb,
+                rook_bitboard: wr,
+                queen_bitboard: wq,
+                king_square: wk.trailing_zeros() as Square,
+                all_pieces_bitboard: wp | wn | wb | wr | wq | wk,
+            },
+            Pieces {
+                pawn_bitboard: bp,
+                knight_bitboard: bn,
+                bishop_bitboard: bb,
+                rook_bitboard: br,
+                queen_bitboard: bq,
+                king_square: bk.trailing_zeros() as Square,
+                all_pieces_bitboard: bp | bn | bb | br | bq | bk,
+            },
         ],
         mover: get_mover(fen),
         en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square,
@@ -187,7 +225,7 @@ pub fn get_piece_on_square(position: &Position, sq: Square) -> char {
     let bb = bit(sq);
 
     if position.pieces[WHITE as usize].pawn_bitboard & bb != 0 {
-       'P'
+        'P'
     } else if position.pieces[WHITE as usize].knight_bitboard & bb != 0 {
         'N'
     } else if position.pieces[WHITE as usize].queen_bitboard & bb != 0 {
@@ -247,10 +285,18 @@ pub fn get_fen(position: &Position) -> String {
     if position.castle_flags == 0 {
         fen += "-";
     } else {
-        if position.castle_flags & WK_CASTLE != 0 { fen += "K" }
-        if position.castle_flags & WQ_CASTLE != 0 { fen += "Q" }
-        if position.castle_flags & BK_CASTLE != 0 { fen += "k" }
-        if position.castle_flags & BQ_CASTLE != 0 { fen += "q" }
+        if position.castle_flags & WK_CASTLE != 0 {
+            fen += "K"
+        }
+        if position.castle_flags & WQ_CASTLE != 0 {
+            fen += "Q"
+        }
+        if position.castle_flags & BK_CASTLE != 0 {
+            fen += "k"
+        }
+        if position.castle_flags & BQ_CASTLE != 0 {
+            fen += "q"
+        }
     }
     fen += " ";
     if position.en_passant_square == EN_PASSANT_UNAVAILABLE {

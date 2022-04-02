@@ -1,8 +1,8 @@
-use std::{io};
-use std::io::BufRead;
 use either::{Left, Right};
 use rusty_rival::types::{default_search_state, default_uci_state};
 use rusty_rival::uci::run_command;
+use std::io;
+use std::io::BufRead;
 
 fn main() {
     repl();
@@ -24,12 +24,12 @@ fn repl() {
                         if let Some(m) = message {
                             println!("{}", m);
                         }
-                    },
+                    }
                     Left(error) => {
                         println!("Error: {}", error);
                     }
                 }
-            },
+            }
             Err(e) => {
                 panic!("{}", e)
             }
