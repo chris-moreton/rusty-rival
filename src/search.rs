@@ -22,7 +22,7 @@ use crate::opponent;
 use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    Bitboard, BoundType, HashEntry, HashLock, Move, MoveScore, MoveScoreList, Mover, PathScore,
+    Bitboard, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore,
     Position, Score, SearchState, Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, pawn_push, to_square_part};
@@ -349,11 +349,11 @@ pub fn start_search(
     current_best
 }
 
+
 //noinspection RsExternalLinter
 #[inline(always)]
 pub fn store_hash_entry(
-    index: usize,
-    lock: HashLock,
+    position: &Position,
     height: u8,
     existing_height: u8,
     existing_version: u32,
@@ -362,13 +362,14 @@ pub fn store_hash_entry(
     search_state: &mut SearchState,
 ) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
+        let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
         search_state.hash_table_height[index] = HashEntry {
             score: movescore.1,
             version: search_state.hash_table_version,
             height,
             mv: movescore.0,
             bound,
-            lock,
+            lock: position.zobrist_lock,
         };
     }
 }
@@ -419,7 +420,6 @@ pub fn search(
 
     let scouting = window.1 - window.0 == 1;
 
-    let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let mut alpha = window.0;
     let mut beta = window.1;
 
@@ -429,6 +429,7 @@ pub fn search(
     let mut hash_version = 0;
     let mut best_movescore: MoveScore = (0, -MATE_SCORE);
 
+    let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let mut hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
             if x.lock == position.zobrist_lock {
@@ -494,8 +495,7 @@ pub fn search(
         };
         if bound == Exact {
             store_hash_entry(
-                index,
-                position.zobrist_lock,
+                position,
                 0,
                 hash_height,
                 hash_version,
@@ -589,7 +589,6 @@ pub fn search(
                     if alpha >= beta {
                         return cutoff(
                             position,
-                            index,
                             real_depth,
                             ply,
                             search_state,
@@ -681,7 +680,6 @@ pub fn search(
                     if alpha >= beta {
                         return cutoff(
                             position,
-                            index,
                             real_depth,
                             ply,
                             search_state,
@@ -708,8 +706,7 @@ pub fn search(
     };
 
     store_hash_entry(
-        index,
-        position.zobrist_lock,
+        position,
         real_depth,
         hash_height,
         hash_version,
@@ -808,11 +805,10 @@ fn search_wrapper(
     (path_score.0, -path_score.1)
 }
 
-//noinspection RsExternalLinter
 #[inline(always)]
+//noinspection RsExternalLinter
 fn cutoff(
     position: &Position,
-    hash_index: usize,
     depth: u8,
     ply: u8,
     search_state: &mut SearchState,
@@ -823,8 +819,7 @@ fn cutoff(
     new_position: &mut Position,
 ) -> PathScore {
     store_hash_entry(
-        hash_index,
-        position.zobrist_lock,
+        position,
         depth,
         hash_height,
         hash_version,
