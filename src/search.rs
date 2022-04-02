@@ -662,7 +662,6 @@ pub fn search(
                 search_state,
                 (alpha, beta),
                 scout_search,
-                these_extentions,
                 real_depth,
                 &mut new_position,
             );
@@ -730,7 +729,6 @@ fn lmr_scout_search(
     search_state: &mut SearchState,
     window: Window,
     scout_search: bool,
-    these_extentions: u8,
     real_depth: u8,
     new_position: &mut Position,
 ) -> PathScore {
