@@ -806,7 +806,7 @@ fn search_wrapper(
 }
 
 #[inline(always)]
-//noinspection RsExternalLinter
+#[allow(clippy::too_many_arguments)]
 fn cutoff(
     position: &Position,
     depth: u8,
