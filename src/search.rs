@@ -5,7 +5,7 @@ use crate::engine_constants::{
     NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
 };
 use crate::evaluate::{evaluate, pawn_material, piece_material};
-use crate::fen::algebraic_move_from_move;
+use crate::fen::algebraic_path_from_path;
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
 use crate::move_constants::{
@@ -185,8 +185,9 @@ pub fn start_search(
         search_state.history.pop();
         mv.1 = path_score.1;
         if path_score.1 > current_best.1 && time_remains!(search_state.end_time) {
-            current_best.0[0] = mv.0;
-            current_best.1 = mv.1;
+            let mut p = vec![mv.0];
+            p.extend(path_score.0);
+            current_best = (p, mv.1);
         }
 
         if time_expired!(search_state) {
@@ -574,7 +575,15 @@ fn cutoff(
     m: Move,
     new_position: &mut Position,
 ) -> PathScore {
-    store_hash_entry(position, depth, hash_height, hash_version, Lower, (m, best_pathscore.1), search_state);
+    store_hash_entry(
+        position,
+        depth,
+        hash_height,
+        hash_version,
+        Lower,
+        (m, best_pathscore.1),
+        search_state,
+    );
     update_history(position, search_state, m, depth as i64 * depth as i64);
     update_killers(position, ply, search_state, m, new_position, best_pathscore.1);
     best_pathscore
@@ -631,14 +640,7 @@ pub fn piece_index_12(position: &Position, m: Move) -> usize {
 }
 
 #[inline(always)]
-fn update_killers(
-    position: &Position,
-    ply: u8,
-    search_state: &mut SearchState,
-    m: Move,
-    new_position: &mut Position,
-    score: Score,
-) {
+fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, new_position: &mut Position, score: Score) {
     if score > MATE_START {
         search_state.mate_killer[ply as usize] = m;
     }
@@ -771,9 +773,9 @@ fn send_info(search_state: &mut SearchState) {
             + &*" nodes ".to_string()
             + &*search_state.nodes.to_string()
             + &*" pv ".to_string()
-            + &*algebraic_move_from_move(search_state.current_best.0[0])
             + &*" nps ".to_string()
-            + &*(nps as u64).to_string();
+            + &*(nps as u64).to_string()
+            + &*algebraic_path_from_path(&search_state.current_best.0);
 
         println!("{}", s);
     }

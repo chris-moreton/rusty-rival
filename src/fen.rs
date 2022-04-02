@@ -74,6 +74,10 @@ pub fn algebraic_move_from_move(m: Move) -> String {
     algebraic_squareref_from_bitref(from_square) + &*algebraic_squareref_from_bitref(to_square) + &*promotion_part(m)
 }
 
+pub fn algebraic_path_from_path(p: &[Move]) -> String {
+    p.iter().map(|m| algebraic_move_from_move(*m) + " ").collect::<String>()
+}
+
 pub fn promotion_mask(piece_char: String) -> Move {
     if piece_char == "q" {
         PROMOTION_QUEEN_MOVE_MASK
