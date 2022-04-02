@@ -4,7 +4,7 @@ use rusty_rival::fen::get_position;
 use rusty_rival::move_constants::START_POS;
 use rusty_rival::types::{default_search_state, default_uci_state, BoundType, HashEntry};
 use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
-use std::cmp::{max};
+use std::cmp::max;
 use std::time::Instant;
 
 #[test]
