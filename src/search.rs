@@ -775,6 +775,7 @@ fn send_info(search_state: &mut SearchState) {
             + &*" pv ".to_string()
             + &*" nps ".to_string()
             + &*(nps as u64).to_string()
+            + &*" ".to_string()
             + &*algebraic_path_from_path(&search_state.current_best.0);
 
         println!("{}", s);
