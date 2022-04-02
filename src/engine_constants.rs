@@ -18,7 +18,7 @@ pub const BETA_PRUNE_MAX_DEPTH: u8 = 2;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
-pub const NULL_MOVE_REDUCE_DEPTH: u8 = 3;
+pub const NULL_MOVE_REDUCE_DEPTH: u8 = 2;
 
 pub const PAWN_ADJUST_MAX_MATERIAL: Score = (QUEEN_VALUE + ROOK_VALUE) as Score;
 pub const VALUE_KING_CANNOT_CATCH_PAWN: Score = 500;
