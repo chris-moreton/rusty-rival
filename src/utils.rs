@@ -157,14 +157,14 @@ pub fn invert_fen(fen: &str) -> String {
         .replace('c', "n")
         .replace('v', "b")
         .replace('m', "r")
-        .replace(",", "p")
+        .replace(',', "p")
         .replace(" . ", " w ")
         .replace(" ; ", " b ");
 
     let fen_parts: Vec<&str> = inverted_fen.split(' ').collect();
     let board_parts: Vec<&str> = fen_parts[0].split('/').collect();
 
-    let en_passant_part = fen_parts[3].replace("6", ".").replace("3", "6").replace(".", "3");
+    let en_passant_part = fen_parts[3].replace('6', ".").replace('3', "6").replace('.', "3");
 
     format!(
         "{}/{}/{}/{}/{}/{}/{}/{} {} {} {} {} {}",
