@@ -4,11 +4,9 @@ use rusty_rival::engine_constants::{
     VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
 };
 use rusty_rival::evaluate::{
-    black_king_early_safety, doubled_and_isolated_pawn_score, insufficient_material,
-    isolated_pawn_count, king_threat_score, knight_outpost_scores, material_score,
-    on_same_file_count, passed_pawn_score, white_king_early_safety, DOUBLED_PAWN_PENALTY,
-    ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KNIGHT_OUTPOST,
-    VALUE_PASSED_PAWN_BONUS,
+    black_king_early_safety, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count, king_threat_score,
+    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety, DOUBLED_PAWN_PENALTY,
+    ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
 };
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
@@ -16,51 +14,31 @@ use rusty_rival::utils::{invert_fen, invert_pos};
 
 fn test_doubled_pawns(fen: &str, score: Score) {
     let position = get_position(fen);
-    assert_eq!(
-        doubled_and_isolated_pawn_score(&position, &mut default_evaluate_cache()),
-        score
-    );
+    assert_eq!(doubled_and_isolated_pawn_score(&position, &mut default_evaluate_cache()), score);
 
     let position = get_position(&invert_fen(fen));
-    assert_eq!(
-        doubled_and_isolated_pawn_score(&position, &mut default_evaluate_cache()),
-        -score
-    );
+    assert_eq!(doubled_and_isolated_pawn_score(&position, &mut default_evaluate_cache()), -score);
 }
 
 fn test_insufficient_material(fen: &str, result: bool) {
     let mut cache = default_evaluate_cache();
 
     let position = get_position(fen);
-    cache.piece_count = (position.pieces[WHITE as usize]
-        .all_pieces_bitboard
-        .count_ones()
-        + position.pieces[BLACK as usize]
-            .all_pieces_bitboard
-            .count_ones()) as u8;
+    cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
 
     assert_eq!(insufficient_material(&position, &mut cache), result);
 
     let position = get_position(&invert_fen(fen));
-    cache.piece_count = (position.pieces[WHITE as usize]
-        .all_pieces_bitboard
-        .count_ones()
-        + position.pieces[BLACK as usize]
-            .all_pieces_bitboard
-            .count_ones()) as u8;
+    cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
     assert_eq!(insufficient_material(&position, &mut cache), result);
 }
 
 #[test]
 fn it_knows_insufficient_material() {
-    test_insufficient_material(
-        "r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/6P1/PPPPP1P1/R1BQ1RK1 w kq - 0 1",
-        false,
-    );
-    test_insufficient_material(
-        "r1b1kb2/6p1/ppn5/3N3p/4N1n1/6P1/PP1PP3/R2Q1RK1 w q - 0 1",
-        false,
-    );
+    test_insufficient_material("r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/6P1/PPPPP1P1/R1BQ1RK1 w kq - 0 1", false);
+    test_insufficient_material("r1b1kb2/6p1/ppn5/3N3p/4N1n1/6P1/PP1PP3/R2Q1RK1 w q - 0 1", false);
     test_insufficient_material("2b1k3/6p1/2n5/3N4/8/8/3PP3/R4RK1 w - - 0 1", false);
     test_insufficient_material("2b1k3/8/2n5/3N4/8/8/8/R5K1 w - - 0 1", false);
     test_insufficient_material("2b1k3/8/2n5/3N4/8/8/8/6K1 w - - 0 1", false);
@@ -135,16 +113,10 @@ fn it_gets_the_pawn_score() {
 
 fn test_passed_pawns(fen: &str, score: Score) {
     let position = get_position(fen);
-    assert_eq!(
-        passed_pawn_score(&position, &mut default_evaluate_cache()),
-        score
-    );
+    assert_eq!(passed_pawn_score(&position, &mut default_evaluate_cache()), score);
 
     let position = get_position(&invert_fen(fen));
-    assert_eq!(
-        passed_pawn_score(&position, &mut default_evaluate_cache()),
-        -score
-    );
+    assert_eq!(passed_pawn_score(&position, &mut default_evaluate_cache()), -score);
 }
 
 #[test]
@@ -213,46 +185,25 @@ fn it_gets_the_passed_pawn_score() {
 
 fn test_knight_outposts(fen: &str, score: Score) {
     let position = get_position(fen);
-    assert_eq!(
-        knight_outpost_scores(&position, &mut default_evaluate_cache()),
-        score
-    );
+    assert_eq!(knight_outpost_scores(&position, &mut default_evaluate_cache()), score);
 
     let position = get_position(&invert_fen(fen));
-    assert_eq!(
-        knight_outpost_scores(&position, &mut default_evaluate_cache()),
-        -score
-    );
+    assert_eq!(knight_outpost_scores(&position, &mut default_evaluate_cache()), -score);
 }
 
 #[test]
 fn it_gets_the_passed_knight_score() {
     test_knight_outposts("4k3/8/7p/1P2Pp1P/2Pp1PP1/3N4/8/4K3 w - - 0 1", 0);
-    test_knight_outposts(
-        "4k3/8/7p/4Pp1P/2Pp1PP1/3N4/2P5/4K3 w - - 0 1",
-        VALUE_KNIGHT_OUTPOST,
-    );
-    test_knight_outposts(
-        "r1b1kbnr/2p2ppp/ppn5/1B1Np3/4N3/8/PPPP1PPP/R1BQ1RK1 w kq - 0 1",
-        0,
-    );
-    test_knight_outposts(
-        "r1b1kbnr/2p2ppp/ppn5/1B1Np3/2P1N3/3P4/PP3PPP/R1BQ1RK1 w kq - 0 1",
-        0,
-    );
-    test_knight_outposts(
-        "r1b1kbnr/2p3pp/ppn3p1/1B1Np3/4N3/8/PPPP1PPP/R1BQ1RK1 w kq - 0 1",
-        0,
-    );
+    test_knight_outposts("4k3/8/7p/4Pp1P/2Pp1PP1/3N4/2P5/4K3 w - - 0 1", VALUE_KNIGHT_OUTPOST);
+    test_knight_outposts("r1b1kbnr/2p2ppp/ppn5/1B1Np3/4N3/8/PPPP1PPP/R1BQ1RK1 w kq - 0 1", 0);
+    test_knight_outposts("r1b1kbnr/2p2ppp/ppn5/1B1Np3/2P1N3/3P4/PP3PPP/R1BQ1RK1 w kq - 0 1", 0);
+    test_knight_outposts("r1b1kbnr/2p3pp/ppn3p1/1B1Np3/4N3/8/PPPP1PPP/R1BQ1RK1 w kq - 0 1", 0);
     test_knight_outposts(
         "r1b1kbnr/2p3pp/ppn3p1/1B1Np3/2P1N3/3P4/PP3PPP/R1BQ1RK1 w kq - 0 1",
         VALUE_KNIGHT_OUTPOST,
     );
 
-    test_knight_outposts(
-        "r1b1kbnr/6pp/ppn3p1/1p1Np3/4N3/8/PPPP1PPP/R1BQ1RK1 w kq - 0 1",
-        0,
-    );
+    test_knight_outposts("r1b1kbnr/6pp/ppn3p1/1p1Np3/4N3/8/PPPP1PPP/R1BQ1RK1 w kq - 0 1", 0);
     test_knight_outposts(
         "r1b1kbnr/6pp/ppn3p1/1p1Np3/4N3/3P4/PPP2PPP/R1BQ1RK1 w kq - 0 1",
         VALUE_KNIGHT_OUTPOST,
@@ -270,10 +221,7 @@ fn it_gets_the_passed_knight_score() {
         "r1b1kb1r/6pp/ppn3p1/1p1Np3/4N1n1/P2P4/PPPP2P1/R1BQ1RK1 w kq - 0 1",
         VALUE_KNIGHT_OUTPOST,
     );
-    test_knight_outposts(
-        "r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/P2P4/PPPP2P1/R1BQ1RK1 w kq - 0 1",
-        0,
-    );
+    test_knight_outposts("r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/P2P4/PPPP2P1/R1BQ1RK1 w kq - 0 1", 0);
 
     test_knight_outposts(
         "r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/6P1/PPPPP1P1/R1BQ1RK1 w kq - 0 1",
@@ -300,12 +248,7 @@ fn it_gets_the_material_score() {
     let position = get_position("r1q1k3/1R2n2p/5b2/5r2/p1Pp4/7P/1p2p3/6K1 b q - 0 1");
     assert_eq!(
         material_score(&position),
-        ROOK_VALUE + (PAWN_VALUE * 2)
-            - (ROOK_VALUE * 2)
-            - QUEEN_VALUE
-            - BISHOP_VALUE
-            - KNIGHT_VALUE
-            - (PAWN_VALUE * 5)
+        ROOK_VALUE + (PAWN_VALUE * 2) - (ROOK_VALUE * 2) - QUEEN_VALUE - BISHOP_VALUE - KNIGHT_VALUE - (PAWN_VALUE * 5)
     );
 }
 
@@ -317,10 +260,7 @@ fn test_king_threats(fen: &str, score: Score) {
 
 #[test]
 fn it_evaluates_king_threats() {
-    test_king_threats(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        0,
-    );
+    test_king_threats("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 0);
     test_king_threats(
         "rnbqkb1r/pppppppp/8/8/4n3/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1",
         -(KING_THREAT_BONUS * 2),
@@ -341,10 +281,7 @@ fn it_evaluates_king_threats() {
         "rkbq1b1r/pppppppp/5N2/8/4n2n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1",
         -(KING_THREAT_BONUS * 2),
     );
-    test_king_threats(
-        "rkbq1b1r/pppppppp/3n1N2/8/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1",
-        0,
-    );
+    test_king_threats("rkbq1b1r/pppppppp/3n1N2/8/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1", 0);
     test_king_threats(
         "rkb4r/pppppppp/3n1N2/3b1q2/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1",
         -KING_THREAT_BONUS * 3,
@@ -365,69 +302,17 @@ fn test_king_safety(fen: &str, white_score: Score, black_score: Score) {
 
 #[test]
 fn it_evaluates_king_safety() {
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        0,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/8/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1",
-        15,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/8/5NP1/PPPPPPBP/RNBQ1RK1 w kq - 0 1",
-        35,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQBRK1 w kq - 0 1",
-        45,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/8/5NPP/PPPPPPB1/RNBQ1RK1 w kq - 0 1",
-        30,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/8/5NPP/PPPPPP2/RNBQBRK1 w kq - 0 1",
-        20,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/8/3PBN2/PPPPPP1P/RNBQ1RK1 w kq - 0 1",
-        10,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/8/2PPBN2/PPPPPP2/RNBQ1RK1 w kq - 0 1",
-        5,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/2P5/2PPBN2/PPPPP3/RNBQ1RK1 w kq - 0 1",
-        0,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/8/4BN1P/PPPPPPP1/RNBQ1RK1 w kq - 0 1",
-        27,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/5P2/4BN1P/PPPPP1P1/RNBQ1RK1 w kq - 0 1",
-        15,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/5P2/4BN2/PPPPP1PP/RNBQ1RK1 w kq - 0 1",
-        32,
-        0,
-    );
-    test_king_safety(
-        "rnbqkbnr/pppppppp/8/8/4N3/4BP2/PPPPP1PP/RNBQ1RK1 w kq - 0 1",
-        22,
-        0,
-    );
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 0, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/4BNP1/PPPPPP1P/RNBQ1RK1 w kq - 0 1", 15, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/5NP1/PPPPPPBP/RNBQ1RK1 w kq - 0 1", 35, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQBRK1 w kq - 0 1", 45, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/5NPP/PPPPPPB1/RNBQ1RK1 w kq - 0 1", 30, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/5NPP/PPPPPP2/RNBQBRK1 w kq - 0 1", 20, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/3PBN2/PPPPPP1P/RNBQ1RK1 w kq - 0 1", 10, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/2PPBN2/PPPPPP2/RNBQ1RK1 w kq - 0 1", 5, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/2P5/2PPBN2/PPPPP3/RNBQ1RK1 w kq - 0 1", 0, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/8/4BN1P/PPPPPPP1/RNBQ1RK1 w kq - 0 1", 27, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/5P2/4BN1P/PPPPP1P1/RNBQ1RK1 w kq - 0 1", 15, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/5P2/4BN2/PPPPP1PP/RNBQ1RK1 w kq - 0 1", 32, 0);
+    test_king_safety("rnbqkbnr/pppppppp/8/8/4N3/4BP2/PPPPP1PP/RNBQ1RK1 w kq - 0 1", 22, 0);
 }

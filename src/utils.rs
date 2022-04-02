@@ -1,15 +1,12 @@
-use crate::bitboards::{bit, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT};
+use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, WHITE_PASSED_PAWN_MASK};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::fen::{get_fen, get_position, move_from_algebraic_move};
 use crate::move_constants::{
-    BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL,
-    PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
-    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK,
-    PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK,
-    WHITE_QUEEN_CASTLE_MOVE_MASK,
+    BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT,
+    PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK,
+    PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK,
 };
 use crate::opponent;
-use crate::search::{BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
 use crate::types::{Bitboard, Move, Position, Score, Square, BLACK, WHITE};
 
 #[inline(always)]
@@ -123,13 +120,7 @@ pub fn hydrate_move_from_algebraic_move(position: &Position, algebraic_move: Str
 }
 
 #[inline(always)]
-pub fn linear_scale(
-    value: i64,
-    domain_min: i64,
-    domain_max: i64,
-    target_min: i64,
-    target_max: i64,
-) -> i64 {
+pub fn linear_scale(value: i64, domain_min: i64, domain_max: i64, target_min: i64, target_max: i64) -> i64 {
     if value <= domain_min {
         target_min
     } else if value >= domain_max {
@@ -173,10 +164,7 @@ pub fn invert_fen(fen: &str) -> String {
     let fen_parts: Vec<&str> = inverted_fen.split(' ').collect();
     let board_parts: Vec<&str> = fen_parts[0].split('/').collect();
 
-    let en_passant_part = fen_parts[3]
-        .replace("6", ".")
-        .replace("3", "6")
-        .replace(".", "3");
+    let en_passant_part = fen_parts[3].replace("6", ".").replace("3", "6").replace(".", "3");
 
     format!(
         "{}/{}/{}/{}/{}/{}/{}/{} {} {} {} {} {}",
@@ -206,14 +194,10 @@ pub fn pawn_push(position: &Position, m: Move) -> bool {
         }
         if position.mover == WHITE {
             if (40..=47).contains(&to_square) {
-                return position.pieces[BLACK as usize].pawn_bitboard
-                    & WHITE_PASSED_PAWN_MASK[to_square as usize]
-                    == 0;
+                return position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0;
             }
         } else if (16..=23).contains(&to_square) {
-            return position.pieces[WHITE as usize].pawn_bitboard
-                & BLACK_PASSED_PAWN_MASK[to_square as usize]
-                == 0;
+            return position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0;
         }
     }
     false

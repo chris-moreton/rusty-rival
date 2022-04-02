@@ -42,22 +42,10 @@ pub fn bitboard_for_colour(position: &Position, mover: Mover, piece: Piece) -> B
 #[inline(always)]
 pub fn slider_bitboard_for_colour(position: &Position, mover: Mover, piece: &Piece) -> Bitboard {
     match (mover, piece) {
-        (WHITE, Piece::Rook) => {
-            position.pieces[WHITE as usize].rook_bitboard
-                | position.pieces[WHITE as usize].queen_bitboard
-        }
-        (WHITE, Piece::Bishop) => {
-            position.pieces[WHITE as usize].bishop_bitboard
-                | position.pieces[WHITE as usize].queen_bitboard
-        }
-        (BLACK, Piece::Rook) => {
-            position.pieces[BLACK as usize].rook_bitboard
-                | position.pieces[BLACK as usize].queen_bitboard
-        }
-        (BLACK, Piece::Bishop) => {
-            position.pieces[BLACK as usize].bishop_bitboard
-                | position.pieces[BLACK as usize].queen_bitboard
-        }
+        (WHITE, Piece::Rook) => position.pieces[WHITE as usize].rook_bitboard | position.pieces[WHITE as usize].queen_bitboard,
+        (WHITE, Piece::Bishop) => position.pieces[WHITE as usize].bishop_bitboard | position.pieces[WHITE as usize].queen_bitboard,
+        (BLACK, Piece::Rook) => position.pieces[BLACK as usize].rook_bitboard | position.pieces[BLACK as usize].queen_bitboard,
+        (BLACK, Piece::Bishop) => position.pieces[BLACK as usize].bishop_bitboard | position.pieces[BLACK as usize].queen_bitboard,
         _ => panic!("Can't handle piece"),
     }
 }
@@ -189,8 +177,7 @@ pub const fn two_bits(bit1: Square, bit2: Square) -> Bitboard {
 
 pub const ALL_64_BITS_SET: Bitboard = 18446744073709551615;
 
-pub const RANK_1_BITS: Bitboard =
-    0b0000000000000000000000000000000000000000000000000000000011111111;
+pub const RANK_1_BITS: Bitboard = 0b0000000000000000000000000000000000000000000000000000000011111111;
 pub const RANK_2_BITS: Bitboard = RANK_1_BITS << 8;
 pub const RANK_3_BITS: Bitboard = RANK_2_BITS << 8;
 pub const RANK_4_BITS: Bitboard = RANK_3_BITS << 8;
@@ -208,15 +195,12 @@ pub const G8H8_BITS: Bitboard = two_bits(G8_BIT, H8_BIT);
 pub const A8B8_BITS: Bitboard = two_bits(A8_BIT, B8_BIT);
 pub const B8C8_BITS: Bitboard = two_bits(B8_BIT, C8_BIT);
 
-pub const MIDDLE_FILES_8_BIT: Bitboard =
-    0b0000000000000000000000000000000000000000000000000000000000011000;
-pub const NONMID_FILES_8_BIT: Bitboard =
-    0b0000000000000000000000000000000000000000000000000000000011100111;
+pub const MIDDLE_FILES_8_BIT: Bitboard = 0b0000000000000000000000000000000000000000000000000000000000011000;
+pub const NONMID_FILES_8_BIT: Bitboard = 0b0000000000000000000000000000000000000000000000000000000011100111;
 
 pub const LOW_32_BITS: Bitboard = RANK_1_BITS | RANK_2_BITS | RANK_3_BITS | RANK_4_BITS;
 
-pub const DARK_SQUARES_BITS: Bitboard =
-    0b0101010110101010010101011010101001010101101010100101010110101010;
+pub const DARK_SQUARES_BITS: Bitboard = 0b0101010110101010010101011010101001010101101010100101010110101010;
 pub const LIGHT_SQUARES_BITS: Bitboard = !DARK_SQUARES_BITS;
 
 pub static KNIGHT_MOVES_BITBOARDS: &[Bitboard] = &[
@@ -755,10 +739,142 @@ pub static BISHOP_RAYS: [Bitboard; 64] = [
     9314046665258451585,
 ];
 
-pub static PAWN_MOVES_FORWARD: [[Bitboard; 64]; 2] =
-    [WHITE_PAWN_MOVES_FORWARD, BLACK_PAWN_MOVES_FORWARD];
-pub static PAWN_MOVES_CAPTURE: [[Bitboard; 64]; 2] =
-    [WHITE_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_CAPTURE];
+pub const WHITE_PASSED_PAWN_MASK: [Bitboard; 64] = [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x0003030303030000,
+    0x0007070707070000,
+    0x000E0E0E0E0E0000,
+    0x001C1C1C1C1C0000,
+    0x0038383838380000,
+    0x0070707070700000,
+    0x00E0E0E0E0E00000,
+    0x00C0C0C0C0C00000,
+    0x0003030303000000,
+    0x0007070707000000,
+    0x000E0E0E0E000000,
+    0x001C1C1C1C000000,
+    0x0038383838000000,
+    0x0070707070000000,
+    0x00E0E0E0E0000000,
+    0x00C0C0C0C0000000,
+    0x0003030300000000,
+    0x0007070700000000,
+    0x000E0E0E00000000,
+    0x001C1C1C00000000,
+    0x0038383800000000,
+    0x0070707000000000,
+    0x00E0E0E000000000,
+    0x00C0C0C000000000,
+    0x0003030000000000,
+    0x0007070000000000,
+    0x000E0E0000000000,
+    0x001C1C0000000000,
+    0x0038380000000000,
+    0x0070700000000000,
+    0x00E0E00000000000,
+    0x00C0C00000000000,
+    0x0003000000000000,
+    0x0007000000000000,
+    0x000E000000000000,
+    0x001C000000000000,
+    0x0038000000000000,
+    0x0070000000000000,
+    0x00E0000000000000,
+    0x00C0000000000000,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+];
+
+pub const BLACK_PASSED_PAWN_MASK: [Bitboard; 64] = [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x0000000000000300,
+    0x0000000000000700,
+    0x0000000000000E00,
+    0x0000000000001C00,
+    0x0000000000003800,
+    0x0000000000007000,
+    0x000000000000E000,
+    0x000000000000C000,
+    0x0000000000030300,
+    0x0000000000070700,
+    0x00000000000E0E00,
+    0x00000000001C1C00,
+    0x0000000000383800,
+    0x0000000000707000,
+    0x0000000000E0E000,
+    0x0000000000C0C000,
+    0x0000000003030300,
+    0x0000000007070700,
+    0x000000000E0E0E00,
+    0x000000001C1C1C00,
+    0x0000000038383800,
+    0x0000000070707000,
+    0x00000000E0E0E000,
+    0x00000000C0C0C000,
+    0x0000000303030300,
+    0x0000000707070700,
+    0x0000000E0E0E0E00,
+    0x0000001C1C1C1C00,
+    0x0000003838383800,
+    0x0000007070707000,
+    0x000000E0E0E0E000,
+    0x000000C0C0C0C000,
+    0x0000030303030300,
+    0x0000070707070700,
+    0x00000E0E0E0E0E00,
+    0x00001C1C1C1C1C00,
+    0x0000383838383800,
+    0x0000707070707000,
+    0x0000E0E0E0E0E000,
+    0x0000C0C0C0C0C000,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+];
+
+pub static PAWN_MOVES_FORWARD: [[Bitboard; 64]; 2] = [WHITE_PAWN_MOVES_FORWARD, BLACK_PAWN_MOVES_FORWARD];
+pub static PAWN_MOVES_CAPTURE: [[Bitboard; 64]; 2] = [WHITE_PAWN_MOVES_CAPTURE, BLACK_PAWN_MOVES_CAPTURE];
 pub static DOUBLE_MOVE_RANK_BITS: [Bitboard; 2] = [RANK_4_BITS, RANK_5_BITS];
 pub static EN_PASSANT_CAPTURE_RANK: [Bitboard; 2] = [RANK_6_BITS, RANK_3_BITS];
 
@@ -780,22 +896,10 @@ pub static NO_CHECK_CASTLE_SQUARES_BLACK_KING: Bitboard = bit(58) | bit(59);
 pub static NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN: Bitboard = bit(59) | bit(60);
 
 pub static EMPTY_CASTLE_SQUARES: [[Bitboard; 2]; 2] = [
-    [
-        EMPTY_CASTLE_SQUARES_WHITE_KING,
-        EMPTY_CASTLE_SQUARES_BLACK_KING,
-    ],
-    [
-        EMPTY_CASTLE_SQUARES_WHITE_QUEEN,
-        EMPTY_CASTLE_SQUARES_BLACK_QUEEN,
-    ],
+    [EMPTY_CASTLE_SQUARES_WHITE_KING, EMPTY_CASTLE_SQUARES_BLACK_KING],
+    [EMPTY_CASTLE_SQUARES_WHITE_QUEEN, EMPTY_CASTLE_SQUARES_BLACK_QUEEN],
 ];
 pub static NO_CHECK_CASTLE_SQUARES: [[Bitboard; 2]; 2] = [
-    [
-        NO_CHECK_CASTLE_SQUARES_WHITE_KING,
-        NO_CHECK_CASTLE_SQUARES_BLACK_KING,
-    ],
-    [
-        NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN,
-        NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN,
-    ],
+    [NO_CHECK_CASTLE_SQUARES_WHITE_KING, NO_CHECK_CASTLE_SQUARES_BLACK_KING],
+    [NO_CHECK_CASTLE_SQUARES_WHITE_QUEEN, NO_CHECK_CASTLE_SQUARES_BLACK_QUEEN],
 ];

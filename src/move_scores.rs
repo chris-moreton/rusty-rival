@@ -1,29 +1,24 @@
-use crate::bitboards::bit;
+use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_constants::{
-    PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN,
-    PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK,
-    PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
+    PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
+    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
 };
-use crate::search::{piece_index_12, BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
+use crate::search::{piece_index_12};
 use crate::types::{Move, Pieces, Position, Score, SearchState, Square, BLACK, WHITE};
 use crate::utils::{from_square_part, linear_scale, to_square_part};
 
 pub const BIT_FLIPPED_HORIZONTAL_AXIS: [Square; 64] = [
-    56, 57, 58, 59, 60, 61, 62, 63, 48, 49, 50, 51, 52, 53, 54, 55, 40, 41, 42, 43, 44, 45, 46, 47,
-    32, 33, 34, 35, 36, 37, 38, 39, 24, 25, 26, 27, 28, 29, 30, 31, 16, 17, 18, 19, 20, 21, 22, 23,
-    8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7,
+    56, 57, 58, 59, 60, 61, 62, 63, 48, 49, 50, 51, 52, 53, 54, 55, 40, 41, 42, 43, 44, 45, 46, 47, 32, 33, 34, 35, 36, 37, 38, 39, 24, 25,
+    26, 27, 28, 29, 30, 31, 16, 17, 18, 19, 20, 21, 22, 23, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7,
 ];
 
 pub const KNIGHT_STAGE_MATERIAL_LOW: Score = KNIGHT_VALUE + 8 * PAWN_VALUE;
-pub const KNIGHT_STAGE_MATERIAL_HIGH: Score =
-    QUEEN_VALUE + 2 * ROOK_VALUE + 2 * BISHOP_VALUE + 6 * PAWN_VALUE;
+pub const KNIGHT_STAGE_MATERIAL_HIGH: Score = QUEEN_VALUE + 2 * ROOK_VALUE + 2 * BISHOP_VALUE + 6 * PAWN_VALUE;
 pub const PAWN_STAGE_MATERIAL_LOW: Score = ROOK_VALUE;
 pub const PAWN_STAGE_MATERIAL_HIGH: Score = QUEEN_VALUE + 2 * ROOK_VALUE + 2 * BISHOP_VALUE;
-pub const OPENING_PHASE_MATERIAL: Score =
-    (TOTAL_PIECE_VALUE_PER_SIDE_AT_START as f32 * 0.8) as Score;
-pub const TOTAL_PIECE_VALUE_PER_SIDE_AT_START: Score =
-    KNIGHT_VALUE * 2 + BISHOP_VALUE * 2 + ROOK_VALUE * 2 + QUEEN_VALUE;
+pub const OPENING_PHASE_MATERIAL: Score = (TOTAL_PIECE_VALUE_PER_SIDE_AT_START as f32 * 0.8) as Score;
+pub const TOTAL_PIECE_VALUE_PER_SIDE_AT_START: Score = KNIGHT_VALUE * 2 + BISHOP_VALUE * 2 + ROOK_VALUE * 2 + QUEEN_VALUE;
 
 pub const PAWN_ATTACKER_BONUS: Score = 300;
 
@@ -70,13 +65,7 @@ const PAWN_PUSH_1: Score = 250;
 const PAWN_PUSH_2: Score = 50;
 
 #[inline(always)]
-pub fn score_move(
-    position: &Position,
-    m: Move,
-    search_state: &SearchState,
-    ply: usize,
-    enemy: &Pieces,
-) -> Score {
+pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
     let to_square = to_square_part(m);
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
@@ -130,18 +119,14 @@ pub fn score_move(
             PAWN_PUSH_1
         } else if position.mover == WHITE {
             if (40..=47).contains(&to_square)
-                && position.pieces[BLACK as usize].pawn_bitboard
-                    & WHITE_PASSED_PAWN_MASK[to_square as usize]
-                    == 0
+                && position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0
             {
                 PAWN_PUSH_2
             } else {
                 0
             }
         } else if (16..=23).contains(&to_square)
-            && position.pieces[WHITE as usize].pawn_bitboard
-                & BLACK_PASSED_PAWN_MASK[to_square as usize]
-                == 0
+            && position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0
         {
             PAWN_PUSH_2
         } else {
@@ -151,8 +136,7 @@ pub fn score_move(
         0
     };
 
-    let history_score = search_state.history_moves[piece_index_12(position, m)]
-        [from_square_part(m) as usize][to_square as usize];
+    let history_score = search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize];
     score
         + pawn_push_score
         + linear_scale(

@@ -1,9 +1,8 @@
 use crate::bitboards::bit;
 use crate::hash::zobrist_lock;
 use crate::move_constants::{
-    BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK,
-    PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WK_CASTLE,
-    WQ_CASTLE,
+    BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK,
+    PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE,
 };
 use crate::types::{Bitboard, Move, Mover, Pieces, Position, Square, BLACK, WHITE};
 use crate::utils::from_square_mask;
@@ -72,9 +71,7 @@ pub fn algebraic_squareref_from_bitref(bitref: Square) -> String {
 pub fn algebraic_move_from_move(m: Move) -> String {
     let from_square = ((m >> 16) as u8 & 63) as Square;
     let to_square = (m & 63) as u8 as Square;
-    algebraic_squareref_from_bitref(from_square)
-        + &*algebraic_squareref_from_bitref(to_square)
-        + &*promotion_part(m)
+    algebraic_squareref_from_bitref(from_square) + &*algebraic_squareref_from_bitref(to_square) + &*promotion_part(m)
 }
 
 pub fn promotion_mask(piece_char: String) -> Move {
@@ -94,9 +91,7 @@ pub fn promotion_mask(piece_char: String) -> Move {
 pub fn move_from_algebraic_move(a: String, piece_mask: Move) -> Move {
     let s = if a.len() == 4 { a + " " } else { a };
     from_square_mask(bitref_from_algebraic_squareref(s[0..2].to_string()))
-        | (piece_mask
-            + bitref_from_algebraic_squareref(s[2..4].to_string()) as Move
-            + promotion_mask(s[4..5].to_string()))
+        | (piece_mask + bitref_from_algebraic_squareref(s[2..4].to_string()) as Move + promotion_mask(s[4..5].to_string()))
 }
 
 pub fn promotion_part(m: Move) -> String {

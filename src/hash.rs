@@ -836,61 +836,23 @@ pub fn en_passant_zobrist_key_index(ep: i8) -> usize {
 }
 
 pub fn zobrist_lock(position: &Position) -> HashLock {
-    let mut index = zobrist_piece(
-        position.pieces[WHITE as usize].pawn_bitboard,
-        WHITE,
-        ZOBRIST_PIECE_INDEX_PAWN,
-    ) ^ zobrist_piece(
-        position.pieces[WHITE as usize].knight_bitboard,
-        WHITE,
-        ZOBRIST_PIECE_INDEX_KNIGHT,
-    ) ^ zobrist_piece(
-        position.pieces[WHITE as usize].bishop_bitboard,
-        WHITE,
-        ZOBRIST_PIECE_INDEX_BISHOP,
-    ) ^ zobrist_piece(
-        position.pieces[WHITE as usize].rook_bitboard,
-        WHITE,
-        ZOBRIST_PIECE_INDEX_ROOK,
-    ) ^ zobrist_piece(
-        position.pieces[WHITE as usize].queen_bitboard,
-        WHITE,
-        ZOBRIST_PIECE_INDEX_QUEEN,
-    ) ^ ZOBRIST_KEYS_PIECES[WHITE as usize][ZOBRIST_PIECE_INDEX_KING]
-        [position.pieces[WHITE as usize].king_square as usize]
-        ^ zobrist_piece(
-            position.pieces[BLACK as usize].pawn_bitboard,
-            BLACK,
-            ZOBRIST_PIECE_INDEX_PAWN,
-        )
-        ^ zobrist_piece(
-            position.pieces[BLACK as usize].knight_bitboard,
-            BLACK,
-            ZOBRIST_PIECE_INDEX_KNIGHT,
-        )
-        ^ zobrist_piece(
-            position.pieces[BLACK as usize].bishop_bitboard,
-            BLACK,
-            ZOBRIST_PIECE_INDEX_BISHOP,
-        )
-        ^ zobrist_piece(
-            position.pieces[BLACK as usize].rook_bitboard,
-            BLACK,
-            ZOBRIST_PIECE_INDEX_ROOK,
-        )
-        ^ zobrist_piece(
-            position.pieces[BLACK as usize].queen_bitboard,
-            BLACK,
-            ZOBRIST_PIECE_INDEX_QUEEN,
-        )
-        ^ ZOBRIST_KEYS_PIECES[BLACK as usize][ZOBRIST_PIECE_INDEX_KING]
-            [position.pieces[BLACK as usize].king_square as usize];
+    let mut index = zobrist_piece(position.pieces[WHITE as usize].pawn_bitboard, WHITE, ZOBRIST_PIECE_INDEX_PAWN)
+        ^ zobrist_piece(position.pieces[WHITE as usize].knight_bitboard, WHITE, ZOBRIST_PIECE_INDEX_KNIGHT)
+        ^ zobrist_piece(position.pieces[WHITE as usize].bishop_bitboard, WHITE, ZOBRIST_PIECE_INDEX_BISHOP)
+        ^ zobrist_piece(position.pieces[WHITE as usize].rook_bitboard, WHITE, ZOBRIST_PIECE_INDEX_ROOK)
+        ^ zobrist_piece(position.pieces[WHITE as usize].queen_bitboard, WHITE, ZOBRIST_PIECE_INDEX_QUEEN)
+        ^ ZOBRIST_KEYS_PIECES[WHITE as usize][ZOBRIST_PIECE_INDEX_KING][position.pieces[WHITE as usize].king_square as usize]
+        ^ zobrist_piece(position.pieces[BLACK as usize].pawn_bitboard, BLACK, ZOBRIST_PIECE_INDEX_PAWN)
+        ^ zobrist_piece(position.pieces[BLACK as usize].knight_bitboard, BLACK, ZOBRIST_PIECE_INDEX_KNIGHT)
+        ^ zobrist_piece(position.pieces[BLACK as usize].bishop_bitboard, BLACK, ZOBRIST_PIECE_INDEX_BISHOP)
+        ^ zobrist_piece(position.pieces[BLACK as usize].rook_bitboard, BLACK, ZOBRIST_PIECE_INDEX_ROOK)
+        ^ zobrist_piece(position.pieces[BLACK as usize].queen_bitboard, BLACK, ZOBRIST_PIECE_INDEX_QUEEN)
+        ^ ZOBRIST_KEYS_PIECES[BLACK as usize][ZOBRIST_PIECE_INDEX_KING][position.pieces[BLACK as usize].king_square as usize];
 
     index ^= ZOBRIST_KEYS_CASTLE[position.castle_flags as usize];
 
     if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
-        index ^= ZOBRIST_KEYS_EN_PASSANT
-            [en_passant_zobrist_key_index(position.en_passant_square) as usize];
+        index ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square) as usize];
     }
 
     if position.mover == BLACK {

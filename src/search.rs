@@ -1,20 +1,16 @@
 use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{
-    ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH,
-    DEPTH_REMAINING_FOR_RD_INCREASE, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
-    LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH,
-    NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
+    ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, DEPTH_REMAINING_FOR_RD_INCREASE, IID_MIN_DEPTH,
+    IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH,
+    NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
 };
 use crate::evaluate::{evaluate, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
-use crate::hash::{
-    en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH,
-};
+use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
 use crate::move_constants::{
-    EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING,
-    PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
-    PROMOTION_FULL_MOVE_MASK,
+    EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
+    PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
 };
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
@@ -22,8 +18,7 @@ use crate::opponent;
 use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    Bitboard, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore,
-    Position, Score, SearchState, Window, BLACK, WHITE,
+    BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, pawn_push, to_square_part};
 use std::borrow::Borrow;
@@ -33,140 +28,6 @@ use std::time::Instant;
 pub const MATE_SCORE: Score = 10000;
 pub const MATE_MARGIN: Score = 1000;
 pub const MATE_START: Score = MATE_SCORE - MATE_MARGIN;
-
-pub const WHITE_PASSED_PAWN_MASK: [Bitboard; 64] = [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0x0003030303030000,
-    0x0007070707070000,
-    0x000E0E0E0E0E0000,
-    0x001C1C1C1C1C0000,
-    0x0038383838380000,
-    0x0070707070700000,
-    0x00E0E0E0E0E00000,
-    0x00C0C0C0C0C00000,
-    0x0003030303000000,
-    0x0007070707000000,
-    0x000E0E0E0E000000,
-    0x001C1C1C1C000000,
-    0x0038383838000000,
-    0x0070707070000000,
-    0x00E0E0E0E0000000,
-    0x00C0C0C0C0000000,
-    0x0003030300000000,
-    0x0007070700000000,
-    0x000E0E0E00000000,
-    0x001C1C1C00000000,
-    0x0038383800000000,
-    0x0070707000000000,
-    0x00E0E0E000000000,
-    0x00C0C0C000000000,
-    0x0003030000000000,
-    0x0007070000000000,
-    0x000E0E0000000000,
-    0x001C1C0000000000,
-    0x0038380000000000,
-    0x0070700000000000,
-    0x00E0E00000000000,
-    0x00C0C00000000000,
-    0x0003000000000000,
-    0x0007000000000000,
-    0x000E000000000000,
-    0x001C000000000000,
-    0x0038000000000000,
-    0x0070000000000000,
-    0x00E0000000000000,
-    0x00C0000000000000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-];
-
-pub const BLACK_PASSED_PAWN_MASK: [Bitboard; 64] = [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0x0000000000000300,
-    0x0000000000000700,
-    0x0000000000000E00,
-    0x0000000000001C00,
-    0x0000000000003800,
-    0x0000000000007000,
-    0x000000000000E000,
-    0x000000000000C000,
-    0x0000000000030300,
-    0x0000000000070700,
-    0x00000000000E0E00,
-    0x00000000001C1C00,
-    0x0000000000383800,
-    0x0000000000707000,
-    0x0000000000E0E000,
-    0x0000000000C0C000,
-    0x0000000003030300,
-    0x0000000007070700,
-    0x000000000E0E0E00,
-    0x000000001C1C1C00,
-    0x0000000038383800,
-    0x0000000070707000,
-    0x00000000E0E0E000,
-    0x00000000C0C0C000,
-    0x0000000303030300,
-    0x0000000707070700,
-    0x0000000E0E0E0E00,
-    0x0000001C1C1C1C00,
-    0x0000003838383800,
-    0x0000007070707000,
-    0x000000E0E0E0E000,
-    0x000000C0C0C0C000,
-    0x0000030303030300,
-    0x0000070707070700,
-    0x00000E0E0E0E0E00,
-    0x00001C1C1C1C1C00,
-    0x0000383838383800,
-    0x0000707070707000,
-    0x0000E0E0E0E0E000,
-    0x0000C0C0C0C0C000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-];
 
 pub const LAST_EXTENSION_LAYER: u8 = 4;
 
@@ -215,11 +76,7 @@ macro_rules! debug_out {
     };
 }
 
-pub fn iterative_deepening(
-    position: &Position,
-    max_depth: u8,
-    search_state: &mut SearchState,
-) -> Move {
+pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mut SearchState) -> Move {
     search_state.start_time = Instant::now();
 
     let mut legal_moves: MoveScoreList = moves(position)
@@ -250,12 +107,7 @@ pub fn iterative_deepening(
         search_state.iterative_depth = iterative_depth;
 
         loop {
-            let aspire_best = start_search(
-                position,
-                &mut legal_moves,
-                search_state,
-                aspiration_window,
-            );
+            let aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window);
             if time_expired!(search_state) {
                 return search_state.current_best.0[0];
             }
@@ -268,20 +120,15 @@ pub fn iterative_deepening(
                 if c == aspiration_radius.len() {
                     aspiration_window = (-MATE_SCORE, MATE_SCORE);
                 } else if aspire_best.1 <= aspiration_window.0 {
-                    aspiration_window.0 =
-                        max(-MATE_SCORE, aspiration_window.0 - aspiration_radius[c]);
+                    aspiration_window.0 = max(-MATE_SCORE, aspiration_window.0 - aspiration_radius[c]);
                 } else if aspire_best.1 >= aspiration_window.1 {
-                    aspiration_window.1 =
-                        min(MATE_SCORE, aspiration_window.1 + aspiration_radius[c]);
+                    aspiration_window.1 = min(MATE_SCORE, aspiration_window.1 + aspiration_radius[c]);
                 }
             };
         }
 
         legal_moves.sort_by(|(_, a), (_, b)| b.cmp(a));
-        legal_moves = legal_moves
-            .into_iter()
-            .map(|m| (m.0, -MATE_SCORE))
-            .collect();
+        legal_moves = legal_moves.into_iter().map(|m| (m.0, -MATE_SCORE)).collect();
 
         aspiration_window = (
             search_state.current_best.1 - aspiration_radius[0],
@@ -349,7 +196,6 @@ pub fn start_search(
     current_best
 }
 
-
 //noinspection RsExternalLinter
 #[inline(always)]
 pub fn store_hash_entry(
@@ -391,13 +237,7 @@ fn draw_value(position: &Position) -> Score {
 }
 
 #[inline(always)]
-pub fn search(
-    position: &Position,
-    depth: u8,
-    ply: u8,
-    window: Window,
-    search_state: &mut SearchState,
-) -> PathScore {
+pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
     check_time!(search_state);
 
     search_state.nodes += 1;
@@ -427,7 +267,7 @@ pub fn search(
     let mut hash_height = 0;
     let mut hash_flag = Upper;
     let mut hash_version = 0;
-    let mut best_movescore: MoveScore = (0, -MATE_SCORE);
+    let mut best_pathscore: PathScore = (vec![0], -MATE_SCORE);
 
     let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let mut hash_move = match search_state.hash_table_height.get(index) {
@@ -479,13 +319,7 @@ pub fn search(
     if depth == 0 {
         // Otherwise we'll get +2 for this node, as quiesce does a +1 on entry
         search_state.nodes -= 1;
-        let q = quiesce(
-            position,
-            MAX_QUIESCE_DEPTH,
-            ply,
-            (alpha, beta),
-            search_state,
-        );
+        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
         let bound = if q.1 <= alpha {
             Upper
         } else if q.1 >= beta {
@@ -494,24 +328,12 @@ pub fn search(
             Exact
         };
         if bound == Exact {
-            store_hash_entry(
-                position,
-                0,
-                hash_height,
-                hash_version,
-                bound,
-                (0, q.1),
-                search_state,
-            );
+            store_hash_entry(position, 0, hash_height, hash_version, bound, (0, q.1), search_state);
         }
         return q;
     }
 
-    let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8
-        && scouting
-        && !in_check
-        && alpha.abs() < MATE_START
-    {
+    let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
         if lazy_eval == -Score::MAX {
             lazy_eval = evaluate(position);
         }
@@ -555,15 +377,7 @@ pub fn search(
     let real_depth = depth + these_extentions;
 
     if hash_move == 0 && depth > IID_MIN_DEPTH {
-        hash_move = search_wrapper(
-            depth - IID_REDUCE_DEPTH,
-            ply,
-            search_state,
-            (-alpha - 1, -alpha),
-            position,
-            0,
-        )
-        .0[0];
+        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0).0[0];
     }
 
     let these_moves = if verify_move(position, hash_move) {
@@ -572,27 +386,22 @@ pub fn search(
 
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
-            let score = search_wrapper(
-                real_depth,
-                ply,
-                search_state,
-                (-beta, -alpha),
-                &new_position,
-                0,
-            )
-            .1;
+            let path_score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &new_position, 0);
+            let score = path_score.1;
             check_time!(search_state);
-            if score > best_movescore.1 {
-                best_movescore = (hash_move, score);
-                if best_movescore.1 > alpha {
-                    alpha = best_movescore.1;
+            if score > best_pathscore.1 {
+                let mut p = vec![hash_move];
+                p.extend(path_score.0);
+                best_pathscore = (p, score);
+                if best_pathscore.1 > alpha {
+                    alpha = best_pathscore.1;
                     if alpha >= beta {
                         return cutoff(
                             position,
                             real_depth,
                             ply,
                             search_state,
-                            best_movescore,
+                            best_pathscore,
                             hash_height,
                             hash_version,
                             hash_move,
@@ -603,10 +412,7 @@ pub fn search(
                 }
                 scout_search = true;
             }
-            moves(position)
-                .into_iter()
-                .filter(|m| *m != hash_move)
-                .collect()
+            moves(position).into_iter().filter(|m| *m != hash_move).collect()
         } else {
             moves(position)
         }
@@ -617,12 +423,7 @@ pub fn search(
     let enemy = &position.pieces[opponent!(position.mover) as usize];
     let mut move_scores: Vec<(Move, Score)> = these_moves
         .into_iter()
-        .map(|m| {
-            (
-                m,
-                score_move(position, m, search_state, ply as usize, enemy),
-            )
-        })
+        .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
         .collect();
     move_scores.sort_by(|(_, a), (_, b)| b.cmp(a));
 
@@ -634,11 +435,7 @@ pub fn search(
             legal_move_count += 1;
 
             let is_capture = captured_piece_value(position, m) > 0;
-            if legal_move_count > 1
-                && alpha_prune_flag
-                && !is_capture
-                && !is_check(&new_position, new_position.mover)
-            {
+            if legal_move_count > 1 && alpha_prune_flag && !is_capture && !is_check(&new_position, new_position.mover) {
                 continue;
             }
 
@@ -655,15 +452,7 @@ pub fn search(
                 0
             };
 
-            let path_score = lmr_scout_search(
-                lmr,
-                ply,
-                search_state,
-                (alpha, beta),
-                scout_search,
-                real_depth,
-                &mut new_position,
-            );
+            let path_score = lmr_scout_search(lmr, ply, search_state, (alpha, beta), scout_search, real_depth, &mut new_position);
             let score = path_score.1;
 
             check_time!(search_state);
@@ -673,17 +462,19 @@ pub fn search(
             if score < beta {
                 update_history(position, search_state, m, -(real_depth as i64));
             }
-            if score > best_movescore.1 {
-                best_movescore = (m, score);
-                if best_movescore.1 > alpha {
-                    alpha = best_movescore.1;
+            if score > best_pathscore.1 {
+                let mut p = vec![m];
+                p.extend(path_score.0);
+                best_pathscore = (p, score);
+                if best_pathscore.1 > alpha {
+                    alpha = best_pathscore.1;
                     if alpha >= beta {
                         return cutoff(
                             position,
                             real_depth,
                             ply,
                             search_state,
-                            best_movescore,
+                            best_pathscore,
                             hash_height,
                             hash_version,
                             m,
@@ -699,9 +490,9 @@ pub fn search(
 
     if legal_move_count == 0 {
         if in_check {
-            best_movescore.1 = -MATE_SCORE + ply as Score
+            best_pathscore.1 = -MATE_SCORE + ply as Score
         } else {
-            best_movescore.1 = draw_value(position)
+            best_pathscore.1 = draw_value(position)
         }
     };
 
@@ -711,11 +502,11 @@ pub fn search(
         hash_height,
         hash_version,
         hash_flag,
-        best_movescore,
+        (best_pathscore.0[0], best_pathscore.1),
         search_state,
     );
 
-    (vec![best_movescore.0], best_movescore.1)
+    best_pathscore
 }
 
 //noinspection RsExternalLinter
@@ -733,35 +524,14 @@ fn lmr_scout_search(
     let beta = window.1;
     loop {
         let path_score = if scout_search {
-            let scout_path = search_wrapper(
-                real_depth,
-                ply,
-                search_state,
-                (-alpha - 1, -alpha),
-                new_position,
-                lmr,
-            );
+            let scout_path = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr);
             if scout_path.1 > alpha {
-                search_wrapper(
-                    real_depth,
-                    ply,
-                    search_state,
-                    (-beta, -alpha),
-                    new_position,
-                    0,
-                )
+                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0)
             } else {
                 (vec![0], alpha)
             }
         } else {
-            search_wrapper(
-                real_depth,
-                ply,
-                search_state,
-                (-beta, -alpha),
-                new_position,
-                0,
-            )
+            search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0)
         };
         let score = path_score.1;
         if lmr == 0 || score < beta {
@@ -776,8 +546,7 @@ fn lmr_scout_search(
 #[inline(always)]
 fn make_null_move(new_position: &mut Position) {
     if new_position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
-        new_position.zobrist_lock ^=
-            ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(new_position.en_passant_square)];
+        new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(new_position.en_passant_square)];
         new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
     }
     new_position.mover ^= 1;
@@ -785,22 +554,9 @@ fn make_null_move(new_position: &mut Position) {
 }
 
 #[inline(always)]
-fn search_wrapper(
-    depth: u8,
-    ply: u8,
-    search_state: &mut SearchState,
-    window: Window,
-    new_position: &Position,
-    lmr: u8,
-) -> PathScore {
+fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &Position, lmr: u8) -> PathScore {
     search_state.history.push(new_position.zobrist_lock);
-    let path_score = search(
-        new_position,
-        depth - 1 - lmr,
-        ply + 1,
-        window,
-        search_state,
-    );
+    let path_score = search(new_position, depth - 1 - lmr, ply + 1, window, search_state);
     search_state.history.pop();
     (path_score.0, -path_score.1)
 }
@@ -812,24 +568,16 @@ fn cutoff(
     depth: u8,
     ply: u8,
     search_state: &mut SearchState,
-    best_movescore: MoveScore,
+    best_pathscore: PathScore,
     hash_height: u8,
     hash_version: u32,
     m: Move,
     new_position: &mut Position,
 ) -> PathScore {
-    store_hash_entry(
-        position,
-        depth,
-        hash_height,
-        hash_version,
-        Lower,
-        best_movescore,
-        search_state,
-    );
+    store_hash_entry(position, depth, hash_height, hash_version, Lower, (m, best_pathscore.1), search_state);
     update_history(position, search_state, m, depth as i64 * depth as i64);
-    update_killers(position, ply, search_state, m, new_position, best_movescore);
-    (vec![best_movescore.0], best_movescore.1)
+    update_killers(position, ply, search_state, m, new_position, best_pathscore.1);
+    best_pathscore
 }
 
 #[inline(always)]
@@ -851,12 +599,7 @@ fn update_history(position: &Position, search_state: &mut SearchState, m: Move, 
 }
 
 #[inline(always)]
-fn halve_history_scores_if_required(
-    search_state: &mut SearchState,
-    f: usize,
-    t: usize,
-    piece_index: usize,
-) {
+fn halve_history_scores_if_required(search_state: &mut SearchState, f: usize, t: usize, piece_index: usize) {
     if search_state.history_moves[piece_index][f][t] > search_state.highest_history_score {
         search_state.highest_history_score = search_state.history_moves[piece_index][f][t];
         if search_state.highest_history_score > (i64::MAX / 2) {
@@ -894,15 +637,14 @@ fn update_killers(
     search_state: &mut SearchState,
     m: Move,
     new_position: &mut Position,
-    move_score: MoveScore,
+    score: Score,
 ) {
-    if move_score.1 > MATE_START {
+    if score > MATE_START {
         search_state.mate_killer[ply as usize] = m;
     }
     if search_state.killer_moves[ply as usize][0] != m {
         let opponent_index = opponent!(position.mover) as usize;
-        let was_capture = position.pieces[opponent_index].all_pieces_bitboard
-            != new_position.pieces[opponent_index].all_pieces_bitboard;
+        let was_capture = position.pieces[opponent_index].all_pieces_bitboard != new_position.pieces[opponent_index].all_pieces_bitboard;
         if (m & PROMOTION_FULL_MOVE_MASK == 0) && !was_capture {
             search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
             search_state.killer_moves[ply as usize][0] = m;
@@ -912,9 +654,7 @@ fn update_killers(
 
 #[inline(always)]
 fn null_move_material(position: &Position) -> bool {
-    side_total_non_pawn_count(position, position.mover)
-        + side_total_non_pawn_count(position, opponent!(position.mover))
-        >= 2
+    side_total_non_pawn_count(position, position.mover) + side_total_non_pawn_count(position, opponent!(position.mover)) >= 2
 }
 
 #[inline(always)]
@@ -927,13 +667,7 @@ fn side_total_non_pawn_count(position: &Position, side: Mover) -> u32 {
 }
 
 #[inline(always)]
-pub fn quiesce(
-    position: &Position,
-    depth: u8,
-    ply: u8,
-    window: Window,
-    search_state: &mut SearchState,
-) -> PathScore {
+pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
     check_time!(search_state);
 
     search_state.nodes += 1;
@@ -950,11 +684,7 @@ pub fn quiesce(
         return (vec![0], eval);
     }
 
-    let promote_from_rank = if position.mover == WHITE {
-        RANK_7_BITS
-    } else {
-        RANK_2_BITS
-    };
+    let promote_from_rank = if position.mover == WHITE { RANK_7_BITS } else { RANK_2_BITS };
     let mut delta = QUEEN_VALUE;
     if position.pieces[position.mover as usize].pawn_bitboard & promote_from_rank != 0 {
         delta += QUEEN_VALUE - PAWN_VALUE
@@ -976,12 +706,7 @@ pub fn quiesce(
     let mut move_scores: MoveScoreList = if in_check {
         moves(position)
             .into_iter()
-            .map(|m| {
-                (
-                    m,
-                    score_move(position, m, search_state, ply as usize, enemy),
-                )
-            })
+            .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
             .collect()
     } else {
         quiesce_moves(position)
@@ -997,8 +722,7 @@ pub fn quiesce(
     for ms in move_scores {
         let m = ms.0;
 
-        let needs_searching = (eval + captured_piece_value(position, m) + 500 > alpha)
-            && static_exchange_evaluation(position, m) > 0;
+        let needs_searching = (eval + captured_piece_value(position, m) + 500 > alpha) && static_exchange_evaluation(position, m) > 0;
 
         if in_check || needs_searching {
             let mut new_position = *position;
@@ -1013,14 +737,7 @@ pub fn quiesce(
                     continue;
                 }
 
-                let score = -quiesce(
-                    &new_position,
-                    depth - 1,
-                    ply + 1,
-                    (-beta, -alpha),
-                    search_state,
-                )
-                .1;
+                let score = -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1;
                 check_time!(search_state);
                 if score >= beta {
                     return (vec![m], beta);
@@ -1044,9 +761,7 @@ fn send_info(search_state: &mut SearchState) {
         return;
     }
     if search_state.start_time.elapsed().as_millis() > 0 {
-        let nps = (search_state.nodes as f64
-            / search_state.start_time.elapsed().as_millis() as f64)
-            * 1000.0;
+        let nps = (search_state.nodes as f64 / search_state.start_time.elapsed().as_millis() as f64) * 1000.0;
         let s = "info score cp ".to_string()
             + &*(search_state.current_best.1 as i64).to_string()
             + &*" depth ".to_string()

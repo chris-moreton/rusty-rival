@@ -2,29 +2,19 @@ use rusty_rival::fen::get_position;
 use rusty_rival::perft::perft;
 
 #[test]
-fn it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_with_a_given_position_as_its_head_long_version(
-) {
+fn it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_with_a_given_position_as_its_head_long_version() {
     // 11719118449 {
 
     assert_eq!(
-        perft(
-            &mut get_position(&"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1".to_string()),
-            5
-        ),
+        perft(&mut get_position(&"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1".to_string()), 5),
         11030083
     );
     assert_eq!(
-        perft(
-            &mut get_position(&"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1".to_string()),
-            6
-        ),
+        perft(&mut get_position(&"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1".to_string()), 6),
         178633661
     );
     assert_eq!(
-        perft(
-            &mut get_position(&"8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28".to_string()),
-            5
-        ),
+        perft(&mut get_position(&"8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28".to_string()), 5),
         38633283
     );
     assert_eq!(

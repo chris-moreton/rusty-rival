@@ -1,7 +1,6 @@
 use rusty_rival::bitboards::{
-    bit, bitboard_for_mover, clear_bit, exactly_one_bit_set, north_fill, south_fill, test_bit,
-    A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS, DARK_SQUARES_BITS, F1G1_BITS, F8G8_BITS,
-    FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS,
+    bit, bitboard_for_mover, clear_bit, exactly_one_bit_set, north_fill, south_fill, test_bit, A1B1_BITS, A8B8_BITS, B1C1_BITS, B8C8_BITS,
+    DARK_SQUARES_BITS, F1G1_BITS, F8G8_BITS, FILE_A_BITS, FILE_H_BITS, G1H1_BITS, G8H8_BITS, LIGHT_SQUARES_BITS, LOW_32_BITS,
     MIDDLE_FILES_8_BIT, NONMID_FILES_8_BIT, RANK_8_BITS,
 };
 use rusty_rival::fen::rank_bits;
@@ -10,18 +9,9 @@ use rusty_rival::types::{Piece, Pieces, Position, BLACK, WHITE};
 
 #[test]
 fn it_sets_a_bit() {
-    assert_eq!(
-        bit(0),
-        0b0000000000000000000000000000000000000000000000000000000000000001
-    );
-    assert_eq!(
-        bit(63),
-        0b1000000000000000000000000000000000000000000000000000000000000000
-    );
-    assert_eq!(
-        bit(3),
-        0b0000000000000000000000000000000000000000000000000000000000001000
-    );
+    assert_eq!(bit(0), 0b0000000000000000000000000000000000000000000000000000000000000001);
+    assert_eq!(bit(63), 0b1000000000000000000000000000000000000000000000000000000000000000);
+    assert_eq!(bit(3), 0b0000000000000000000000000000000000000000000000000000000000001000);
 }
 
 #[test]
@@ -104,34 +94,13 @@ fn it_knows_when_exactly_one_bit_is_set() {
 
 #[test]
 fn it_gets_the_rank_bits_for_a_piece() {
-    assert_eq!(
-        vec![0, 0, 0, 0, 0, 0, 0, 0],
-        rank_bits(&"8".to_string(), 'Q')
-    );
-    assert_eq!(
-        vec![0, 0, 0, 0, 0, 0, 1, 0],
-        rank_bits(&"6k1".to_string(), 'k')
-    );
-    assert_eq!(
-        vec![0, 0, 0, 0, 0, 0, 0, 0],
-        rank_bits(&"6k1".to_string(), 'q')
-    );
-    assert_eq!(
-        vec![0, 0, 0, 0, 0, 0, 1, 0],
-        rank_bits(&"6p1".to_string(), 'p')
-    );
-    assert_eq!(
-        vec![0, 0, 0, 0, 0, 0, 1, 1],
-        rank_bits(&"6pp".to_string(), 'p')
-    );
-    assert_eq!(
-        vec![1, 0, 0, 0, 0, 0, 0, 0],
-        rank_bits(&"P7".to_string(), 'P')
-    );
-    assert_eq!(
-        vec![0, 1, 0, 0, 0, 0, 0, 1],
-        rank_bits(&"1p2q2p".to_string(), 'p')
-    );
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], rank_bits(&"8".to_string(), 'Q'));
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 1, 0], rank_bits(&"6k1".to_string(), 'k'));
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], rank_bits(&"6k1".to_string(), 'q'));
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 1, 0], rank_bits(&"6p1".to_string(), 'p'));
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 1, 1], rank_bits(&"6pp".to_string(), 'p'));
+    assert_eq!(vec![1, 0, 0, 0, 0, 0, 0, 0], rank_bits(&"P7".to_string(), 'P'));
+    assert_eq!(vec![0, 1, 0, 0, 0, 0, 0, 1], rank_bits(&"1p2q2p".to_string(), 'p'));
 }
 
 #[test]
@@ -212,24 +181,15 @@ fn it_returns_the_correct_bitboard_for_mover() {
 #[test]
 fn it_returns_a_bitboard_with_the_given_bit_set_to_zero() {
     assert_eq!(
-        clear_bit(
-            0b0000000001001000000000001000100000010100000101000000100100000001,
-            0
-        ),
+        clear_bit(0b0000000001001000000000001000100000010100000101000000100100000001, 0),
         0b0000000001001000000000001000100000010100000101000000100100000000
     );
     assert_eq!(
-        clear_bit(
-            0b0000000001001000000000001000100000010100000101000000100100000010,
-            1
-        ),
+        clear_bit(0b0000000001001000000000001000100000010100000101000000100100000010, 1),
         0b0000000001001000000000001000100000010100000101000000100100000000
     );
     assert_eq!(
-        clear_bit(
-            0b1000000001001000000000001000100000010100000101000000100100000000,
-            63
-        ),
+        clear_bit(0b1000000001001000000000001000100000010100000101000000100100000000, 63),
         0b0000000001001000000000001000100000010100000101000000100100000000
     );
 }
@@ -237,45 +197,27 @@ fn it_returns_a_bitboard_with_the_given_bit_set_to_zero() {
 #[test]
 fn it_tests_whether_a_bit_is_set() {
     assert_eq!(
-        test_bit(
-            0b0000000001001000000000001000100000010100000101000000100100000001,
-            0
-        ),
+        test_bit(0b0000000001001000000000001000100000010100000101000000100100000001, 0),
         true
     );
     assert_eq!(
-        test_bit(
-            0b0000000001001000000000001000100000010100000101000000100100000010,
-            1
-        ),
+        test_bit(0b0000000001001000000000001000100000010100000101000000100100000010, 1),
         true
     );
     assert_eq!(
-        test_bit(
-            0b1000000001001000000000001000100000010100000101000000100100000000,
-            63
-        ),
+        test_bit(0b1000000001001000000000001000100000010100000101000000100100000000, 63),
         true
     );
     assert_eq!(
-        test_bit(
-            0b0000000001001000000000001000100000010100000101000000100100000000,
-            0
-        ),
+        test_bit(0b0000000001001000000000001000100000010100000101000000100100000000, 0),
         false
     );
     assert_eq!(
-        test_bit(
-            0b0000000001001000000000001000100000010100000101000000100100000001,
-            1
-        ),
+        test_bit(0b0000000001001000000000001000100000010100000101000000100100000001, 1),
         false
     );
     assert_eq!(
-        test_bit(
-            0b0100000001001000000000001000100000010100000101000000100100000000,
-            63
-        ),
+        test_bit(0b0100000001001000000000001000100000010100000101000000100100000000, 63),
         false
     );
 }

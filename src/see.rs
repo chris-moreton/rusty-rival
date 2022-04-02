@@ -12,11 +12,7 @@ pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
     if is_check(&new_position, position.mover) {
         0
     } else {
-        see(
-            captured_piece_value(position, mv),
-            bit(to_square_part(mv)),
-            &new_position,
-        )
+        see(captured_piece_value(position, mv), bit(to_square_part(mv)), &new_position)
     }
 }
 
@@ -26,14 +22,7 @@ fn see(v: Score, capture_square: Bitboard, position: &Position) -> Score {
         let mut new_position = *position;
         make_see_move(m, &mut new_position);
         if !is_check(&new_position, position.mover) {
-            return min(
-                v,
-                v - see(
-                    captured_piece_value(position, m),
-                    capture_square,
-                    &new_position,
-                ),
-            );
+            return min(v, v - see(captured_piece_value(position, m), capture_square, &new_position));
         }
     }
 
