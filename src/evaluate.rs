@@ -26,7 +26,6 @@ pub const PAWN_TRADE_BONUS_MAX: Score = 600;
 pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
 pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
 pub const KING_THREAT_BONUS: Score = 5;
-pub const BAD_BISHOP_PAWN_PENALTY: Score = 10;
 
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {

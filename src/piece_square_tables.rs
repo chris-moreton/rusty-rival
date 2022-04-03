@@ -1,6 +1,4 @@
-use crate::bitboards::{BAD_BISHOP_PAWN_SQUARES_BLACK, BAD_BISHOP_PAWN_SQUARES_WHITE};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use crate::evaluate::BAD_BISHOP_PAWN_PENALTY;
 use crate::get_and_unset_lsb;
 use crate::move_scores::{
     BIT_FLIPPED_HORIZONTAL_AXIS, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_STAGE_MATERIAL_LOW, OPENING_PHASE_MATERIAL, PAWN_STAGE_MATERIAL_HIGH,
@@ -123,14 +121,8 @@ pub fn white_bishop_piece_square_values(position: &Position) -> Score {
     let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
     let mut score = 0;
     while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        score += BISHOP_PIECE_SQUARE_TABLE[sq];
-        let blocking_pawn_count = (BAD_BISHOP_PAWN_SQUARES_WHITE[sq] & position.pieces[WHITE as usize].pawn_bitboard).count_ones();
-        score -= match blocking_pawn_count {
-            0 => 0,
-            1 => BAD_BISHOP_PAWN_PENALTY,
-            x => BAD_BISHOP_PAWN_PENALTY * x as Score * 2,
-        }
+        let sq = get_and_unset_lsb!(bb);
+        score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
     }
 
     score
@@ -141,14 +133,8 @@ pub fn black_bishop_piece_square_values(position: &Position) -> Score {
     let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
     let mut score = 0;
     while bb != 0 {
-        let sq = get_and_unset_lsb!(bb) as usize;
-        score += BISHOP_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[sq] as usize];
-        let blocking_pawn_count = (BAD_BISHOP_PAWN_SQUARES_BLACK[sq] & position.pieces[BLACK as usize].pawn_bitboard).count_ones();
-        score -= match blocking_pawn_count {
-            0 => 0,
-            1 => BAD_BISHOP_PAWN_PENALTY,
-            x => BAD_BISHOP_PAWN_PENALTY * x as Score * 2,
-        }
+        let sq = BIT_FLIPPED_HORIZONTAL_AXIS[get_and_unset_lsb!(bb) as usize];
+        score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
     }
 
     score
