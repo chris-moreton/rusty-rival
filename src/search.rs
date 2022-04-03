@@ -197,8 +197,8 @@ pub fn start_search(
     current_best
 }
 
-//noinspection RsExternalLinter
 #[inline(always)]
+#[allow(clippy::too_many_arguments)]
 pub fn store_hash_entry(
     position: &Position,
     height: u8,
@@ -207,11 +207,17 @@ pub fn store_hash_entry(
     bound: BoundType,
     movescore: MoveScore,
     search_state: &mut SearchState,
+    ply: u8,
 ) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
         let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
         search_state.hash_table_height[index] = HashEntry {
-            score: movescore.1,
+            // adjust any mate score so that the score appears calculated as if this ply were the root
+            score: match movescore.1 {
+                x if x > MATE_START => movescore.1 + ply as Score,
+                x if x < MATE_START => movescore.1 - ply as Score,
+                _ => movescore.1,
+            },
             version: search_state.hash_table_version,
             height,
             mv: movescore.0,
@@ -274,6 +280,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
             if x.lock == position.zobrist_lock {
+                // adjust any mate score so that the score appears calculated from the root rather than from this ply
                 let score = match x.score {
                     s if s > MATE_START => s - ply as Score,
                     s if s < -MATE_START => s + ply as Score,
@@ -329,7 +336,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             Exact
         };
         if bound == Exact {
-            store_hash_entry(position, 0, hash_height, hash_version, bound, (0, q.1), search_state);
+            store_hash_entry(position, 0, hash_height, hash_version, bound, (0, q.1), search_state, ply);
         }
         return q;
     }
@@ -505,12 +512,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         hash_flag,
         (best_pathscore.0[0], best_pathscore.1),
         search_state,
+        ply,
     );
 
     best_pathscore
 }
 
-//noinspection RsExternalLinter
 #[inline(always)]
 fn lmr_scout_search(
     mut lmr: u8,
@@ -583,6 +590,7 @@ fn cutoff(
         Lower,
         (m, best_pathscore.1),
         search_state,
+        ply,
     );
     update_history(position, search_state, m, depth as i64 * depth as i64);
     update_killers(position, ply, search_state, m, new_position, best_pathscore.1);
