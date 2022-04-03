@@ -1,7 +1,7 @@
+use crate::bitboards::{BAD_BISHOP_PAWN_SQUARES_BLACK, BAD_BISHOP_PAWN_SQUARES_WHITE};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use crate::evaluate::VALUE_BISHOP_MOBILITY;
+use crate::evaluate::BAD_BISHOP_PAWN_PENALTY;
 use crate::get_and_unset_lsb;
-use crate::magic_bitboards::magic_moves_bishop;
 use crate::move_scores::{
     BIT_FLIPPED_HORIZONTAL_AXIS, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_STAGE_MATERIAL_LOW, OPENING_PHASE_MATERIAL, PAWN_STAGE_MATERIAL_HIGH,
     PAWN_STAGE_MATERIAL_LOW,
@@ -123,14 +123,10 @@ pub fn white_bishop_piece_square_values(position: &Position) -> Score {
     let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
     let mut score = 0;
     while bb != 0 {
-        let sq = get_and_unset_lsb!(bb);
-        score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
-        score += VALUE_BISHOP_MOBILITY[(!position.pieces[WHITE as usize].pawn_bitboard
-            & magic_moves_bishop(
-                sq,
-                position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard,
-            ))
-        .count_ones() as usize]
+        let sq = get_and_unset_lsb!(bb) as usize;
+        score += BISHOP_PIECE_SQUARE_TABLE[sq];
+        score -= (BAD_BISHOP_PAWN_SQUARES_WHITE[sq] & position.pieces[WHITE as usize].pawn_bitboard).count_ones() as Score
+            * BAD_BISHOP_PAWN_PENALTY;
     }
 
     score
@@ -141,14 +137,10 @@ pub fn black_bishop_piece_square_values(position: &Position) -> Score {
     let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
     let mut score = 0;
     while bb != 0 {
-        let sq = get_and_unset_lsb!(bb);
-        score += BISHOP_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[sq as usize] as usize];
-        score += VALUE_BISHOP_MOBILITY[(!position.pieces[BLACK as usize].pawn_bitboard
-            & magic_moves_bishop(
-                sq,
-                position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard,
-            ))
-        .count_ones() as usize]
+        let sq = get_and_unset_lsb!(bb) as usize;
+        score += BISHOP_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[sq] as usize];
+        score -= (BAD_BISHOP_PAWN_SQUARES_BLACK[sq] & position.pieces[BLACK as usize].pawn_bitboard).count_ones() as Score
+            * BAD_BISHOP_PAWN_PENALTY;
     }
 
     score
