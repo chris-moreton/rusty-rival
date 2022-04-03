@@ -125,7 +125,7 @@ pub fn white_bishop_piece_square_values(position: &Position) -> Score {
     while bb != 0 {
         let sq = get_and_unset_lsb!(bb);
         score += BISHOP_PIECE_SQUARE_TABLE[sq as usize];
-        score += VALUE_BISHOP_MOBILITY[(!position.pieces[WHITE as usize].all_pieces_bitboard
+        score += VALUE_BISHOP_MOBILITY[(!position.pieces[WHITE as usize].pawn_bitboard
             & magic_moves_bishop(
                 sq,
                 position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard,
@@ -143,7 +143,7 @@ pub fn black_bishop_piece_square_values(position: &Position) -> Score {
     while bb != 0 {
         let sq = get_and_unset_lsb!(bb);
         score += BISHOP_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[sq as usize] as usize];
-        score += VALUE_BISHOP_MOBILITY[(!position.pieces[BLACK as usize].all_pieces_bitboard
+        score += VALUE_BISHOP_MOBILITY[(!position.pieces[BLACK as usize].pawn_bitboard
             & magic_moves_bishop(
                 sq,
                 position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard,
