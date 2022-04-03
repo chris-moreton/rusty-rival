@@ -2,13 +2,20 @@
 
 A [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) chess engine written in Rust.
 
+Binaries for Windows, Max OS and Linux are available on the [releases](https://github.com/chris-moreton/rusty-rival/releases) page.
+
+The engine will normally be faster and more powerful if compiled on the machine on which it will be run. This requires that [Rust](https://www.rust-lang.org/tools/install) be
+available.
+
 ```
 RUSTFLAGS="-C target-cpu=native" cargo run --release
+```
 
 ## Running Perft
 
 Use *perft*, to determine the total number of positions encountered while playing through every move and every response to a certain depth.
 
+```
 position fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
 READY
 go perft 7
