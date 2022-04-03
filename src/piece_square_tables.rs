@@ -125,8 +125,12 @@ pub fn white_bishop_piece_square_values(position: &Position) -> Score {
     while bb != 0 {
         let sq = get_and_unset_lsb!(bb) as usize;
         score += BISHOP_PIECE_SQUARE_TABLE[sq];
-        score -= (BAD_BISHOP_PAWN_SQUARES_WHITE[sq] & position.pieces[WHITE as usize].pawn_bitboard).count_ones() as Score
-            * BAD_BISHOP_PAWN_PENALTY;
+        let blocking_pawn_count = (BAD_BISHOP_PAWN_SQUARES_WHITE[sq] & position.pieces[WHITE as usize].pawn_bitboard).count_ones();
+        score -= match blocking_pawn_count {
+            0 => 0,
+            1 => BAD_BISHOP_PAWN_PENALTY,
+            x => BAD_BISHOP_PAWN_PENALTY * x as Score * 2,
+        }
     }
 
     score
@@ -139,8 +143,12 @@ pub fn black_bishop_piece_square_values(position: &Position) -> Score {
     while bb != 0 {
         let sq = get_and_unset_lsb!(bb) as usize;
         score += BISHOP_PIECE_SQUARE_TABLE[BIT_FLIPPED_HORIZONTAL_AXIS[sq] as usize];
-        score -= (BAD_BISHOP_PAWN_SQUARES_BLACK[sq] & position.pieces[BLACK as usize].pawn_bitboard).count_ones() as Score
-            * BAD_BISHOP_PAWN_PENALTY;
+        let blocking_pawn_count = (BAD_BISHOP_PAWN_SQUARES_BLACK[sq] & position.pieces[BLACK as usize].pawn_bitboard).count_ones();
+        score -= match blocking_pawn_count {
+            0 => 0,
+            1 => BAD_BISHOP_PAWN_PENALTY,
+            x => BAD_BISHOP_PAWN_PENALTY * x as Score * 2,
+        }
     }
 
     score

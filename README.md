@@ -4,8 +4,8 @@ A [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) chess engine wr
 
 Binaries for Windows, Max OS and Linux are available on the [releases](https://github.com/chris-moreton/rusty-rival/releases) page.
 
-The engine will normally be faster and more powerful if compiled on the machine on which it will be run. This requires that [Rust](https://www.rust-lang.org/tools/install) be
-available.
+The engine can be about 50% faster if compiled on the machine on which it will be run in order to take advantage of cpu-specific instructions. To compile locally, it requiest that [Rust](https://www.rust-lang.org/tools/install) be
+installed.
 
 ```
 RUSTFLAGS="-C target-cpu=native" cargo run --release
