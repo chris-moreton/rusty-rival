@@ -25,7 +25,9 @@ pub const ISOLATED_PAWN_PENALTY: Score = 10;
 pub const PAWN_TRADE_BONUS_MAX: Score = 600;
 pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
 pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
-pub const KING_THREAT_BONUS: Score = 5;
+pub const KING_THREAT_BONUS_KNIGHT: Score = 8;
+pub const KING_THREAT_BONUS_QUEEN: Score = 6;
+pub const KING_THREAT_BONUS_BISHOP: Score = 4;
 
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {
@@ -100,30 +102,32 @@ pub fn king_threat_score(position: &Position) -> Score {
     let mut bb = position.pieces[BLACK as usize].knight_bitboard;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
-        score -= (KNIGHT_MOVES_BITBOARDS[from_square as usize] & white_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
+        score -= (KNIGHT_MOVES_BITBOARDS[from_square as usize] & white_king_danger_zone).count_ones() as Score
+            * KING_THREAT_BONUS_KNIGHT as Score;
     }
 
     let mut bb = position.pieces[WHITE as usize].knight_bitboard;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
-        score += (KNIGHT_MOVES_BITBOARDS[from_square as usize] & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
+        score += (KNIGHT_MOVES_BITBOARDS[from_square as usize] & black_king_danger_zone).count_ones() as Score
+            * KING_THREAT_BONUS_KNIGHT as Score;
     }
 
-    let mut bb = position.pieces[BLACK as usize].bishop_bitboard | position.pieces[BLACK as usize].queen_bitboard;
+    let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
         if BISHOP_RAYS[from_square as usize] & white_king_danger_zone != 0 {
-            score -=
-                (magic_moves_bishop(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
+            score -= (magic_moves_bishop(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
+                * KING_THREAT_BONUS_BISHOP as Score;
         }
     }
 
-    let mut bb = position.pieces[WHITE as usize].bishop_bitboard | position.pieces[WHITE as usize].queen_bitboard;
+    let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
         if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
-            score +=
-                (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
+            score += (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
+                * KING_THREAT_BONUS_BISHOP as Score;
         }
     }
 
@@ -131,8 +135,10 @@ pub fn king_threat_score(position: &Position) -> Score {
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
         if ROOK_RAYS[from_square as usize] & white_king_danger_zone != 0 {
-            score -=
-                (magic_moves_rook(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
+            score -= (magic_moves_rook(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
+                * KING_THREAT_BONUS_QUEEN as Score;
+            score -= (magic_moves_bishop(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
+                * KING_THREAT_BONUS_QUEEN as Score;
         }
     }
 
@@ -140,8 +146,10 @@ pub fn king_threat_score(position: &Position) -> Score {
     while bb != 0 {
         let from_square = get_and_unset_lsb!(bb);
         if ROOK_RAYS[from_square as usize] & black_king_danger_zone != 0 {
-            score +=
-                (magic_moves_rook(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score * KING_THREAT_BONUS as Score;
+            score += (magic_moves_rook(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
+                * KING_THREAT_BONUS_QUEEN as Score;
+            score += (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
+                * KING_THREAT_BONUS_QUEEN as Score;
         }
     }
 
