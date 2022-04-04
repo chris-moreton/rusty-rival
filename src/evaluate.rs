@@ -137,6 +137,8 @@ pub fn king_threat_score(position: &Position) -> Score {
         if ROOK_RAYS[from_square as usize] & white_king_danger_zone != 0 {
             score -= (magic_moves_rook(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
                 * KING_THREAT_BONUS_QUEEN as Score;
+        }
+        if BISHOP_RAYS[from_square as usize] & white_king_danger_zone != 0 {
             score -= (magic_moves_bishop(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
                 * KING_THREAT_BONUS_QUEEN as Score;
         }
@@ -148,6 +150,8 @@ pub fn king_threat_score(position: &Position) -> Score {
         if ROOK_RAYS[from_square as usize] & black_king_danger_zone != 0 {
             score += (magic_moves_rook(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
                 * KING_THREAT_BONUS_QUEEN as Score;
+        }
+        if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
             score += (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
                 * KING_THREAT_BONUS_QUEEN as Score;
         }

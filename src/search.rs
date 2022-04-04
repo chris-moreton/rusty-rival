@@ -280,12 +280,13 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
             if x.lock == position.zobrist_lock {
-                // adjust any mate score so that the score appears calculated from the root rather than from this ply
+                // adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
                 let score = match x.score {
                     s if s > MATE_START => s - ply as Score,
                     s if s < -MATE_START => s + ply as Score,
                     s => s,
                 };
+
                 if x.height >= depth {
                     hash_height = x.height;
                     hash_version = x.version;

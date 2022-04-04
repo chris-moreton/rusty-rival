@@ -6,7 +6,8 @@ use rusty_rival::engine_constants::{
 use rusty_rival::evaluate::{
     black_king_early_safety, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count, king_threat_score,
     knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety, DOUBLED_PAWN_PENALTY,
-    ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_KNIGHT, VALUE_GUARDED_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
+    ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, VALUE_GUARDED_PASSED_PAWN,
+    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
 };
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
@@ -279,16 +280,19 @@ fn it_evaluates_king_threats() {
     );
     test_king_threats(
         "rkbq1b1r/pppppppp/5N2/8/4n2n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1",
-        -(KING_THREAT_BONUS_KNIGHT * 2),
+        -(KING_THREAT_BONUS_KNIGHT * 2 + KING_THREAT_BONUS_BISHOP * 2),
     );
-    test_king_threats("rkbq1b1r/pppppppp/3n1N2/8/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1", 0);
+    test_king_threats(
+        "rkbq1b1r/pppppppp/3n1N2/8/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1",
+        -KING_THREAT_BONUS_BISHOP * 2,
+    );
     test_king_threats(
         "rkb4r/pppppppp/3n1N2/3b1q2/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1",
         -KING_THREAT_BONUS_KNIGHT * 3,
     );
     test_king_threats(
         "rkb4r/1ppppppp/1p1n1N2/3b1q2/7n/R3BNP1/PPPPPP1P/2BQ1RK1 w - - 0 1",
-        -KING_THREAT_BONUS_KNIGHT * 4,
+        (-KING_THREAT_BONUS_KNIGHT * 2 - KING_THREAT_BONUS_BISHOP - KING_THREAT_BONUS_QUEEN * 2) + KING_THREAT_BONUS_BISHOP,
     );
 }
 

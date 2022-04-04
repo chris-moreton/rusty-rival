@@ -2,7 +2,7 @@ use either::{Either, Left, Right};
 use rusty_rival::engine_constants::UCI_MILLIS_REDUCTION;
 use rusty_rival::fen::get_position;
 use rusty_rival::move_constants::START_POS;
-use rusty_rival::types::{default_search_state, default_uci_state, BoundType, HashEntry};
+use rusty_rival::types::{default_search_state, default_uci_state, BoundType, HashEntry, SearchState, UciState};
 use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
 use std::cmp::max;
 use std::time::Instant;
@@ -114,6 +114,32 @@ pub fn it_takes_a_threefold_repetition_from_a_lost_position() {
     );
     let result = run_command_test(&mut uci_state, &mut search_state, "go depth 7");
     assert_success_message(result, |message| message.contains("bestmove d4f2"));
+}
+
+#[test]
+pub fn it_handles_cached_mates() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+
+    find_move(&mut uci_state, &mut search_state, "8/2R1Pk2/3K3p/6pP/5nP1/8/8/8 b - - 0 1", "c7c8");
+    find_move(&mut uci_state, &mut search_state, "2R5/4Pk2/3K3p/6pP/5nP1/8/8/8 b - - 0 1", "f7g7");
+    find_move(
+        &mut uci_state,
+        &mut search_state,
+        "2R5/4P1k1/3K3p/6pP/5nP1/8/8/8 w - - 0 1",
+        "e7e8q",
+    );
+    find_move(&mut uci_state, &mut search_state, "2R1Q3/6k1/3K3p/6pP/5nP1/8/8/8 b - - 0 1", "g7f6");
+    find_move(&mut uci_state, &mut search_state, "2R1Q3/8/3K1k1p/6pP/5nP1/8/8/8 w - - 0 1", "e8e5");
+    find_move(&mut uci_state, &mut search_state, "2R5/8/3K1k1p/4Q1pP/5nP1/8/8/8 b - - 0 1", "f6f7");
+    find_move(&mut uci_state, &mut search_state, "2R5/5k2/3K3p/4Q1pP/5nP1/8/8/8 w - - 0 1", "e5e7");
+}
+
+fn find_move(mut uci_state: &mut UciState, mut search_state: &mut SearchState, fen: &str, m: &str) {
+    let a = format!("position fen {}", fen);
+    assert_eq!(run_command_test(&mut uci_state, &mut search_state, &a), Right(None));
+    let result = run_command_test(&mut uci_state, &mut search_state, "go movetime 250");
+    assert_success_message(result, |message| message.contains("bestmove"));
 }
 
 #[test]

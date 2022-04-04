@@ -14,7 +14,7 @@ pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
 pub const ASPIRATION_RADIUS: Score = 25;
 pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 300;
-pub const BETA_PRUNE_MAX_DEPTH: u8 = 2;
+pub const BETA_PRUNE_MAX_DEPTH: u8 = 3;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
