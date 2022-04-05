@@ -210,15 +210,22 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
 #[inline(always)]
 pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList {
     let mut move_list = Vec::with_capacity(1);
+    let capture_square = valid_destinations.trailing_zeros() as usize;
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
 
     generate_capture_pawn_moves_with_destinations(&mut move_list, position.mover as usize, friendly.pawn_bitboard, valid_destinations);
+
     if move_list.is_empty() {
-        generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
+        let mut knights = KNIGHT_MOVES_BITBOARDS[capture_square] & friendly.knight_bitboard;
+        while knights != 0 {
+            let fsm = from_square_mask(get_and_unset_lsb!(knights)) | PIECE_MASK_KNIGHT;
+            move_list.push(fsm | capture_square as Move);
+        }
     }
-    if move_list.is_empty() {
+
+    if move_list.is_empty() && BISHOP_RAYS[capture_square] & friendly.bishop_bitboard != 0 {
         generate_diagonal_slider_moves(
             friendly.bishop_bitboard,
             all_pieces,
@@ -227,7 +234,7 @@ pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList 
             PIECE_MASK_BISHOP,
         );
     }
-    if move_list.is_empty() {
+    if move_list.is_empty() && ROOK_RAYS[capture_square] & friendly.rook_bitboard != 0 {
         generate_straight_slider_moves(
             friendly.rook_bitboard,
             all_pieces,
@@ -236,7 +243,7 @@ pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList 
             PIECE_MASK_ROOK,
         );
     }
-    if move_list.is_empty() {
+    if move_list.is_empty() && ROOK_RAYS[capture_square] & friendly.queen_bitboard != 0 {
         generate_straight_slider_moves(
             friendly.queen_bitboard,
             all_pieces,
@@ -245,7 +252,7 @@ pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList 
             PIECE_MASK_QUEEN,
         );
     }
-    if move_list.is_empty() {
+    if move_list.is_empty() && BISHOP_RAYS[capture_square] & friendly.queen_bitboard != 0 {
         generate_diagonal_slider_moves(
             friendly.queen_bitboard,
             all_pieces,
@@ -254,6 +261,7 @@ pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList 
             PIECE_MASK_QUEEN,
         );
     }
+
     if move_list.is_empty() {
         add_moves!(
             move_list,

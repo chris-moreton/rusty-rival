@@ -2,12 +2,12 @@ use rusty_rival::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEE
 use rusty_rival::fen::get_position;
 use rusty_rival::see::static_exchange_evaluation;
 use rusty_rival::types::Score;
-use rusty_rival::utils::hydrate_move_from_algebraic_move;
+use rusty_rival::utils::{captured_piece_value, hydrate_move_from_algebraic_move};
 
 fn assert_see_score(fen: &str, ms: &str, score: Score) {
     let position = get_position(fen);
     let m = hydrate_move_from_algebraic_move(&position, ms.to_string());
-    assert_eq!(static_exchange_evaluation(&position, m), score);
+    assert_eq!(static_exchange_evaluation(&position, m, captured_piece_value(&position, m)), score);
 }
 
 #[test]

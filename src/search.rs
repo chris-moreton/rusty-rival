@@ -711,43 +711,24 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         alpha = eval;
     }
 
-    let in_check = is_check(position, position.mover);
     let enemy = &position.pieces[opponent!(position.mover) as usize];
 
-    let mut move_scores: MoveScoreList = if in_check {
-        moves(position)
-            .into_iter()
-            .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
-            .collect()
-    } else {
-        quiesce_moves(position)
-            .into_iter()
-            .map(|m| (m, score_quiesce_move(position, m, enemy)))
-            .collect()
-    };
+    let mut move_scores: MoveScoreList = quiesce_moves(position)
+        .into_iter()
+        .map(|m| (m, score_quiesce_move(position, m, enemy)))
+        .collect();
 
     move_scores.sort_by(|(_, a), (_, b)| b.cmp(a));
-
-    let mut legal_move_count = 0;
 
     for ms in move_scores {
         let m = ms.0;
 
-        let needs_searching = (eval + captured_piece_value(position, m) + 500 > alpha) && static_exchange_evaluation(position, m) > 0;
+        let cpv = captured_piece_value(position, m);
 
-        if in_check || needs_searching {
+        if (eval + cpv + 500 > alpha) && static_exchange_evaluation(position, m, cpv) > 0 {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
-                legal_move_count += 1;
-
-                if !needs_searching {
-                    // We only get here if we were in check before the move.
-                    // We had to see if the move was legal in order to detect mates
-                    // but we don't want to search it if it was a prunable move.
-                    continue;
-                }
-
                 let score = -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1;
                 check_time!(search_state);
                 if score >= beta {
@@ -760,11 +741,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         }
     }
 
-    if legal_move_count == 0 && in_check {
-        (vec![0], -MATE_SCORE + ply as Score)
-    } else {
-        (vec![0], alpha)
-    }
+    (vec![0], alpha)
 }
 
 fn send_info(search_state: &mut SearchState) {
