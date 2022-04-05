@@ -1,13 +1,12 @@
 use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{
-    BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_KING_CANNOT_CATCH_PAWN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
+    BISHOP_VALUE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN,
+    KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
 };
 use rusty_rival::evaluate::{
     black_king_early_safety, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count, king_threat_score,
-    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety, DOUBLED_PAWN_PENALTY,
-    ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, VALUE_GUARDED_PASSED_PAWN,
-    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
+    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety,
 };
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};

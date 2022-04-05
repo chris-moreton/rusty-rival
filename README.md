@@ -2,9 +2,9 @@
 
 A [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) chess engine written in Rust.
 
-Binaries for Windows, Max OS and Linux are available on the [releases](https://github.com/chris-moreton/rusty-rival/releases) page.
+Binaries for Windows, Mac OS and Linux are available on the [releases](https://github.com/chris-moreton/rusty-rival/releases) page.
 
-The engine can be about 50% faster if compiled on the machine on which it will be run in order to take advantage of cpu-specific instructions. To compile locally, it requiest that [Rust](https://www.rust-lang.org/tools/install) be
+The engine can be about 50% faster if compiled on the machine on which it will be run in order to take advantage of cpu-specific instructions. To compile locally, it requires that [Rust](https://www.rust-lang.org/tools/install) be
 installed.
 
 ```

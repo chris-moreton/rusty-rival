@@ -12,8 +12,7 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const ASPIRATION_RADIUS: Score = 25;
-pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 300;
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 200;
 pub const BETA_PRUNE_MAX_DEPTH: u8 = 3;
 
 pub const NUM_KILLER_MOVES: usize = 2;
@@ -46,3 +45,19 @@ pub const LMR_MIN_DEPTH: u8 = 3;
 pub const LMR_REDUCTION: u8 = 2;
 
 pub const SCOUT_MINIMUM_DISTANCE_FROM_LEAF: u8 = 2;
+
+pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8, 9, 10, 11, 12, 12];
+pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
+pub const VALUE_BISHOP_PAIR: Score = 10;
+pub const VALUE_GUARDED_PASSED_PAWN: Score = 15;
+pub const VALUE_KNIGHT_OUTPOST: Score = 7;
+pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24, 26, 30, 36, 44, 56];
+pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 15;
+pub const DOUBLED_PAWN_PENALTY: Score = 15;
+pub const ISOLATED_PAWN_PENALTY: Score = 10;
+pub const PAWN_TRADE_BONUS_MAX: Score = 600;
+pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
+pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
+pub const KING_THREAT_BONUS_KNIGHT: Score = 8;
+pub const KING_THREAT_BONUS_QUEEN: Score = 6;
+pub const KING_THREAT_BONUS_BISHOP: Score = 4;

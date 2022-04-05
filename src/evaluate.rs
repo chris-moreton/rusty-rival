@@ -3,8 +3,10 @@ use crate::bitboards::{
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
-    BISHOP_VALUE, KNIGHT_VALUE, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_KING_CANNOT_CATCH_PAWN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
+    BISHOP_VALUE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN,
+    KNIGHT_VALUE, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE, QUEEN_VALUE, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE, VALUE_BISHOP_PAIR,
+    VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
@@ -12,22 +14,6 @@ use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, Posit
 use crate::utils::linear_scale;
 use crate::{get_and_unset_lsb, opponent};
 use std::cmp::{max, min};
-
-pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8, 9, 10, 11, 12, 12];
-pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
-pub const VALUE_BISHOP_PAIR: Score = 10;
-pub const VALUE_GUARDED_PASSED_PAWN: Score = 15;
-pub const VALUE_KNIGHT_OUTPOST: Score = 7;
-pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24, 26, 30, 36, 44, 56];
-pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 15;
-pub const DOUBLED_PAWN_PENALTY: Score = 15;
-pub const ISOLATED_PAWN_PENALTY: Score = 10;
-pub const PAWN_TRADE_BONUS_MAX: Score = 600;
-pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
-pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
-pub const KING_THREAT_BONUS_KNIGHT: Score = 8;
-pub const KING_THREAT_BONUS_QUEEN: Score = 6;
-pub const KING_THREAT_BONUS_BISHOP: Score = 4;
 
 #[inline(always)]
 pub fn evaluate(position: &Position) -> Score {
