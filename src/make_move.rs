@@ -11,8 +11,6 @@ use crate::utils::{from_square_part, to_square_part};
 
 #[inline(always)]
 pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
-    // println!("{}", algebraic_move_from_move(mv));
-
     let from = from_square_part(mv);
     let to = to_square_part(mv);
 
@@ -429,9 +427,7 @@ pub fn make_see_move(mv: Move, new_position: &mut Position) {
             match piece_mask {
                 PIECE_MASK_KNIGHT => new_position.pieces[new_position.mover as usize].knight_bitboard ^= switch,
                 PIECE_MASK_BISHOP => new_position.pieces[new_position.mover as usize].bishop_bitboard ^= switch,
-                PIECE_MASK_ROOK => {
-                    new_position.pieces[new_position.mover as usize].rook_bitboard ^= switch;
-                }
+                PIECE_MASK_ROOK => new_position.pieces[new_position.mover as usize].rook_bitboard ^= switch,
                 PIECE_MASK_QUEEN => new_position.pieces[new_position.mover as usize].queen_bitboard ^= switch,
                 PIECE_MASK_KING => new_position.pieces[new_position.mover as usize].king_square = to,
                 _ => panic!("Piece panic"),

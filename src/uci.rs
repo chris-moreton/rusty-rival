@@ -249,7 +249,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(
-        "id name Rusty Rival |20220405-05-Simple-Q|\nid author Chris Moreton\noption name Clear Hash type button\nuciok"
+        "id name Rusty Rival |20220405-06-No-SEE|\nid author Chris Moreton\noption name Clear Hash type button\nuciok"
             .parse()
             .unwrap(),
     ))

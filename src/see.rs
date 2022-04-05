@@ -6,13 +6,13 @@ use crate::utils::{captured_piece_value, to_square_part};
 use std::cmp::min;
 
 #[inline(always)]
-pub fn static_exchange_evaluation(position: &Position, mv: Move, cpv: Score) -> Score {
+pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
     let mut new_position = *position;
     make_see_move(mv, &mut new_position);
     if is_check(&new_position, position.mover) {
         0
     } else {
-        see(cpv, bit(to_square_part(mv)), &new_position)
+        see(captured_piece_value(position, mv), bit(to_square_part(mv)), &new_position)
     }
 }
 

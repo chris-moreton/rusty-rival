@@ -15,7 +15,6 @@ use crate::move_constants::{
 use crate::move_scores::{score_move, score_quiesce_move};
 use crate::moves::{is_check, moves, quiesce_moves, verify_move};
 use crate::opponent;
-use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Window, BLACK, WHITE,
@@ -280,7 +279,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
             if x.lock == position.zobrist_lock {
-                // adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
+                // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
+                // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
+                // adjusted it again such that it represented the distance from the root at which it was stored - e.g. we found it at ply 7, and wound
+                // up needing to store that score when it went back up to ply 5, so we adjusted it so it looked like it was found at ply 2.
+                // Now that we are retrieving it, we need to adjust it for the current ply. Following the previous example, if the current ply is 10, then
+                // we adjust the score to make it look like it was found at ply 12.
                 let score = match x.score {
                     s if s > MATE_START => s - ply as Score,
                     s if s < -MATE_START => s + ply as Score,
@@ -723,9 +727,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
     for ms in move_scores {
         let m = ms.0;
 
-        let cpv = captured_piece_value(position, m);
-
-        if (eval + cpv + 500 > alpha) && static_exchange_evaluation(position, m, cpv) > 0 {
+        if eval + captured_piece_value(position, m) + 500 > alpha {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
