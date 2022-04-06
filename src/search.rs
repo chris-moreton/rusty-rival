@@ -24,6 +24,7 @@ use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
 
+pub const MAX_WINDOW: Score = 20000;
 pub const MATE_SCORE: Score = 10000;
 pub const MATE_MARGIN: Score = 1000;
 pub const MATE_START: Score = MATE_SCORE - MATE_MARGIN;
@@ -95,7 +96,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         search_state.history.push(position.zobrist_lock)
     }
 
-    let mut aspiration_window = (-Score::MAX, Score::MAX);
+    let mut aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
 
     search_state.current_best = (vec![0], -MATE_SCORE);
 
@@ -117,11 +118,11 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             } else {
                 c += 1;
                 if c == aspiration_radius.len() {
-                    aspiration_window = (-Score::MAX, Score::MAX);
+                    aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
                 } else if aspire_best.1 <= aspiration_window.0 {
-                    aspiration_window.0 = max(-MATE_SCORE, aspiration_window.0 - aspiration_radius[c]);
+                    aspiration_window.0 = max(-MAX_WINDOW, aspiration_window.0 - aspiration_radius[c]);
                 } else if aspire_best.1 >= aspiration_window.1 {
-                    aspiration_window.1 = min(MATE_SCORE, aspiration_window.1 + aspiration_radius[c]);
+                    aspiration_window.1 = min(MAX_WINDOW, aspiration_window.1 + aspiration_radius[c]);
                 }
             };
         }
