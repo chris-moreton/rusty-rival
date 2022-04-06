@@ -95,7 +95,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         search_state.history.push(position.zobrist_lock)
     }
 
-    let mut aspiration_window = (-MATE_SCORE, MATE_SCORE);
+    let mut aspiration_window = (-Score::MAX, Score::MAX);
 
     search_state.current_best = (vec![0], -MATE_SCORE);
 
@@ -117,7 +117,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             } else {
                 c += 1;
                 if c == aspiration_radius.len() {
-                    aspiration_window = (-MATE_SCORE, MATE_SCORE);
+                    aspiration_window = (-Score::MAX, Score::MAX);
                 } else if aspire_best.1 <= aspiration_window.0 {
                     aspiration_window.0 = max(-MATE_SCORE, aspiration_window.0 - aspiration_radius[c]);
                 } else if aspire_best.1 >= aspiration_window.1 {
