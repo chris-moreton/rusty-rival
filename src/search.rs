@@ -728,7 +728,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
     for ms in move_scores {
         let m = ms.0;
 
-        if eval + captured_piece_value(position, m) + 500 > alpha {
+        if eval + captured_piece_value(position, m) + 250 > alpha {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             if !is_check(&new_position, position.mover) {
