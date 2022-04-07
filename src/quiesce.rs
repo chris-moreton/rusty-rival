@@ -147,29 +147,33 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         alpha = eval;
     }
 
-    let enemy = &position.pieces[opponent!(position.mover) as usize];
+    let ms = quiesce_moves(position);
+    if !ms.is_empty() {
+        let move_scores = if ms.len() > 1 {
+            let enemy = &position.pieces[opponent!(position.mover) as usize];
+            let mut move_scores: MoveScoreList = ms.into_iter().map(|m| (m, score_quiesce_move(position, m, enemy))).collect();
 
-    let mut move_scores: MoveScoreList = quiesce_moves(position)
-        .into_iter()
-        .map(|m| (m, score_quiesce_move(position, m, enemy)))
-        .collect();
+            move_scores.sort_by(|(_, a), (_, b)| b.cmp(a));
+            move_scores
+        } else {
+            vec![(ms[0], 0)]
+        };
 
-    move_scores.sort_by(|(_, a), (_, b)| b.cmp(a));
+        for ms in move_scores {
+            let m = ms.0;
 
-    for ms in move_scores {
-        let m = ms.0;
-
-        if eval + captured_piece_value(position, m) > alpha {
-            let mut new_position = *position;
-            make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) {
-                let score = -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1;
-                check_time!(search_state);
-                if score >= beta {
-                    return (vec![m], beta);
-                }
-                if score > alpha {
-                    alpha = score;
+            if eval + captured_piece_value(position, m) > alpha {
+                let mut new_position = *position;
+                make_move(position, m, &mut new_position);
+                if !is_check(&new_position, position.mover) {
+                    let score = -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1;
+                    check_time!(search_state);
+                    if score >= beta {
+                        return (vec![m], beta);
+                    }
+                    if score > alpha {
+                        alpha = score;
+                    }
                 }
             }
         }
