@@ -8,6 +8,7 @@ use crate::move_constants::{
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
+use crate::search::pick_high_score_move;
 use crate::types::{
     Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
@@ -125,9 +126,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         return (vec![0], eval);
     }
 
-    let beta = window.1;
-
-    if eval >= beta {
+    if eval >= window.1 {
         return (vec![0], eval);
     }
 
@@ -149,27 +148,33 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
     let ms = quiesce_moves(position);
     if !ms.is_empty() {
-        let move_scores = if ms.len() > 1 {
-            let enemy = &position.pieces[opponent!(position.mover) as usize];
-            let mut move_scores: MoveScoreList = ms.into_iter().map(|m| (m, score_quiesce_move(position, m, enemy))).collect();
+        let mut move_scores = if ms.len() > 1 {
+            let move_scores: MoveScoreList = ms
+                .into_iter()
+                .map(|m| {
+                    (
+                        m,
+                        score_quiesce_move(position, m, &position.pieces[opponent!(position.mover) as usize]),
+                    )
+                })
+                .collect();
 
-            move_scores.sort_by(|(_, a), (_, b)| b.cmp(a));
             move_scores
         } else {
             vec![(ms[0], 0)]
         };
 
-        for ms in move_scores {
-            let m = ms.0;
+        while !move_scores.is_empty() {
+            let m = pick_high_score_move(&mut move_scores);
 
             if eval + captured_piece_value(position, m) > alpha {
                 let mut new_position = *position;
                 make_move(position, m, &mut new_position);
                 if !is_check(&new_position, position.mover) {
-                    let score = -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1;
+                    let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
                     check_time!(search_state);
-                    if score >= beta {
-                        return (vec![m], beta);
+                    if score >= window.1 {
+                        return (vec![m], window.1);
                     }
                     if score > alpha {
                         alpha = score;

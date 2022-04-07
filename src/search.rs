@@ -439,10 +439,10 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         .into_iter()
         .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
         .collect();
-    move_scores.sort_by(|(_, a), (_, b)| b.cmp(a));
 
-    for ms in move_scores {
-        let m = ms.0;
+    while !move_scores.is_empty() {
+        let m = pick_high_score_move(&mut move_scores);
+
         let mut new_position = *position;
         make_move(position, m, &mut new_position);
         if !is_check(&new_position, position.mover) {
@@ -522,6 +522,20 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     );
 
     best_pathscore
+}
+
+#[allow(clippy::needless_range_loop)]
+pub fn pick_high_score_move(move_scores: &mut Vec<(Move, Score)>) -> Move {
+    let mut best_index = 0;
+    let mut best_score = move_scores[0].1;
+    for j in 1..move_scores.len() {
+        if move_scores[j].1 > best_score {
+            best_score = move_scores[j].1;
+            best_index = j;
+        }
+    }
+
+    move_scores.swap_remove(best_index).0
 }
 
 #[inline(always)]
