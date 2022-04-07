@@ -1,13 +1,13 @@
 use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, WHITE_PASSED_PAWN_MASK};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
-use crate::fen::{get_fen, get_position, move_from_algebraic_move};
+use crate::fen::{algebraic_path_from_path, get_fen, get_position, move_from_algebraic_move};
 use crate::move_constants::{
     BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT,
     PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK,
     PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK,
 };
 use crate::opponent;
-use crate::types::{Bitboard, Move, Position, Score, Square, BLACK, WHITE};
+use crate::types::{Bitboard, Move, Position, Score, SearchState, Square, BLACK, WHITE};
 
 #[inline(always)]
 pub const fn from_square_mask(square: Square) -> Move {
@@ -201,4 +201,27 @@ pub fn pawn_push(position: &Position, m: Move) -> bool {
         }
     }
     false
+}
+
+pub fn send_info(search_state: &mut SearchState) {
+    if !search_state.show_info {
+        return;
+    }
+    if search_state.start_time.elapsed().as_millis() > 0 {
+        let nps = (search_state.nodes as f64 / search_state.start_time.elapsed().as_millis() as f64) * 1000.0;
+        let s = "info score cp ".to_string()
+            + &*(search_state.current_best.1 as i64).to_string()
+            + &*" depth ".to_string()
+            + &*search_state.iterative_depth.to_string()
+            + &*" time ".to_string()
+            + &*search_state.start_time.elapsed().as_millis().to_string()
+            + &*" nodes ".to_string()
+            + &*search_state.nodes.to_string()
+            + &*" nps ".to_string()
+            + &*(nps as u64).to_string()
+            + &*" pv ".to_string()
+            + &*algebraic_path_from_path(&search_state.current_best.0);
+
+        println!("{}", s);
+    }
 }

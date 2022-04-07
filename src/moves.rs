@@ -4,9 +4,9 @@ use crate::bitboards::{
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::move_constants::{
-    CASTLE_FLAG, CASTLE_MOVE, EN_PASSANT_NOT_AVAILABLE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_KING, PIECE_MASK_KNIGHT,
-    PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK,
-    PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX,
+    CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
+    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES,
+    QUEEN_INDEX,
 };
 use crate::types::{Bitboard, Move, MoveList, Mover, Position, Square, BLACK, WHITE};
 use crate::utils::{from_square_mask, from_square_part, moving_piece_mask, to_square_part};
@@ -154,60 +154,6 @@ pub fn moves(position: &Position) -> MoveList {
 }
 
 #[inline(always)]
-pub fn quiesce_moves(position: &Position) -> MoveList {
-    let mut move_list = Vec::with_capacity(4);
-
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    let friendly = position.pieces[position.mover as usize];
-    let enemy = position.pieces[opponent!(position.mover) as usize];
-    let valid_destinations = enemy.all_pieces_bitboard
-        | (if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
-            bit(position.en_passant_square)
-        } else {
-            0
-        });
-
-    generate_capture_pawn_moves(position, &mut move_list, position.mover as usize, friendly.pawn_bitboard);
-    generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
-    generate_diagonal_slider_moves(
-        friendly.bishop_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_BISHOP,
-    );
-    generate_straight_slider_moves(
-        friendly.rook_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_ROOK,
-    );
-    generate_straight_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_QUEEN,
-    );
-    generate_diagonal_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_QUEEN,
-    );
-
-    add_moves!(
-        move_list,
-        from_square_mask(friendly.king_square) | PIECE_MASK_KING,
-        KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations
-    );
-
-    move_list
-}
-
-#[inline(always)]
 pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList {
     let mut move_list = Vec::with_capacity(1);
     let capture_square = valid_destinations.trailing_zeros() as usize;
@@ -307,29 +253,6 @@ fn generate_pawn_moves(
                 move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
                 move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
                 move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
-            } else {
-                move_list.push(base_move);
-            }
-        }
-    }
-}
-
-#[inline(always)]
-fn generate_capture_pawn_moves(position: &Position, move_list: &mut Vec<Move>, colour_index: usize, mut from_squares: Bitboard) {
-    while from_squares != 0 {
-        let from_square = get_and_unset_lsb!(from_squares);
-
-        let enemy_pawns_capture_bitboard =
-            position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | epsbit(position.en_passant_square);
-
-        let mut to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & enemy_pawns_capture_bitboard;
-
-        let fsm = from_square_mask(from_square);
-        let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
-        while to_bitboard != 0 {
-            let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
-            if is_promotion {
-                move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
             } else {
                 move_list.push(base_move);
             }

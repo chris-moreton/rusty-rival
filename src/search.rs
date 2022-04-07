@@ -1,25 +1,25 @@
-use crate::bitboards::{RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{
     ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, DEPTH_REMAINING_FOR_RD_INCREASE, IID_MIN_DEPTH,
     IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH,
-    NUM_HASH_ENTRIES, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
+    NUM_HASH_ENTRIES, ROOK_VALUE,
 };
 use crate::evaluate::{evaluate, pawn_material, piece_material};
-use crate::fen::algebraic_path_from_path;
+
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
 use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
 };
-use crate::move_scores::{score_move, score_quiesce_move};
-use crate::moves::{is_check, moves, quiesce_moves, verify_move};
+use crate::move_scores::score_move;
+use crate::moves::{is_check, moves, verify_move};
 use crate::opponent;
+use crate::quiesce::quiesce;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Window, BLACK, WHITE,
 };
-use crate::utils::{captured_piece_value, from_square_part, pawn_push, to_square_part};
+use crate::utils::{captured_piece_value, from_square_part, pawn_push, send_info, to_square_part};
 use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
@@ -680,92 +680,4 @@ fn side_total_non_pawn_count(position: &Position, side: Mover) -> u32 {
         | position.pieces[side as usize].rook_bitboard
         | position.pieces[side as usize].queen_bitboard)
         .count_ones()
-}
-
-#[inline(always)]
-pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
-    check_time!(search_state);
-
-    search_state.nodes += 1;
-
-    let eval = evaluate(position);
-
-    if depth == 0 {
-        return (vec![0], eval);
-    }
-
-    let beta = window.1;
-
-    if eval >= beta {
-        return (vec![0], eval);
-    }
-
-    let promote_from_rank = if position.mover == WHITE { RANK_7_BITS } else { RANK_2_BITS };
-    let mut delta = QUEEN_VALUE;
-    if position.pieces[position.mover as usize].pawn_bitboard & promote_from_rank != 0 {
-        delta += QUEEN_VALUE - PAWN_VALUE
-    }
-
-    let mut alpha = window.0;
-
-    if eval < alpha - delta {
-        return (vec![0], alpha);
-    }
-
-    if alpha < eval {
-        alpha = eval;
-    }
-
-    let enemy = &position.pieces[opponent!(position.mover) as usize];
-
-    let mut move_scores: MoveScoreList = quiesce_moves(position)
-        .into_iter()
-        .map(|m| (m, score_quiesce_move(position, m, enemy)))
-        .collect();
-
-    move_scores.sort_by(|(_, a), (_, b)| b.cmp(a));
-
-    for ms in move_scores {
-        let m = ms.0;
-
-        if eval + captured_piece_value(position, m) > alpha {
-            let mut new_position = *position;
-            make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) {
-                let score = -quiesce(&new_position, depth - 1, ply + 1, (-beta, -alpha), search_state).1;
-                check_time!(search_state);
-                if score >= beta {
-                    return (vec![m], beta);
-                }
-                if score > alpha {
-                    alpha = score;
-                }
-            }
-        }
-    }
-
-    (vec![0], alpha)
-}
-
-fn send_info(search_state: &mut SearchState) {
-    if !search_state.show_info {
-        return;
-    }
-    if search_state.start_time.elapsed().as_millis() > 0 {
-        let nps = (search_state.nodes as f64 / search_state.start_time.elapsed().as_millis() as f64) * 1000.0;
-        let s = "info score cp ".to_string()
-            + &*(search_state.current_best.1 as i64).to_string()
-            + &*" depth ".to_string()
-            + &*search_state.iterative_depth.to_string()
-            + &*" time ".to_string()
-            + &*search_state.start_time.elapsed().as_millis().to_string()
-            + &*" nodes ".to_string()
-            + &*search_state.nodes.to_string()
-            + &*" nps ".to_string()
-            + &*(nps as u64).to_string()
-            + &*" pv ".to_string()
-            + &*algebraic_path_from_path(&search_state.current_best.0);
-
-        println!("{}", s);
-    }
 }

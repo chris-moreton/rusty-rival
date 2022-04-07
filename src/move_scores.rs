@@ -2,7 +2,7 @@ use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
 use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
 use crate::move_constants::{
     PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
-    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
+    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
 };
 use crate::search::piece_index_12;
 use crate::types::{Move, Pieces, Position, Score, SearchState, Square, BLACK, WHITE};
@@ -22,8 +22,20 @@ pub const TOTAL_PIECE_VALUE_PER_SIDE_AT_START: Score = KNIGHT_VALUE * 2 + BISHOP
 
 pub const PAWN_ATTACKER_BONUS: Score = 300;
 
+const GOOD_CAPTURE_START: Score = 1000;
+const MATE_KILLER_SCORE: Score = 1000;
+const CURRENT_PLY_KILLER_1: Score = 750;
+const CURRENT_PLY_KILLER_2: Score = 400;
+const HISTORY_TOP: Score = 500;
+const DISTANT_KILLER_1: Score = 300;
+const DISTANT_KILLER_2: Score = 200;
+const GOOD_CAPTURE_BONUS: Score = 300;
+const HISTORY_START: Score = 0;
+const PAWN_PUSH_1: Score = 250;
+const PAWN_PUSH_2: Score = 50;
+
 #[inline(always)]
-fn attacker_bonus(piece: Move) -> Score {
+pub fn attacker_bonus(piece: Move) -> Score {
     match piece {
         PIECE_MASK_PAWN => PAWN_ATTACKER_BONUS,
         PIECE_MASK_KNIGHT => 250,
@@ -38,7 +50,7 @@ fn attacker_bonus(piece: Move) -> Score {
 }
 
 #[inline(always)]
-fn attacker_value(piece: Move) -> Score {
+pub fn attacker_value(piece: Move) -> Score {
     match piece {
         PIECE_MASK_PAWN => PAWN_VALUE,
         PIECE_MASK_KNIGHT => KNIGHT_VALUE,
@@ -51,18 +63,6 @@ fn attacker_value(piece: Move) -> Score {
         }
     }
 }
-
-const GOOD_CAPTURE_START: Score = 1000;
-const MATE_KILLER_SCORE: Score = 1000;
-const CURRENT_PLY_KILLER_1: Score = 750;
-const CURRENT_PLY_KILLER_2: Score = 400;
-const HISTORY_TOP: Score = 500;
-const DISTANT_KILLER_1: Score = 300;
-const DISTANT_KILLER_2: Score = 200;
-const GOOD_CAPTURE_BONUS: Score = 300;
-const HISTORY_START: Score = 0;
-const PAWN_PUSH_1: Score = 250;
-const PAWN_PUSH_2: Score = 50;
 
 #[inline(always)]
 pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
@@ -146,27 +146,6 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
             HISTORY_START as i64,
             HISTORY_TOP as i64,
         ) as Score
-}
-
-#[inline(always)]
-pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces) -> Score {
-    let to_square = to_square_part(m);
-
-    let mut score = if m & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK {
-        QUEEN_VALUE
-    } else {
-        0
-    };
-
-    score += if enemy.all_pieces_bitboard & bit(to_square) != 0 {
-        piece_value(enemy, to_square) + attacker_bonus(m & PIECE_MASK_FULL)
-    } else if to_square == position.en_passant_square {
-        PAWN_VALUE + PAWN_ATTACKER_BONUS
-    } else {
-        0
-    };
-
-    score
 }
 
 #[inline(always)]
