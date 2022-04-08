@@ -78,6 +78,7 @@ macro_rules! debug_out {
 
 pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mut SearchState) -> Move {
     search_state.start_time = Instant::now();
+    search_state.hash_table_version += 1;
 
     let mut legal_moves: MoveScoreList = moves(position)
         .into_iter()

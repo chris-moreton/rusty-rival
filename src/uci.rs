@@ -12,8 +12,8 @@ use crate::make_move::make_move;
 use crate::move_constants::START_POS;
 use crate::moves::{is_check, moves};
 use crate::perft::perft;
-use crate::search::iterative_deepening;
-use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, WHITE};
+use crate::search::{iterative_deepening, search};
+use crate::types::{BLACK, BoundType, HashEntry, Position, SearchState, UciState, WHITE};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -82,6 +82,7 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
         "ucinewgame" => cmd_ucinewgame(uci_state, search_state),
         "debug" => cmd_debug(uci_state, parts),
         "quit" => exit(0),
+        "mvm" => cmd_mvm(search_state, parts),
         "position" => cmd_position(uci_state, search_state, parts),
         _ => Left("Unknown command".parse().unwrap()),
     }
@@ -126,7 +127,6 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
     match *t {
         "fen" => {
             search_state.history = vec![];
-            search_state.hash_table_version += 1;
 
             let re = Regex::new(
                 r"\s*^(((?:[rnbqkpRNBQKP1-8]+/){7})[rnbqkpRNBQKP1-8]+)\s([b|w])\s([K|Q|k|q]{1,4}|-)\s(-|[a-h][1-8])\s(\d+\s\d+)$",
@@ -177,6 +177,53 @@ pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
 
 fn cmd_state(mut _uci_state: &mut UciState, search_state: &mut SearchState) -> Either<String, Option<String>> {
     Right(Some(format!(r#"Nodes {}"#, search_state.nodes)))
+}
+
+fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+    let millis = parts.get(1).unwrap().to_string().parse().unwrap();
+    let count = parts.get(2).unwrap().to_string().parse().unwrap();
+    let mut engine_1_wins = 0;
+    let mut engine_2_wins = 0;
+    let mut draws = 0;
+
+    search_state.show_info = false;
+
+    for g in 0..count {
+        let engine_1_colour = if g % 2 == 0 { WHITE } else { BLACK };
+        let mut position = get_position(START_POS);
+        let final_position = loop {
+            search_state.end_time = Instant::now().add(Duration::from_millis(millis));
+            let mv = iterative_deepening(&position, 100 as u8, search_state);
+            let mut new_position = position;
+            make_move(&position, mv, &mut new_position);
+
+            let mut legal_move_count = 0;
+            for m in moves(&new_position) {
+                let mut p = new_position;
+                make_move(&new_position, m, &mut p);
+                if !is_check(&p, new_position.mover) {
+                    legal_move_count += 1;
+                }
+            }
+            if new_position.half_moves > 100 || legal_move_count == 0 {
+                break new_position
+            }
+
+            position = new_position
+        };
+        if final_position.half_moves > 100 || !is_check(&final_position, final_position.mover) {
+            draws += 1;
+        } else {
+            if final_position.mover == engine_1_colour {
+                engine_2_wins += 1;
+            } else {
+                engine_1_wins += 1;
+            }
+        }
+        println!("{}", get_fen(&final_position));
+        println!("{} {} {}", engine_1_wins, engine_2_wins, draws);
+    }
+    Right(Some("Done".parse().unwrap()))
 }
 
 fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
