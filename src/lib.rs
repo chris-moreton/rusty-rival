@@ -12,6 +12,7 @@ pub mod move_scores;
 pub mod moves;
 pub mod perft;
 pub mod piece_square_tables;
+pub mod polyglot;
 pub mod quiesce;
 pub mod search;
 pub mod see;

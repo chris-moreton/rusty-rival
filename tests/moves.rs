@@ -4,8 +4,8 @@ use rusty_rival::make_move::make_move;
 use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL};
 use rusty_rival::moves::{
     any_squares_in_bitboard_attacked, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check, is_square_attacked, moves,
-    quiesce_moves,
 };
+use rusty_rival::quiesce::quiesce_moves;
 use rusty_rival::types::{MoveList, Square, BLACK, WHITE};
 
 #[test]

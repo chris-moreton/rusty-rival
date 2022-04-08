@@ -12,8 +12,8 @@ use crate::make_move::make_move;
 use crate::move_constants::START_POS;
 use crate::moves::{is_check, moves};
 use crate::perft::perft;
-use crate::search::{iterative_deepening, search};
-use crate::types::{BLACK, BoundType, HashEntry, Position, SearchState, UciState, WHITE};
+use crate::search::iterative_deepening;
+use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -193,7 +193,7 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
         let mut position = get_position(START_POS);
         let final_position = loop {
             search_state.end_time = Instant::now().add(Duration::from_millis(millis));
-            let mv = iterative_deepening(&position, 100 as u8, search_state);
+            let mv = iterative_deepening(&position, 100_u8, search_state);
             let mut new_position = position;
             make_move(&position, mv, &mut new_position);
 
@@ -206,19 +206,17 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
                 }
             }
             if new_position.half_moves > 100 || legal_move_count == 0 {
-                break new_position
+                break new_position;
             }
 
             position = new_position
         };
         if final_position.half_moves > 100 || !is_check(&final_position, final_position.mover) {
             draws += 1;
+        } else if final_position.mover == engine_1_colour {
+            engine_2_wins += 1;
         } else {
-            if final_position.mover == engine_1_colour {
-                engine_2_wins += 1;
-            } else {
-                engine_1_wins += 1;
-            }
+            engine_1_wins += 1;
         }
         println!("{}", get_fen(&final_position));
         println!("{} {} {}", engine_1_wins, engine_2_wins, draws);
@@ -296,7 +294,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(
-        "id name Rusty Rival |20220407-04-Pick-Move|\nid author Chris Moreton\noption name Clear Hash type button\nuciok"
+        "id name Rusty Rival |20220408-01-Quiesce-100-Margin|\nid author Chris Moreton\noption name Clear Hash type button\nuciok"
             .parse()
             .unwrap(),
     ))
