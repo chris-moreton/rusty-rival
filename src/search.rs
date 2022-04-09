@@ -392,7 +392,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let real_depth = depth + these_extentions;
 
     if hash_move == 0 && depth > IID_MIN_DEPTH {
-        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
+        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0).0[0];
     }
 
     let these_moves = if verify_move(position, hash_move) {
