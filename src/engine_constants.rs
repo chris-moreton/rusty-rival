@@ -3,7 +3,7 @@ use crate::types::{HistoryScore, Score};
 pub const DEBUG: bool = false;
 
 pub const PAWN_VALUE: Score = 100;
-pub const KNIGHT_VALUE: Score = 390;
+pub const KNIGHT_VALUE: Score = 375;
 pub const BISHOP_VALUE: Score = 390;
 pub const ROOK_VALUE: Score = 595;
 pub const QUEEN_VALUE: Score = 1175;
@@ -18,10 +18,6 @@ pub const BETA_PRUNE_MAX_DEPTH: u8 = 3;
 pub const NUM_KILLER_MOVES: usize = 2;
 
 pub const NULL_MOVE_REDUCE_DEPTH: u8 = 2;
-
-pub const PAWN_ADJUST_MAX_MATERIAL: Score = (QUEEN_VALUE + ROOK_VALUE) as Score;
-pub const VALUE_KING_CANNOT_CATCH_PAWN: Score = 500;
-pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 4;
 
 pub const MAX_DEPTH: u8 = 250;
 
@@ -38,7 +34,7 @@ pub const DEPTH_REMAINING_FOR_RD_INCREASE: u8 = 6;
 
 pub const IID_MIN_DEPTH: u8 = 5;
 pub const IID_SEARCH_DEPTH: u8 = 2;
-pub const IID_REDUCE_DEPTH: u8 = 1;
+pub const IID_REDUCE_DEPTH: u8 = 2;
 
 pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 4;
 pub const LMR_MIN_DEPTH: u8 = 3;
@@ -61,3 +57,7 @@ pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
 pub const KING_THREAT_BONUS_KNIGHT: Score = 8;
 pub const KING_THREAT_BONUS_QUEEN: Score = 6;
 pub const KING_THREAT_BONUS_BISHOP: Score = 4;
+
+pub const PAWN_ADJUST_MAX_MATERIAL: Score = (QUEEN_VALUE + ROOK_VALUE) as Score;
+pub const VALUE_KING_CANNOT_CATCH_PAWN: Score = 500;
+pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 4;
