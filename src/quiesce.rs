@@ -1,5 +1,5 @@
 use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{PAWN_VALUE, QUEEN_VALUE};
+use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
 use crate::evaluate::evaluate;
 use crate::make_move::make_move;
 use crate::move_constants::{
@@ -98,7 +98,7 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces) -> Score
     let to_square = to_square_part(m);
 
     let mut score = if m & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK {
-        QUEEN_VALUE
+        QUEEN_VALUE_AVERAGE
     } else {
         0
     };
@@ -106,7 +106,7 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces) -> Score
     score += if enemy.all_pieces_bitboard & bit(to_square) != 0 {
         piece_value(enemy, to_square) + attacker_bonus(m & PIECE_MASK_FULL)
     } else if to_square == position.en_passant_square {
-        PAWN_VALUE + PAWN_ATTACKER_BONUS
+        PAWN_VALUE_AVERAGE + PAWN_ATTACKER_BONUS
     } else {
         0
     };
@@ -131,9 +131,9 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
     }
 
     let promote_from_rank = if position.mover == WHITE { RANK_7_BITS } else { RANK_2_BITS };
-    let mut delta = QUEEN_VALUE;
+    let mut delta = QUEEN_VALUE_AVERAGE;
     if position.pieces[position.mover as usize].pawn_bitboard & promote_from_rank != 0 {
-        delta += QUEEN_VALUE - PAWN_VALUE
+        delta += QUEEN_VALUE_AVERAGE - PAWN_VALUE_AVERAGE
     }
 
     let mut alpha = window.0;

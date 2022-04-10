@@ -1,5 +1,5 @@
 use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, WHITE_PASSED_PAWN_MASK};
-use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
 use crate::fen::{algebraic_path_from_path, get_fen, get_position, move_from_algebraic_move};
 use crate::move_constants::{
     BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT,
@@ -36,24 +36,24 @@ pub fn captured_piece_value(position: &Position, mv: Move) -> Score {
     let to_bb = bit(tsp);
 
     let promote_value = match mv & PROMOTION_FULL_MOVE_MASK {
-        PROMOTION_QUEEN_MOVE_MASK => QUEEN_VALUE - PAWN_VALUE,
-        PROMOTION_ROOK_MOVE_MASK => ROOK_VALUE - PAWN_VALUE,
-        PROMOTION_BISHOP_MOVE_MASK => BISHOP_VALUE - PAWN_VALUE,
-        PROMOTION_KNIGHT_MOVE_MASK => KNIGHT_VALUE - PAWN_VALUE,
+        PROMOTION_QUEEN_MOVE_MASK => QUEEN_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+        PROMOTION_ROOK_MOVE_MASK => ROOK_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+        PROMOTION_BISHOP_MOVE_MASK => BISHOP_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+        PROMOTION_KNIGHT_MOVE_MASK => KNIGHT_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
         _ => 0,
     };
 
     promote_value
         + (if tsp == position.en_passant_square || enemy.pawn_bitboard & to_bb != 0 {
-            PAWN_VALUE
+            PAWN_VALUE_AVERAGE
         } else if enemy.knight_bitboard & to_bb != 0 {
-            KNIGHT_VALUE
+            KNIGHT_VALUE_AVERAGE
         } else if enemy.bishop_bitboard & to_bb != 0 {
-            BISHOP_VALUE
+            BISHOP_VALUE_AVERAGE
         } else if enemy.rook_bitboard & to_bb != 0 {
-            ROOK_VALUE
+            ROOK_VALUE_AVERAGE
         } else if enemy.queen_bitboard & to_bb != 0 {
-            QUEEN_VALUE
+            QUEEN_VALUE_AVERAGE
         } else {
             0
         })

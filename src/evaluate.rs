@@ -2,7 +2,7 @@ use crate::bitboards::{
     bit, north_fill, south_fill, BISHOP_RAYS, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
-use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_VALUE, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE, QUEEN_VALUE, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KNIGHT_FORK_THREAT_SCORE};
+use crate::engine_constants::{DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, PAWN_ADJUST_MAX_MATERIAL, ROOKS_ON_SEVENTH_RANK_BONUS, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KNIGHT_FORK_THREAT_SCORE, PAWN_VALUE_AVERAGE, BISHOP_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, Position, Score, Square, BLACK, WHITE};
@@ -25,7 +25,6 @@ pub fn evaluate(position: &Position) -> Score {
         + piece_square_values(position)
         + king_score(position, &cache)
         + king_threat_score(position)
-        + knight_fork_threat_score(position)
         + rook_eval(position)
         + passed_pawn_score(position, &mut cache)
         + knight_outpost_scores(position, &mut cache)
@@ -305,32 +304,32 @@ pub fn black_king_early_safety(position: &Position) -> Score {
 pub fn material_score(position: &Position) -> Score {
     ((position.pieces[WHITE as usize].pawn_bitboard.count_ones() as Score
         - position.pieces[BLACK as usize].pawn_bitboard.count_ones() as Score) as Score
-        * PAWN_VALUE
+        * PAWN_VALUE_AVERAGE
         + (position.pieces[WHITE as usize].knight_bitboard.count_ones() as Score
             - position.pieces[BLACK as usize].knight_bitboard.count_ones() as Score) as Score
-            * KNIGHT_VALUE
+            * KNIGHT_VALUE_AVERAGE
         + (position.pieces[WHITE as usize].rook_bitboard.count_ones() as Score
             - position.pieces[BLACK as usize].rook_bitboard.count_ones() as Score) as Score
-            * ROOK_VALUE
+            * ROOK_VALUE_AVERAGE
         + (position.pieces[WHITE as usize].bishop_bitboard.count_ones() as Score
             - position.pieces[BLACK as usize].bishop_bitboard.count_ones() as Score) as Score
-            * BISHOP_VALUE
+            * BISHOP_VALUE_AVERAGE
         + (position.pieces[WHITE as usize].queen_bitboard.count_ones() as Score
             - position.pieces[BLACK as usize].queen_bitboard.count_ones() as Score) as Score
-            * QUEEN_VALUE) as Score
+            * QUEEN_VALUE_AVERAGE) as Score
 }
 
 #[inline(always)]
 pub fn piece_material(position: &Position, mover: Mover) -> Score {
-    position.pieces[mover as usize].knight_bitboard.count_ones() as Score * KNIGHT_VALUE
-        + position.pieces[mover as usize].rook_bitboard.count_ones() as Score * ROOK_VALUE
-        + position.pieces[mover as usize].bishop_bitboard.count_ones() as Score * BISHOP_VALUE
-        + position.pieces[mover as usize].queen_bitboard.count_ones() as Score * QUEEN_VALUE
+    position.pieces[mover as usize].knight_bitboard.count_ones() as Score * KNIGHT_VALUE_AVERAGE
+        + position.pieces[mover as usize].rook_bitboard.count_ones() as Score * ROOK_VALUE_AVERAGE
+        + position.pieces[mover as usize].bishop_bitboard.count_ones() as Score * BISHOP_VALUE_AVERAGE
+        + position.pieces[mover as usize].queen_bitboard.count_ones() as Score * QUEEN_VALUE_AVERAGE
 }
 
 #[inline(always)]
 pub fn pawn_material(position: &Position, mover: Mover) -> Score {
-    position.pieces[mover as usize].pawn_bitboard.count_ones() as Score * PAWN_VALUE
+    position.pieces[mover as usize].pawn_bitboard.count_ones() as Score * PAWN_VALUE_AVERAGE
 }
 
 #[inline(always)]

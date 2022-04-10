@@ -1,5 +1,5 @@
 use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
-use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
 use crate::move_constants::{
     PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
     PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
@@ -13,12 +13,12 @@ pub const BIT_FLIPPED_HORIZONTAL_AXIS: [Square; 64] = [
     26, 27, 28, 29, 30, 31, 16, 17, 18, 19, 20, 21, 22, 23, 8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7,
 ];
 
-pub const KNIGHT_STAGE_MATERIAL_LOW: Score = KNIGHT_VALUE + 8 * PAWN_VALUE;
-pub const KNIGHT_STAGE_MATERIAL_HIGH: Score = QUEEN_VALUE + 2 * ROOK_VALUE + 2 * BISHOP_VALUE + 6 * PAWN_VALUE;
-pub const PAWN_STAGE_MATERIAL_LOW: Score = ROOK_VALUE;
-pub const PAWN_STAGE_MATERIAL_HIGH: Score = QUEEN_VALUE + 2 * ROOK_VALUE + 2 * BISHOP_VALUE;
+pub const KNIGHT_STAGE_MATERIAL_LOW: Score = KNIGHT_VALUE_AVERAGE + 8 * PAWN_VALUE_AVERAGE;
+pub const KNIGHT_STAGE_MATERIAL_HIGH: Score = QUEEN_VALUE_AVERAGE + 2 * ROOK_VALUE_AVERAGE + 2 * BISHOP_VALUE_AVERAGE + 6 * PAWN_VALUE_AVERAGE;
+pub const PAWN_STAGE_MATERIAL_LOW: Score = ROOK_VALUE_AVERAGE;
+pub const PAWN_STAGE_MATERIAL_HIGH: Score = QUEEN_VALUE_AVERAGE + 2 * ROOK_VALUE_AVERAGE + 2 * BISHOP_VALUE_AVERAGE;
 pub const OPENING_PHASE_MATERIAL: Score = (TOTAL_PIECE_VALUE_PER_SIDE_AT_START as f32 * 0.8) as Score;
-pub const TOTAL_PIECE_VALUE_PER_SIDE_AT_START: Score = KNIGHT_VALUE * 2 + BISHOP_VALUE * 2 + ROOK_VALUE * 2 + QUEEN_VALUE;
+pub const TOTAL_PIECE_VALUE_PER_SIDE_AT_START: Score = KNIGHT_VALUE_AVERAGE * 2 + BISHOP_VALUE_AVERAGE * 2 + ROOK_VALUE_AVERAGE * 2 + QUEEN_VALUE_AVERAGE;
 
 pub const PAWN_ATTACKER_BONUS: Score = 300;
 
@@ -52,11 +52,11 @@ pub fn attacker_bonus(piece: Move) -> Score {
 #[inline(always)]
 pub fn attacker_value(piece: Move) -> Score {
     match piece {
-        PIECE_MASK_PAWN => PAWN_VALUE,
-        PIECE_MASK_KNIGHT => KNIGHT_VALUE,
-        PIECE_MASK_BISHOP => BISHOP_VALUE,
-        PIECE_MASK_ROOK => ROOK_VALUE,
-        PIECE_MASK_QUEEN => QUEEN_VALUE,
+        PIECE_MASK_PAWN => PAWN_VALUE_AVERAGE,
+        PIECE_MASK_KNIGHT => KNIGHT_VALUE_AVERAGE,
+        PIECE_MASK_BISHOP => BISHOP_VALUE_AVERAGE,
+        PIECE_MASK_ROOK => ROOK_VALUE_AVERAGE,
+        PIECE_MASK_QUEEN => QUEEN_VALUE_AVERAGE,
         PIECE_MASK_KING => 10000,
         _ => {
             panic!("Expected piece")
@@ -87,10 +87,10 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
             1
         } else {
-            GOOD_CAPTURE_START + QUEEN_VALUE
+            GOOD_CAPTURE_START + QUEEN_VALUE_AVERAGE
         }
     } else if to_square == position.en_passant_square {
-        GOOD_CAPTURE_START + PAWN_VALUE + PAWN_ATTACKER_BONUS
+        GOOD_CAPTURE_START + PAWN_VALUE_AVERAGE + PAWN_ATTACKER_BONUS
     } else if m == search_state.mate_killer[ply] {
         MATE_KILLER_SCORE
     } else {
@@ -152,19 +152,19 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
 pub fn piece_value(pieces: &Pieces, sq: Square) -> Score {
     let bb = bit(sq);
     if pieces.pawn_bitboard & bb != 0 {
-        return PAWN_VALUE;
+        return PAWN_VALUE_AVERAGE;
     }
     if pieces.knight_bitboard & bb != 0 {
-        return KNIGHT_VALUE;
+        return KNIGHT_VALUE_AVERAGE;
     }
     if pieces.rook_bitboard & bb != 0 {
-        return ROOK_VALUE;
+        return ROOK_VALUE_AVERAGE;
     }
     if pieces.queen_bitboard & bb != 0 {
-        return QUEEN_VALUE;
+        return QUEEN_VALUE_AVERAGE;
     }
     if pieces.bishop_bitboard & bb != 0 {
-        return BISHOP_VALUE;
+        return BISHOP_VALUE_AVERAGE;
     }
     0
 }

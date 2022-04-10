@@ -1,4 +1,4 @@
-use crate::engine_constants::{BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE};
+use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
 use crate::get_and_unset_lsb;
 use crate::move_scores::{
     BIT_FLIPPED_HORIZONTAL_AXIS, KNIGHT_STAGE_MATERIAL_HIGH, KNIGHT_STAGE_MATERIAL_LOW, OPENING_PHASE_MATERIAL, PAWN_STAGE_MATERIAL_HIGH,
@@ -62,15 +62,15 @@ pub const KING_IN_CORNER_PIECE_SQUARE_TABLE: [Score; 64] = [
 
 #[inline(always)]
 pub fn non_pawn_piece_values(pieces: &Pieces) -> Score {
-    (pieces.knight_bitboard.count_ones() as Score * KNIGHT_VALUE
-        + pieces.rook_bitboard.count_ones() as Score * ROOK_VALUE
-        + pieces.bishop_bitboard.count_ones() as Score * BISHOP_VALUE
-        + pieces.queen_bitboard.count_ones() as Score * QUEEN_VALUE) as Score
+    (pieces.knight_bitboard.count_ones() as Score * KNIGHT_VALUE_AVERAGE
+        + pieces.rook_bitboard.count_ones() as Score * ROOK_VALUE_AVERAGE
+        + pieces.bishop_bitboard.count_ones() as Score * BISHOP_VALUE_AVERAGE
+        + pieces.queen_bitboard.count_ones() as Score * QUEEN_VALUE_AVERAGE) as Score
 }
 
 #[inline(always)]
 pub fn pawn_values(pieces: &Pieces) -> Score {
-    pieces.pawn_bitboard.count_ones() as Score * PAWN_VALUE
+    pieces.pawn_bitboard.count_ones() as Score * PAWN_VALUE_AVERAGE
 }
 
 #[inline(always)]
@@ -243,7 +243,7 @@ pub fn white_king_piece_square_values(position: &Position, nppv: Score) -> Score
     let sq = position.pieces[WHITE as usize].king_square as usize;
     linear_scale(
         nppv as i64,
-        ROOK_VALUE as i64,
+        ROOK_VALUE_AVERAGE as i64,
         OPENING_PHASE_MATERIAL as i64,
         KING_END_GAME_PIECE_SQUARE_TABLE[sq] as i64,
         KING_PIECE_SQUARE_TABLE[sq] as i64,
@@ -255,7 +255,7 @@ pub fn black_king_piece_square_values(position: &Position, nppv: Score) -> Score
     let sq = BIT_FLIPPED_HORIZONTAL_AXIS[position.pieces[BLACK as usize].king_square as usize] as usize;
     linear_scale(
         nppv as i64,
-        ROOK_VALUE as i64,
+        ROOK_VALUE_AVERAGE as i64,
         OPENING_PHASE_MATERIAL as i64,
         KING_END_GAME_PIECE_SQUARE_TABLE[sq] as i64,
         KING_PIECE_SQUARE_TABLE[sq] as i64,

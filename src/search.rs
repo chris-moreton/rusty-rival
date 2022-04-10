@@ -1,8 +1,4 @@
-use crate::engine_constants::{
-    ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, DEPTH_REMAINING_FOR_RD_INCREASE, IID_MIN_DEPTH,
-    IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH,
-    NUM_HASH_ENTRIES, ROOK_VALUE,
-};
+use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, DEPTH_REMAINING_FOR_RD_INCREASE, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE};
 use crate::evaluate::{evaluate, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
@@ -229,10 +225,15 @@ pub fn store_hash_entry(
 }
 
 #[inline(always)]
-fn is_end_game(position: &Position) -> bool {
+fn total_material_value(position: &Position) -> Score {
     let piece_material = piece_material(position, WHITE) + piece_material(position, BLACK);
     let pawn_material = pawn_material(position, WHITE) + pawn_material(position, BLACK);
-    piece_material + pawn_material < ROOK_VALUE * 4
+    piece_material + pawn_material
+}
+
+#[inline(always)]
+fn is_end_game(position: &Position) -> bool {
+    total_material_value(position) < ROOK_VALUE_AVERAGE * 4
 }
 
 #[inline(always)]

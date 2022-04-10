@@ -1,5 +1,5 @@
 use rusty_rival::bitboards::south_fill;
-use rusty_rival::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS};
+use rusty_rival::engine_constants::{BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS};
 use rusty_rival::evaluate::{black_king_early_safety, count_knight_fork_threats, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count, king_threat_score, knight_fork_threat_score, knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety};
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
@@ -241,7 +241,7 @@ fn it_gets_the_material_score() {
     let position = get_position("r1q1k3/1R2n2p/5b2/5r2/p1Pp4/7P/1p2p3/6K1 b q - 0 1");
     assert_eq!(
         material_score(&position),
-        ROOK_VALUE + (PAWN_VALUE * 2) - (ROOK_VALUE * 2) - QUEEN_VALUE - BISHOP_VALUE - KNIGHT_VALUE - (PAWN_VALUE * 5)
+        ROOK_VALUE_AVERAGE + (PAWN_VALUE_AVERAGE * 2) - (ROOK_VALUE_AVERAGE * 2) - QUEEN_VALUE_AVERAGE - BISHOP_VALUE_AVERAGE - KNIGHT_VALUE_AVERAGE - (PAWN_VALUE_AVERAGE * 5)
     );
 }
 

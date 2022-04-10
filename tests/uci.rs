@@ -122,8 +122,8 @@ pub fn it_handles_cached_mates() {
     let mut search_state = default_search_state();
     search_state.show_info = false;
 
-    find_move(&mut uci_state, &mut search_state, "8/2R1Pk2/3K3p/6pP/5nP1/8/8/8 w - - 0 1", "d6d7");
-    find_move(&mut uci_state, &mut search_state, "2R5/4Pk2/3K3p/6pP/5nP1/8/8/8 b - - 0 1", "f7f6");
+    find_move(&mut uci_state, &mut search_state, "8/2R1Pk2/3K3p/6pP/5nP1/8/8/8 w - - 0 1", "c7c8");
+    find_move(&mut uci_state, &mut search_state, "2R5/4Pk2/3K3p/6pP/5nP1/8/8/8 b - - 0 1", "f4h5");
     find_move(
         &mut uci_state,
         &mut search_state,
@@ -139,7 +139,7 @@ pub fn it_handles_cached_mates() {
 fn find_move(mut uci_state: &mut UciState, mut search_state: &mut SearchState, fen: &str, m: &str) {
     let a = format!("position fen {}", fen);
     assert_eq!(run_command_test(&mut uci_state, &mut search_state, &a), Right(None));
-    let result = run_command_test(&mut uci_state, &mut search_state, "go movetime 250");
+    let result = run_command_test(&mut uci_state, &mut search_state, "go depth 10");
     match result {
         Left(_error) => panic!("Fail"),
         Right(Some(message)) => {

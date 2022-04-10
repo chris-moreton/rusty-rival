@@ -19,6 +19,7 @@ pub type MoveScore = (Move, Score);
 pub type MoveScoreList = Vec<MoveScore>;
 pub type PositionHistory = Vec<HashLock>;
 pub type HistoryScore = i64;
+pub type ScorePair = (Score, Score);
 
 pub struct UciState {
     pub fen: String,
