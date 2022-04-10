@@ -1,13 +1,6 @@
 use rusty_rival::bitboards::south_fill;
-use rusty_rival::engine_constants::{
-    BISHOP_VALUE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN,
-    KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
-};
-use rusty_rival::evaluate::{
-    black_king_early_safety, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count, king_threat_score,
-    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety,
-};
+use rusty_rival::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS};
+use rusty_rival::evaluate::{black_king_early_safety, count_knight_fork_threats, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count, king_threat_score, knight_fork_threat_score, knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety};
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
 use rusty_rival::utils::{invert_fen, invert_pos};
@@ -318,4 +311,25 @@ fn it_evaluates_king_safety() {
     test_king_safety("rnbqkbnr/pppppppp/8/8/5P2/4BN1P/PPPPP1P1/RNBQ1RK1 w kq - 0 1", 15, 0);
     test_king_safety("rnbqkbnr/pppppppp/8/8/5P2/4BN2/PPPPP1PP/RNBQ1RK1 w kq - 0 1", 32, 0);
     test_king_safety("rnbqkbnr/pppppppp/8/8/4N3/4BP2/PPPPP1PP/RNBQ1RK1 w kq - 0 1", 22, 0);
+}
+
+fn test_knight_fork_threats(fen: &str, white_count: i8, black_count: i8) {
+    let position = get_position(fen);
+    assert_eq!(count_knight_fork_threats(&position, WHITE), white_count);
+    assert_eq!(count_knight_fork_threats(&position, BLACK), black_count);
+    assert_eq!(knight_fork_threat_score(&position), (white_count - black_count) as Score * KNIGHT_FORK_THREAT_SCORE);
+    assert_eq!(count_knight_fork_threats(&invert_pos(&position), WHITE), black_count);
+    assert_eq!(count_knight_fork_threats(&invert_pos(&position), BLACK), white_count);
+    assert_eq!(knight_fork_threat_score(&invert_pos(&position)), (black_count - white_count) as Score * KNIGHT_FORK_THREAT_SCORE);
+}
+
+#[test]
+fn it_gets_knight_fork_threats() {
+    test_knight_fork_threats("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2P3r1/1KB5 b - - 1 1", 0, 1);
+    test_knight_fork_threats("8/7R/1pqp1k2/p3p3/P3P3/1Q3P2/2Pn2r1/1KB5 w - - 2 2", 0, 1);
+    test_knight_fork_threats("8/7R/1pqp1k2/p3p3/P3P3/1Q2nP2/2P3r1/1KB5 w - - 2 2", 0, 0);
+    test_knight_fork_threats("8/6NR/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 1", 0, 0);
+    test_knight_fork_threats("8/2q3NR/1p1r1k2/pn1pp3/P1Q1P3/5P2/2P5/1KB5 w - - 0 1", 1, 1);
+    test_knight_fork_threats("8/2q3NR/1p2r3/pn1ppk2/P1Q1P3/5P2/2P5/1KB5 w - - 0 1", 1, 1);
+    test_knight_fork_threats("8/2q3NR/1p1Nrk2/pn1pp3/P1Q1P3/5P2/2P5/1KB5 w - - 0 1", 2, 1);
 }

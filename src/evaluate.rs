@@ -2,12 +2,7 @@ use crate::bitboards::{
     bit, north_fill, south_fill, BISHOP_RAYS, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
-use crate::engine_constants::{
-    BISHOP_VALUE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN,
-    KNIGHT_VALUE, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE, QUEEN_VALUE, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE, VALUE_BISHOP_PAIR,
-    VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE,
-};
+use crate::engine_constants::{BISHOP_VALUE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_VALUE, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE, QUEEN_VALUE, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KNIGHT_FORK_THREAT_SCORE};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, Position, Score, Square, BLACK, WHITE};
@@ -30,6 +25,7 @@ pub fn evaluate(position: &Position) -> Score {
         + piece_square_values(position)
         + king_score(position, &cache)
         + king_threat_score(position)
+        + knight_fork_threat_score(position)
         + rook_eval(position)
         + passed_pawn_score(position, &mut cache)
         + knight_outpost_scores(position, &mut cache)
@@ -71,6 +67,39 @@ pub fn single_bishop_square_colour(bb: Bitboard) -> Mover {
     } else {
         WHITE
     }
+}
+
+#[inline(always)]
+pub fn is_knight_fork(position: &Position, to_squares: Bitboard, knight_colour: Mover) -> bool {
+    let opponent = opponent!(knight_colour) as usize;
+    let is_king_attacked = to_squares & bit(position.pieces[opponent].king_square) != 0;
+    let is_a_major_piece_attacked = to_squares & (position.pieces[opponent].rook_bitboard | position.pieces[opponent].queen_bitboard) != 0;
+    is_king_attacked && is_a_major_piece_attacked
+}
+
+#[inline(always)]
+pub fn count_knight_fork_threats(position: &Position, knight_colour: Mover) -> i8 {
+    let mut threats = 0;
+
+    let mut bb = position.pieces[knight_colour as usize].knight_bitboard;
+    while bb != 0 {
+        let mut to_squares = KNIGHT_MOVES_BITBOARDS[get_and_unset_lsb!(bb) as usize];
+        if is_knight_fork(position, to_squares, knight_colour) {
+            threats += 1;
+        }
+        while to_squares != 0 {
+            if is_knight_fork(position, KNIGHT_MOVES_BITBOARDS[get_and_unset_lsb!(to_squares) as usize], knight_colour) {
+                threats += 1;
+            }
+        }
+    }
+
+    threats
+}
+
+#[inline(always)]
+pub fn knight_fork_threat_score(position: &Position) -> Score {
+    (count_knight_fork_threats(position, WHITE) - count_knight_fork_threats(position, BLACK)) as Score * KNIGHT_FORK_THREAT_SCORE
 }
 
 #[inline(always)]

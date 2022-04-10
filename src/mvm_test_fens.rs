@@ -67,7 +67,7 @@ pub fn get_post_book_test_fens() -> Vec<(&'static str, &'static str, &'static st
 
 pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
     vec![
-        ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3"),
+        ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3"), // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 43. Ka2 { otherwise ..Rxc1, then if 44. Kxc1 ..Qg1+ 45. Qe1 ..Qxe1++ }
         ("8/7R/ppqp1k2/4p3/PQn1P3/5P2/2P3r1/1KB5 b - - 8 40", "g2g1"),
         ("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42", "f3f4"),
         ("8/7R/1p1p1k2/p3p3/P1n1qP2/1Q6/2Pr4/1KB5 w - - 0 43", "h7c7"),
@@ -90,8 +90,8 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
         ("8/3r4/6k1/1p1p3p/pP1PrR1P/P7/7K/5R2 b - - 2 45", "e4f4"),
         ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3"), // avoid 2.50+ blunder
         ("6k1/5pp1/8/5Pnp/3K4/P3N1P1/3p1P1P/2rR4 b - - 7 44", "c1c8"), // avoid 2.00+ blunder
-        // ("", ""),
-        // ("", ""),
+        ("4k3/1pp2p2/2p3PK/4PP2/8/p1n3B1/2P5/8 b - - 0 31", "f7g6"), // avoid 7.00+ blunder
+        ("8/R1pkrp2/2p5/P3n1p1/6P1/6B1/2P2PK1/8 b - - 0 32", "e7e8"),
         // ("", ""),
         // ("", ""),
         // ("", ""),
