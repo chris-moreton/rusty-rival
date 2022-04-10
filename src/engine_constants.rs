@@ -2,11 +2,11 @@ use crate::types::{HistoryScore, Score, ScorePair};
 
 pub const DEBUG: bool = false;
 
-pub const PAWN_VALUE_PAIR: ScorePair = (100, 165);
+pub const PAWN_VALUE_PAIR: ScorePair = (100, 200);
 pub const KNIGHT_VALUE_PAIR: ScorePair = (620, 680);
 pub const BISHOP_VALUE_PAIR: ScorePair = (650, 725);
 pub const ROOK_VALUE_PAIR: ScorePair = (1000, 1100);
-pub const QUEEN_VALUE_PAIR: ScorePair = (2000, 2125);
+pub const QUEEN_VALUE_PAIR: ScorePair = (2000, 2300);
 
 pub const PAWN_VALUE_AVERAGE: Score = (PAWN_VALUE_PAIR.0 + PAWN_VALUE_PAIR.1) / 2;
 pub const KNIGHT_VALUE_AVERAGE: Score = (KNIGHT_VALUE_PAIR.0 + KNIGHT_VALUE_PAIR.1) / 2;
@@ -33,8 +33,8 @@ pub const MAX_DEPTH: u8 = 250;
 pub const MAX_QUIESCE_DEPTH: u8 = 100;
 
 pub const HASH_ENTRY_BYTES: u64 = 22;
-pub const HASH_ENTRY_MB: u64 = 128;
-pub const NUM_HASH_ENTRIES: u64 = ((1024 * 1024 * HASH_ENTRY_MB) / HASH_ENTRY_BYTES) as u64;
+pub const HASH_SIZE_MB: u64 = 128;
+pub const NUM_HASH_ENTRIES: u64 = ((1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTES) as u64;
 pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [128, 192, 256, 320, 384, 448, 512, 576];
 
 pub const TICKER_MILLIS: u16 = 500;
@@ -71,4 +71,4 @@ pub const PAWN_ADJUST_MAX_MATERIAL: Score = (QUEEN_VALUE_AVERAGE + ROOK_VALUE_AV
 pub const VALUE_KING_CANNOT_CATCH_PAWN: Score = 500;
 pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 4;
 
-pub const KNIGHT_FORK_THREAT_SCORE: Score = 15;
+pub const KNIGHT_FORK_THREAT_SCORE: Score = 5;
