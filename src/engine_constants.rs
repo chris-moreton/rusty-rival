@@ -2,17 +2,20 @@ use crate::types::{HistoryScore, Score, ScorePair};
 
 pub const DEBUG: bool = false;
 
-pub const PAWN_VALUE: ScorePair = (100, 165);
-pub const KNIGHT_VALUE: ScorePair = (620, 680);
-pub const BISHOP_VALUE: ScorePair = (650, 725);
-pub const ROOK_VALUE: ScorePair = (1000, 1100);
-pub const QUEEN_VALUE: ScorePair = (2000, 2125);
+pub const PAWN_VALUE_PAIR: ScorePair = (100, 165);
+pub const KNIGHT_VALUE_PAIR: ScorePair = (620, 680);
+pub const BISHOP_VALUE_PAIR: ScorePair = (650, 725);
+pub const ROOK_VALUE_PAIR: ScorePair = (1000, 1100);
+pub const QUEEN_VALUE_PAIR: ScorePair = (2000, 2125);
 
-pub const PAWN_VALUE_AVERAGE: Score = (PAWN_VALUE.0 + PAWN_VALUE.1) / 2;
-pub const KNIGHT_VALUE_AVERAGE: Score = (KNIGHT_VALUE.0 + KNIGHT_VALUE.1) / 2;
-pub const BISHOP_VALUE_AVERAGE: Score = (BISHOP_VALUE.0 + BISHOP_VALUE.1) / 2;
-pub const ROOK_VALUE_AVERAGE: Score = (ROOK_VALUE.0 + ROOK_VALUE.1) / 2;
-pub const QUEEN_VALUE_AVERAGE: Score = (QUEEN_VALUE.0 + QUEEN_VALUE.1) / 2;
+pub const PAWN_VALUE_AVERAGE: Score = (PAWN_VALUE_PAIR.0 + PAWN_VALUE_PAIR.1) / 2;
+pub const KNIGHT_VALUE_AVERAGE: Score = (KNIGHT_VALUE_PAIR.0 + KNIGHT_VALUE_PAIR.1) / 2;
+pub const BISHOP_VALUE_AVERAGE: Score = (BISHOP_VALUE_PAIR.0 + BISHOP_VALUE_PAIR.1) / 2;
+pub const ROOK_VALUE_AVERAGE: Score = (ROOK_VALUE_PAIR.0 + ROOK_VALUE_PAIR.1) / 2;
+pub const QUEEN_VALUE_AVERAGE: Score = (QUEEN_VALUE_PAIR.0 + QUEEN_VALUE_PAIR.1) / 2;
+
+pub const STARTING_MATERIAL: Score =
+    PAWN_VALUE_AVERAGE * 16 + KNIGHT_VALUE_AVERAGE * 4 + BISHOP_VALUE_AVERAGE * 4 + ROOK_VALUE_AVERAGE * 4 + QUEEN_VALUE_AVERAGE * 2;
 
 pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 

@@ -1,4 +1,6 @@
-use rusty_rival::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
+use rusty_rival::engine_constants::{
+    BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE,
+};
 use rusty_rival::fen::get_position;
 use rusty_rival::see::static_exchange_evaluation;
 use rusty_rival::types::Score;
@@ -34,7 +36,11 @@ fn it_gets_the_see_score() {
     assert_see_score("5k2/5p1p/p3B1p1/P5P1/3K1P1P/8/8/8 b - - 0 1", "f7e6", BISHOP_VALUE_AVERAGE);
 
     // pawn promotes, king has to take queen
-    assert_see_score("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", "g2f1", KNIGHT_VALUE_AVERAGE - PAWN_VALUE_AVERAGE);
+    assert_see_score(
+        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1",
+        "g2f1",
+        KNIGHT_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+    );
 
     // leaves king in check
     assert_see_score("8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28", "h6c1", 0);
@@ -57,7 +63,11 @@ fn it_gets_the_see_score() {
     );
 
     // can't recapture knight, because king in double check
-    assert_see_score("2rr1q2/pp3ppk/1nn1b1Np/3p3N/2pP4/2P3Q1/PPB4P/R4RK1 w - - 4 3", "g6f8", QUEEN_VALUE_AVERAGE);
+    assert_see_score(
+        "2rr1q2/pp3ppk/1nn1b1Np/3p3N/2pP4/2P3Q1/PPB4P/R4RK1 w - - 4 3",
+        "g6f8",
+        QUEEN_VALUE_AVERAGE,
+    );
     assert_see_score(
         "3r3r/ppk2ppp/3q4/2b5/2P2Bn1/3R1Q2/P4PPP/5RK1 w - - 0 5",
         "d3d6",

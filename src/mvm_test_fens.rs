@@ -90,7 +90,7 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
         ("8/3r4/6k1/1p1p3p/pP1PrR1P/P7/7K/5R2 b - - 2 45", "e4f4"),
         ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3"), // avoid 2.50+ blunder
         ("6k1/5pp1/8/5Pnp/3K4/P3N1P1/3p1P1P/2rR4 b - - 7 44", "c1c8"), // avoid 2.00+ blunder
-        ("4k3/1pp2p2/2p3PK/4PP2/8/p1n3B1/2P5/8 b - - 0 31", "f7g6"), // avoid 7.00+ blunder
+        ("4k3/1pp2p2/2p3PK/4PP2/8/p1n3B1/2P5/8 b - - 0 31", "f7g6"),  // avoid 7.00+ blunder
         ("8/R1pkrp2/2p5/P3n1p1/6P1/6B1/2P2PK1/8 b - - 0 32", "e7e8"),
         // ("", ""),
         // ("", ""),

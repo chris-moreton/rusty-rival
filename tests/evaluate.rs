@@ -1,6 +1,15 @@
 use rusty_rival::bitboards::south_fill;
-use rusty_rival::engine_constants::{BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS};
-use rusty_rival::evaluate::{black_king_early_safety, count_knight_fork_threats, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count, king_threat_score, knight_fork_threat_score, knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety};
+use rusty_rival::engine_constants::{
+    BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
+    KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE,
+    VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST,
+    VALUE_PASSED_PAWN_BONUS,
+};
+use rusty_rival::evaluate::{
+    black_king_early_safety, count_knight_fork_threats, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count,
+    king_threat_score, knight_fork_threat_score, knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score,
+    white_king_early_safety,
+};
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
 use rusty_rival::utils::{invert_fen, invert_pos};
@@ -241,8 +250,31 @@ fn it_gets_the_material_score() {
     let position = get_position("r1q1k3/1R2n2p/5b2/5r2/p1Pp4/7P/1p2p3/6K1 b q - 0 1");
     assert_eq!(
         material_score(&position),
-        ROOK_VALUE_AVERAGE + (PAWN_VALUE_AVERAGE * 2) - (ROOK_VALUE_AVERAGE * 2) - QUEEN_VALUE_AVERAGE - BISHOP_VALUE_AVERAGE - KNIGHT_VALUE_AVERAGE - (PAWN_VALUE_AVERAGE * 5)
+        ROOK_VALUE_AVERAGE + (PAWN_VALUE_AVERAGE * 2)
+            - (ROOK_VALUE_AVERAGE * 2)
+            - QUEEN_VALUE_AVERAGE
+            - BISHOP_VALUE_AVERAGE
+            - KNIGHT_VALUE_AVERAGE
+            - (PAWN_VALUE_AVERAGE * 5)
+            - 21
     );
+
+    let position = get_position("r3k3/1R2n2p/5b2/8/p1Pp4/7P/1p2p3/6K1 b q - 0 1");
+    assert_eq!(
+        material_score(&position),
+        ROOK_VALUE_AVERAGE + (PAWN_VALUE_AVERAGE * 2)
+            - ROOK_VALUE_AVERAGE
+            - BISHOP_VALUE_AVERAGE
+            - KNIGHT_VALUE_AVERAGE
+            - (PAWN_VALUE_AVERAGE * 5)
+            - 80
+    );
+
+    let position = get_position("r3k3/1R5p/8/8/p1P5/7P/4p3/6K1 b q - 0 1");
+    assert_eq!(material_score(&position), -PAWN_VALUE_AVERAGE - 22);
+
+    let position = get_position("r3k3/1R5p/8/8/p1PQ4/7P/4p3/6K1 b q - 0 1");
+    assert_eq!(material_score(&position), QUEEN_VALUE_AVERAGE - PAWN_VALUE_AVERAGE + 11);
 }
 
 fn test_king_threats(fen: &str, score: Score) {
@@ -317,10 +349,16 @@ fn test_knight_fork_threats(fen: &str, white_count: i8, black_count: i8) {
     let position = get_position(fen);
     assert_eq!(count_knight_fork_threats(&position, WHITE), white_count);
     assert_eq!(count_knight_fork_threats(&position, BLACK), black_count);
-    assert_eq!(knight_fork_threat_score(&position), (white_count - black_count) as Score * KNIGHT_FORK_THREAT_SCORE);
+    assert_eq!(
+        knight_fork_threat_score(&position),
+        (white_count - black_count) as Score * KNIGHT_FORK_THREAT_SCORE
+    );
     assert_eq!(count_knight_fork_threats(&invert_pos(&position), WHITE), black_count);
     assert_eq!(count_knight_fork_threats(&invert_pos(&position), BLACK), white_count);
-    assert_eq!(knight_fork_threat_score(&invert_pos(&position)), (black_count - white_count) as Score * KNIGHT_FORK_THREAT_SCORE);
+    assert_eq!(
+        knight_fork_threat_score(&invert_pos(&position)),
+        (black_count - white_count) as Score * KNIGHT_FORK_THREAT_SCORE
+    );
 }
 
 #[test]

@@ -2,7 +2,14 @@ use crate::bitboards::{
     bit, north_fill, south_fill, BISHOP_RAYS, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
-use crate::engine_constants::{DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, PAWN_ADJUST_MAX_MATERIAL, ROOKS_ON_SEVENTH_RANK_BONUS, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KNIGHT_FORK_THREAT_SCORE, PAWN_VALUE_AVERAGE, BISHOP_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
+use crate::engine_constants::{
+    BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP,
+    KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR,
+    PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS,
+    ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
+    VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST,
+    VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE,
+};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, Position, Score, Square, BLACK, WHITE};
@@ -87,7 +94,11 @@ pub fn count_knight_fork_threats(position: &Position, knight_colour: Mover) -> i
             threats += 1;
         }
         while to_squares != 0 {
-            if is_knight_fork(position, KNIGHT_MOVES_BITBOARDS[get_and_unset_lsb!(to_squares) as usize], knight_colour) {
+            if is_knight_fork(
+                position,
+                KNIGHT_MOVES_BITBOARDS[get_and_unset_lsb!(to_squares) as usize],
+                knight_colour,
+            ) {
                 threats += 1;
             }
         }
@@ -302,21 +313,65 @@ pub fn black_king_early_safety(position: &Position) -> Score {
 
 #[inline(always)]
 pub fn material_score(position: &Position) -> Score {
-    ((position.pieces[WHITE as usize].pawn_bitboard.count_ones() as Score
-        - position.pieces[BLACK as usize].pawn_bitboard.count_ones() as Score) as Score
-        * PAWN_VALUE_AVERAGE
-        + (position.pieces[WHITE as usize].knight_bitboard.count_ones() as Score
-            - position.pieces[BLACK as usize].knight_bitboard.count_ones() as Score) as Score
-            * KNIGHT_VALUE_AVERAGE
-        + (position.pieces[WHITE as usize].rook_bitboard.count_ones() as Score
-            - position.pieces[BLACK as usize].rook_bitboard.count_ones() as Score) as Score
-            * ROOK_VALUE_AVERAGE
-        + (position.pieces[WHITE as usize].bishop_bitboard.count_ones() as Score
-            - position.pieces[BLACK as usize].bishop_bitboard.count_ones() as Score) as Score
-            * BISHOP_VALUE_AVERAGE
-        + (position.pieces[WHITE as usize].queen_bitboard.count_ones() as Score
-            - position.pieces[BLACK as usize].queen_bitboard.count_ones() as Score) as Score
-            * QUEEN_VALUE_AVERAGE) as Score
+    let game_stage =
+        pawn_material(position, WHITE) + pawn_material(position, BLACK) + piece_material(position, WHITE) + piece_material(position, BLACK);
+
+    let pawn_balance = position.pieces[WHITE as usize].pawn_bitboard.count_ones() as Score
+        - position.pieces[BLACK as usize].pawn_bitboard.count_ones() as Score;
+    let pawn_score = pawn_balance
+        * linear_scale(
+            game_stage as i64,
+            0,
+            STARTING_MATERIAL as i64,
+            PAWN_VALUE_PAIR.1 as i64,
+            PAWN_VALUE_PAIR.0 as i64,
+        ) as Score;
+
+    let knight_balance = position.pieces[WHITE as usize].knight_bitboard.count_ones() as Score
+        - position.pieces[BLACK as usize].knight_bitboard.count_ones() as Score;
+    let knight_score = knight_balance
+        * linear_scale(
+            game_stage as i64,
+            0,
+            STARTING_MATERIAL as i64,
+            KNIGHT_VALUE_PAIR.1 as i64,
+            KNIGHT_VALUE_PAIR.0 as i64,
+        ) as Score;
+
+    let bishop_balance = position.pieces[WHITE as usize].bishop_bitboard.count_ones() as Score
+        - position.pieces[BLACK as usize].bishop_bitboard.count_ones() as Score;
+    let bishop_score = bishop_balance
+        * linear_scale(
+            game_stage as i64,
+            0,
+            STARTING_MATERIAL as i64,
+            BISHOP_VALUE_PAIR.1 as i64,
+            BISHOP_VALUE_PAIR.0 as i64,
+        ) as Score;
+
+    let rook_balance = position.pieces[WHITE as usize].rook_bitboard.count_ones() as Score
+        - position.pieces[BLACK as usize].rook_bitboard.count_ones() as Score;
+    let rook_score = rook_balance
+        * linear_scale(
+            game_stage as i64,
+            0,
+            STARTING_MATERIAL as i64,
+            ROOK_VALUE_PAIR.1 as i64,
+            ROOK_VALUE_PAIR.0 as i64,
+        ) as Score;
+
+    let queen_balance = position.pieces[WHITE as usize].queen_bitboard.count_ones() as Score
+        - position.pieces[BLACK as usize].queen_bitboard.count_ones() as Score;
+    let queen_score = queen_balance
+        * linear_scale(
+            game_stage as i64,
+            0,
+            STARTING_MATERIAL as i64,
+            QUEEN_VALUE_PAIR.1 as i64,
+            QUEEN_VALUE_PAIR.0 as i64,
+        ) as Score;
+
+    pawn_score + knight_score + bishop_score + rook_score + queen_score
 }
 
 #[inline(always)]
