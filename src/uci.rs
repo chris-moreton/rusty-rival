@@ -342,12 +342,15 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
         run_command(uci_state, search_state, &owned);
         run_command(uci_state, search_state, &format!("go movetime {}", millis));
         let am = algebraic_move_from_move(search_state.current_best.0[0]);
+        let mut tick = "\u{274C}";
         if am == best_move {
             total_correct += 1;
+            tick = "\u{2705}";
         }
         total_tested += 1;
         println!(
-            "{}: Nodes {} Expected {} Actual {} {}/{}",
+            "{} {}: Nodes {} Expected {} Actual {} {}/{}",
+            tick,
             fen,
             search_state.nodes.to_formatted_string(&Locale::en),
             best_move,
@@ -359,7 +362,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
     }
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
-    println!("Correct is: {:?}/{}", total_correct, total);
+    println!("Correct: {:?}/{}", total_correct, total);
     let nps = (total_nodes as f64 / start.elapsed().as_millis() as f64) * 1000.0;
 
     println!(
