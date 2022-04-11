@@ -1,8 +1,4 @@
-use crate::engine_constants::{
-    ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH,
-    IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH,
-    NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE,
-};
+use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, DEPTH_REMAINING_FOR_RD_INCREASE, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE};
 use crate::evaluate::{evaluate, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
@@ -250,6 +246,25 @@ fn draw_value(position: &Position) -> Score {
 }
 
 #[inline(always)]
+pub fn extend(predicate: bool, these_extentions: u8, ply: u8, search_state: &SearchState) -> u8 {
+    if these_extentions == 0 && predicate && ply < search_state.iterative_depth {
+        1
+    } else {
+        0
+    }
+}
+
+#[inline(always)]
+pub fn null_move_reduce_depth(depth: u8) -> u8 {
+    match depth {
+        d if d >= 8 => 3,
+        d if d >= 4 => 2,
+        _ => 1,
+    }
+}
+
+
+#[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
     check_time!(search_state);
 
@@ -363,12 +378,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         false
     };
 
-    if scouting && depth > NULL_MOVE_REDUCE_DEPTH && null_move_material(position) && !in_check {
+    let mut these_extentions = 0;
+
+    if scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let mut new_position = *position;
         make_null_move(&mut new_position);
         let score = -search(
             &new_position,
-            depth - 1 - NULL_MOVE_REDUCE_DEPTH,
+            depth - 1 - null_move_reduce_depth(depth),
             ply + 1,
             (-beta, (-beta) + 1),
             search_state,
@@ -380,11 +397,11 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut scout_search = false;
 
-    let these_extentions = if in_check { 1 } else { 0 };
+    these_extentions = extend(in_check, these_extentions, ply, search_state);
 
     let real_depth = depth + these_extentions;
 
-    if hash_move == 0 && depth > IID_MIN_DEPTH {
+    if hash_move == 0 && real_depth > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0).0[0];
     }
 

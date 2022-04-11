@@ -27,6 +27,8 @@ pub const BETA_PRUNE_MAX_DEPTH: u8 = 3;
 pub const NUM_KILLER_MOVES: usize = 2;
 
 pub const NULL_MOVE_REDUCE_DEPTH: u8 = 2;
+pub const NULL_MOVE_MIN_DEPTH: u8 = 3;
+pub const DEPTH_REMAINING_FOR_RD_INCREASE: u8 = 6;
 
 pub const MAX_DEPTH: u8 = 250;
 
@@ -39,9 +41,7 @@ pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [128, 192, 256, 320, 384, 448, 512, 
 
 pub const TICKER_MILLIS: u16 = 500;
 
-pub const DEPTH_REMAINING_FOR_RD_INCREASE: u8 = 6;
-
-pub const IID_MIN_DEPTH: u8 = 5;
+pub const IID_MIN_DEPTH: u8 = 3;
 pub const IID_SEARCH_DEPTH: u8 = 2;
 pub const IID_REDUCE_DEPTH: u8 = 2;
 

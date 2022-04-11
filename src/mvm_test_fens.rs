@@ -1,16 +1,20 @@
 pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
     vec![
-        // 9. Rh6+ ..Kg7 10. Rh5 ..a5 11. Qc3 { Qb3 is worse, see below. Missing this is often the problem for this test. } ..Qxa4
-        ("8/7R/ppqp1k2/4p3/PQn1P3/5P2/2P3r1/1KB5 b - - 8 40", "g2g1"),
-
-        // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 43. Ka2 { otherwise ..Rxc1, then if 44. Kxc1 ..Qg1+ 45. Qe1 ..Qxe1++ }
-        ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3"),
-
         // Takes away g5 as an escape square for king, which traps the knight on c4 due to the threat of Qf7 mate
         // if 42 ..exf4, then Mate in 12. 43. Bb2 ..Nxb2 44. Qxb2+ ..Ke6 45. Rh6+ ..Kd7 46. Qg7 ..Kd8 47. Rh8+ ..Qe8 48. Qg5+ ..Kc7 49. Rxe8 ..Rd1+ 50. Kb2 ..Rb1+ 51. Kxb1, etc...
         // if 42 ..Qxe4 43. Rc7 ..Qxc2+ 44. Qxc2 ..Rxc2 45. Kxc2
         // if 42 ..Rd1 43. fxe5 ..Ke6 44. Qh3!! mate in 7
         ("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42", "f3f4"),
+
+        ("5Q2/4R1pk/p5qp/8/1P2p2P/6P1/1r3P1K/8 w - - 0 47", "h2h3"),
+        ("1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47", "c3b5"),
+        ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3"), // avoid 2.50+ blunder
+
+        // 9. Rh6+ ..Kg7 10. Rh5 ..a5 11. Qc3 { Qb3 is worse, see below. Missing this is often the problem for this test. } ..Qxa4
+        ("8/7R/ppqp1k2/4p3/PQn1P3/5P2/2P3r1/1KB5 b - - 8 40", "g2g1"),
+
+        // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 43. Ka2 { otherwise ..Rxc1, then if 44. Kxc1 ..Qg1+ 45. Qe1 ..Qxe1++ }
+        ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3"),
 
         ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/PK1NQ1P1/3R4 w - - 7 32", "b2c1"),
         ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/P2NQ1P1/2KR4 b - - 8 32", "f6g4"),
@@ -26,10 +30,7 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
         ("4k3/1pp2p2/2p3PK/4PP2/8/p1n3B1/2P5/8 b - - 0 31", "f7g6"),  // avoid 7.00+ blunder
         ("2r3k1/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/1P2RB1P/P2NQ1P1/1K1R4 b - - 2 29", "d7f5"),
         ("3r1b1R/5pp1/Bnk5/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 b - - 8 29", "d8d4"),
-        ("5Q2/4R1pk/p5qp/8/1P2p2P/6P1/1r3P1K/8 w - - 0 47", "h2h3"),
-        ("1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47", "c3b5"),
-        ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3"), // avoid 2.50+ blunder
-        ("8/R1pkrp2/2p5/P3n1p1/6P1/6B1/2P2PK1/8 b - - 0 32", "e7e8"),
+
         // ("", ""),
         // ("", ""),
         // ("", ""),
