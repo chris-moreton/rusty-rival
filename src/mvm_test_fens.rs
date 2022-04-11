@@ -2,15 +2,16 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
     vec![
         // 9. Rh6+ ..Kg7 10. Rh5 ..a5 11. Qc3 { Qb3 is worse, see below. Missing this is often the problem for this test. } ..Qxa4
         ("8/7R/ppqp1k2/4p3/PQn1P3/5P2/2P3r1/1KB5 b - - 8 40", "g2g1"),
+
         // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 43. Ka2 { otherwise ..Rxc1, then if 44. Kxc1 ..Qg1+ 45. Qe1 ..Qxe1++ }
         ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3"),
+
         // Takes away g5 as an escape square for king, which traps the knight on c4 due to the threat of Qf7 mate
-        // if 42 ..exf4, then Mate in 12. 43. Bb2 ..Nxb2 44. Qxb2+ ..Ke6
-        //    45. Rh6+ ..Kd7 46. Qg7 ..Kd8 47. Rh8+ ..Qe8 48. Qg5+ ..Kc7 49. Rxe8 ..Rd1+
-        //    50. Kb2 ..Rb1+ 51. Kxb1, etc...
+        // if 42 ..exf4, then Mate in 12. 43. Bb2 ..Nxb2 44. Qxb2+ ..Ke6 45. Rh6+ ..Kd7 46. Qg7 ..Kd8 47. Rh8+ ..Qe8 48. Qg5+ ..Kc7 49. Rxe8 ..Rd1+ 50. Kb2 ..Rb1+ 51. Kxb1, etc...
         // if 42 ..Qxe4 43. Rc7 ..Qxc2+ 44. Qxc2 ..Rxc2 45. Kxc2
         // if 42 ..Rd1 43. fxe5 ..Ke6 44. Qh3!! mate in 7
         ("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42", "f3f4"),
+
         ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/PK1NQ1P1/3R4 w - - 7 32", "b2c1"),
         ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/P2NQ1P1/2KR4 b - - 8 32", "f6g4"),
         ("2r3k1/5pp1/p7/1p1Ppq2/2Pb1rnp/1P2R2P/P2NQ1P1/2KR4 w - - 0 33", "h3g4"),

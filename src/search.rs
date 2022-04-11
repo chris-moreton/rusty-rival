@@ -1,5 +1,5 @@
 use crate::engine_constants::{
-    ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, DEPTH_REMAINING_FOR_RD_INCREASE, IID_MIN_DEPTH,
+    ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH,
     IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH,
     NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE,
 };
@@ -337,7 +337,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     }
 
     if depth == 0 {
-        // Otherwise we'll get +2 for this node, as quiesce does a +1 on entry
+        // Need to do this, else we'll get +2 for this node, as quiesce does a +1 on entry
         search_state.nodes -= 1;
         let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
         let bound = if q.1 <= alpha {
@@ -363,30 +363,18 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         false
     };
 
-    let null_move_reduce_depth = if depth > DEPTH_REMAINING_FOR_RD_INCREASE {
-        NULL_MOVE_REDUCE_DEPTH + 1
-    } else {
-        NULL_MOVE_REDUCE_DEPTH
-    };
-
-    if scouting && depth > null_move_reduce_depth && null_move_material(position) && !in_check {
-        if lazy_eval == -Score::MAX {
-            lazy_eval = evaluate(position);
-        }
-        if lazy_eval > beta {
-            let mut new_position = *position;
-            make_null_move(&mut new_position);
-            let score = -search(
-                &new_position,
-                depth - 1 - NULL_MOVE_REDUCE_DEPTH,
-                ply + 1,
-                (-beta, (-beta) + 1),
-                search_state,
-            )
-            .1;
-            if score >= beta {
-                return (vec![0], beta);
-            }
+    if scouting && depth > NULL_MOVE_REDUCE_DEPTH && null_move_material(position) && !in_check {
+        let mut new_position = *position;
+        make_null_move(&mut new_position);
+        let score = -search(
+            &new_position,
+            depth - 1 - NULL_MOVE_REDUCE_DEPTH,
+            ply + 1,
+            (-beta, (-beta) + 1),
+            search_state,
+        ).1;
+        if score >= beta {
+            return (vec![0], beta);
         }
     }
 
