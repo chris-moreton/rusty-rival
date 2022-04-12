@@ -81,7 +81,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         .filter(|m| {
             let mut new_position = *position;
             make_move(position, *m, &mut new_position);
-            !is_check(&new_position, position.mover)
+            !is_check(&new_position, position.mover) && *m != search_state.ignore_root_move
         })
         .map(|m| (m, -MATE_SCORE))
         .collect();
