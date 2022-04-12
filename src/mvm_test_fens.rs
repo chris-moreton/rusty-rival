@@ -1,5 +1,8 @@
 pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
     vec![
+        // Everything else is a draw
+        ("1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47", "c3b5"),
+
         // Takes away g5 as an escape square for king, which traps the knight on c4 due to the threat of Qf7 mate
         // if 42 ..exf4, then Mate in 12. 43. Bb2 ..Nxb2 44. Qxb2+ ..Ke6 45. Rh6+ ..Kd7 46. Qg7 ..Kd8 47. Rh8+ ..Qe8 48. Qg5+ ..Kc7 49. Rxe8 ..Rd1+ 50. Kb2 ..Rb1+ 51. Kxb1, etc...
         // if 42 ..Qxe4 43. Rc7 ..Qxc2+ 44. Qxc2 ..Rxc2 45. Kxc2
@@ -7,7 +10,7 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
         ("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42", "f3f4"),
 
         ("5Q2/4R1pk/p5qp/8/1P2p2P/6P1/1r3P1K/8 w - - 0 47", "h2h3"),
-        ("1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47", "c3b5"),
+
         ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3"), // avoid 2.50+ blunder
 
         // 9. Rh6+ ..Kg7 10. Rh5 ..a5 11. Qc3 { Qb3 is worse, see below. Missing this is often the problem for this test. } ..Qxa4

@@ -390,8 +390,9 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<Str
     if parts.len() < 3 || parts[1] != "name" {
         Left("usage: setoption name <name> [value <value>]".parse().unwrap())
     } else {
-        match parts[2] {
-            "Clear" => {
+        let option = parts[2].to_lowercase();
+        match option.as_str() {
+            "clear" => {
                 for i in 0..NUM_HASH_ENTRIES {
                     search_state.hash_table_height[i as usize] = HashEntry {
                         score: 0,
@@ -403,6 +404,14 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<Str
                     }
                 }
                 Right(None)
+            }
+            "multipv" => {
+                if parts.len() == 5 {
+                    search_state.multi_pv = parts[4].parse().unwrap();
+                    Right(None)
+                } else {
+                    Left("No value passed for multipv".parse().unwrap())
+                }
             }
             _ => Left("Unknown option".parse().unwrap()),
         }

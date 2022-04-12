@@ -1,4 +1,4 @@
-use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, DEPTH_REMAINING_FOR_RD_INCREASE, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE};
+use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE};
 use crate::evaluate::{evaluate, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
@@ -126,6 +126,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
         legal_moves.sort_by(|(_, a), (_, b)| b.cmp(a));
         legal_moves = legal_moves.into_iter().map(|m| (m.0, -MATE_SCORE)).collect();
+        search_state.root_moves = legal_moves.clone();
 
         aspiration_window = (
             search_state.current_best.1 - aspiration_radius[0],
@@ -181,11 +182,16 @@ pub fn start_search(
 
         search_state.history.pop();
         mv.1 = path_score.1;
+
         if path_score.1 > current_best.1 && time_remains!(search_state.end_time) {
             let mut p = vec![mv.0];
-            p.extend(path_score.0);
+            p.extend(path_score.0.clone());
             current_best = (p, mv.1);
         }
+
+        let mut p = vec![mv.0];
+        p.extend(path_score.0.clone());
+        search_state.pv.insert(mv.0, (p, mv.1));
 
         if time_expired!(search_state) {
             return current_best;
@@ -270,19 +276,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     search_state.nodes += 1;
 
-    if search_state
-        .history
-        .iter()
-        .rev()
-        .take(position.half_moves as usize)
-        .filter(|p| position.zobrist_lock == **p)
-        .count()
-        > 1
-    {
-        return (vec![0], draw_value(position));
-    }
-
-    if position.half_moves >= 100 {
+    if is_draw(position, search_state) {
         return (vec![0], draw_value(position));
     }
 
@@ -533,6 +527,23 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     );
 
     best_pathscore
+}
+
+#[inline(always)]
+fn is_draw(position: &Position, search_state: &mut SearchState) -> bool {
+    repeat_position(position, search_state) || position.half_moves >= 100
+}
+
+#[inline(always)]
+fn repeat_position(position: &Position, search_state: &mut SearchState) -> bool {
+    search_state
+        .history
+        .iter()
+        .rev()
+        .take(position.half_moves as usize)
+        .filter(|p| position.zobrist_lock == **p)
+        .count()
+        > 1
 }
 
 #[allow(clippy::needless_range_loop)]

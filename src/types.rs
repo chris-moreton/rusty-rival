@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use std::time::Instant;
@@ -57,6 +58,7 @@ pub fn default_uci_state() -> UciState {
 
 pub struct SearchState {
     pub current_best: PathScore,
+    pub root_moves: MoveScoreList,
     pub start_time: Instant,
     pub end_time: Instant,
     pub iterative_depth: u8,
@@ -69,13 +71,16 @@ pub struct SearchState {
     pub nodes: u64,
     pub show_info: bool,
     pub hash_hits_exact: u64,
+    pub pv: HashMap<Move, PathScore>,
     pub hash_clashes: u64,
     pub history: PositionHistory,
+    pub multi_pv: u8,
 }
 
 pub fn default_search_state() -> SearchState {
     SearchState {
         current_best: (vec![], 0),
+        root_moves: vec![],
         start_time: Instant::now(),
         end_time: Instant::now(),
         iterative_depth: 0,
@@ -102,8 +107,10 @@ pub fn default_search_state() -> SearchState {
         nodes: 0,
         show_info: true,
         hash_hits_exact: 0,
+        pv: HashMap::new(),
         hash_clashes: 0,
         history: vec![],
+        multi_pv: 1,
     }
 }
 
