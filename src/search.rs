@@ -40,7 +40,7 @@ macro_rules! time_remains {
 macro_rules! time_expired {
     ($search_state:expr) => {
         if Instant::now() >= $search_state.end_time {
-            send_info($search_state);
+            send_info($search_state, false);
             true
         } else {
             false
@@ -53,12 +53,12 @@ macro_rules! check_time {
     ($search_state:expr) => {
         if $search_state.nodes % 1000 == 0 {
             if $search_state.end_time < Instant::now() {
-                send_info($search_state);
+                send_info($search_state, false);
                 return (vec![0], 0);
             }
         }
         if $search_state.nodes % 1000000 == 0 {
-            send_info($search_state);
+            send_info($search_state, false);
         }
     };
 }
@@ -131,10 +131,12 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         aspiration_window = (
             search_state.current_best.1 - aspiration_radius[0],
             search_state.current_best.1 + aspiration_radius[0],
-        )
+        );
+
+        send_info(search_state, true);
     }
 
-    send_info(search_state);
+    send_info(search_state, true);
     legal_moves[0].0
 }
 

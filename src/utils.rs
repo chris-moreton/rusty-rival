@@ -204,13 +204,21 @@ pub fn pawn_push(position: &Position, m: Move) -> bool {
     false
 }
 
-pub fn send_info(search_state: &mut SearchState) {
+pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
     if !search_state.show_info {
         return;
     }
+    let multi_pv = if show_multi_pv { search_state.multi_pv } else { 1 };
     if search_state.start_time.elapsed().as_millis() > 0 {
+        search_state.root_moves.sort_by(
+            |(ma, _), (mb, _)| {
+                let sa = search_state.pv.get(ma).unwrap().1;
+                let sb = search_state.pv.get(mb).unwrap().1;
+                sb.cmp(&sa)
+            }
+        );
         let nps = (search_state.nodes as f64 / search_state.start_time.elapsed().as_millis() as f64) * 1000.0;
-        for pv in 1..=search_state.multi_pv {
+        for pv in 1..=multi_pv {
             let multi_pv_move = search_state.root_moves[pv as usize -1];
             let pv_path_score = search_state.pv.get(multi_pv_move.0.borrow()).unwrap();
             let s = "info score cp ".to_string()
