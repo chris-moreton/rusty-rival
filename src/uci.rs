@@ -6,6 +6,8 @@ use std::cmp::{max, min};
 use std::ops::Add;
 use std::process::exit;
 use std::time::{Duration, Instant};
+use ansi_term::Color::Red;
+use ansi_term::Colour::Green;
 
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
@@ -350,13 +352,14 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
             tick = "\u{2705}";
         }
         total_tested += 1;
+        let move_string = algebraic_move_from_move(search_state.current_best.0[0]);
         println!(
             "{} {}: Nodes {} Expected {} Actual {} {}/{}",
             tick,
             fen,
             search_state.nodes.to_formatted_string(&Locale::en),
             best_move,
-            algebraic_move_from_move(search_state.current_best.0[0]),
+            if am == best_move { Green.paint(move_string) } else { Red.paint(move_string) },
             total_correct,
             total_tested
         );

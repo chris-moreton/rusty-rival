@@ -1,5 +1,7 @@
 pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
     vec![
+        ("3r1k2/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/4RB1P/PP1NQ1P1/1K2R3 b - c3 0 27", "b5c4"),
+
         // Everything else is a draw
         ("1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47", "c3b5"),
 
@@ -26,7 +28,6 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str)> {
         ("1r5k/8/7p/1pK5/pPn5/P1NR3P/8/8 b - - 2 47", "c4a3"),
         ("1B4k1/6p1/1p2n2p/p1p2p1P/P1P2P2/1P1K2P1/8/8 w - - 10 39", "b8a7"),
         ("8/7R/1p1p1k2/p3p3/P1n1qP2/1Q6/2Pr4/1KB5 w - - 0 43", "h7c7"),
-        ("3r1k2/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/4RB1P/PP1NQ1P1/1K2R3 b - c3 0 27", "b5c4"),
         ("3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30", "b3c3"),
         ("5Q2/4R1pk/p5q1/7p/1P2p2P/6PK/1r3P2/8 w - - 0 48", "e7e8"),
         ("8/3r4/6k1/1p1p3p/pP1PrR1P/P7/7K/5R2 b - - 2 45", "e4f4"),
