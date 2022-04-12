@@ -140,26 +140,6 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     legal_moves[0].0
 }
 
-fn clear_killers(search_state: &mut SearchState) {
-    for i in 0..MAX_DEPTH as usize {
-        search_state.mate_killer[i] = 0;
-        for j in 0..2 {
-            search_state.killer_moves[i][j] = 0;
-        }
-    }
-}
-
-fn clear_history_table(search_state: &mut SearchState) {
-    for i in 0..12 {
-        for j in 0..64 {
-            for k in 0..64 {
-                search_state.history_moves[i][j][k] = 0;
-            }
-        }
-    }
-    search_state.highest_history_score = 0;
-}
-
 pub fn start_search(
     position: &Position,
     legal_moves: &mut MoveScoreList,
@@ -200,6 +180,26 @@ pub fn start_search(
         }
     }
     current_best
+}
+
+fn clear_killers(search_state: &mut SearchState) {
+    for i in 0..MAX_DEPTH as usize {
+        search_state.mate_killer[i] = 0;
+        for j in 0..2 {
+            search_state.killer_moves[i][j] = 0;
+        }
+    }
+}
+
+fn clear_history_table(search_state: &mut SearchState) {
+    for i in 0..12 {
+        for j in 0..64 {
+            for k in 0..64 {
+                search_state.history_moves[i][j][k] = 0;
+            }
+        }
+    }
+    search_state.highest_history_score = 0;
 }
 
 #[inline(always)]

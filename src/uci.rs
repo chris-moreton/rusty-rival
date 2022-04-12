@@ -16,7 +16,7 @@ use crate::moves::{is_check, moves};
 use crate::mvm_test_fens::get_test_fens;
 use crate::perft::perft;
 use crate::search::iterative_deepening;
-use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE};
+use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE, Score, MoveScoreList};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -337,6 +337,9 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
     let mut total_nodes = 0;
     let mut total_correct = 0;
     let mut total_tested = 0;
+    //const MIN_SCORE_DIFF: Score = 200;
+    run_command(uci_state, search_state, "setoption name MultiPV value 2");
+
     for p in positions {
         let fen = p.0;
         let best_move = p.1;
@@ -346,6 +349,17 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
         run_command(uci_state, search_state, &owned);
         run_command(uci_state, search_state, &format!("go movetime {}", millis));
         let am = algebraic_move_from_move(search_state.current_best.0[0]);
+
+        let mut other_moves: MoveScoreList = search_state.root_moves.clone().into_iter().filter(|(m,_)| *m != search_state.current_best.0[0]).collect();
+
+        other_moves.sort_by(
+            |(ma, _), (mb, _)| {
+                let sa = search_state.pv.get(ma).unwrap().1;
+                let sb = search_state.pv.get(mb).unwrap().1;
+                sb.cmp(&sa)
+            }
+        );
+
         let mut tick = "\u{274C}";
         if am == best_move {
             total_correct += 1;
@@ -354,15 +368,17 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
         total_tested += 1;
         let move_string = algebraic_move_from_move(search_state.current_best.0[0]);
         println!(
-            "{} {}: Nodes {} Expected {} Actual {} {}/{}",
+            "{} {}: Nodes {} Expected {} Actual {} {} {}/{}",
             tick,
             fen,
             search_state.nodes.to_formatted_string(&Locale::en),
             best_move,
             if am == best_move { Green.paint(move_string) } else { Red.paint(move_string) },
+            search_state.current_best.1,
             total_correct,
             total_tested
         );
+        //println!(" \u{27A5} Best {} score {} Second best {} score {}", algebraic_move_from_move(search_state.current_best.0[0]), search_state.current_best.1, algebraic_move_from_move(second_best_path.0[0]), second_best_path.1);
         total_nodes += search_state.nodes;
     }
     let duration = start.elapsed();
