@@ -378,7 +378,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
             total_correct,
             total_tested
         );
-        println!("Ignored {}", algebraic_move_from_move(search_state.ignore_root_move));
+        println!(" \u{27A5} Ignored {}", algebraic_move_from_move(search_state.ignore_root_move));
         println!(" \u{27A5} Best {} score {} Second best {} score {} Diff {}", am, best_score, algebraic_move_from_move(second_best_move), second_best_score, score_diff);
     }
     let duration = start.elapsed();
