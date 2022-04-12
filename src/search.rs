@@ -392,6 +392,10 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if score >= beta {
             return (vec![0], beta);
         }
+        if lazy_eval == -Score::MAX {
+            lazy_eval = evaluate(position);
+        }
+        these_extentions = extend(lazy_eval - 100 > beta, these_extentions, ply, search_state);
     }
 
     let mut scout_search = false;

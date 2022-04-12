@@ -16,7 +16,7 @@ use crate::moves::{is_check, moves};
 use crate::mvm_test_fens::get_test_fens;
 use crate::perft::perft;
 use crate::search::iterative_deepening;
-use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE, Score, MoveScoreList};
+use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE, MoveScoreList};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -299,7 +299,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(
-        "id name Rusty Rival |20220412-02-Multi-PV|\nid author Chris Moreton\noption name Clear Hash type button\noption name MultiPV type spin min 1 max 20\nuciok"
+        "id name Rusty Rival |20220412-10-Threat-Extend|\nid author Chris Moreton\noption name Clear Hash type button\noption name MultiPV type spin min 1 max 20\nuciok"
             .parse()
             .unwrap(),
     ))
@@ -360,7 +360,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
         );
 
         let mut tick = "\u{274C}";
-        if am == best_move && search_state.current_best.1 >= min_score {
+        if am == best_move {
             total_correct += 1;
             tick = "\u{2705}";
         }
