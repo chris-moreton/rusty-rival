@@ -325,9 +325,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
     }
 
     let start = Instant::now();
-
     let positions = get_test_fens();
-
     let total = positions.len();
 
     let show_info = search_state.show_info;
@@ -343,6 +341,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
     for p in positions {
         let fen = p.0;
         let best_move = p.1;
+        let min_score = p.2;
         run_command(uci_state, search_state, "ucinewgame");
         let mut owned = "position fen ".to_owned();
         owned.push_str(fen);
@@ -361,7 +360,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
         );
 
         let mut tick = "\u{274C}";
-        if am == best_move {
+        if am == best_move && search_state.current_best.1 >= min_score {
             total_correct += 1;
             tick = "\u{2705}";
         }
@@ -374,7 +373,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
             search_state.nodes.to_formatted_string(&Locale::en),
             best_move,
             if am == best_move { Green.paint(move_string) } else { Red.paint(move_string) },
-            search_state.current_best.1,
+            if search_state.current_best.1 >= min_score { Green.paint(search_state.current_best.1.to_string()) } else { Red.paint(search_state.current_best.1.to_string()) },
             total_correct,
             total_tested
         );
