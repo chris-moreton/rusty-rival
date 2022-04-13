@@ -7,7 +7,7 @@ use std::ops::Add;
 use std::process::exit;
 use std::time::{Duration, Instant};
 use ansi_term::Color::Red;
-use ansi_term::Colour::Green;
+use ansi_term::Colour::{Green, White};
 
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
@@ -350,6 +350,10 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
         run_command(uci_state, search_state, "ucinewgame");
         let mut owned = "position fen ".to_owned();
         owned.push_str(fen);
+
+        search_state.quit_move = None;
+        search_state.quit_diff = 100;
+
         run_command(uci_state, search_state, &owned);
         run_command(uci_state, search_state, &format!("go movetime {}", millis));
         let am = algebraic_move_from_move(search_state.current_best.0[0]);
@@ -357,35 +361,49 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
 
         total_tested += 1;
         total_nodes += search_state.nodes;
+        let main_search_nodes = search_state.nodes;
+        let mut tick = "\u{274C}";
 
-        search_state.ignore_root_move = search_state.current_best.0[0];
+        if am == best_move {
+            search_state.ignore_root_move = search_state.current_best.0[0];
+            search_state.quit_move = None;
 
-        run_command(uci_state, search_state, &format!("go depth {}", search_state.iterative_depth - 1));
+            run_command(uci_state, search_state, &format!("go depth {}", search_state.iterative_depth - 1));
+        }
+
         let second_best_move = search_state.current_best.0[0];
         let second_best_score = search_state.current_best.1;
 
         let score_diff = best_score - second_best_score;
         let score_is_good = score_diff > 150;
 
-        let mut tick = "\u{274C}";
         if am == best_move && score_is_good {
             total_correct += 1;
             tick = "\u{2705}";
         }
 
         println!(
-            "\n{} {}: Nodes {} Expected {} Actual {} {} {}/{}",
+            "\n{} {}: Nodes {} Expected {} Actual {} {}/{}",
             tick,
             fen,
-            search_state.nodes.to_formatted_string(&Locale::en),
+            main_search_nodes.to_formatted_string(&Locale::en),
             best_move,
-            if am == best_move { Green.paint(&am) } else { Red.paint(&am) },
-            if score_is_good { Green.paint(search_state.current_best.1.to_string()) } else { Red.paint(search_state.current_best.1.to_string()) },
+            am,
             total_correct,
             total_tested
         );
-        println!(" \u{27A5} Ignored {}", algebraic_move_from_move(search_state.ignore_root_move));
-        println!(" \u{27A5} Best {} score {} Second best {} score {} Diff {}", am, best_score, algebraic_move_from_move(second_best_move), second_best_score, score_diff);
+
+        println!(" \u{27A5} [Best {} Score {}] [Second best {} Score {}] [Diff {}]",
+            if am == best_move { Green.paint(&am) } else { Red.paint(&am) },
+            best_score,
+            if am == best_move { algebraic_move_from_move(second_best_move) } else { "N/A".to_string() },
+            if am == best_move { second_best_score.to_string() } else { "N/A".to_string() },
+            if am == best_move {
+                if score_is_good { Green.paint(score_diff.to_string()) } else { Red.paint(score_diff.to_string()) }
+            } else {
+                White.paint("N/A".to_string())
+            },
+        );
     }
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);

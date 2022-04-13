@@ -2,6 +2,10 @@ use crate::types::Score;
 
 pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score)> {
     vec![
+        ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/PK1NQ1P1/3R4 w - - 7 32", "b2c1", -300),
+        ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/P2NQ1P1/2KR4 b - - 8 32", "f6g4", 250),
+        ("2r3k1/5pp1/p7/1p1Ppq2/2Pb1rnp/1P2R2P/P2NQ1P1/2KR4 w - - 0 33", "h3g4", 250),
+
         ("3r1k2/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/4RB1P/PP1NQ1P1/1K2R3 b - c3 0 27", "b5c4", 200),
 
         // Everything else is a draw
@@ -23,9 +27,6 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score)> {
         // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 43. Ka2 { otherwise ..Rxc1, then if 44. Kxc1 ..Qg1+ 45. Qe1 ..Qxe1++ }
         ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3", -200),
 
-        ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/PK1NQ1P1/3R4 w - - 7 32", "b2c1", -300),
-        ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/P2NQ1P1/2KR4 b - - 8 32", "f6g4", 250),
-        ("2r3k1/5pp1/p7/1p1Ppq2/2Pb1rnp/1P2R2P/P2NQ1P1/2KR4 w - - 0 33", "h3g4", 250),
         ("5r1k/8/2pn3p/1p1P4/pP2K3/P1N4P/8/3R4 w - - 1 44", "e4d4", -Score::MAX),
         ("1r5k/8/7p/1pK5/pPn5/P1NR3P/8/8 b - - 2 47", "c4a3", -Score::MAX),
         ("1B4k1/6p1/1p2n2p/p1p2p1P/P1P2P2/1P1K2P1/8/8 w - - 10 39", "b8a7", -Score::MAX),

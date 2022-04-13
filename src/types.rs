@@ -77,6 +77,8 @@ pub struct SearchState {
     pub multi_pv: u8,
     pub contempt: Score,
     pub ignore_root_move: Move,
+    pub quit_move: Option<String>,
+    pub quit_diff: Score,
 }
 
 pub fn default_search_state() -> SearchState {
@@ -114,7 +116,9 @@ pub fn default_search_state() -> SearchState {
         history: vec![],
         multi_pv: 1,
         contempt: 0,
-        ignore_root_move: 0
+        ignore_root_move: 0,
+        quit_move: None,
+        quit_diff: 0
     }
 }
 
