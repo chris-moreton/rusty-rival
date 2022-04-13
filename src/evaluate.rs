@@ -7,8 +7,8 @@ use crate::engine_constants::{
     KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR,
     PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS,
     ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
-    VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST,
-    VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE,
+    VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
@@ -488,8 +488,8 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
     passed_score -= (black_passed_pawns & RANK_6_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[1];
     passed_score -= (black_passed_pawns & RANK_7_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[0];
 
-    let black_piece_values = piece_material(position, BLACK);
     let white_piece_values = piece_material(position, WHITE);
+    let black_piece_values = piece_material(position, BLACK);
 
     let mut passed_pawn_bonus = if black_piece_values < PAWN_ADJUST_MAX_MATERIAL {
         let king_x = position.pieces[BLACK as usize].king_square % 8;
@@ -501,10 +501,15 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
             let pawn_distance = min(5, 7 - (sq / 8));
             let king_distance = max((king_x - (sq % 8)).abs(), (king_y - 7).abs());
             score += king_distance as Score * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER;
-            if (pawn_distance < (king_distance - position.mover)) && (black_piece_values == 0) {
-                score += VALUE_KING_CANNOT_CATCH_PAWN
+            if pawn_distance < (king_distance - position.mover) {
+                if black_piece_values == 0 {
+                    score += VALUE_KING_CANNOT_CATCH_PAWN
+                } else {
+                    score += VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN
+                }
             }
         }
+
         linear_scale(black_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, score as i64, 0) as Score
     } else {
         0
@@ -520,8 +525,13 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
             let pawn_distance = min(5, sq / 8);
             let king_distance = max((king_x - (sq % 8)).abs(), king_y.abs());
             score += king_distance as Score * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER;
-            if (pawn_distance < (king_distance - opponent!(position.mover))) && (white_piece_values == 0) {
-                score += VALUE_KING_CANNOT_CATCH_PAWN
+
+            if pawn_distance < (king_distance - opponent!(position.mover)) {
+                if white_piece_values == 0 {
+                    score += VALUE_KING_CANNOT_CATCH_PAWN
+                } else {
+                    score += VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN
+                }
             }
         }
         linear_scale(white_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, score as i64, 0) as Score

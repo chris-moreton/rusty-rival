@@ -1,4 +1,6 @@
 use crate::engine_constants::{NUM_HASH_ENTRIES, UCI_MILLIS_REDUCTION};
+use ansi_term::Color::Red;
+use ansi_term::Colour::{Green, White};
 use either::{Either, Left, Right};
 use num_format::{Locale, ToFormattedString};
 use regex::Regex;
@@ -7,8 +9,6 @@ use std::ops::Add;
 use std::process::exit;
 use std::thread;
 use std::time::{Duration, Instant};
-use ansi_term::Color::Red;
-use ansi_term::Colour::{Green, White};
 
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
@@ -17,7 +17,7 @@ use crate::moves::{is_check, moves};
 use crate::mvm_test_fens::get_test_fens;
 use crate::perft::perft;
 use crate::search::iterative_deepening;
-use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE, Score, Move};
+use crate::types::{BoundType, HashEntry, Move, Position, Score, SearchState, UciState, BLACK, WHITE};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -300,7 +300,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(
-r#"
+        r#"
 id name Rusty Rival |20220413-01-Contempt-Zero|
 id author Chris Moreton
 option name Clear Hash type button
@@ -308,8 +308,8 @@ option name MultiPV type spin default 1 min 1 max 20
 option name Contempt type spin default 0 min -1000 max 1000
 uciok
 "#
-            .parse()
-            .unwrap(),
+        .parse()
+        .unwrap(),
     ))
 }
 
@@ -356,9 +356,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
 
         let mut main_uci_state = uci_state.clone();
         let mut main_search_state = search_state.clone();
-        let main_handle = thread::spawn(move || {
-            get_main_move(&mut main_uci_state, &mut main_search_state, &millis)
-        });
+        let main_handle = thread::spawn(move || get_main_move(&mut main_uci_state, &mut main_search_state, &millis));
 
         let mut second_uci_state = uci_state.clone();
         let mut second_search_state = search_state.clone();
@@ -397,13 +395,30 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
             total_tested
         );
 
-        println!(" \u{27A5} [Best {} Score {}] [Second best {} Score {}] [Diff {}]",
-            if alg_move == expected_move { Green.paint(&alg_move) } else { Red.paint(&alg_move) },
-            best_score,
-            if alg_move == expected_move { algebraic_move_from_move(second_best_move) } else { "N/A".to_string() },
-            if alg_move == expected_move { second_best_score.to_string() } else { "N/A".to_string() },
+        println!(
+            " \u{27A5} [Best {} Score {}] [Second best {} Score {}] [Diff {}]",
             if alg_move == expected_move {
-                if score_is_good { Green.paint(score_diff.to_string()) } else { Red.paint(score_diff.to_string()) }
+                Green.paint(&alg_move)
+            } else {
+                Red.paint(&alg_move)
+            },
+            best_score,
+            if alg_move == expected_move {
+                algebraic_move_from_move(second_best_move)
+            } else {
+                "N/A".to_string()
+            },
+            if alg_move == expected_move {
+                second_best_score.to_string()
+            } else {
+                "N/A".to_string()
+            },
+            if alg_move == expected_move {
+                if score_is_good {
+                    Green.paint(score_diff.to_string())
+                } else {
+                    Red.paint(score_diff.to_string())
+                }
             } else {
                 White.paint("N/A".to_string())
             },

@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, WHITE_PASSED_PAWN_MASK};
 use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
 use crate::fen::{algebraic_path_from_path, get_fen, get_position, move_from_algebraic_move};
@@ -9,6 +8,7 @@ use crate::move_constants::{
 };
 use crate::opponent;
 use crate::types::{Bitboard, Move, Position, Score, SearchState, Square, BLACK, WHITE};
+use std::borrow::Borrow;
 
 #[inline(always)]
 pub const fn from_square_mask(square: Square) -> Move {
@@ -210,16 +210,14 @@ pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
     }
     let multi_pv = if show_multi_pv { search_state.multi_pv } else { 1 };
     if search_state.start_time.elapsed().as_millis() > 0 {
-        search_state.root_moves.sort_by(
-            |(ma, _), (mb, _)| {
-                let sa = search_state.pv.get(ma).unwrap().1;
-                let sb = search_state.pv.get(mb).unwrap().1;
-                sb.cmp(&sa)
-            }
-        );
+        search_state.root_moves.sort_by(|(ma, _), (mb, _)| {
+            let sa = search_state.pv.get(ma).unwrap().1;
+            let sb = search_state.pv.get(mb).unwrap().1;
+            sb.cmp(&sa)
+        });
         let nps = (search_state.nodes as f64 / search_state.start_time.elapsed().as_millis() as f64) * 1000.0;
         for pv in 1..=multi_pv {
-            let multi_pv_move = search_state.root_moves[pv as usize -1];
+            let multi_pv_move = search_state.root_moves[pv as usize - 1];
             let pv_path_score = search_state.pv.get(multi_pv_move.0.borrow()).unwrap();
             let s = "info score cp ".to_string()
                 + &*(pv_path_score.1 as i64).to_string()
@@ -235,7 +233,7 @@ pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
                 + &*pv.to_string()
                 + &*" pv ".to_string()
                 + &*algebraic_path_from_path(&pv_path_score.0);
-                println!("{}", s);
+            println!("{}", s);
         }
     }
 }

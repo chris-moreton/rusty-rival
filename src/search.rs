@@ -1,4 +1,8 @@
-use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE};
+use crate::engine_constants::{
+    ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
+    LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NUM_HASH_ENTRIES,
+    ROOK_VALUE_AVERAGE,
+};
 use crate::evaluate::{evaluate, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
@@ -274,7 +278,6 @@ pub fn null_move_reduce_depth(depth: u8) -> u8 {
     }
 }
 
-
 #[inline(always)]
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
     check_time!(search_state);
@@ -388,7 +391,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             ply + 1,
             (-beta, (-beta) + 1),
             search_state,
-        ).1;
+        )
+        .1;
         if score >= beta {
             return (vec![0], beta);
         }
