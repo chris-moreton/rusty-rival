@@ -19,8 +19,6 @@ use crate::utils::{captured_piece_value, from_square_part, pawn_push, send_info,
 use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
-use crate::fen::algebraic_move_from_move;
-
 pub const MAX_WINDOW: Score = 20000;
 pub const MATE_SCORE: Score = 10000;
 pub const MATE_MARGIN: Score = 1000;
@@ -126,15 +124,6 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         }
 
         legal_moves.sort_by(|(_, a), (_, b)| b.cmp(a));
-
-        if search_state.quit_move != None &&
-            iterative_depth > 5 &&
-            legal_moves.len() > 1 &&
-            Some(algebraic_move_from_move(legal_moves[0].0)) == search_state.quit_move &&
-            legal_moves[0].1 - legal_moves[1].1 >= search_state.quit_diff
-        {
-            return search_state.current_best.0[0];
-        }
 
         legal_moves = legal_moves.into_iter().map(|m| (m.0, -MATE_SCORE)).collect();
         search_state.root_moves = legal_moves.clone();

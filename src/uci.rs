@@ -5,6 +5,7 @@ use regex::Regex;
 use std::cmp::{max, min};
 use std::ops::Add;
 use std::process::exit;
+use std::thread;
 use std::time::{Duration, Instant};
 use ansi_term::Color::Red;
 use ansi_term::Colour::{Green, White};
@@ -16,7 +17,7 @@ use crate::moves::{is_check, moves};
 use crate::mvm_test_fens::get_test_fens;
 use crate::perft::perft;
 use crate::search::iterative_deepening;
-use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE};
+use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE, Score, Move};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -346,38 +347,41 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
 
     for p in positions {
         let fen = p.0;
-        let best_move = p.1;
+        let expected_move = p.1;
         run_command(uci_state, search_state, "ucinewgame");
         let mut owned = "position fen ".to_owned();
         owned.push_str(fen);
 
-        search_state.quit_move = None;
-        search_state.quit_diff = 100;
-
         run_command(uci_state, search_state, &owned);
-        run_command(uci_state, search_state, &format!("go movetime {}", millis));
-        let am = algebraic_move_from_move(search_state.current_best.0[0]);
-        let best_score = search_state.current_best.1;
+
+        let mut main_uci_state = uci_state.clone();
+        let mut main_search_state = search_state.clone();
+        let main_handle = thread::spawn(move || {
+            get_main_move(&mut main_uci_state, &mut main_search_state, &millis)
+        });
+
+        let mut second_uci_state = uci_state.clone();
+        let mut second_search_state = search_state.clone();
+        let second_handle = thread::spawn(move || {
+            let position = get_position(fen);
+            let raw_move = hydrate_move_from_algebraic_move(&position, expected_move.to_string());
+            get_secondary_move(&mut second_uci_state, &mut second_search_state, raw_move, &millis)
+        });
+
+        let (best_move, best_score) = main_handle.join().unwrap();
+        let (second_best_move, second_best_score) = second_handle.join().unwrap();
+
+        let alg_move = algebraic_move_from_move(best_move);
 
         total_tested += 1;
         total_nodes += search_state.nodes;
         let main_search_nodes = search_state.nodes;
         let mut tick = "\u{274C}";
 
-        if am == best_move {
-            search_state.ignore_root_move = search_state.current_best.0[0];
-            search_state.quit_move = None;
-
-            run_command(uci_state, search_state, &format!("go depth {}", search_state.iterative_depth - 1));
-        }
-
-        let second_best_move = search_state.current_best.0[0];
-        let second_best_score = search_state.current_best.1;
-
         let score_diff = best_score - second_best_score;
         let score_is_good = score_diff > 150;
 
-        if am == best_move && score_is_good {
+        if alg_move == expected_move && score_is_good {
             total_correct += 1;
             tick = "\u{2705}";
         }
@@ -387,18 +391,18 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
             tick,
             fen,
             main_search_nodes.to_formatted_string(&Locale::en),
+            expected_move,
             best_move,
-            am,
             total_correct,
             total_tested
         );
 
         println!(" \u{27A5} [Best {} Score {}] [Second best {} Score {}] [Diff {}]",
-            if am == best_move { Green.paint(&am) } else { Red.paint(&am) },
+            if alg_move == expected_move { Green.paint(&alg_move) } else { Red.paint(&alg_move) },
             best_score,
-            if am == best_move { algebraic_move_from_move(second_best_move) } else { "N/A".to_string() },
-            if am == best_move { second_best_score.to_string() } else { "N/A".to_string() },
-            if am == best_move {
+            if alg_move == expected_move { algebraic_move_from_move(second_best_move) } else { "N/A".to_string() },
+            if alg_move == expected_move { second_best_score.to_string() } else { "N/A".to_string() },
+            if alg_move == expected_move {
                 if score_is_good { Green.paint(score_diff.to_string()) } else { Red.paint(score_diff.to_string()) }
             } else {
                 White.paint("N/A".to_string())
@@ -419,6 +423,22 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
     search_state.show_info = show_info;
 
     Right(None)
+}
+
+fn get_main_move(uci_state: &mut UciState, search_state: &mut SearchState, millis: &u32) -> (Move, Score) {
+    run_command(uci_state, search_state, &format!("go movetime {}", millis));
+    let best_move = search_state.current_best.0[0];
+    let best_score = search_state.current_best.1;
+    (best_move, best_score)
+}
+
+fn get_secondary_move(uci_state: &mut UciState, search_state: &mut SearchState, best_move: Move, millis: &u32) -> (Move, Score) {
+    search_state.ignore_root_move = best_move;
+
+    run_command(uci_state, search_state, &format!("go movetime {}", millis));
+    let second_best_move = search_state.current_best.0[0];
+    let second_best_score = search_state.current_best.1;
+    (second_best_move, second_best_score)
 }
 
 fn cmd_perft(depth: u8, uci_state: &UciState) -> Either<String, Option<String>> {
