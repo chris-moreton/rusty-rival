@@ -366,14 +366,13 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
             get_secondary_move(&mut second_uci_state, &mut second_search_state, raw_move, &millis)
         });
 
-        let (best_move, best_score) = main_handle.join().unwrap();
+        let (best_move, best_score, main_search_nodes) = main_handle.join().unwrap();
         let (second_best_move, second_best_score) = second_handle.join().unwrap();
 
         let alg_move = algebraic_move_from_move(best_move);
 
         total_tested += 1;
-        total_nodes += search_state.nodes;
-        let main_search_nodes = search_state.nodes;
+        total_nodes += main_search_nodes;
         let mut tick = "\u{274C}";
 
         let score_diff = best_score - second_best_score;
@@ -440,11 +439,11 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
     Right(None)
 }
 
-fn get_main_move(uci_state: &mut UciState, search_state: &mut SearchState, millis: &u32) -> (Move, Score) {
+fn get_main_move(uci_state: &mut UciState, search_state: &mut SearchState, millis: &u32) -> (Move, Score, u64) {
     run_command(uci_state, search_state, &format!("go movetime {}", millis));
     let best_move = search_state.current_best.0[0];
     let best_score = search_state.current_best.1;
-    (best_move, best_score)
+    (best_move, best_score, search_state.nodes)
 }
 
 fn get_secondary_move(uci_state: &mut UciState, search_state: &mut SearchState, best_move: Move, millis: &u32) -> (Move, Score) {
