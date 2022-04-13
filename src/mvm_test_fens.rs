@@ -2,32 +2,37 @@ use crate::types::Score;
 
 pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score)> {
     vec![
-        ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/PK1NQ1P1/3R4 w - - 7 32", "b2c1", -300),
-        ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/P2NQ1P1/2KR4 b - - 8 32", "f6g4", 250),
-        ("2r3k1/5pp1/p7/1p1Ppq2/2Pb1rnp/1P2R2P/P2NQ1P1/2KR4 w - - 0 33", "h3g4", 250),
+        // Here black's only move to keep the hope of a draw alive is 55 ..a5
+        ("8/3q3k/pQ4p1/7p/1P3R1P/6P1/1r3P1K/8 b - - 1 55", "a6a5", 200),
+        ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/PK1NQ1P1/3R4 w - - 7 32", "b2c1", 100),
+        ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/P2NQ1P1/2KR4 b - - 8 32", "f6g4", 100),
+        ("2r3k1/5pp1/p7/1p1Ppq2/2Pb1rnp/1P2R2P/P2NQ1P1/2KR4 w - - 0 33", "h3g4", 100),
         // Everything else is a draw, this is the only move to allow to passed pawn to promote
-        ("1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47", "c3b5", 200),
+        ("1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47", "c3b5", 100),
+        // The king must move. to avoid ..e3 followed by ..Rxf2. Playing Kh3 wins the game for White
+        // Kg1 and Kh1 look like draws. Black has the change to get the queen paired up with the rook to annoy the king, but must give up the passed pawn on e4 to do so.
+        // 47. Kh3! Rxb4 48. Re8! { Black now must now lose material to avoid mate } Qxe8 ( 48... Qb6?? 49. Qg8+ Kg6 50. h5+ Kf5 51. Qf7+ Qf6 52. Qd5+ Qe5 53. Qxe5# )49. Qxe8
+        ("5Q2/4R1pk/p5qp/8/1P2p2P/6P1/1r3P1K/8 w - - 0 47", "h2h3", 300),
+        // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 43. Ka2 { otherwise ..Rxc1, then if 44. Kxc1 ..Qg1+ 45. Qe1 ..Qxe1++ }
+        ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3", 100),
+        ("1r5k/8/7p/1pK5/pPn5/P1NR3P/8/8 b - - 2 47", "c4a3", 100),
+        ("1B4k1/6p1/1p2n2p/p1p2p1P/P1P2P2/1P1K2P1/8/8 w - - 10 39", "b8a7", 100),
+        ("8/7R/1p1p1k2/p3p3/P1n1qP2/1Q6/2Pr4/1KB5 w - - 0 43", "h7c7", 100),
+        ("4k3/1pp2p2/2p3PK/4PP2/8/p1n3B1/2P5/8 b - - 0 31", "f7g6", 100), // avoid 7.00+ blunder
+        ("2r3k1/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/1P2RB1P/P2NQ1P1/1K1R4 b - - 2 29", "d7f5", 100),
+        ("3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30", "b3c3", 100),
+        ("5Q2/4R1pk/p5q1/7p/1P2p2P/6PK/1r3P2/8 w - - 0 48", "e7e8", 100),
+        ("8/3r4/6k1/1p1p3p/pP1PrR1P/P7/7K/5R2 b - - 2 45", "e4f4", 100),
+        ("3r1b1R/5pp1/Bnk5/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 b - - 8 29", "d8d4", 100),
         // Takes away g5 as an escape square for king, which traps the knight on c4 due to the threat of Qf7 mate
         // if 42 ..exf4, then Mate in 12. 43. Bb2 ..Nxb2 44. Qxb2+ ..Ke6 45. Rh6+ ..Kd7 46. Qg7 ..Kd8 47. Rh8+ ..Qe8 48. Qg5+ ..Kc7 49. Rxe8 ..Rd1+ 50. Kb2 ..Rb1+ 51. Kxb1, etc...
         // if 42 ..Qxe4 43. Rc7 ..Qxc2+ 44. Qxc2 ..Rxc2 45. Kxc2
         // if 42 ..Rd1 43. fxe5 ..Ke6 44. Qh3!! mate in 7
-        ("5Q2/4R1pk/p5qp/8/1P2p2P/6P1/1r3P1K/8 w - - 0 47", "h2h3", 200),
-        // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 43. Ka2 { otherwise ..Rxc1, then if 44. Kxc1 ..Qg1+ 45. Qe1 ..Qxe1++ }
-        ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3", -200),
-        ("1r5k/8/7p/1pK5/pPn5/P1NR3P/8/8 b - - 2 47", "c4a3", -Score::MAX),
-        ("1B4k1/6p1/1p2n2p/p1p2p1P/P1P2P2/1P1K2P1/8/8 w - - 10 39", "b8a7", -Score::MAX),
-        ("8/7R/1p1p1k2/p3p3/P1n1qP2/1Q6/2Pr4/1KB5 w - - 0 43", "h7c7", -Score::MAX),
-        ("4k3/1pp2p2/2p3PK/4PP2/8/p1n3B1/2P5/8 b - - 0 31", "f7g6", -Score::MAX), // avoid 7.00+ blunder
-        ("2r3k1/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/1P2RB1P/P2NQ1P1/1K1R4 b - - 2 29", "d7f5", -Score::MAX),
-        ("3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30", "b3c3", -Score::MAX),
-        ("5Q2/4R1pk/p5q1/7p/1P2p2P/6PK/1r3P2/8 w - - 0 48", "e7e8", -Score::MAX),
-        ("8/3r4/6k1/1p1p3p/pP1PrR1P/P7/7K/5R2 b - - 2 45", "e4f4", -Score::MAX),
-        ("3r1b1R/5pp1/Bnk5/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 b - - 8 29", "d8d4", -Score::MAX),
-        ("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42", "f3f4", 200),
-        ("8/7R/ppqp1k2/4p3/PQn1P3/5P2/2P3r1/1KB5 b - - 8 40", "g2g1", 200),
-        ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3", -25), // avoid 2.50+ blunder
+        ("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42", "f3f4", 100),
+        ("8/7R/ppqp1k2/4p3/PQn1P3/5P2/2P3r1/1KB5 b - - 8 40", "g2g1", 100),
+        ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3", 100), // avoid 2.50+ blunder
         // 9. Rh6+ ..Kg7 10. Rh5 ..a5 11. Qc3 { Qb3 is worse, see below. Missing this is often the problem for this test. } ..Qxa4
-        ("5r1k/8/2pn3p/1p1P4/pP2K3/P1N4P/8/3R4 w - - 1 44", "e4d4", -Score::MAX),
+        ("5r1k/8/2pn3p/1p1P4/pP2K3/P1N4P/8/3R4 w - - 1 44", "e4d4", 100),
         // ("", ""),
         // ("", ""),
         // ("", ""),
