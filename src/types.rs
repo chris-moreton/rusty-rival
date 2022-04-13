@@ -75,6 +75,7 @@ pub struct SearchState {
     pub hash_clashes: u64,
     pub history: PositionHistory,
     pub multi_pv: u8,
+    pub contempt: Score,
     pub ignore_root_move: Move,
 }
 
@@ -112,6 +113,7 @@ pub fn default_search_state() -> SearchState {
         hash_clashes: 0,
         history: vec![],
         multi_pv: 1,
+        contempt: 0,
         ignore_root_move: 0
     }
 }

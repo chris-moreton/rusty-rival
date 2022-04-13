@@ -16,7 +16,7 @@ use crate::moves::{is_check, moves};
 use crate::mvm_test_fens::get_test_fens;
 use crate::perft::perft;
 use crate::search::iterative_deepening;
-use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE, MoveScoreList};
+use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE};
 use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
@@ -299,7 +299,14 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(
-        "id name Rusty Rival |20220412-11-Fix-Option|\nid author Chris Moreton\noption name Clear Hash type button\noption name MultiPV type spin default 1 min 1 max 20\nuciok"
+r#"
+id name Rusty Rival |20220413-01-Contempt-Zero|
+id author Chris Moreton
+option name Clear Hash type button
+option name MultiPV type spin default 1 min 1 max 20
+option name Contempt type spin default 0 min -1000 max 1000
+uciok
+"#
             .parse()
             .unwrap(),
     ))
@@ -340,7 +347,6 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
     for p in positions {
         let fen = p.0;
         let best_move = p.1;
-        let min_score = p.2;
         run_command(uci_state, search_state, "ucinewgame");
         let mut owned = "position fen ".to_owned();
         owned.push_str(fen);
@@ -354,12 +360,12 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
 
         search_state.ignore_root_move = search_state.current_best.0[0];
 
-        run_command(uci_state, search_state, &format!("go depth {}", search_state.iterative_depth));
+        run_command(uci_state, search_state, &format!("go depth {}", search_state.iterative_depth - 1));
         let second_best_move = search_state.current_best.0[0];
         let second_best_score = search_state.current_best.1;
 
         let score_diff = best_score - second_best_score;
-        let score_is_good = score_diff > 75;
+        let score_is_good = score_diff > 150;
 
         let mut tick = "\u{274C}";
         if am == best_move && score_is_good {
@@ -430,7 +436,15 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<Str
                     search_state.multi_pv = parts[4].parse().unwrap();
                     Right(None)
                 } else {
-                    Left("No value passed for multipv".parse().unwrap())
+                    Left("Invalid option command".parse().unwrap())
+                }
+            }
+            "contempt" => {
+                if parts.len() == 5 {
+                    search_state.contempt = parts[4].parse().unwrap();
+                    Right(None)
+                } else {
+                    Left("Invalid option command".parse().unwrap())
                 }
             }
             _ => Left("Unknown option".parse().unwrap()),

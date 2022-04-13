@@ -345,6 +345,30 @@ pub fn it_handles_the_setoption_clear_hash_command() {
 }
 
 #[test]
+pub fn it_handles_the_setoption_multipv_command() {
+    let mut search_state = default_search_state();
+    let mut uci_state = default_uci_state();
+
+    search_state.multi_pv = 1;
+
+    let result = run_command_test(&mut uci_state, &mut search_state, "setoption name multiPv value 5");
+    assert_eq!(5, search_state.multi_pv);
+    assert_eq!(result, Right(None));
+}
+
+#[test]
+pub fn it_handles_the_setoption_contempt_command() {
+    let mut search_state = default_search_state();
+    let mut uci_state = default_uci_state();
+
+    search_state.contempt = 0;
+
+    let result = run_command_test(&mut uci_state, &mut search_state, "setoption name contempt value 125");
+    assert_eq!(125, search_state.contempt);
+    assert_eq!(result, Right(None));
+}
+
+#[test]
 pub fn it_handles_a_bad_setoption_name() {
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();

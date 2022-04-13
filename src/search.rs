@@ -248,11 +248,11 @@ fn is_end_game(position: &Position) -> bool {
 }
 
 #[inline(always)]
-fn draw_value(position: &Position) -> Score {
+fn draw_value(position: &Position, search_state: &SearchState) -> Score {
     if is_end_game(position) {
         0
     } else {
-        -15
+        search_state.contempt
     }
 }
 
@@ -282,7 +282,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     search_state.nodes += 1;
 
     if is_draw(position, search_state) {
-        return (vec![0], draw_value(position));
+        return (vec![0], draw_value(position, search_state));
     }
 
     let scouting = window.1 - window.0 == 1;
@@ -520,7 +520,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if in_check {
             best_pathscore.1 = -MATE_SCORE + ply as Score
         } else {
-            best_pathscore.1 = draw_value(position)
+            best_pathscore.1 = draw_value(position, search_state)
         }
     };
 
