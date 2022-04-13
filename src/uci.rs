@@ -300,14 +300,12 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(
-        r#"
-id name Rusty Rival |20220413-02-Agressive-Passed-Pawn-KBonus|
+        r#"id name Rusty Rival |20220413-02-Agressive-Passed-Pawn-KBonus|
 id author Chris Moreton
 option name Clear Hash type button
 option name MultiPV type spin default 1 min 1 max 20
 option name Contempt type spin default 0 min -1000 max 1000
-uciok
-"#
+uciok"#
         .parse()
         .unwrap(),
     ))
@@ -376,7 +374,7 @@ fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts
         let mut tick = "\u{274C}";
 
         let score_diff = best_score - second_best_score;
-        let score_is_good = score_diff > 150;
+        let score_is_good = score_diff > 75;
 
         if alg_move == expected_move && score_is_good {
             total_correct += 1;

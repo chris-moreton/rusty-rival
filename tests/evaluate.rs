@@ -259,7 +259,7 @@ fn it_gets_the_material_score() {
             - BISHOP_VALUE_AVERAGE
             - KNIGHT_VALUE_AVERAGE
             - (PAWN_VALUE_AVERAGE * 5)
-            - 21
+            - 26
     );
 
     let position = get_position("r3k3/1R2n2p/5b2/8/p1Pp4/7P/1p2p3/6K1 b q - 0 1");
@@ -270,14 +270,14 @@ fn it_gets_the_material_score() {
             - BISHOP_VALUE_AVERAGE
             - KNIGHT_VALUE_AVERAGE
             - (PAWN_VALUE_AVERAGE * 5)
-            - 80
+            - 101
     );
 
     let position = get_position("r3k3/1R5p/8/8/p1P5/7P/4p3/6K1 b q - 0 1");
-    assert_eq!(material_score(&position), -PAWN_VALUE_AVERAGE - 22);
+    assert_eq!(material_score(&position), -PAWN_VALUE_AVERAGE - 33);
 
     let position = get_position("r3k3/1R5p/8/8/p1PQ4/7P/4p3/6K1 b q - 0 1");
-    assert_eq!(material_score(&position), QUEEN_VALUE_AVERAGE - PAWN_VALUE_AVERAGE + 11);
+    assert_eq!(material_score(&position), QUEEN_VALUE_AVERAGE - PAWN_VALUE_AVERAGE + 38);
 }
 
 fn test_king_threats(fen: &str, score: Score) {

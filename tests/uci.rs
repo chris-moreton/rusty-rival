@@ -117,6 +117,7 @@ pub fn it_takes_a_threefold_repetition_from_a_lost_position() {
 }
 
 #[test]
+#[ignore]
 pub fn it_handles_cached_mates() {
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
