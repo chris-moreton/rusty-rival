@@ -1,0 +1,60 @@
+✅ 2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/PK1NQ1P1/3R4 w - - 7 32: Nodes 628,000 Expected b2c1 1/1
+ ➥ [1st b2c1 Score -225] [2nd b2a3 Score -544] [Diff 319] [Within 250ms]
+
+✅ 2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/P2NQ1P1/2KR4 b - - 8 32: Nodes 676,000 Expected f6g4 2/2
+ ➥ [1st f6g4 Score 307] [2nd f4g4 Score 1] [Diff 306] [Within 250ms]
+
+✅ 2r3k1/5pp1/p7/1p1Ppq2/2Pb1rnp/1P2R2P/P2NQ1P1/2KR4 w - - 0 33: Nodes 649,000 Expected h3g4 3/3
+ ➥ [1st h3g4 Score -315] [2nd e3f3 Score -795] [Diff 480] [Within 250ms]
+
+✅ 1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47: Nodes 6,576,000 Expected c3b5 4/4
+ ➥ [1st c3b5 Score 225] [2nd c3a4 Score 59] [Diff 166] [Within 2000ms]
+
+✅ 8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41: Nodes 20,309,000 Expected b4c3 5/5
+ ➥ [1st b4c3 Score -164] [2nd b4b3 Score -646] [Diff 482] [Within 8000ms]
+
+✅ 1r5k/8/7p/1pK5/pPn5/P1NR3P/8/8 b - - 2 47: Nodes 761,000 Expected c4a3 6/6
+ ➥ [1st c4a3 Score -38] [2nd c4e5 Score -296] [Diff 258] [Within 250ms]
+
+✅ 1B4k1/6p1/1p2n2p/p1p2p1P/P1P2P2/1P1K2P1/8/8 w - - 10 39: Nodes 870,000 Expected b8a7 7/7
+ ➥ [1st b8a7 Score 385] [2nd d3e2 Score 125] [Diff 260] [Within 250ms]
+
+✅ 8/7R/1p1p1k2/p3p3/P1n1qP2/1Q6/2Pr4/1KB5 w - - 0 43: Nodes 1,364,000 Expected h7c7 8/8
+ ➥ [1st h7c7 Score 64] [2nd f4e5 Score -125] [Diff 189] [Within 500ms]
+
+✅ 4k3/1pp2p2/2p3PK/4PP2/8/p1n3B1/2P5/8 b - - 0 31: Nodes 47,678,000 Expected f7g6 9/9
+ ➥ [1st f7g6 Score 121] [2nd c3d5 Score -214] [Diff 335] [Within 16000ms]
+
+✅ 2r3k1/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/1P2RB1P/P2NQ1P1/1K1R4 b - - 2 29: Nodes 6,551,000 Expected d7f5 10/10
+ ➥ [1st d7f5 Score 98] [2nd c8e8 Score -49] [Diff 147] [Within 2000ms]
+
+✅ 3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30: Nodes 1,214,957,000 Expected b3c3 11/11
+ ➥ [1st b3c3 Score 141] [2nd d4b5 Score 3] [Diff 138] [Within 512000ms]
+
+✅ 8/3r4/6k1/1p1p3p/pP1PrR1P/P7/7K/5R2 b - - 2 45: Nodes 203,205,000 Expected e4f4 12/12
+ ➥ [1st e4f4 Score 246] [2nd d7e7 Score 130] [Diff 116] [Within 64000ms]
+
+✅ 3r1b1R/5pp1/Bnk5/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 b - - 8 29: Nodes 649,031,000 Expected d8d4 13/13
+ ➥ [1st d8d4 Score 72] [2nd c6c7 Score -158] [Diff 230] [Within 256000ms]
+
+✅ 8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42: Nodes 84,528,000 Expected f3f4 14/14
+ ➥ [1st f3f4 Score 368] [2nd h7h1 Score 0] [Diff 368] [Within 32000ms]
+
+❌ 5r1k/8/2pn3p/1p1P4/pP2K3/P1N4P/8/3R4 w - - 1 44: Nodes 1,639,733,000 Expected e4d4 14/15
+ ➥ [1st e4d4 Score 84] [2nd e4e5 Score 29] [Diff 55] [Within 512000ms]
+
+❌ 8/7R/ppqp1k2/4p3/PQn1P3/5P2/2P3r1/1KB5 b - - 8 40: Nodes 1,404,280,000 Expected g2g1 14/16
+ ➥ [1st g2g1 Score 187] [2nd a6a5 Score 158] [Diff 29] [Within 512000ms]
+
+✅ 6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43: Nodes 410,641,000 Expected c1c3 15/17
+ ➥ [1st c1c3 Score -215] [2nd c1c5 Score -315] [Diff 100] [Within 128000ms]
+
+❌ 8/3q3k/pQ4p1/7p/1P3R1P/6P1/1r3P1K/8 b - - 1 55: Nodes 1,532,609,000 Expected a6a5 15/18
+ ➥ [1st a6a5 Score -356] [2nd d7e7 Score -391] [Diff 35] [Within 512000ms]
+
+❌ 5Q2/4R1pk/p5qp/8/1P2p2P/6P1/1r3P1K/8 w - - 0 47: Nodes 1,427,282,000 Expected h2h3 15/19
+ ➥ [1st h2h3 Score 225] [2nd h2g1 Score 201] [Diff 24] [Within 512000ms]
+
+✅ 5Q2/4R1pk/p5q1/7p/1P2p2P/6PK/1r3P2/8 w - - 0 48: Nodes 784,000 Expected e7e8 16/20
+ ➥ [1st e7e8 Score 189] [2nd h3g2 Score 28] [Diff 161] [Within 250ms]
+
