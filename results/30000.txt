@@ -1,0 +1,60 @@
+✅ 2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/PK1NQ1P1/3R4 w - - 7 32: Nodes 66,386,000 Expected b2c1 1/1
+ ➥ [Best b2c1 Score -342] [Second best e3c3 Score -1011] [Diff 669]
+
+✅ 2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/P2NQ1P1/2KR4 b - - 8 32: Nodes 74,512,000 Expected f6g4 2/2
+ ➥ [Best f6g4 Score 347] [Second best f4g4 Score 89] [Diff 258]
+
+✅ 2r3k1/5pp1/p7/1p1Ppq2/2Pb1rnp/1P2R2P/P2NQ1P1/2KR4 w - - 0 33: Nodes 70,572,000 Expected h3g4 3/3
+ ➥ [Best h3g4 Score -367] [Second best e3f3 Score -978] [Diff 611]
+
+✅ 1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47: Nodes 96,794,000 Expected c3b5 4/4
+ ➥ [Best c3b5 Score 210] [Second best d5c5 Score 47] [Diff 163]
+
+✅ 8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41: Nodes 75,727,000 Expected b4c3 5/5
+ ➥ [Best b4c3 Score -164] [Second best b4b3 Score -710] [Diff 546]
+
+✅ 1r5k/8/7p/1pK5/pPn5/P1NR3P/8/8 b - - 2 47: Nodes 96,377,000 Expected c4a3 6/6
+ ➥ [Best c4a3 Score -48] [Second best h8g7 Score -429] [Diff 381]
+
+✅ 1B4k1/6p1/1p2n2p/p1p2p1P/P1P2P2/1P1K2P1/8/8 w - - 10 39: Nodes 95,998,000 Expected b8a7 7/7
+ ➥ [Best b8a7 Score 383] [Second best d3e3 Score 134] [Diff 249]
+
+✅ 8/7R/1p1p1k2/p3p3/P1n1qP2/1Q6/2Pr4/1KB5 w - - 0 43: Nodes 78,039,000 Expected h7c7 8/8
+ ➥ [Best h7c7 Score 588] [Second best f4e5 Score 188] [Diff 400]
+
+✅ 4k3/1pp2p2/2p3PK/4PP2/8/p1n3B1/2P5/8 b - - 0 31: Nodes 83,546,000 Expected f7g6 9/9
+ ➥ [Best f7g6 Score 121] [Second best c3d5 Score -283] [Diff 404]
+
+✅ 2r3k1/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/1P2RB1P/P2NQ1P1/1K1R4 b - - 2 29: Nodes 74,946,000 Expected d7f5 10/10
+ ➥ [Best d7f5 Score 210] [Second best d7b7 Score -40] [Diff 250]
+
+❌ 3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30: Nodes 64,874,000 Expected b3c3 10/11
+ ➥ [Best b3c3 Score 4] [Second best b3e3 Score 5] [Diff -1]
+
+❌ 8/3r4/6k1/1p1p3p/pP1PrR1P/P7/7K/5R2 b - - 2 45: Nodes 90,867,000 Expected e4f4 10/12
+ ➥ [Best e4f4 Score 232] [Second best d7e7 Score 159] [Diff 73]
+
+❌ 3r1b1R/5pp1/Bnk5/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 b - - 8 29: Nodes 67,693,000 Expected d8d4 10/13
+ ➥ [Best d8d4 Score 73] [Second best c6c7 Score 0] [Diff 73]
+
+✅ 8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42: Nodes 73,625,000 Expected f3f4 11/14
+ ➥ [Best f3f4 Score 362] [Second best h7h1 Score 0] [Diff 362]
+
+❌ 5r1k/8/2pn3p/1p1P4/pP2K3/P1N4P/8/3R4 w - - 1 44: Nodes 90,960,000 Expected e4d4 11/15
+ ➥ [Best e4d4 Score 76] [Second best e4e5 Score 65] [Diff 11]
+
+❌ 8/7R/ppqp1k2/4p3/PQn1P3/5P2/2P3r1/1KB5 b - - 8 40: Nodes 77,940,000 Expected g2g1 11/16
+ ➥ [Best a6a5 Score 165] [Second best N/A Score N/A] [Diff N/A]
+
+❌ 6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43: Nodes 91,456,000 Expected c1c3 11/17
+ ➥ [Best c1c3 Score -224] [Second best c1c5 Score -291] [Diff 67]
+
+❌ 8/3q3k/pQ4p1/7p/1P3R1P/6P1/1r3P1K/8 b - - 1 55: Nodes 90,194,000 Expected a6a5 11/18
+ ➥ [Best d7e7 Score -248] [Second best N/A Score N/A] [Diff N/A]
+
+❌ 5Q2/4R1pk/p5qp/8/1P2p2P/6P1/1r3P1K/8 w - - 0 47: Nodes 81,723,000 Expected h2h3 11/19
+ ➥ [Best h2h3 Score 220] [Second best e7e5 Score 68] [Diff 152]
+
+❌ 5Q2/4R1pk/p5q1/7p/1P2p2P/6PK/1r3P2/8 w - - 0 48: Nodes 87,454,000 Expected e7e8 11/20
+ ➥ [Best e7e8 Score 259] [Second best e7e5 Score 170] [Diff 89]
+
