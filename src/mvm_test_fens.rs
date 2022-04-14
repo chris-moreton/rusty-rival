@@ -8,15 +8,17 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score)> {
 
         ("2r3k1/5pp1/p7/1p1Ppq2/2Pb1rnp/1P2R2P/P2NQ1P1/2KR4 w - - 0 33", "h3g4", 100),
 
+        ("1r5k/8/7p/1pK5/pPn5/P1NR3P/8/8 b - - 2 47", "c4a3", 100),
+
+        ("1B4k1/6p1/1p2n2p/p1p2p1P/P1P2P2/1P1K2P1/8/8 w - - 10 39", "b8a7", 100),
+
+        ("5Q2/4R1pk/p5q1/7p/1P2p2P/6PK/1r3P2/8 w - - 0 48", "e7e8", 100),
+
         // Everything else is a draw, this is the only move to allow to passed pawn to promote
         ("1r5k/8/7p/1p1K4/pPn5/P1NR3P/8/8 w - - 1 47", "c3b5", 100),
 
         // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 { the bishop on c1 is lost }
         ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3", 100),
-
-        ("1r5k/8/7p/1pK5/pPn5/P1NR3P/8/8 b - - 2 47", "c4a3", 100),
-
-        ("1B4k1/6p1/1p2n2p/p1p2p1P/P1P2P2/1P1K2P1/8/8 w - - 10 39", "b8a7", 100),
 
         ("8/7R/1p1p1k2/p3p3/P1n1qP2/1Q6/2Pr4/1KB5 w - - 0 43", "h7c7", 100),
 
@@ -35,8 +37,6 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score)> {
         ("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42", "f3f4", 100),
 
         ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3", 100), // avoid 2.50+ blunder
-
-        ("5Q2/4R1pk/p5q1/7p/1P2p2P/6PK/1r3P2/8 w - - 0 48", "e7e8", 100),
 
         // ("", ""),
         // ("", ""),

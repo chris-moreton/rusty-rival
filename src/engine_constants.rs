@@ -2,7 +2,7 @@ use crate::types::{HistoryScore, Score, ScorePair};
 
 pub const DEBUG: bool = false;
 
-pub const PAWN_VALUE_PAIR: ScorePair = (100, 200);
+pub const PAWN_VALUE_PAIR: ScorePair = (100, 175);
 pub const KNIGHT_VALUE_PAIR: ScorePair = (620, 680);
 pub const BISHOP_VALUE_PAIR: ScorePair = (650, 725);
 pub const ROOK_VALUE_PAIR: ScorePair = (1000, 1100);
@@ -71,6 +71,6 @@ pub const PAWN_ADJUST_MAX_MATERIAL: Score = (QUEEN_VALUE_AVERAGE + ROOK_VALUE_AV
 pub const VALUE_KING_CANNOT_CATCH_PAWN: Score = 500;
 pub const VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN: Score = 500;
 
-pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 30;
+pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 4;
 
 pub const KNIGHT_FORK_THREAT_SCORE: Score = 5;
