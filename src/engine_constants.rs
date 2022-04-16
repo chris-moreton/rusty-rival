@@ -2,7 +2,7 @@ use crate::types::{HistoryScore, Score, ScorePair};
 
 pub const DEBUG: bool = false;
 
-pub const PAWN_VALUE_PAIR: ScorePair = (100, 175);
+pub const PAWN_VALUE_PAIR: ScorePair = (100, 200);
 pub const KNIGHT_VALUE_PAIR: ScorePair = (620, 680);
 pub const BISHOP_VALUE_PAIR: ScorePair = (650, 725);
 pub const ROOK_VALUE_PAIR: ScorePair = (1000, 1100);

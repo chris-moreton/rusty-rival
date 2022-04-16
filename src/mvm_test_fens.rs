@@ -2,6 +2,13 @@ use crate::types::Score;
 
 pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score)> {
     vec![
+        ("8/8/2p5/2P4p/4Pk1P/8/5K2/8 b - - 0 45", "f4e4", 200),
+        ("8/8/2p5/2P2k1p/4p2P/5P2/5K2/8 b - - 0 44", "f5f4", 200),
+        ("8/8/2p5/2P2kpp/4p2P/5PP1/5K2/8 b - - 0 43", "g5h4", 300),
+        ("8/6p1/2p3k1/2P4p/4p3/5PPP/6K1/8 b - - 0 41", "g6f5", 200),
+        ("8/6pk/2p5/2P4p/4p3/6PP/5PK1/8 b - - 0 40", "h7g6", 200),
+        ("8/6pk/2p5/2q2p1p/3PQ3/6PP/5PK1/8 b - - 0 39", "f5e4", 200),
+
         ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/PK1NQ1P1/3R4 w - - 7 32", "b2c1", 100),
 
         ("2r3k1/5pp1/p4n2/1p1Ppq2/2Pb1rBp/1P2R2P/P2NQ1P1/2KR4 b - - 8 32", "f6g4", 100),
@@ -24,7 +31,10 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score)> {
 
         ("4k3/1pp2p2/2p3PK/4PP2/8/p1n3B1/2P5/8 b - - 0 31", "f7g6", 100), // avoid 7.00+ blunder
         ("2r3k1/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/1P2RB1P/P2NQ1P1/1K1R4 b - - 2 29", "d7f5", 100),
+
+        // Anything else and the best White can do is get a draw by repetition
         ("3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30", "b3c3", 100),
+
         ("8/3r4/6k1/1p1p3p/pP1PrR1P/P7/7K/5R2 b - - 2 45", "e4f4", 100),
 
         // 9. Rh6+ ..Kg7 10. Rh5 ..a5 11. Qc3 { Qb3 is worse, see below. Missing this is often the problem for this test. } ..Qxa4

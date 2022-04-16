@@ -471,12 +471,13 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 continue;
             }
 
+            these_extentions = extend(pawn_push(position, m), these_extentions, ply, search_state);
+
             let lmr = if these_extentions == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
                 && real_depth > LMR_MIN_DEPTH
                 && !is_capture
                 && !search_state.killer_moves[ply as usize].contains(m.borrow())
-                && !pawn_push(position, m)
                 && !is_check(&new_position, new_position.mover)
             {
                 LMR_REDUCTION
