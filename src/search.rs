@@ -299,6 +299,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_flag = Upper;
     let mut hash_version = 0;
     let mut best_pathscore: PathScore = (vec![0], -MATE_SCORE);
+    let mut hash_score_was_a_lower_bound = false;
 
     let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let mut hash_move = match search_state.hash_table_height.get(index) {
@@ -324,7 +325,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                         return (vec![x.mv], score);
                     }
                     if x.bound == Lower && score > alpha {
-                        alpha = score
+                        alpha = score;
+                        hash_score_was_a_lower_bound = true
                     }
                     if x.bound == Upper && score < beta {
                         beta = score
@@ -381,7 +383,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         false
     };
 
-    let mut these_extentions = 0;
+    let mut these_extensions = 0;
 
     if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let mut new_position = *position;
@@ -393,28 +395,45 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             (-beta, (-beta) + 1),
             search_state,
             true,
-        )
-        .1;
+        ).1;
+
         if score >= beta {
             return (vec![0], beta);
         }
         if lazy_eval == -Score::MAX {
             lazy_eval = evaluate(position);
         }
-        these_extentions = extend(lazy_eval - 100 > beta, these_extentions, ply, search_state);
+        these_extensions = extend(lazy_eval - 100 > beta, these_extensions, ply, search_state);
     }
 
     let mut scout_search = false;
 
-    these_extentions = extend(in_check, these_extentions, ply, search_state);
+    these_extensions = extend(in_check, these_extensions, ply, search_state);
 
-    let real_depth = depth + these_extentions;
+    let mut real_depth = depth + these_extensions;
 
     if !scouting && hash_move == 0 && real_depth > IID_MIN_DEPTH {
-        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0).0[0];
+        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
     }
 
     let these_moves = if verify_move(position, hash_move) {
+
+        if hash_score_was_a_lower_bound && these_extensions == 0 && depth > 5 {
+            let mut found_one = false;
+            for m in moves(position) {
+                let mut new_position = *position;
+                make_move(position, m, &mut new_position);
+                if search_wrapper(depth - 3, ply, search_state, (-alpha-1, -alpha), &new_position, 0).1 >= alpha {
+                    found_one = true;
+                    break
+                }
+            }
+            if !found_one {
+                these_extensions = 1;
+                real_depth += 1;
+            }
+        }
+
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
 
@@ -473,9 +492,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 continue;
             }
 
-            these_extentions = extend(pawn_push(position, m), these_extentions, ply, search_state);
+            these_extensions = extend(pawn_push(position, m), these_extensions, ply, search_state);
 
-            let lmr = if these_extentions == 0
+            let lmr = if these_extensions == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
                 && real_depth > LMR_MIN_DEPTH
                 && !is_capture
