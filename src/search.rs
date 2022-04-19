@@ -408,7 +408,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let real_depth = depth + these_extentions;
 
-    if hash_move == 0 && real_depth > IID_MIN_DEPTH {
+    if !scouting && hash_move == 0 && real_depth > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0).0[0];
     }
 
