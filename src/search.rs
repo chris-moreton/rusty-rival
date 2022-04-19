@@ -273,9 +273,10 @@ pub fn extend(predicate: bool, these_extentions: u8, ply: u8, search_state: &Sea
 #[inline(always)]
 pub fn null_move_reduce_depth(depth: u8) -> u8 {
     match depth {
-        d if d >= 8 => 3,
-        d if d >= 4 => 2,
-        _ => 1,
+        d if d >= 12 => 4,
+        d if d >= 5 => 3,
+        d if d >= NULL_MOVE_MIN_DEPTH => NULL_MOVE_MIN_DEPTH - 2,
+        _ => panic!("Shouldn't be here"),
     }
 }
 
@@ -388,6 +389,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let mut new_position = *position;
         make_null_move(&mut new_position);
+
         let score = -search(
             &new_position,
             depth - 1 - null_move_reduce_depth(depth),
@@ -400,10 +402,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if score >= beta {
             return (vec![0], beta);
         }
-        if lazy_eval == -Score::MAX {
-            lazy_eval = evaluate(position);
-        }
-        these_extensions = extend(lazy_eval - 100 > beta, these_extensions, ply, search_state);
     }
 
     let mut scout_search = false;
@@ -412,23 +410,23 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut real_depth = depth + these_extensions;
 
-    if !scouting && hash_move == 0 && real_depth > IID_MIN_DEPTH {
+    if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
     }
 
     let these_moves = if verify_move(position, hash_move) {
 
-        if hash_score_was_a_lower_bound && these_extensions == 0 && depth > 5 {
+        if hash_score_was_a_lower_bound && these_extensions == 0 && depth > 8 {
             let mut found_one = false;
             for m in moves(position) {
                 let mut new_position = *position;
                 make_move(position, m, &mut new_position);
-                if search_wrapper(depth - 3, ply, search_state, (-alpha-1, -alpha), &new_position, 0).1 >= alpha {
+                if search_wrapper(depth - 4, ply, search_state, (-alpha-1, -alpha), &new_position, 0).1 >= alpha {
                     found_one = true;
                     break
                 }
             }
-            if !found_one {
+            if !found_one && ply < search_state.iterative_depth * 2 {
                 these_extensions = 1;
                 real_depth += 1;
             }
