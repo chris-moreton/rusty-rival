@@ -163,6 +163,7 @@ pub fn start_search(
             1,
             (-aspiration_window.1, -aspiration_window.0),
             search_state,
+            false,
         );
         path_score.1 = -path_score.1;
 
@@ -279,7 +280,7 @@ pub fn null_move_reduce_depth(depth: u8) -> u8 {
 }
 
 #[inline(always)]
-pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
+pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, on_null_move: bool) -> PathScore {
     check_time!(search_state);
 
     search_state.nodes += 1;
@@ -382,7 +383,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut these_extentions = 0;
 
-    if scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
+    if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let mut new_position = *position;
         make_null_move(&mut new_position);
         let score = -search(
@@ -391,6 +392,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             ply + 1,
             (-beta, (-beta) + 1),
             search_state,
+            true,
         )
         .1;
         if score >= beta {
@@ -620,7 +622,7 @@ fn make_null_move(new_position: &mut Position) {
 #[inline(always)]
 fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &Position, lmr: u8) -> PathScore {
     search_state.history.push(new_position.zobrist_lock);
-    let path_score = search(new_position, depth - 1 - lmr, ply + 1, window, search_state);
+    let path_score = search(new_position, depth - 1 - lmr, ply + 1, window, search_state, false);
     search_state.history.pop();
     (path_score.0, -path_score.1)
 }
