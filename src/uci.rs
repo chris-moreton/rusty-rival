@@ -300,7 +300,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(
-        r#"id name Rusty Rival |20220420-01-Singular-Change-Fix-Again|
+        r#"id name Rusty Rival |20220420-01-Singular-Change-Fix-Again-Fix|
 id author Chris Moreton
 option name Clear Hash type button
 option name MultiPV type spin default 1 min 1 max 20

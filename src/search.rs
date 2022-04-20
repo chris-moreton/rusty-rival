@@ -420,7 +420,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
-        true
     }
 
     let these_moves = if verify_move(position, hash_move) {
