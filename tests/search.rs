@@ -23,6 +23,7 @@ fn assert_move(fen: &str, depth: u8, millis: u64, bestmove: &str) {
     let moves: Vec<String> = bestmove.split(',').map(|m| m.to_string()).collect();
 
     let mut search_state = default_search_state();
+    search_state.show_info = false;
     let position = get_position(&fen.to_string());
     search_state.end_time = Instant::now().add(Duration::from_millis(millis));
     let mv = iterative_deepening(&position, depth, &mut search_state);

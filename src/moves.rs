@@ -3,14 +3,11 @@ use crate::bitboards::{
     NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, ROOK_RAYS,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
-use crate::move_constants::{
-    CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
-    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES,
-    QUEEN_INDEX,
-};
+use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
 use crate::types::{Bitboard, Move, MoveList, Mover, Position, Square, BLACK, WHITE};
 use crate::utils::{from_square_mask, from_square_part, moving_piece_mask, to_square_part};
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
+use crate::fen::algebraic_move_from_move;
 
 #[macro_export]
 macro_rules! add_moves {
@@ -34,8 +31,9 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
     let friendly = position.pieces[position.mover as usize];
     let valid_destinations = !friendly.all_pieces_bitboard;
 
-    match moving_piece_mask(position, m) {
+    match m & PIECE_MASK_FULL {
         PIECE_MASK_KING => {
+
             let from_square = from_square_part(m);
             return if from_square == friendly.king_square {
                 let landing_squares = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
@@ -83,6 +81,7 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
             return bit(from_square) & friendly.knight_bitboard != 0 && bit(to_square_part(m)) & landing_squares != 0;
         }
         _ => {
+
             generate_pawn_moves(
                 position,
                 &mut move_list,

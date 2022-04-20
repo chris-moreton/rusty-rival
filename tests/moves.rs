@@ -1,16 +1,15 @@
 use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, RANK_4_BITS, WHITE_PAWN_MOVES_CAPTURE, WHITE_PAWN_MOVES_FORWARD};
-use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position};
+use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position, move_from_algebraic_move};
 use rusty_rival::make_move::make_move;
-use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL};
-use rusty_rival::moves::{
-    any_squares_in_bitboard_attacked, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check, is_square_attacked, moves,
-};
+use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN};
+use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check, is_square_attacked, moves, verify_move};
 use rusty_rival::quiesce::quiesce_moves;
 use rusty_rival::types::{MoveList, Square, BLACK, WHITE};
+use rusty_rival::utils::hydrate_move_from_algebraic_move;
 
 #[test]
 fn it_gets_all_pieces_bitboard() {
-    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
+    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b - g3 5 56".to_string());
     assert_eq!(
         (position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard),
         0b1000001000000010010010010100000101000110001101000100100000000000
@@ -19,7 +18,7 @@ fn it_gets_all_pieces_bitboard() {
 
 #[test]
 fn it_generates_bishop_moves_including_diagonal_queen_moves_from_a_given_fen_ignoring_checks() {
-    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/7R w kQKq g3 5 56".to_string());
+    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/7R w - g3 5 56".to_string());
     let mut move_list = Vec::new();
     generate_diagonal_slider_moves(
         position.pieces[WHITE as usize].queen_bitboard | position.pieces[WHITE as usize].bishop_bitboard,
@@ -32,7 +31,7 @@ fn it_generates_bishop_moves_including_diagonal_queen_moves_from_a_given_fen_ign
     algebraic.sort();
     assert_eq!(algebraic, vec!["f3a8", "f3b7", "f3c6", "f3d5", "f3e4", "f3g2"]);
 
-    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b kQKq g3 5 56".to_string());
+    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b - g3 5 56".to_string());
     let mut move_list = Vec::new();
     generate_diagonal_slider_moves(
         position.pieces[BLACK as usize].queen_bitboard | position.pieces[BLACK as usize].bishop_bitboard,
@@ -468,4 +467,25 @@ pub fn it_gets_all_capture_moves_for_a_position() {
         ))),
         vec!["a5b6", "b7a8q", "d5c6", "d5e6", "e2g1"]
     );
+}
+
+#[test]
+fn it_can_verify_a_move() {
+    let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b - g3 5 56".to_string());
+    let mvs = moves(&position);
+    for m in mvs {
+        assert!(verify_move(&position, m));
+    }
+
+    assert!(verify_move(&position,move_from_algebraic_move("e6e7".to_string(), PIECE_MASK_QUEEN)));
+    assert!(!verify_move(&position,move_from_algebraic_move("e6e7".to_string(), PIECE_MASK_PAWN)));
+    assert!(!verify_move(&position,move_from_algebraic_move("e5e6".to_string(), PIECE_MASK_QUEEN)));
+    assert!(!verify_move(&position,move_from_algebraic_move("d4d6".to_string(), PIECE_MASK_KNIGHT)));
+
+    let position = get_position(&"r1b1kb1r/pp3ppp/4pn2/2pP2R1/1n6/2N2N2/PPPP1PPP/R1BQKB2 w Qkq c6 0 1".to_string());
+    let mvs = moves(&position);
+    for m in mvs {
+        assert!(verify_move(&position, m));
+    }
+
 }

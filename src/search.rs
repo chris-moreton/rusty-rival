@@ -19,10 +19,12 @@ use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Window, BLACK, WHITE,
 };
-use crate::utils::{captured_piece_value, from_square_part, pawn_push, send_info, to_square_part};
+use crate::utils::{captured_piece_value, from_square_part, penultimate_pawn_push, send_info, to_square_part};
 use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
+use crate::fen::{algebraic_move_from_move, get_fen};
+
 pub const MAX_WINDOW: Score = 20000;
 pub const MATE_SCORE: Score = 10000;
 pub const MATE_MARGIN: Score = 1000;
@@ -306,6 +308,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
             if x.lock == position.zobrist_lock {
+
+                // if x.mv != 0 && !verify_move(position, x.mv) {
+                //     panic!("{} {}", get_fen(&position), algebraic_move_from_move(x.mv));
+                // }
+                // assert!(x.mv == 0 || verify_move(position, x.mv));
+
                 // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
                 // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
                 // adjusted it again such that it represented the distance from the root at which it was stored - e.g. we found it at ply 7, and wound
@@ -410,27 +418,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut real_depth = depth + these_extensions;
 
-    if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
+    let verified_hash_move = if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
-    }
+        true
+    } else {
+        verify_move(position, hash_move)
+    };
 
-    let these_moves = if verify_move(position, hash_move) {
-
-        if hash_score_was_a_lower_bound && these_extensions == 0 && depth > 8 {
-            let mut found_one = false;
-            for m in moves(position) {
-                let mut new_position = *position;
-                make_move(position, m, &mut new_position);
-                if search_wrapper(depth - 4, ply, search_state, (-alpha-1, -alpha), &new_position, 0).1 >= alpha {
-                    found_one = true;
-                    break
-                }
-            }
-            if !found_one && ply < search_state.iterative_depth * 2 {
-                these_extensions = 1;
-                real_depth += 1;
-            }
-        }
+    let these_moves = if verified_hash_move {
 
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
@@ -438,8 +433,43 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if !is_check(&new_position, position.mover) {
             legal_move_count += 1;
             let path_score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &new_position, 0);
-            let score = path_score.1;
+            let mut score = path_score.1;
+            let mut singular_depth = real_depth;
             check_time!(search_state);
+
+            if !scouting && hash_score_was_a_lower_bound && these_extensions == 0 && real_depth > 5 {
+                let new_beta = max(beta - 100, alpha + 1);
+                let mvs = moves(position);
+                let mut found_one = false;
+
+                let enemy = &position.pieces[opponent!(position.mover) as usize];
+                let mut move_scores: Vec<(Move, Score)> = mvs
+                    .into_iter()
+                    .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
+                    .collect();
+
+                while !move_scores.is_empty() {
+                    let m = pick_high_score_move(&mut move_scores);
+                    let mut new_position = *position;
+                    make_move(position, m, &mut new_position);
+                    if !is_check(&new_position, position.mover) {
+                        let path_score = search_wrapper(real_depth - 2, ply, search_state, (-new_beta, -alpha), &new_position, 0);
+                        check_time!(search_state);
+                        let score = -path_score.1;
+                        if score > new_beta {
+                            found_one = true;
+                            break;
+                        }
+                    }
+                }
+                if !found_one {
+                    singular_depth += 1;
+                    let path_score = search_wrapper(singular_depth, ply, search_state, (-beta, -alpha), &new_position, 0);
+                    check_time!(search_state);
+                    score = path_score.1;
+                }
+            }
+
             if score > best_pathscore.1 {
                 let mut p = vec![hash_move];
                 p.extend(path_score.0);
@@ -447,17 +477,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        return cutoff(
-                            position,
-                            real_depth,
-                            ply,
-                            search_state,
-                            best_pathscore,
-                            hash_height,
-                            hash_version,
-                            hash_move,
-                            &mut new_position,
-                        );
+                        return cutoff(position, singular_depth, ply, search_state, best_pathscore, hash_height, hash_version,hash_move, &mut new_position);
                     }
                     hash_flag = Exact;
                 }
@@ -490,7 +510,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 continue;
             }
 
-            these_extensions = extend(pawn_push(position, m), these_extensions, ply, search_state);
+            these_extensions = extend(penultimate_pawn_push(m), these_extensions, ply, search_state);
+            real_depth = depth + these_extensions;
 
             let lmr = if these_extensions == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
@@ -521,17 +542,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        return cutoff(
-                            position,
-                            real_depth,
-                            ply,
-                            search_state,
-                            best_pathscore,
-                            hash_height,
-                            hash_version,
-                            m,
-                            &mut new_position,
-                        );
+                        return cutoff(position, real_depth, ply, search_state, best_pathscore, hash_height, hash_version, m, &mut new_position);
                     }
                     hash_flag = Exact;
                 }
