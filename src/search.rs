@@ -418,14 +418,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut real_depth = depth + these_extensions;
 
-    let verified_hash_move = if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
+    if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
         true
-    } else {
-        verify_move(position, hash_move)
-    };
+    }
 
-    let these_moves = if verified_hash_move {
+    let these_moves = if verify_move(position, hash_move) {
 
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
