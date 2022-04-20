@@ -96,6 +96,7 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
     Right(None)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expected_move: &str, best_score: Score, main_search_nodes: u64, second_best_move: Move, second_best_score: Score, alg_move: String, tick: &mut &str, score_diff: Score, score_is_good: bool, millis_taken: u32) {
 
     println!(

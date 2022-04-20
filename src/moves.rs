@@ -5,9 +5,9 @@ use crate::bitboards::{
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
 use crate::types::{Bitboard, Move, MoveList, Mover, Position, Square, BLACK, WHITE};
-use crate::utils::{from_square_mask, from_square_part, moving_piece_mask, to_square_part};
+use crate::utils::{from_square_mask, from_square_part, to_square_part};
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
-use crate::fen::algebraic_move_from_move;
+
 
 #[macro_export]
 macro_rules! add_moves {

@@ -23,7 +23,7 @@ use crate::utils::{captured_piece_value, from_square_part, penultimate_pawn_push
 use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
-use crate::fen::{algebraic_move_from_move, get_fen};
+
 
 pub const MAX_WINDOW: Score = 20000;
 pub const MATE_SCORE: Score = 10000;
@@ -418,11 +418,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut real_depth = depth + these_extensions;
 
-    if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
+    let verified_hash_move = if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
-    }
+        hash_move != 0
+    } else {
+        verify_move(position, hash_move)
+    };
 
-    let these_moves = if verify_move(position, hash_move) {
+    let these_moves = if verified_hash_move {
 
         let mut new_position = *position;
         make_move(position, hash_move, &mut new_position);
