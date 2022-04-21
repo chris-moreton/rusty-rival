@@ -421,7 +421,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
         hash_move != 0
     } else {
-        hash_move != 0 && verify_move(position, hash_move)
+        hash_move != 0 // && verify_move(position, hash_move)
     };
 
     let these_moves = if verified_hash_move {
