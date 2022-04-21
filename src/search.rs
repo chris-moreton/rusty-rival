@@ -453,7 +453,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     let mut new_position = *position;
                     make_move(position, m, &mut new_position);
                     if !is_check(&new_position, position.mover) {
-                        let path_score = search_wrapper(real_depth - 2, ply, search_state, (-new_beta, -alpha), &new_position, 0);
+                        let path_score = search_wrapper(real_depth, ply, search_state, (-new_beta, -alpha), &new_position, 0);
                         let score = -path_score.1;
                         if score > new_beta {
                             found_one = true;
