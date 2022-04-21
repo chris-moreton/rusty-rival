@@ -438,7 +438,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             let mut singular_depth = real_depth;
 
             if !scouting && hash_score_was_a_lower_bound && these_extensions == 0 && real_depth > 5 {
-                let new_beta = max(beta - 100, alpha + 1);
+                let new_beta = max(beta - 400, alpha + 1);
                 let mvs = moves(position);
                 let mut found_one = false;
 
@@ -449,13 +449,10 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     .collect();
 
                 while !move_scores.is_empty() {
-                    let m = pick_high_score_move(&mut move_scores);
                     let mut new_position = *position;
-                    make_move(position, m, &mut new_position);
+                    make_move(position, pick_high_score_move(&mut move_scores), &mut new_position);
                     if !is_check(&new_position, position.mover) {
-                        let path_score = search_wrapper(real_depth, ply, search_state, (-new_beta, -alpha), &new_position, 0);
-                        let score = -path_score.1;
-                        if score > new_beta {
+                        if -search_wrapper(real_depth, ply, search_state, (-new_beta, -alpha), &new_position, 0).1 > new_beta {
                             found_one = true;
                             break;
                         }
@@ -463,8 +460,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 }
                 if !found_one {
                     singular_depth += 1;
-                    let path_score = search_wrapper(singular_depth, ply, search_state, (-beta, -alpha), &new_position, 0);
-                    score = path_score.1;
+                    score = search_wrapper(singular_depth, ply, search_state, (-beta, -alpha), &new_position, 0).1;
                 }
             }
 
