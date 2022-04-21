@@ -23,7 +23,7 @@ use crate::utils::{captured_piece_value, from_square_part, penultimate_pawn_push
 use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
-
+use crate::fen::{algebraic_move_from_move, get_fen};
 
 pub const MAX_WINDOW: Score = 20000;
 pub const MATE_SCORE: Score = 10000;
@@ -312,7 +312,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 // if x.mv != 0 && !verify_move(position, x.mv) {
                 //     panic!("{} {}", get_fen(&position), algebraic_move_from_move(x.mv));
                 // }
-                // assert!(x.mv == 0 || verify_move(position, x.mv));
 
                 // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
                 // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
@@ -422,7 +421,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
         hash_move != 0
     } else {
-        verify_move(position, hash_move)
+        hash_move != 0 && verify_move(position, hash_move)
     };
 
     let these_moves = if verified_hash_move {
