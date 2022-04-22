@@ -21,12 +21,11 @@ use std::cmp::{max, min};
 pub fn evaluate(position: &Position) -> Score {
     let mut cache = default_evaluate_cache();
 
-    if insufficient_material(position, &mut cache) {
+    cache_piece_count(position, &mut cache);
+
+    if insufficient_material(position, cache.piece_count) {
         return 0;
     }
-
-    cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
 
     let score = material_score(position)
         + piece_square_values(position)
@@ -41,8 +40,9 @@ pub fn evaluate(position: &Position) -> Score {
 }
 
 #[inline(always)]
-pub fn insufficient_material(position: &Position, cache: &mut EvaluateCache) -> bool {
-    if cache.piece_count == 2 {
+pub fn insufficient_material(position: &Position, piece_count: u8) -> bool {
+
+    if piece_count == 2 {
         return true;
     }
 
@@ -64,6 +64,13 @@ pub fn insufficient_material(position: &Position, cache: &mut EvaluateCache) -> 
         && w.bishop_bitboard.count_ones() == 1
         && b.bishop_bitboard.count_ones() == 1
         && single_bishop_square_colour(w.bishop_bitboard) == single_bishop_square_colour(b.bishop_bitboard)
+}
+
+fn cache_piece_count(position: &Position, cache: &mut EvaluateCache) {
+    if cache.piece_count == 0 {
+        cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+            + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
+    }
 }
 
 #[inline(always)]

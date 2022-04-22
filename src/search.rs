@@ -3,7 +3,7 @@ use crate::engine_constants::{
     LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NUM_HASH_ENTRIES,
     ROOK_VALUE_AVERAGE,
 };
-use crate::evaluate::{evaluate, pawn_material, piece_material};
+use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::make_move;
@@ -421,7 +421,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
         hash_move != 0
     } else {
-        hash_move != 0 // && verify_move(position, hash_move)
+        hash_move != 0 && verify_move(position, hash_move)
     };
 
     let these_moves = if verified_hash_move {
@@ -436,7 +436,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             let mut score = path_score.1;
             let mut singular_depth = real_depth;
 
-            if !scouting && hash_score_was_a_lower_bound && these_extensions == 0 && real_depth > 5 {
+            if !scouting && hash_score_was_a_lower_bound && these_extensions == 0 {
                 let new_beta = max(beta - 400, alpha + 1);
                 let mvs = moves(position);
                 let mut found_one = false;
@@ -568,7 +568,11 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
 #[inline(always)]
 fn is_draw(position: &Position, search_state: &mut SearchState) -> bool {
-    repeat_position(position, search_state) || position.half_moves >= 100
+    repeat_position(position, search_state) || position.half_moves >= 100 || {
+        let piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+            + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
+        insufficient_material(position, piece_count)
+    }
 }
 
 #[inline(always)]

@@ -23,6 +23,7 @@ use crate::utils::hydrate_move_from_algebraic_move;
 fn replace_shortcuts(l: &str) -> &str {
     match l {
         "pv" => "setoption name multipv value 10",
+        "c3draw" => "position fen 6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43",
         "pawnf4" => "position fen 8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42",
         "bl1" => "position fen 6k1/5pp1/5b1p/1Pp1pP2/2Pq4/3p1Q2/3B1PPP/r4RK1 w - - 2 34",
         "bl2" => "position fen 6k1/3q1pp1/5b1p/1Pp1pP2/2Pp4/3Q4/5PPP/r1B2RK1 w - - 0 32", // d3f3 is a blunder, bm d3e4
@@ -300,7 +301,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(
-        r#"id name Rusty Rival |20220421-01-No-Hash-Verify-Really|
+        r#"id name Rusty Rival |20220422-01-Internal-Draw-Detection|
 id author Chris Moreton
 option name Clear Hash type button
 option name MultiPV type spin default 1 min 1 max 20
