@@ -2,6 +2,7 @@ use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use std::collections::HashMap;
 use std::time::Instant;
+use crate::fen::algebraic_move_from_move;
 
 pub type Square = i8;
 pub type Bitboard = u64;

@@ -568,11 +568,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
 #[inline(always)]
 fn is_draw(position: &Position, search_state: &mut SearchState) -> bool {
-    repeat_position(position, search_state) || position.half_moves >= 100 || {
-        let piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-            + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
-        insufficient_material(position, piece_count)
-    }
+    repeat_position(position, search_state) || position.half_moves >= 100 ||
+        insufficient_material(position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+                                       + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8)
 }
 
 #[inline(always)]

@@ -15,6 +15,7 @@ use crate::types::{
 use crate::utils::{captured_piece_value, from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
 use std::time::Instant;
+use crate::see::static_exchange_evaluation;
 
 #[inline(always)]
 pub fn quiesce_moves(position: &Position) -> MoveList {
@@ -167,7 +168,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         while !move_scores.is_empty() {
             let m = pick_high_score_move(&mut move_scores);
 
-            if eval + captured_piece_value(position, m) + 125 > alpha {
+            if eval + captured_piece_value(position, m) + 125 > alpha && static_exchange_evaluation(position, m) >= 0 {
                 let mut new_position = *position;
                 make_move(position, m, &mut new_position);
                 if !is_check(&new_position, position.mover) {

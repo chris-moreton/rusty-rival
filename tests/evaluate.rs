@@ -26,15 +26,15 @@ fn test_insufficient_material(fen: &str, result: bool) {
     let mut cache = default_evaluate_cache();
 
     let position = get_position(fen);
-    cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
 
-    assert_eq!(insufficient_material(&position, &mut cache), result);
+    assert_eq!(insufficient_material(&position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8), result);
 
     let position = get_position(&invert_fen(fen));
     cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
         + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
-    assert_eq!(insufficient_material(&position, &mut cache), result);
+    assert_eq!(insufficient_material(&position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8), result);
 }
 
 #[test]
