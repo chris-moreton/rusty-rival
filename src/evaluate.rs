@@ -23,7 +23,7 @@ pub fn evaluate(position: &Position) -> Score {
 
     cache_piece_count(position, &mut cache);
 
-    if insufficient_material(position, cache.piece_count) {
+    if insufficient_material(position, cache.piece_count, true) {
         return 0;
     }
 
@@ -40,7 +40,7 @@ pub fn evaluate(position: &Position) -> Score {
 }
 
 #[inline(always)]
-pub fn insufficient_material(position: &Position, piece_count: u8) -> bool {
+pub fn insufficient_material(position: &Position, piece_count: u8, include_helpmates: bool) -> bool {
 
     if piece_count > 4 {
         return false;
@@ -57,6 +57,12 @@ pub fn insufficient_material(position: &Position, piece_count: u8) -> bool {
 
     if non_minor_bitboard != 0 {
         return false;
+    }
+
+    let minor_count = (w.bishop_bitboard | w.knight_bitboard | b.bishop_bitboard | b.knight_bitboard).count_ones();
+
+    if include_helpmates {
+        return minor_count <= 2;
     }
 
     if (w.bishop_bitboard | w.knight_bitboard | b.bishop_bitboard | b.knight_bitboard).count_ones() == 1 {

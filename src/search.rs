@@ -23,7 +23,7 @@ use crate::utils::{captured_piece_value, from_square_part, penultimate_pawn_push
 use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
-use crate::fen::{algebraic_move_from_move, get_fen};
+
 
 pub const MAX_WINDOW: Score = 20000;
 pub const MATE_SCORE: Score = 10000;
@@ -288,7 +288,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     search_state.nodes += 1;
 
-    if is_draw(position, search_state) {
+    if is_draw(position, search_state, ply) {
         return (vec![0], draw_value(position, search_state));
     }
 
@@ -450,11 +450,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 while !move_scores.is_empty() {
                     let mut new_position = *position;
                     make_move(position, pick_high_score_move(&mut move_scores), &mut new_position);
-                    if !is_check(&new_position, position.mover) {
-                        if -search_wrapper(real_depth, ply, search_state, (-new_beta, -alpha), &new_position, 0).1 > new_beta {
-                            found_one = true;
-                            break;
-                        }
+                    if !is_check(&new_position, position.mover) && -search_wrapper(real_depth, ply, search_state, (-new_beta, -alpha), &new_position, 0).1 > new_beta {
+                        found_one = true;
+                        break;
                     }
                 }
                 if !found_one {
@@ -567,10 +565,11 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 }
 
 #[inline(always)]
-fn is_draw(position: &Position, search_state: &mut SearchState) -> bool {
-    repeat_position(position, search_state) || position.half_moves >= 100 ||
-        insufficient_material(position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-                                       + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8)
+pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> bool {
+    repeat_position(position, search_state) || position.half_moves >= 100 || {
+        ply > 6 && insufficient_material(position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+            + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, true)
+    }
 }
 
 #[inline(always)]

@@ -28,13 +28,13 @@ fn test_insufficient_material(fen: &str, result: bool) {
     let position = get_position(fen);
 
     assert_eq!(insufficient_material(&position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8), result);
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, false), result);
 
     let position = get_position(&invert_fen(fen));
     cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
         + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
     assert_eq!(insufficient_material(&position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8), result);
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, false), result);
 }
 
 #[test]

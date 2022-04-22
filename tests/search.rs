@@ -1,5 +1,5 @@
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::search::{iterative_deepening, piece_index_12};
+use rusty_rival::search::{is_draw, iterative_deepening, piece_index_12};
 use rusty_rival::types::default_search_state;
 use rusty_rival::utils::{hydrate_move_from_algebraic_move, pawn_push};
 use std::ops::Add;
@@ -160,4 +160,30 @@ fn it_gets_the_12_piece_index_for_a_move() {
         6,
         piece_index_12(&position, hydrate_move_from_algebraic_move(&position, "d6d5".to_string()))
     );
+}
+
+#[test]
+fn it_recognises_a_draw() {
+    let position = get_position("1k5r/pP3ppp/3p2b1/1BN5/1Q2P1n1/P1B5/KP3P1P/7q w - - 0 60");
+    let mut search_state = default_search_state();
+    assert!(!is_draw(&position, &mut search_state, 5));
+    let position = get_position("1k5r/pP3ppp/3p2b1/1BN5/1Q2P1n1/P1B5/KP3P1P/7q w - - 1 60");
+    search_state.history.push(position.zobrist_lock);
+    assert!(!is_draw(&position, &mut search_state, 5));
+    let position = get_position("1k5r/pP3ppp/3p2b1/1BN5/1Q2P1n1/P1B5/KP3P1P/7q w - - 2 60");
+    search_state.history.push(position.zobrist_lock);
+    assert!(is_draw(&position, &mut search_state, 5));
+
+    let position = get_position("1k5r/pP3ppp/3p2b1/1BN5/1Q2P1n1/P1B5/KP3P1P/7q w - - 100 60");
+    let mut search_state = default_search_state();
+    assert!(is_draw(&position, &mut search_state, 5));
+
+    let position = get_position("6k1/8/8/4K3/8/7n/7P/8 b - - 0 1");
+    let mut search_state = default_search_state();
+    assert!(!is_draw(&position, &mut search_state, 5));
+
+    let position = get_position("6k1/8/8/4K3/8/7n/8/8 b - - 0 1");
+    let mut search_state = default_search_state();
+    assert!(!is_draw(&position, &mut search_state, 5)); // don't detect at ply 5
+    assert!(is_draw(&position, &mut search_state, 7));
 }

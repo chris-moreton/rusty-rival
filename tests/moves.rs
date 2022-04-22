@@ -5,7 +5,6 @@ use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL, PIE
 use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check, is_square_attacked, moves, verify_move};
 use rusty_rival::quiesce::quiesce_moves;
 use rusty_rival::types::{MoveList, Square, BLACK, WHITE};
-use rusty_rival::utils::hydrate_move_from_algebraic_move;
 
 #[test]
 fn it_gets_all_pieces_bitboard() {

@@ -1,4 +1,3 @@
-use std::process::exit;
 use rusty_rival::engine_constants::{
     BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE,
 };
