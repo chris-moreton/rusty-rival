@@ -186,4 +186,9 @@ fn it_recognises_a_draw() {
     let mut search_state = default_search_state();
     assert!(!is_draw(&position, &mut search_state, 5)); // don't detect at ply 5
     assert!(is_draw(&position, &mut search_state, 7));
+
+    let position = get_position("6k1/8/8/4K3/8/7n/7N/8 b - - 0 1");
+    let mut search_state = default_search_state();
+    assert!(is_draw(&position, &mut search_state, 7));
+
 }

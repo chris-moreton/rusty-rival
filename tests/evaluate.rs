@@ -22,36 +22,45 @@ fn test_doubled_pawns(fen: &str, score: Score) {
     assert_eq!(doubled_and_isolated_pawn_score(&position, &mut default_evaluate_cache()), -score);
 }
 
-fn test_insufficient_material(fen: &str, result: bool) {
+fn test_insufficient_material(fen: &str, result: bool, include_helpmates: bool) {
     let mut cache = default_evaluate_cache();
 
     let position = get_position(fen);
 
     assert_eq!(insufficient_material(&position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, false), result);
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, include_helpmates), result);
 
     let position = get_position(&invert_fen(fen));
     cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
         + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
     assert_eq!(insufficient_material(&position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, false), result);
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, include_helpmates), result);
 }
 
 #[test]
 fn it_knows_insufficient_material() {
-    test_insufficient_material("r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/6P1/PPPPP1P1/R1BQ1RK1 w kq - 0 1", false);
-    test_insufficient_material("r1b1kb2/6p1/ppn5/3N3p/4N1n1/6P1/PP1PP3/R2Q1RK1 w q - 0 1", false);
-    test_insufficient_material("2b1k3/6p1/2n5/3N4/8/8/3PP3/R4RK1 w - - 0 1", false);
-    test_insufficient_material("2b1k3/8/2n5/3N4/8/8/8/R5K1 w - - 0 1", false);
-    test_insufficient_material("2b1k3/8/2n5/3N4/8/8/8/6K1 w - - 0 1", false);
-    test_insufficient_material("4k3/8/2n5/3N4/8/8/8/6K1 w - - 0 1", false);
-    test_insufficient_material("4k3/8/2n5/8/8/8/8/6K1 w - - 0 1", true);
-    test_insufficient_material("4k3/8/2n5/8/4B3/8/8/6K1 w - - 0 1", false);
-    test_insufficient_material("4k3/8/8/8/4B3/8/8/6K1 w - - 0 1", true);
-    test_insufficient_material("4k3/8/8/8/8/8/8/6K1 w - - 0 1", true);
-    test_insufficient_material("4k3/2b5/8/8/4B3/8/8/6K1 w - - 0 1", false);
-    test_insufficient_material("4k3/8/8/8/2b1B3/8/8/6K1 w - - 0 1", true);
-    test_insufficient_material("4k3/4p3/8/8/2b1B3/8/4PP2/6K1 w - - 0 1", false);
+    test_insufficient_material("r1b1kb1r/6p1/ppn3p1/1p1Np2p/4N1n1/6P1/PPPPP1P1/R1BQ1RK1 w kq - 0 1", false, false);
+    test_insufficient_material("r1b1kb2/6p1/ppn5/3N3p/4N1n1/6P1/PP1PP3/R2Q1RK1 w q - 0 1", false, false);
+    test_insufficient_material("2b1k3/6p1/2n5/3N4/8/8/3PP3/R4RK1 w - - 0 1", false, false);
+    test_insufficient_material("2b1k3/8/2n5/3N4/8/8/8/R5K1 w - - 0 1", false, false);
+    test_insufficient_material("2b1k3/8/2n5/3N4/8/8/8/6K1 w - - 0 1", false, false);
+    test_insufficient_material("4k3/8/2n5/3N4/8/8/8/6K1 w - - 0 1", false, false);
+    test_insufficient_material("4k3/8/2n5/8/8/8/8/6K1 w - - 0 1", true, false);
+    test_insufficient_material("4k3/8/2n5/8/4B3/8/8/6K1 w - - 0 1", false, false);
+    test_insufficient_material("4k3/8/8/8/4B3/8/8/6K1 w - - 0 1", true, false);
+    test_insufficient_material("4k3/8/8/8/8/8/8/6K1 w - - 0 1", true, false);
+    test_insufficient_material("4k3/2b5/8/8/4B3/8/8/6K1 w - - 0 1", false, false);
+    test_insufficient_material("4k3/8/8/8/2b1B3/8/8/6K1 w - - 0 1", true, false);
+    test_insufficient_material("4k3/4p3/8/8/2b1B3/8/4PP2/6K1 w - - 0 1", false, false);
+
+    test_insufficient_material("6k1/8/8/4K3/8/7n/7N/8 b - - 0 1", false, false);
+    test_insufficient_material("6k1/8/8/4K3/8/7n/7N/8 b - - 0 1", true, true);
+
+    test_insufficient_material("6k1/8/8/4K3/8/4B3/4b3/8 b - - 0 1", false, false);
+    test_insufficient_material("6k1/8/8/4K3/8/4B3/4b3/8 b - - 0 1", true, true);
+
+    test_insufficient_material("6k1/8/8/4K3/8/4B3/5b2/8 b - - 0 1", true, false);
+    test_insufficient_material("6k1/8/8/4K3/8/4B3/5b2/8 b - - 0 1", true, true);
 }
 
 #[test]
