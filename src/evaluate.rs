@@ -29,7 +29,7 @@ pub fn evaluate(position: &Position) -> Score {
 
     let score = material_score(position)
         + piece_square_values(position)
-       // + king_score(position, &cache)
+        + king_score(position, &cache)
         + king_threat_score(position)
         + rook_eval(position)
         + passed_pawn_score(position, &mut cache)
@@ -59,10 +59,11 @@ pub fn insufficient_material(position: &Position, piece_count: u8, include_helpm
         return false;
     }
 
-    let minor_count = (w.bishop_bitboard | w.knight_bitboard | b.bishop_bitboard | b.knight_bitboard).count_ones();
+    let knight_count = (w.knight_bitboard | b.knight_bitboard).count_ones();
+    let minor_count = (w.bishop_bitboard | b.bishop_bitboard).count_ones();
 
     if include_helpmates {
-        return minor_count <= 2;
+        return minor_count <= 2 || (minor_count == 3 && knight_count == 0);
     }
 
     if (w.bishop_bitboard | w.knight_bitboard | b.bishop_bitboard | b.knight_bitboard).count_ones() == 1 {

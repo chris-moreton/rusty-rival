@@ -22,6 +22,14 @@ pub type PositionHistory = Vec<HashLock>;
 pub type HistoryScore = i64;
 pub type ScorePair = (Score, Score);
 
+pub struct UnmakeMoveDetails {
+    pub captured_piece: Piece,
+    pub captured_square: Square,
+    pub moved_piece: Piece,
+    pub moved_from_square: Square,
+    pub promotion_piece: Piece,
+}
+
 #[derive(Debug, Clone)]
 pub struct UciState {
     pub fen: String,

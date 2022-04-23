@@ -1,5 +1,5 @@
 use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
+use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR};
 use crate::evaluate::evaluate;
 use crate::make_move::make_move;
 use crate::move_constants::{
@@ -131,11 +131,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         return (vec![0], eval);
     }
 
-    let promote_from_rank = if position.mover == WHITE { RANK_7_BITS } else { RANK_2_BITS };
-    let mut delta = QUEEN_VALUE_AVERAGE;
-    if position.pieces[position.mover as usize].pawn_bitboard & promote_from_rank != 0 {
-        delta += QUEEN_VALUE_AVERAGE - PAWN_VALUE_AVERAGE
-    }
+    let mut delta = QUEEN_VALUE_PAIR.1;
 
     let mut alpha = window.0;
 
@@ -168,7 +164,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         while !move_scores.is_empty() {
             let m = pick_high_score_move(&mut move_scores);
 
-            if eval + captured_piece_value(position, m) + 125 > alpha && static_exchange_evaluation(position, m) >= 0 {
+            if eval + static_exchange_evaluation(position, m) > alpha {
                 let mut new_position = *position;
                 make_move(position, m, &mut new_position);
                 if !is_check(&new_position, position.mover) {

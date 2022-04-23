@@ -390,31 +390,25 @@ pub fn make_see_move(mv: Move, new_position: &mut Position) {
         PIECE_MASK_PAWN => {
             if mv & PROMOTION_FULL_MOVE_MASK != 0 {
                 make_move_with_promotion(new_position, from, to, mv & PROMOTION_FULL_MOVE_MASK);
-            } else if (from - to) % 8 != 0 {
+            } else {
                 make_pawn_capture_move(new_position, from, to);
             }
         }
         _ => {
             let bit_to = bit(to);
 
-            if (new_position.pieces[WHITE as usize].all_pieces_bitboard | new_position.pieces[BLACK as usize].all_pieces_bitboard) & bit_to
-                != 0
-            {
+            if (new_position.pieces[WHITE as usize].all_pieces_bitboard | new_position.pieces[BLACK as usize].all_pieces_bitboard) & bit_to != 0 {
                 let enemy = &mut new_position.pieces[opponent!(new_position.mover) as usize];
 
                 if enemy.pawn_bitboard & bit_to != 0 {
                     enemy.pawn_bitboard &= !bit_to;
-                }
-                if enemy.knight_bitboard & bit_to != 0 {
+                } else if enemy.knight_bitboard & bit_to != 0 {
                     enemy.knight_bitboard &= !bit_to;
-                }
-                if enemy.rook_bitboard & bit_to != 0 {
+                } else if enemy.rook_bitboard & bit_to != 0 {
                     enemy.rook_bitboard &= !bit_to;
-                }
-                if enemy.bishop_bitboard & bit_to != 0 {
+                } else if enemy.bishop_bitboard & bit_to != 0 {
                     enemy.bishop_bitboard &= !bit_to;
-                }
-                if enemy.queen_bitboard & bit_to != 0 {
+                } else if enemy.queen_bitboard & bit_to != 0 {
                     enemy.queen_bitboard &= !bit_to;
                 }
 

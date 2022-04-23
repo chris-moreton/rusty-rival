@@ -6,7 +6,6 @@ use crate::utils::{captured_piece_value, to_square_part};
 use std::cmp::min;
 
 
-
 #[inline(always)]
 pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
     let mut new_position = *position;
