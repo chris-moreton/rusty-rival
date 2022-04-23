@@ -17,6 +17,7 @@ use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
 use std::time::Instant;
 use crate::see::static_exchange_evaluation;
 
+
 #[inline(always)]
 pub fn quiesce_moves(position: &Position) -> MoveList {
     let mut move_list = Vec::with_capacity(4);
@@ -131,11 +132,9 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         return (vec![0], eval);
     }
 
-    let mut delta = QUEEN_VALUE_PAIR.1;
-
     let mut alpha = window.0;
 
-    if eval < alpha - delta {
+    if eval < alpha - QUEEN_VALUE_PAIR.1 {
         return (vec![0], alpha);
     }
 
