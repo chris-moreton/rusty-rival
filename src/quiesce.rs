@@ -1,4 +1,4 @@
-use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_2_BITS, RANK_7_BITS};
+use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE};
 use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR};
 use crate::evaluate::evaluate;
 use crate::make_move::make_move;
@@ -12,10 +12,11 @@ use crate::search::pick_high_score_move;
 use crate::types::{
     Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
-use crate::utils::{captured_piece_value, from_square_mask, send_info, to_square_part};
+use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
 use std::time::Instant;
 use crate::see::static_exchange_evaluation;
+
 
 #[inline(always)]
 pub fn quiesce_moves(position: &Position) -> MoveList {
@@ -131,11 +132,9 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         return (vec![0], eval);
     }
 
-    let mut delta = QUEEN_VALUE_PAIR.1;
-
     let mut alpha = window.0;
 
-    if eval < alpha - delta {
+    if eval < alpha - QUEEN_VALUE_PAIR.1 {
         return (vec![0], alpha);
     }
 
