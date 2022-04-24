@@ -1,4 +1,4 @@
-use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_2_BITS, RANK_7_BITS};
+use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE};
 use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR};
 use crate::evaluate::evaluate;
 use crate::make_move::make_move;
@@ -12,10 +12,10 @@ use crate::search::pick_high_score_move;
 use crate::types::{
     Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
-use crate::utils::{captured_piece_value, from_square_mask, send_info, to_square_part};
+use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
 use std::time::Instant;
-use crate::see::static_exchange_evaluation;
+use crate::see::{captured_piece_value_see, see};
 
 
 #[inline(always)]
@@ -165,7 +165,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) && (eval > alpha || eval + static_exchange_evaluation(position, m) > alpha) {
+            if !is_check(&new_position, position.mover) && (eval > alpha || eval + see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position) > alpha) {
                 let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
                 check_time!(search_state);
                 if score >= window.1 {

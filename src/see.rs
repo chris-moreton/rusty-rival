@@ -1,14 +1,14 @@
-use crate::bitboards::bit;
-use crate::make_move::{en_passant_captured_piece_square, make_move_with_promotion, make_pawn_capture_move};
-use crate::moves::{is_check, see_moves};
-use crate::types::{Bitboard, BLACK, Move, Position, Score, Square, WHITE};
-use crate::utils::{captured_piece_value, from_square_part, to_square_part};
+use crate::bitboards::{BISHOP_RAYS, bit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, ROOK_RAYS};
+
+use crate::moves::{generate_capture_pawn_moves_with_destinations, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check};
+use crate::types::{Bitboard, BLACK, Move, MoveList, Position, Score, Square, WHITE};
+use crate::utils::{from_square_mask, from_square_part, to_square_part};
 use std::cmp::min;
 use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
-use crate::fen::{algebraic_move_from_move, get_fen};
-use crate::hash::{ZOBRIST_KEYS_PIECES, ZOBRIST_PIECE_INDEX_BISHOP, ZOBRIST_PIECE_INDEX_KNIGHT, ZOBRIST_PIECE_INDEX_PAWN, ZOBRIST_PIECE_INDEX_QUEEN, ZOBRIST_PIECE_INDEX_ROOK};
-use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_BISHOP, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, EN_PASSANT_CAPTURE_MASK};
-use crate::opponent;
+
+
+use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_BISHOP, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, EN_PASSANT_CAPTURE_MASK};
+use crate::{add_moves, get_and_unset_lsb, opponent};
 
 
 #[inline(always)]
@@ -19,7 +19,7 @@ pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
 }
 
 #[inline(always)]
-fn see(score: Score, capture_square: Bitboard, position: &Position) -> Score {
+pub fn see(score: Score, capture_square: Bitboard, position: &Position) -> Score {
     for m in see_moves(position, capture_square) {
         let mut new_position = *position;
         make_see_move(m, &mut new_position);
@@ -102,4 +102,70 @@ pub fn captured_piece_value_see(position: &Position, mv: Move) -> Score {
     } else {
         0
     })
+}
+
+#[inline(always)]
+pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList {
+    let mut move_list = Vec::with_capacity(1);
+    let capture_square = valid_destinations.trailing_zeros() as usize;
+
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let friendly = position.pieces[position.mover as usize];
+
+    generate_capture_pawn_moves_with_destinations(&mut move_list, position.mover as usize, friendly.pawn_bitboard, valid_destinations);
+
+    if move_list.is_empty() {
+        let mut knights = KNIGHT_MOVES_BITBOARDS[capture_square] & friendly.knight_bitboard;
+        while knights != 0 {
+            let fsm = from_square_mask(get_and_unset_lsb!(knights)) | PIECE_MASK_KNIGHT;
+            move_list.push(fsm | capture_square as Move);
+        }
+    }
+
+    if move_list.is_empty() && BISHOP_RAYS[capture_square] & friendly.bishop_bitboard != 0 {
+        generate_diagonal_slider_moves(
+            friendly.bishop_bitboard,
+            all_pieces,
+            &mut move_list,
+            valid_destinations,
+            PIECE_MASK_BISHOP,
+        );
+    }
+    if move_list.is_empty() && ROOK_RAYS[capture_square] & friendly.rook_bitboard != 0 {
+        generate_straight_slider_moves(
+            friendly.rook_bitboard,
+            all_pieces,
+            &mut move_list,
+            valid_destinations,
+            PIECE_MASK_ROOK,
+        );
+    }
+    if move_list.is_empty() && ROOK_RAYS[capture_square] & friendly.queen_bitboard != 0 {
+        generate_straight_slider_moves(
+            friendly.queen_bitboard,
+            all_pieces,
+            &mut move_list,
+            valid_destinations,
+            PIECE_MASK_QUEEN,
+        );
+    }
+    if move_list.is_empty() && BISHOP_RAYS[capture_square] & friendly.queen_bitboard != 0 {
+        generate_diagonal_slider_moves(
+            friendly.queen_bitboard,
+            all_pieces,
+            &mut move_list,
+            valid_destinations,
+            PIECE_MASK_QUEEN,
+        );
+    }
+
+    if move_list.is_empty() {
+        add_moves!(
+            move_list,
+            from_square_mask(friendly.king_square) | PIECE_MASK_KING,
+            KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations
+        );
+    }
+
+    move_list
 }

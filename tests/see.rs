@@ -61,8 +61,9 @@ fn it_gets_the_see_score() {
         KNIGHT_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
     );
 
-    // leaves king in check
+    // leaves king in check - passes because SEE assumes that the move is legal
     assert_see_score("8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28", "h6c1", 0);
+
     assert_see_score("rnbqkb1r/ppppp1pp/7n/4Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3", "e5f6", 0);
     assert_see_score(
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
@@ -91,5 +92,17 @@ fn it_gets_the_see_score() {
         "3r3r/ppk2ppp/3q4/2b5/2P2Bn1/3R1Q2/P4PPP/5RK1 w - - 0 5",
         "d3d6",
         QUEEN_VALUE_AVERAGE - ROOK_VALUE_AVERAGE,
+    );
+
+    assert_see_score(
+        "8/7p/p5p1/4k3/P1pqn3/2B5/P5PP/1r1R2K1 w - - 0 1",
+        "c3d4",
+        QUEEN_VALUE_AVERAGE,
+    );
+
+    assert_see_score(
+        "8/7p/p5p1/4k3/P1pqn3/2B5/P5PP/1rR3K1 w - - 0 1",
+        "c3d4",
+        QUEEN_VALUE_AVERAGE - BISHOP_VALUE_AVERAGE,
     );
 }

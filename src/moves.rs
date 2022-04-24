@@ -153,72 +153,6 @@ pub fn moves(position: &Position) -> MoveList {
 }
 
 #[inline(always)]
-pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList {
-    let mut move_list = Vec::with_capacity(1);
-    let capture_square = valid_destinations.trailing_zeros() as usize;
-
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    let friendly = position.pieces[position.mover as usize];
-
-    generate_capture_pawn_moves_with_destinations(&mut move_list, position.mover as usize, friendly.pawn_bitboard, valid_destinations);
-
-    if move_list.is_empty() {
-        let mut knights = KNIGHT_MOVES_BITBOARDS[capture_square] & friendly.knight_bitboard;
-        while knights != 0 {
-            let fsm = from_square_mask(get_and_unset_lsb!(knights)) | PIECE_MASK_KNIGHT;
-            move_list.push(fsm | capture_square as Move);
-        }
-    }
-
-    if move_list.is_empty() && BISHOP_RAYS[capture_square] & friendly.bishop_bitboard != 0 {
-        generate_diagonal_slider_moves(
-            friendly.bishop_bitboard,
-            all_pieces,
-            &mut move_list,
-            valid_destinations,
-            PIECE_MASK_BISHOP,
-        );
-    }
-    if move_list.is_empty() && ROOK_RAYS[capture_square] & friendly.rook_bitboard != 0 {
-        generate_straight_slider_moves(
-            friendly.rook_bitboard,
-            all_pieces,
-            &mut move_list,
-            valid_destinations,
-            PIECE_MASK_ROOK,
-        );
-    }
-    if move_list.is_empty() && ROOK_RAYS[capture_square] & friendly.queen_bitboard != 0 {
-        generate_straight_slider_moves(
-            friendly.queen_bitboard,
-            all_pieces,
-            &mut move_list,
-            valid_destinations,
-            PIECE_MASK_QUEEN,
-        );
-    }
-    if move_list.is_empty() && BISHOP_RAYS[capture_square] & friendly.queen_bitboard != 0 {
-        generate_diagonal_slider_moves(
-            friendly.queen_bitboard,
-            all_pieces,
-            &mut move_list,
-            valid_destinations,
-            PIECE_MASK_QUEEN,
-        );
-    }
-
-    if move_list.is_empty() {
-        add_moves!(
-            move_list,
-            from_square_mask(friendly.king_square) | PIECE_MASK_KING,
-            KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations
-        );
-    }
-
-    move_list
-}
-
-#[inline(always)]
 fn generate_pawn_moves(
     position: &Position,
     move_list: &mut Vec<Move>,
@@ -260,7 +194,7 @@ fn generate_pawn_moves(
 }
 
 #[inline(always)]
-fn generate_capture_pawn_moves_with_destinations(
+pub fn generate_capture_pawn_moves_with_destinations(
     move_list: &mut Vec<Move>,
     colour_index: usize,
     mut from_squares: Bitboard,
