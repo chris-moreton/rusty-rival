@@ -25,12 +25,14 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
     let mut total_nodes = 0;
     let mut total_correct = 0;
     let mut total_tested = 0;
+    let mut total_expected = 0;
     run_command(uci_state, search_state, "setoption name MultiPV value 2");
 
     for p in positions {
         let fen = p.0;
         let expected_move = p.1;
         let min_diff = p.2;
+        let expected_millis = p.3;
         let mut owned = "position fen ".to_owned();
         owned.push_str(fen);
 
@@ -66,15 +68,18 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
             if alg_move == expected_move && score_is_good {
                 total_tested += 1;
                 total_correct += 1;
+                if these_millis <= expected_millis {
+                    total_expected += 1;
+                }
                 tick = "\u{2705}";
-                show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis);
+                show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis, expected_millis);
                 break
             } else {
                 these_millis *= 2;
 
                 if these_millis > millis {
                     total_tested += 1;
-                    show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis / 2);
+                    show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis / 2, expected_millis);
                     break
                 }
             }
@@ -83,6 +88,7 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
     println!("Correct: {:?}/{}", total_correct, total);
+    println!("Within Expected Time: {:?}/{}", total_expected, total);
     let nps = (total_nodes as f64 / start.elapsed().as_millis() as f64) * 1000.0;
 
     println!(
@@ -97,7 +103,7 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
 }
 
 #[allow(clippy::too_many_arguments)]
-fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expected_move: &str, best_score: Score, main_search_nodes: u64, second_best_move: Move, second_best_score: Score, alg_move: String, tick: &mut &str, score_diff: Score, score_is_good: bool, millis_taken: u32) {
+fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expected_move: &str, best_score: Score, main_search_nodes: u64, second_best_move: Move, second_best_score: Score, alg_move: String, tick: &mut &str, score_diff: Score, score_is_good: bool, millis_taken: u32, expected_millis: u32) {
 
     println!(
         "\n{} {}: Nodes {} Expected {} {}/{}",
@@ -110,7 +116,7 @@ fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expec
     );
 
     println!(
-        " \u{27A5} [1st {} Score {}] [2nd {} Score {}] [Diff {}] [Within {}ms]",
+        " \u{27A5} [1st {} Score {}] [2nd {} Score {}] [Diff {}] [Within {}ms] [Expected {}ms]",
         if alg_move == expected_move {
             Green.paint(&alg_move)
         } else {
@@ -136,7 +142,12 @@ fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expec
         } else {
             White.paint("N/A".to_string())
         },
-        millis_taken
+        millis_taken,
+        if expected_millis <= millis_taken {
+            Green.paint(expected_millis.to_string())
+        } else {
+            Red.paint(expected_millis.to_string())
+        }
     );
 }
 
