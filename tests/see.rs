@@ -16,6 +16,24 @@ fn assert_see_score(fen: &str, ms: &str, score: Score) {
 fn it_gets_the_see_score() {
 
     assert_see_score(
+        "r1bqk1nr/ppppp1pp/8/2b5/2n1Pp2/8/PPP2PPP/RN1QKBNR b KQkq e3 0 1",
+        "f4e3",
+        PAWN_VALUE_AVERAGE,
+    );
+
+    assert_see_score(
+        "1r4k1/2P5/6b1/4K3/8/4B3/8/8 w - - 0 1",
+        "c7b8q",
+        ROOK_VALUE_AVERAGE + QUEEN_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+    );
+
+    assert_see_score(
+        "1r4k1/b1P5/8/4K3/8/4B3/8/8 w - - 0 1",
+        "c7b8q",
+        ROOK_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+    );
+
+    assert_see_score(
         "4k3/p1ppr1b1/bnr1N3/4N1n1/1p2P1p1/7p/PPPBBPPP/R3K2R b KQ - 0 1",
         "d7e6",
         KNIGHT_VALUE_AVERAGE,

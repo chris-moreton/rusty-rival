@@ -163,18 +163,16 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         while !move_scores.is_empty() {
             let m = pick_high_score_move(&mut move_scores);
 
-            if eval + static_exchange_evaluation(position, m) > alpha {
-                let mut new_position = *position;
-                make_move(position, m, &mut new_position);
-                if !is_check(&new_position, position.mover) {
-                    let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
-                    check_time!(search_state);
-                    if score >= window.1 {
-                        return (vec![m], window.1);
-                    }
-                    if score > alpha {
-                        alpha = score;
-                    }
+            let mut new_position = *position;
+            make_move(position, m, &mut new_position);
+            if !is_check(&new_position, position.mover) && (eval > alpha || eval + static_exchange_evaluation(position, m) > alpha) {
+                let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
+                check_time!(search_state);
+                if score >= window.1 {
+                    return (vec![m], window.1);
+                }
+                if score > alpha {
+                    alpha = score;
                 }
             }
         }
