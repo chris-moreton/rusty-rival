@@ -143,7 +143,7 @@ fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expec
             White.paint("N/A".to_string())
         },
         millis_taken,
-        if expected_millis <= millis_taken {
+        if expected_millis >= millis_taken {
             Green.paint(expected_millis.to_string())
         } else {
             Red.paint(expected_millis.to_string())

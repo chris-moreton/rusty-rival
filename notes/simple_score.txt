@@ -1,0 +1,86 @@
+#[inline(always)]
+pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
+    let to_square = to_square_part(m);
+
+    if enemy.all_pieces_bitboard & bit(to_square) != 0 {
+        // let mut new_position = *position;
+        // make_see_move(m, &mut new_position);
+        // return GOOD_CAPTURE_START + see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position)
+
+        let pv = piece_value(enemy, to_square);
+        return GOOD_CAPTURE_START
+            + pv
+            + attacker_bonus(m & PIECE_MASK_FULL)
+            + if pv < attacker_value(m & PIECE_MASK_FULL) {
+                GOOD_CAPTURE_BONUS
+            } else {
+                0
+            }
+    };
+
+    if m & PROMOTION_FULL_MOVE_MASK != 0 {
+        let mask = m & PROMOTION_FULL_MOVE_MASK;
+        return if mask == PROMOTION_ROOK_MOVE_MASK {
+            3
+        } else if mask == PROMOTION_BISHOP_MOVE_MASK {
+            2
+        } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
+            1
+        } else {
+            GOOD_CAPTURE_START + QUEEN_VALUE_AVERAGE
+        }
+    }
+
+    if to_square == position.en_passant_square {
+        return GOOD_CAPTURE_START + PAWN_VALUE_AVERAGE + PAWN_ATTACKER_BONUS
+    }
+
+    if m == search_state.mate_killer[ply] {
+        return MATE_KILLER_SCORE
+    }
+
+    let killer_moves = search_state.killer_moves[ply];
+
+    if m == killer_moves[0] {
+        return CURRENT_PLY_KILLER_1
+    }
+
+    if m == killer_moves[1] {
+        return CURRENT_PLY_KILLER_2
+    }
+
+    if ply > 2 {
+        let killer_moves = search_state.killer_moves[ply - 2];
+        if m == killer_moves[0] {
+            return DISTANT_KILLER_1
+        }
+
+        if m == killer_moves[1] {
+            return DISTANT_KILLER_2
+        }
+    }
+
+    if m & PIECE_MASK_FULL == PIECE_MASK_PAWN {
+        let to_square = to_square_part(m);
+        if to_square >= 48 || to_square <= 15 {
+            return PAWN_PUSH_1
+        }
+
+        if position.mover == WHITE {
+            if (40..=47).contains(&to_square) && position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0 {
+                return PAWN_PUSH_2
+            }
+        }
+        if (16..=23).contains(&to_square) && position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0 {
+            return PAWN_PUSH_2
+        }
+    };
+
+    linear_scale(
+        search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize],
+            0,
+            search_state.highest_history_score,
+            HISTORY_START as i64,
+            HISTORY_TOP as i64,
+        ) as Score
+}

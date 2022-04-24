@@ -37,24 +37,24 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score, u32)> {
         ("8/6p1/2p3k1/2P4p/4p3/5PPP/6K1/8 b - - 0 41", "g6f5", 175, 4000), // 4000
 
         // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 { the bishop on c1 is lost }
-        ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3", 100, 8000), // 8000
+        ("8/7R/1pqp1k2/p3p3/PQn1P3/5P2/2P3r1/1KB5 w - - 0 41", "b4c3", 75, 8000), // 8000
 
         // Takes away g5 as an escape square for king, which traps the knight on c4 due to the threat of Qf7 mate
         // if 42 ..exf4, then Mate in 12. 43. Bb2 ..Nxb2 44. Qxb2+ ..Ke6 45. Rh6+ ..Kd7 46. Qg7 ..Kd8 47. Rh8+ ..Qe8 48. Qg5+ ..Kc7 49. Rxe8 ..Rd1+ 50. Kb2 ..Rb1+ 51. Kxb1, etc...
         // if 42 ..Qxe4 43. Rc7 ..Qxc2+ 44. Qxc2 ..Rxc2 45. Kxc2
         // if 42 ..Rd1 43. fxe5 ..Ke6 44. Qh3!! mate in 7
-        ("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42", "f3f4", 100, 64000), // 64000
+        ("8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42", "f3f4", 75, 64000), // 64000
 
         ("8/6pk/2p5/2q2p1p/3PQ3/6PP/5PK1/8 b - - 0 39", "f5e4", 175, 512000), // 512000
 
         // 9. Rh6+ ..Kg7 10. Rh5 ..a5 11. Qc3 { Qb3 is worse, see below. Missing this is often the problem for this test. } ..Qxa4
-        ("3r1b1R/5pp1/Bnk5/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 b - - 8 29", "d8d4", 100, 512000), // 512000
+        ("3r1b1R/5pp1/Bnk5/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 b - - 8 29", "d8d4", 75, 512000), // 512000
 
         // avoid 2.50+ blunder
-        ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3", 100, 1024000), // 1024000
+        ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3", 75, 1024000), // 1024000
 
         // Anything else and the best White can do is get a draw by repetition
-        ("3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30", "b3c3", 100, 1024000), // 1024000
+        ("3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30", "b3c3", 75, 1024000), // 1024000
 
         // ("", ""),
         // ("", ""),
