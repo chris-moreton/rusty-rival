@@ -26,13 +26,16 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
     let mut total_correct = 0;
     let mut total_tested = 0;
     let mut total_expected = 0;
-    run_command(uci_state, search_state, "setoption name MultiPV value 2");
 
     for p in positions {
         let fen = p.0;
         let expected_move = p.1;
-        let min_diff = p.2;
         let expected_millis = p.3;
+
+        println!("-------------------------------------------------------------------------------------");
+        println!("{} Expected {} in {}ms", fen, expected_move, expected_millis);
+        println!("-------------------------------------------------------------------------------------");
+        let min_diff = p.2;
         let mut owned = "position fen ".to_owned();
         owned.push_str(fen);
 
@@ -72,16 +75,20 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
                     total_expected += 1;
                 }
                 tick = "\u{2705}";
-                show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis, expected_millis);
+                show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis, expected_millis, true);
                 break
             } else {
                 these_millis *= 2;
 
                 if these_millis > millis {
                     total_tested += 1;
-                    show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis / 2, expected_millis);
+                    tick = "\u{274C}";
+                    show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis / 2, expected_millis, true);
                     break
                 }
+
+                tick = " ";
+                show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis / 2, expected_millis, false);
             }
         }
     }
@@ -103,50 +110,37 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
 }
 
 #[allow(clippy::too_many_arguments)]
-fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expected_move: &str, best_score: Score, main_search_nodes: u64, second_best_move: Move, second_best_score: Score, alg_move: String, tick: &mut &str, score_diff: Score, score_is_good: bool, millis_taken: u32, expected_millis: u32) {
+fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expected_move: &str, best_score: Score, main_search_nodes: u64, second_best_move: Move, second_best_score: Score, alg_move: String, tick: &mut &str, score_diff: Score, score_is_good: bool, millis_taken: u32, expected_millis: u32, show_fen: bool) {
+
+    if show_fen {
+        println!(
+            "{} Nodes {} {}/{}",
+            tick,
+            main_search_nodes.to_formatted_string(&Locale::en),
+            total_correct,
+            total_tested
+        );
+    }
 
     println!(
-        "\n{} {}: Nodes {} Expected {} {}/{}",
-        tick,
-        fen,
-        main_search_nodes.to_formatted_string(&Locale::en),
-        expected_move,
-        total_correct,
-        total_tested
-    );
-
-    println!(
-        " \u{27A5} [1st {} Score {}] [2nd {} Score {}] [Diff {}] [Within {}ms] [Expected {}ms]",
+        " \u{27A5} [1st {} Score {}] [2nd {} Score {}] [Diff {}] [Within {}ms]",
         if alg_move == expected_move {
             Green.paint(&alg_move)
         } else {
             Red.paint(&alg_move)
         },
         best_score,
-        if alg_move == expected_move {
-            algebraic_move_from_move(second_best_move)
+        algebraic_move_from_move(second_best_move),
+        second_best_score.to_string(),
+        if score_is_good {
+            Green.paint(score_diff.to_string())
         } else {
-            "N/A".to_string()
+            Red.paint(score_diff.to_string())
         },
-        if alg_move == expected_move {
-            second_best_score.to_string()
-        } else {
-            "N/A".to_string()
-        },
-        if alg_move == expected_move {
-            if score_is_good {
-                Green.paint(score_diff.to_string())
-            } else {
-                Red.paint(score_diff.to_string())
-            }
-        } else {
-            White.paint("N/A".to_string())
-        },
-        millis_taken,
         if expected_millis >= millis_taken {
-            Green.paint(expected_millis.to_string())
+            Green.paint(millis_taken.to_string())
         } else {
-            Red.paint(expected_millis.to_string())
+            Red.paint(millis_taken.to_string())
         }
     );
 }
