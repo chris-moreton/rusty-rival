@@ -33,7 +33,7 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
         let expected_millis = p.3;
 
         println!("-------------------------------------------------------------------------------------");
-        println!("{} Expected {} in {}ms", fen, expected_move, expected_millis);
+        println!("{} Expect {} in {}ms", fen, expected_move, expected_millis);
         println!("-------------------------------------------------------------------------------------");
         let min_diff = p.2;
         let mut owned = "position fen ".to_owned();

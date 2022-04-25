@@ -174,10 +174,7 @@ pub fn start_search(
         search_state.history.pop();
         mv.1 = path_score.1;
 
-        // We can change this so that we do a research but block the making of the best move
-        // We will do the search to the same depth as was achieved here, so the hash table should make it quick
-
-        if path_score.1 > current_best.1 && time_remains!(search_state.end_time) {
+        if mv.1 > current_best.1 && time_remains!(search_state.end_time) {
             let mut p = vec![mv.0];
             p.extend(path_score.0.clone());
             current_best = (p, mv.1);
