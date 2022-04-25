@@ -1,5 +1,5 @@
-use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE};
-use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR};
+use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_2_BITS, RANK_7_BITS};
+use crate::engine_constants::{PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR};
 use crate::evaluate::evaluate;
 use crate::make_move::make_move;
 use crate::move_constants::{
@@ -7,8 +7,8 @@ use crate::move_constants::{
     PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
-use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
-use crate::search::pick_high_score_move;
+use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check, moves};
+use crate::search::{draw_value, MATE_SCORE, pick_high_score_move};
 use crate::types::{
     Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
@@ -24,13 +24,7 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
-    let enemy = position.pieces[opponent!(position.mover) as usize];
-    let valid_destinations = enemy.all_pieces_bitboard
-        | (if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
-            bit(position.en_passant_square)
-        } else {
-            0
-        });
+    let valid_destinations = position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard;
 
     generate_capture_pawn_moves(position, &mut move_list, position.mover as usize, friendly.pawn_bitboard);
     generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
@@ -134,24 +128,18 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
     let mut alpha = window.0;
 
-    if eval < alpha - QUEEN_VALUE_PAIR.1 {
-        return (vec![0], alpha);
-    }
-
     if alpha < eval {
         alpha = eval;
     }
 
     let ms = quiesce_moves(position);
+
     if !ms.is_empty() {
         let mut move_scores = if ms.len() > 1 {
             let move_scores: MoveScoreList = ms
                 .into_iter()
                 .map(|m| {
-                    (
-                        m,
-                        score_quiesce_move(position, m, &position.pieces[opponent!(position.mover) as usize]),
-                    )
+                    (m, score_quiesce_move(position, m, &position.pieces[opponent!(position.mover) as usize]))
                 })
                 .collect();
 
@@ -165,14 +153,18 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) && (eval + see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position) > alpha) {
-                let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
-                check_time!(search_state);
-                if score >= window.1 {
-                    return (vec![m], window.1);
-                }
-                if score > alpha {
-                    alpha = score;
+            if !is_check(&new_position, position.mover) {
+
+                let see_value = see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position);
+                if see_value > 0 {
+                    let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
+                    check_time!(search_state);
+                    if score >= window.1 {
+                        return (vec![m], window.1);
+                    }
+                    if score > alpha {
+                        alpha = score;
+                    }
                 }
             }
         }

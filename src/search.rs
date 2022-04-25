@@ -255,7 +255,7 @@ fn is_end_game(position: &Position) -> bool {
 }
 
 #[inline(always)]
-fn draw_value(position: &Position, search_state: &SearchState) -> Score {
+pub fn draw_value(position: &Position, search_state: &SearchState) -> Score {
     if is_end_game(position) {
         0
     } else {

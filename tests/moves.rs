@@ -466,6 +466,13 @@ pub fn it_gets_all_capture_moves_for_a_position() {
         ))),
         vec!["a5b6", "b7a8q", "d5c6", "d5e6", "e2g1"]
     );
+
+    assert_eq!(
+        sort_moves(quiesce_moves(&get_position(
+            &"n5k1/1P2P1n1/1n2q2p/P1pP4/3N1R2/3K1B2/1r5P/6r1 w - c6 0 1".to_string()
+        ))),
+        vec!["a5b6", "b7a8q", "d4e6", "d5c6", "d5e6"]
+    );
 }
 
 #[test]
