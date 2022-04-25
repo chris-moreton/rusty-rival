@@ -134,10 +134,12 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         legal_moves = legal_moves.into_iter().map(|m| (m.0, -MATE_SCORE)).collect();
         search_state.root_moves = legal_moves.clone();
 
-        aspiration_window = (
-            search_state.current_best.1 - aspiration_radius[0],
-            search_state.current_best.1 + aspiration_radius[0],
-        );
+        if search_state.multi_pv == 1 {
+            aspiration_window = (
+                search_state.current_best.1 - aspiration_radius[0],
+                search_state.current_best.1 + aspiration_radius[0],
+            );
+        }
 
         send_info(search_state, true);
     }
@@ -150,9 +152,9 @@ pub fn start_search(
     position: &Position,
     legal_moves: &mut MoveScoreList,
     search_state: &mut SearchState,
-    aspiration_window: Window,
+    window: Window,
 ) -> PathScore {
-    let mut current_best: PathScore = (vec![legal_moves[0].0], -MATE_SCORE);
+    let mut current_best: PathScore = (vec![legal_moves[0].0], window.0);
 
     for mv in legal_moves {
         let mut new_position = *position;
@@ -163,7 +165,7 @@ pub fn start_search(
             &new_position,
             search_state.iterative_depth - 1,
             1,
-            (-aspiration_window.1, -aspiration_window.0),
+            (-window.1, -current_best.1),
             search_state,
             false,
         );

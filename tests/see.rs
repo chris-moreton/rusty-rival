@@ -105,4 +105,10 @@ fn it_gets_the_see_score() {
         "c3d4",
         QUEEN_VALUE_AVERAGE - BISHOP_VALUE_AVERAGE,
     );
+
+    assert_see_score(
+        "8/8/3p4/4r3/2RKP3/5k2/8/8 b - - 0 1",
+        "e5e4",
+        PAWN_VALUE_AVERAGE,
+    );
 }
