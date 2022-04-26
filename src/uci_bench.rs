@@ -3,7 +3,7 @@ use crate::mvm_test_fens::get_test_fens;
 use crate::types::{Move, Score, SearchState, UciState};
 use crate::uci::run_command;
 use crate::utils::hydrate_move_from_algebraic_move;
-use ansi_term::Colour::{Green, Red, White};
+use ansi_term::Colour::{Green, Red, White, Yellow};
 use either::{Either, Left, Right};
 use num_format::{Locale, ToFormattedString};
 use std::thread;
@@ -94,7 +94,7 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
     }
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
-    println!("Correct: {:?}/{}", total_correct, total);
+    println!("Correct: {:?}/{}", Yellow.paint(total_correct.to_string()), Yellow.paint(total.to_string()));
     println!("Within Expected Time: {:?}/{}", total_expected, total);
     let nps = (total_nodes as f64 / start.elapsed().as_millis() as f64) * 1000.0;
 

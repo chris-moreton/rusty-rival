@@ -51,10 +51,10 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score, u32)> {
         ("3r1b1R/5pp1/Bnk5/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 b - - 8 29", "d8d4", 100, 512000), // 512000
 
         // avoid 2.50+ blunder
-        ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3", 100, 1024000), // 1024000
+        ("6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43", "c1c3", 75, 1024000), // 1024000
 
         // Anything else and the best White can do is get a draw by repetition
-        ("3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30", "b3c3", 100, 1024000), // 1024000
+        ("3r1b1R/2k2pp1/Bn6/2n3P1/3Nbq2/1Q6/PPP5/1K1R4 w - - 9 30", "b3c3", 75, 1024000), // 1024000
 
         // ("", ""),
         // ("", ""),
