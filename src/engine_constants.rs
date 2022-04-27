@@ -26,8 +26,9 @@ pub const BETA_PRUNE_MAX_DEPTH: u8 = 3;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
-pub const NULL_MOVE_MIN_DEPTH: u8 = 3;
-pub const DEPTH_REMAINING_FOR_RD_INCREASE: u8 = 6;
+pub const NULL_MOVE_MIN_DEPTH: u8 = 4;
+pub const NULL_MOVE_BASE_REDUCE_DEPTH: u8 = 3;
+pub const NULL_MOVE_RD_INCREASE_DEPTH_INCREMENT: u8 = 6;
 
 pub const MAX_DEPTH: u8 = 250;
 

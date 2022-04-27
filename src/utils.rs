@@ -187,8 +187,7 @@ pub fn invert_fen(fen: &str) -> String {
 
 #[inline(always)]
 pub fn penultimate_pawn_push(m: Move) -> bool {
-    let move_piece = m & PIECE_MASK_FULL;
-    if move_piece == PIECE_MASK_PAWN {
+    if m & PIECE_MASK_FULL == PIECE_MASK_PAWN {
         let to_square = to_square_part(m);
         if to_square >= 48 || to_square <= 15 {
             return true;

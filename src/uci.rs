@@ -22,6 +22,7 @@ use crate::utils::hydrate_move_from_algebraic_move;
 
 fn replace_shortcuts(l: &str) -> &str {
     match l {
+        "kingf4" => "position fen 8/8/2p5/2P2k1p/4p2P/5P2/5K2/8 b - - 0 1",
         "pv" => "setoption name multipv value 10",
         "c3draw" => "position fen 6k1/5pp1/8/4KP1p/8/P3N1Pn/3p1P1P/2rR4 b - - 5 43",
         "pawnf4" => "position fen 8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42",
