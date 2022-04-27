@@ -273,13 +273,12 @@ pub fn extend(predicate: bool, these_extentions: u8, ply: u8, search_state: &Sea
 
 #[inline(always)]
 pub fn null_move_reduce_depth(depth: u8) -> u8 {
-    3 + depth / 6
-    // match depth {
-    //     d if d >= 12 => 4,
-    //     d if d >= 5 => 3,
-    //     d if d >= NULL_MOVE_MIN_DEPTH => NULL_MOVE_MIN_DEPTH - 2,
-    //     _ => panic!("Shouldn't be here"),
-    // }
+    match depth {
+        d if d >= 12 => 4,
+        d if d >= 5 => 3,
+        d if d >= NULL_MOVE_MIN_DEPTH => NULL_MOVE_MIN_DEPTH - 2,
+        _ => panic!("Shouldn't be here"),
+    }
 }
 
 #[inline(always)]

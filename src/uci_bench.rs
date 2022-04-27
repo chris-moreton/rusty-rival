@@ -117,8 +117,8 @@ fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expec
             "{} Nodes {} {}/{}",
             tick,
             main_search_nodes.to_formatted_string(&Locale::en),
-            total_correct,
-            total_tested
+            Yellow.paint(total_correct.to_string()),
+            Yellow.paint(total_tested.to_string()),
         );
     }
 
