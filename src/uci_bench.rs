@@ -94,7 +94,7 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
     }
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
-    println!("Correct: {:?}/{}", Yellow.paint(total_correct.to_string()), Yellow.paint(total.to_string()));
+    println!("Correct: {}/{}", Yellow.paint(total_correct.to_string()), Yellow.paint(total.to_string()));
     println!("Within Expected Time: {:?}/{}", total_expected, total);
     let nps = (total_nodes as f64 / start.elapsed().as_millis() as f64) * 1000.0;
 

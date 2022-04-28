@@ -291,16 +291,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     if depth == 0 {
         let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
-        let bound = if q.1 <= alpha {
-            Upper
-        } else if q.1 >= beta {
-            Lower
-        } else {
-            Exact
+        if q.1 > alpha && q.1 < beta {
+            store_hash_entry(position, 0, 0, 0, Exact, (0, q.1), search_state, ply);
         };
-        if bound == Exact {
-            store_hash_entry(position, 0, 0, 0, bound, (0, q.1), search_state, ply);
-        }
         return q;
     }
 
@@ -317,11 +310,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_move = match search_state.hash_table_height.get(index) {
         Some(x) => {
             if x.lock == position.zobrist_lock {
-
-                // if x.mv != 0 && !verify_move(position, x.mv) {
-                //     panic!("{} {}", get_fen(&position), algebraic_move_from_move(x.mv));
-                // }
-
                 // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
                 // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
                 // adjusted it again such that it represented the distance from the root at which it was stored - e.g. we found it at ply 7, and wound
