@@ -1,5 +1,5 @@
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::search::{is_draw, iterative_deepening, piece_index_12};
+use rusty_rival::search::{is_draw, iterative_deepening, null_move_reduced_depth, piece_index_12};
 use rusty_rival::types::default_search_state;
 use rusty_rival::utils::{hydrate_move_from_algebraic_move, pawn_push};
 use std::ops::Add;
@@ -190,5 +190,25 @@ fn it_recognises_a_draw() {
     let position = get_position("6k1/8/8/4K3/8/7n/7N/8 b - - 0 1");
     let mut search_state = default_search_state();
     assert!(is_draw(&position, &mut search_state, 7));
+}
 
+#[test]
+fn it_calculates_the_null_move_reduced_depth() {
+    assert_eq!(null_move_reduced_depth(0), 1);
+    assert_eq!(null_move_reduced_depth(1), 1);
+    assert_eq!(null_move_reduced_depth(2), 1);
+    assert_eq!(null_move_reduced_depth(3), 1);
+    assert_eq!(null_move_reduced_depth(4), 1);
+    assert_eq!(null_move_reduced_depth(5), 1);
+    assert_eq!(null_move_reduced_depth(6), 1);
+    assert_eq!(null_move_reduced_depth(7), 2);
+    assert_eq!(null_move_reduced_depth(8), 3);
+    assert_eq!(null_move_reduced_depth(9), 4);
+    assert_eq!(null_move_reduced_depth(10), 5);
+    assert_eq!(null_move_reduced_depth(11), 6);
+    assert_eq!(null_move_reduced_depth(12), 6);
+    assert_eq!(null_move_reduced_depth(13), 7);
+    assert_eq!(null_move_reduced_depth(14), 8);
+    assert_eq!(null_move_reduced_depth(18), 11);
+    assert_eq!(null_move_reduced_depth(24), 16);
 }

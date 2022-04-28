@@ -1,8 +1,4 @@
-use crate::engine_constants::{
-    ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
-    LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NUM_HASH_ENTRIES,
-    ROOK_VALUE_AVERAGE,
-};
+use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE};
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
@@ -272,12 +268,10 @@ pub fn extend(predicate: bool, these_extentions: u8, ply: u8, search_state: &Sea
 }
 
 #[inline(always)]
-pub fn null_move_reduce_depth(depth: u8) -> u8 {
+pub fn null_move_reduced_depth(depth: u8) -> u8 {
     match depth {
-        d if d >= 12 => 4,
-        d if d >= 5 => 3,
-        d if d >= NULL_MOVE_MIN_DEPTH => NULL_MOVE_MIN_DEPTH - 2,
-        _ => panic!("Shouldn't be here"),
+        d if d > NULL_MOVE_REDUCE_DEPTH_BASE + 1 => depth - 1 - (NULL_MOVE_REDUCE_DEPTH_BASE + d / 6),
+        _ => 1,
     }
 }
 
@@ -396,7 +390,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
         let score = -search(
             &new_position,
-            depth - 1 - null_move_reduce_depth(depth),
+            null_move_reduced_depth(depth),
             ply + 1,
             (-beta, (-beta) + 1),
             search_state,
