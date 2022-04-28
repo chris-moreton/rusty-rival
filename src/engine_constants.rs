@@ -27,7 +27,7 @@ pub const BETA_PRUNE_MAX_DEPTH: u8 = 3;
 pub const NUM_KILLER_MOVES: usize = 2;
 
 pub const NULL_MOVE_MIN_DEPTH: u8 = 4;
-pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 1;
+pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 3;
 
 pub const MAX_DEPTH: u8 = 250;
 
