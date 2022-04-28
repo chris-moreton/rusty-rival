@@ -144,16 +144,19 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         0
     };
 
-    let history_score = search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize];
-    score
-        + pawn_push_score
-        + linear_scale(
-            history_score,
-            0,
-            search_state.highest_history_score,
-            HISTORY_START as i64,
-            HISTORY_TOP as i64,
-        ) as Score
+    score + pawn_push_score + history_score(position, m, search_state, to_square)
+}
+
+#[inline(always)]
+pub fn history_score(position: &Position, m: Move, search_state: &SearchState, to_square: Square) -> Score {
+    let history_score = linear_scale(
+        search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize],
+        0,
+        search_state.highest_history_score,
+        HISTORY_START as i64,
+        HISTORY_TOP as i64,
+    ) as Score;
+    history_score
 }
 
 #[inline(always)]

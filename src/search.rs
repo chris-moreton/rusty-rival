@@ -279,9 +279,8 @@ pub fn null_move_reduced_depth(depth: u8) -> u8 {
 pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, on_null_move: bool) -> PathScore {
     check_time!(search_state);
 
-    search_state.nodes += 1;
-
     if is_draw(position, search_state, ply) {
+        search_state.nodes += 1;
         return (vec![0], draw_value(position, search_state));
     }
 
@@ -290,9 +289,26 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut alpha = window.0;
     let mut beta = window.1;
 
+    if depth == 0 {
+        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
+        let bound = if q.1 <= alpha {
+            Upper
+        } else if q.1 >= beta {
+            Lower
+        } else {
+            Exact
+        };
+        if bound == Exact {
+            store_hash_entry(position, 0, 0, 0, bound, (0, q.1), search_state, ply);
+        }
+        return q;
+    }
+
+    search_state.nodes += 1;
+
     let mut legal_move_count = 0;
-    let mut hash_height = 0;
     let mut hash_flag = Upper;
+    let mut hash_height = 0;
     let mut hash_version = 0;
     let mut best_pathscore: PathScore = (vec![0], -MATE_SCORE);
     let mut hash_score_was_a_lower_bound = false;
@@ -355,23 +371,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         if lazy_eval - margin as Score >= beta {
             return (vec![0], lazy_eval - margin);
         }
-    }
-
-    if depth == 0 {
-        // Need to do this, else we'll get +2 for this node, as quiesce does a +1 on entry
-        search_state.nodes -= 1;
-        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
-        let bound = if q.1 <= alpha {
-            Upper
-        } else if q.1 >= beta {
-            Lower
-        } else {
-            Exact
-        };
-        if bound == Exact {
-            store_hash_entry(position, 0, hash_height, hash_version, bound, (0, q.1), search_state, ply);
-        }
-        return q;
     }
 
     let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {

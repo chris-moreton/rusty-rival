@@ -6,7 +6,7 @@ use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
     PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
 };
-use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
+use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS, history_score};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check, moves};
 use crate::search::{draw_value, MATE_SCORE, pick_high_score_move};
 use crate::types::{
@@ -90,7 +90,7 @@ fn generate_capture_pawn_moves(position: &Position, move_list: &mut Vec<Move>, c
 }
 
 #[inline(always)]
-pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces) -> Score {
+pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, search_state: &mut SearchState) -> Score {
     let to_square = to_square_part(m);
 
     let mut score = if m & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK {
@@ -139,7 +139,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
             let move_scores: MoveScoreList = ms
                 .into_iter()
                 .map(|m| {
-                    (m, score_quiesce_move(position, m, &position.pieces[opponent!(position.mover) as usize]))
+                    (m, score_quiesce_move(position, m, &position.pieces[opponent!(position.mover) as usize], search_state))
                 })
                 .collect();
 
