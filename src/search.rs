@@ -290,11 +290,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut beta = window.1;
 
     if depth == 0 {
-        let q = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
-        if q.1 > alpha && q.1 < beta {
-            store_hash_entry(position, 0, 0, 0, Exact, (0, q.1), search_state, ply);
-        };
-        return q;
+        return quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
     }
 
     search_state.nodes += 1;
