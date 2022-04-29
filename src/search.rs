@@ -286,14 +286,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let scouting = window.1 - window.0 == 1;
 
-    let mut alpha = window.0;
-    let mut beta = window.1;
-
     if depth == 0 {
-        return quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha, beta), search_state);
+        return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
     }
 
     search_state.nodes += 1;
+
+    let mut alpha = window.0;
+    let mut beta = window.1;
 
     let mut legal_move_count = 0;
     let mut hash_flag = Upper;
@@ -490,7 +490,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 0
             };
 
-            let path_score = lmr_scout_search(lmr, ply, search_state, (alpha, beta), scout_search, real_depth, &mut new_position);
+            let path_score = if scout_search {
+                lmr_scout_search(lmr, ply, search_state, (alpha, beta), real_depth, &mut new_position)
+            } else {
+                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0)
+            };
+
             let score = path_score.1;
 
             check_time!(search_state);
@@ -500,6 +505,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             if score < beta {
                 update_history(position, search_state, m, -(real_depth as i64));
             }
+
             if score > best_pathscore.1 {
                 let mut p = vec![m];
                 p.extend(path_score.0);
@@ -578,31 +584,26 @@ fn lmr_scout_search(
     ply: u8,
     search_state: &mut SearchState,
     window: Window,
-    scout_search: bool,
     real_depth: u8,
     new_position: &mut Position,
 ) -> PathScore {
     let alpha = window.0;
     let beta = window.1;
-    loop {
-        let path_score = if scout_search {
-            let scout_path = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr);
-            if scout_path.1 > alpha {
-                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0)
-            } else {
-                (vec![0], alpha)
-            }
-        } else {
-            search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0)
-        };
-        let score = path_score.1;
-        if lmr == 0 || score < beta {
-            break path_score;
-        } else {
-            // search to normal depth because score was >= beta
-            lmr = 0
+    let mut scout_path = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr);
+
+    if scout_path.1 > alpha && lmr > 0 {
+        // We are in an LMR search and we Need to research with full window. but still with late move reduction
+        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr);
+        if scout_path.1 > alpha {
+            // Need to research with full window and no reduction
+            scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0)
         }
+    } else if scout_path.1 > alpha && scout_path.1 < beta {
+        // Not doing a LMR search, but still need to research with a full window
+        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0)
     }
+
+    return scout_path
 }
 
 #[inline(always)]
