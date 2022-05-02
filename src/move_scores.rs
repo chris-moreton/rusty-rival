@@ -1,12 +1,12 @@
 use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
 use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
-use crate::make_move::make_move;
+
 use crate::move_constants::{
     PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
     PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
 };
 use crate::search::piece_index_12;
-use crate::see::{captured_piece_value_see, make_see_move, see};
+
 use crate::types::{Move, Pieces, Position, Score, SearchState, Square, BLACK, WHITE};
 use crate::utils::{from_square_part, linear_scale, to_square_part};
 
@@ -149,14 +149,13 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
 
 #[inline(always)]
 pub fn history_score(position: &Position, m: Move, search_state: &SearchState, to_square: Square) -> Score {
-    let history_score = linear_scale(
+    linear_scale(
         search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize],
         0,
         search_state.highest_history_score,
         HISTORY_START as i64,
         HISTORY_TOP as i64,
-    ) as Score;
-    history_score
+    ) as Score
 }
 
 #[inline(always)]

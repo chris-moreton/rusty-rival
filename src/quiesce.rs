@@ -1,14 +1,14 @@
-use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR};
+use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE};
+use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
 use crate::evaluate::evaluate;
 use crate::make_move::make_move;
 use crate::move_constants::{
-    EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
+    PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
     PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
 };
-use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS, history_score};
-use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check, moves};
-use crate::search::{draw_value, MATE_SCORE, pick_high_score_move};
+use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
+use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
+use crate::search::{pick_high_score_move};
 use crate::types::{
     Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
@@ -90,7 +90,7 @@ fn generate_capture_pawn_moves(position: &Position, move_list: &mut Vec<Move>, c
 }
 
 #[inline(always)]
-pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, search_state: &mut SearchState) -> Score {
+pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_state: &mut SearchState) -> Score {
     let to_square = to_square_part(m);
 
     let mut score = if m & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK {
@@ -153,17 +153,14 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) {
-
-                if see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position) > 0 {
-                    let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
-                    check_time!(search_state);
-                    if score >= window.1 {
-                        return (vec![m], window.1);
-                    }
-                    if score > alpha {
-                        alpha = score;
-                    }
+            if !is_check(&new_position, position.mover) && see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position) > 0 {
+                let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
+                check_time!(search_state);
+                if score >= window.1 {
+                    return (vec![m], window.1);
+                }
+                if score > alpha {
+                    alpha = score;
                 }
             }
         }

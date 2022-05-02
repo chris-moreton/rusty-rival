@@ -3,7 +3,7 @@ use crate::mvm_test_fens::get_test_fens;
 use crate::types::{Move, Score, SearchState, UciState};
 use crate::uci::run_command;
 use crate::utils::hydrate_move_from_algebraic_move;
-use ansi_term::Colour::{Green, Red, White, Yellow};
+use ansi_term::Colour::{Green, Red, Yellow};
 use either::{Either, Left, Right};
 use num_format::{Locale, ToFormattedString};
 use std::thread;
@@ -63,7 +63,7 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
             let alg_move = algebraic_move_from_move(best_move);
 
             total_nodes += main_search_nodes;
-            let mut tick = "\u{274C}";
+            let mut tick;
 
             let score_diff = best_score - second_best_score;
             let score_is_good = score_diff >= min_diff;
@@ -110,7 +110,7 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
 }
 
 #[allow(clippy::too_many_arguments)]
-fn show_result(total_correct: &mut i32, total_tested: &mut i32, fen: &str, expected_move: &str, best_score: Score, main_search_nodes: u64, second_best_move: Move, second_best_score: Score, alg_move: String, tick: &mut &str, score_diff: Score, score_is_good: bool, millis_taken: u32, expected_millis: u32, show_fen: bool) {
+fn show_result(total_correct: &mut i32, total_tested: &mut i32, _fen: &str, expected_move: &str, best_score: Score, main_search_nodes: u64, second_best_move: Move, second_best_score: Score, alg_move: String, tick: &mut &str, score_diff: Score, score_is_good: bool, millis_taken: u32, expected_millis: u32, show_fen: bool) {
 
     if show_fen {
         println!(

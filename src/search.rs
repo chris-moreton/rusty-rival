@@ -1,4 +1,4 @@
-use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE};
+use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE};
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
@@ -475,8 +475,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 continue;
             }
 
-            these_extensions = extend(penultimate_pawn_push(m), these_extensions, ply, search_state);
-            real_depth = depth + these_extensions;
+            // these_extensions = extend(penultimate_pawn_push(m), these_extensions, ply, search_state);
+            // real_depth = depth + these_extensions;
 
             let lmr = if these_extensions == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
@@ -493,7 +493,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             let path_score = if scout_search {
                 lmr_scout_search(lmr, ply, search_state, (alpha, beta), real_depth, &mut new_position)
             } else {
-                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &mut new_position, 0)
+                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &new_position, 0)
             };
 
             let score = path_score.1;
@@ -580,7 +580,7 @@ pub fn pick_high_score_move(move_scores: &mut Vec<(Move, Score)>) -> Move {
 
 #[inline(always)]
 fn lmr_scout_search(
-    mut lmr: u8,
+    lmr: u8,
     ply: u8,
     search_state: &mut SearchState,
     window: Window,
@@ -603,7 +603,7 @@ fn lmr_scout_search(
         scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0)
     }
 
-    return scout_path
+    scout_path
 }
 
 #[inline(always)]
