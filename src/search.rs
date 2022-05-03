@@ -411,7 +411,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             let mut singular_depth = real_depth;
 
             if !scouting && hash_score_was_a_lower_bound && these_extensions == 0 {
-                let new_beta = max(beta - 400, alpha + 1);
+                let new_beta = max(beta - 150, alpha + 1);
                 let mvs = moves(position);
                 let mut found_one = false;
 
@@ -474,9 +474,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             if legal_move_count > 1 && alpha_prune_flag && !is_capture && !is_check(&new_position, new_position.mover) {
                 continue;
             }
-
-            // these_extensions = extend(penultimate_pawn_push(m), these_extensions, ply, search_state);
-            // real_depth = depth + these_extensions;
 
             let lmr = if these_extensions == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
