@@ -409,32 +409,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             check_time!(search_state);
             let mut score = path_score.1;
             let mut singular_depth = real_depth;
-
-            if !scouting && hash_score_was_a_lower_bound && these_extensions == 0 {
-                let new_beta = max(beta - 150, alpha + 1);
-                let mvs = moves(position);
-                let mut found_one = false;
-
-                let enemy = &position.pieces[opponent!(position.mover) as usize];
-                let mut move_scores: Vec<(Move, Score)> = mvs
-                    .into_iter()
-                    .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
-                    .collect();
-
-                while !move_scores.is_empty() {
-                    let mut new_position = *position;
-                    make_move(position, pick_high_score_move(&mut move_scores), &mut new_position);
-                    if !is_check(&new_position, position.mover) && -search_wrapper(real_depth, ply, search_state, (-new_beta, -alpha), &new_position, 0).1 > new_beta {
-                        found_one = true;
-                        break;
-                    }
-                }
-                if !found_one {
-                    singular_depth += 1;
-                    score = search_wrapper(singular_depth, ply, search_state, (-beta, -alpha), &new_position, 0).1;
-                }
-            }
-
+            
             if score > best_pathscore.1 {
                 let mut p = vec![hash_move];
                 p.extend(path_score.0);
