@@ -409,7 +409,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             check_time!(search_state);
             let mut score = path_score.1;
             let mut singular_depth = real_depth;
-            
+
             if score > best_pathscore.1 {
                 let mut p = vec![hash_move];
                 p.extend(path_score.0);

@@ -29,7 +29,7 @@ pub fn evaluate(position: &Position) -> Score {
 
     let score = material_score(position)
         + piece_square_values(position)
-        + king_score(position, &cache)
+        //+ king_score(position, &cache)
         + king_threat_score(position)
         + rook_eval(position)
         + passed_pawn_score(position, &mut cache)
