@@ -139,13 +139,10 @@ pub fn generate_diagonal_slider_moves_see(
     valid_destinations: Bitboard,
     piece_mask: Move,
 ) {
-    while slider_bitboard != 0 {
-        let from_square = get_and_unset_lsb!(slider_bitboard) as Square;
-        let mut bb = magic_moves_bishop(from_square, all_pieces_bitboard) & valid_destinations;
-        if bb != 0 {
-            move_list.push(from_square_mask(from_square) | piece_mask | bb.trailing_zeros() as Move);
-            break
-        }
+    let capture_square = valid_destinations.trailing_zeros();
+    let mut bb = magic_moves_bishop(capture_square as Square, all_pieces_bitboard) & slider_bitboard;
+    if bb != 0 {
+        move_list.push(from_square_mask(bb.trailing_zeros() as Square) | piece_mask | capture_square);
     }
 }
 
@@ -157,13 +154,10 @@ pub fn generate_straight_slider_moves_see(
     valid_destinations: Bitboard,
     piece_mask: Move,
 ) {
-    while slider_bitboard != 0 {
-        let from_square = get_and_unset_lsb!(slider_bitboard) as Square;
-        let mut bb = magic_moves_rook(from_square, all_pieces_bitboard) & valid_destinations;
-        if bb != 0 {
-            move_list.push(from_square_mask(from_square) | piece_mask | bb.trailing_zeros() as Move);
-            break
-        }
+    let capture_square = valid_destinations.trailing_zeros();
+    let mut bb = magic_moves_rook(capture_square as Square, all_pieces_bitboard) & slider_bitboard;
+    if bb != 0 {
+        move_list.push(from_square_mask(bb.trailing_zeros() as Square) | piece_mask | capture_square);
     }
 }
 
