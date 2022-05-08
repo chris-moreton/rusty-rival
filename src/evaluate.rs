@@ -2,14 +2,7 @@ use crate::bitboards::{
     bit, north_fill, south_fill, BISHOP_RAYS, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
-use crate::engine_constants::{
-    BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP,
-    KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR,
-    PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS,
-    ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
-    VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE,
-};
+use crate::engine_constants::{BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KING_THREAT_BONUS_ROOK};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, Position, Score, Square, BLACK, WHITE};
@@ -171,6 +164,24 @@ pub fn king_threat_score(position: &Position) -> Score {
         if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
             score += (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
                 * KING_THREAT_BONUS_BISHOP as Score;
+        }
+    }
+
+    let mut bb = position.pieces[BLACK as usize].rook_bitboard;
+    while bb != 0 {
+        let from_square = get_and_unset_lsb!(bb);
+        if ROOK_RAYS[from_square as usize] & white_king_danger_zone != 0 {
+            score -= (magic_moves_rook(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
+                * KING_THREAT_BONUS_ROOK as Score;
+        }
+    }
+
+    let mut bb = position.pieces[WHITE as usize].rook_bitboard;
+    while bb != 0 {
+        let from_square = get_and_unset_lsb!(bb);
+        if ROOK_RAYS[from_square as usize] & black_king_danger_zone != 0 {
+            score += (magic_moves_rook(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
+                * KING_THREAT_BONUS_ROOK as Score;
         }
     }
 

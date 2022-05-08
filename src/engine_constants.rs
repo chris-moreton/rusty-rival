@@ -65,6 +65,7 @@ pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
 pub const KING_THREAT_BONUS_KNIGHT: Score = 8;
 pub const KING_THREAT_BONUS_QUEEN: Score = 6;
 pub const KING_THREAT_BONUS_BISHOP: Score = 4;
+pub const KING_THREAT_BONUS_ROOK: Score = 5;
 
 pub const PAWN_ADJUST_MAX_MATERIAL: Score = (QUEEN_VALUE_AVERAGE + ROOK_VALUE_AVERAGE) as Score;
 pub const VALUE_KING_CANNOT_CATCH_PAWN: Score = 500;
