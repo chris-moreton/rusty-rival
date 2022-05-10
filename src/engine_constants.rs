@@ -64,7 +64,7 @@ pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
 pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
 pub const KING_THREAT_BONUS_KNIGHT: Score = 16;
 pub const KING_THREAT_BONUS_QUEEN: Score = 12;
-pub const KING_THREAT_BONUS_BISHOP: Score = 8;
+pub const KING_THREAT_BONUS_BISHOP: Score = 16;
 pub const KING_THREAT_BONUS_ROOK: Score = 10;
 
 pub const PAWN_ADJUST_MAX_MATERIAL: Score = (QUEEN_VALUE_AVERAGE + ROOK_VALUE_AVERAGE) as Score;
