@@ -25,7 +25,7 @@ pub fn evaluate(position: &Position) -> Score {
         //+ king_score(position, &cache)
         + king_threat_score(position)
         + rook_eval(position)
-        + passed_pawn_score(position, &mut cache)
+        + (passed_pawn_score(position, &mut cache) * 2)
         + knight_outpost_scores(position, &mut cache)
         + doubled_and_isolated_pawn_score(position, &mut cache);
 
