@@ -316,15 +316,15 @@ fn it_evaluates_king_threats() {
     );
     test_king_threats(
         "rkbq1b1r/pppppppp/5N2/8/4n2n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1",
-        -(KING_THREAT_BONUS_KNIGHT * 2 + KING_THREAT_BONUS_BISHOP * 2),
+        -(KING_THREAT_BONUS_KNIGHT * 4) + KING_THREAT_BONUS_BISHOP * 2,
     );
     test_king_threats(
         "rkbq1b1r/pppppppp/3n1N2/8/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1",
-        -KING_THREAT_BONUS_BISHOP * 2,
+        -(KING_THREAT_BONUS_KNIGHT * 2) + KING_THREAT_BONUS_BISHOP * 2,
     );
     test_king_threats(
         "rkb4r/pppppppp/3n1N2/3b1q2/7n/4BNP1/PPPPPP1P/R1BQ1RK1 w - - 0 1",
-        -KING_THREAT_BONUS_KNIGHT * 3,
+        -KING_THREAT_BONUS_KNIGHT * 2 - KING_THREAT_BONUS_BISHOP - (KING_THREAT_BONUS_QUEEN * 2) + KING_THREAT_BONUS_BISHOP * 2,
     );
     test_king_threats(
         "rkb4r/1ppppppp/1p1n1N2/3b1q2/7n/R3BNP1/PPPPPP1P/2BQ1RK1 w - - 0 1",

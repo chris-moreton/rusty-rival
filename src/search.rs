@@ -367,7 +367,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         false
     };
 
-    if !on_null_move && scouting && depth >= 4 && null_move_material(position) && !in_check {
+    if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let mut new_position = *position;
         make_null_move(&mut new_position);
 
@@ -518,14 +518,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
 #[inline(always)]
 pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> bool {
-    repeat_position(position, search_state) || position.half_moves >= 100 || {
+    is_repeat_position(position, search_state) || position.half_moves >= 100 || {
         ply > 6 && insufficient_material(position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
             + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, true)
     }
 }
 
 #[inline(always)]
-fn repeat_position(position: &Position, search_state: &mut SearchState) -> bool {
+fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bool {
     search_state
         .history
         .iter()
