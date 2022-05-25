@@ -471,11 +471,9 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             let score = path_score.1;
 
             check_time!(search_state);
-            if score < alpha {
-                update_history(position, search_state, m, -(real_depth as i64));
-            }
+            
             if score < beta {
-                update_history(position, search_state, m, -(real_depth as i64));
+                update_history(position, search_state, m, -(real_depth as i64) * if score < alpha { 2 } else { 1 });
             }
 
             if score > best_pathscore.1 {
