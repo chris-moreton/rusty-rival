@@ -1,5 +1,5 @@
 FILENAME=rusty-rival-$1-v-rusty-rival-$2
-ENGINEDIR=/home/chris/ChessEngines
+ENGINEDIR=~/ChessEngines
 LOGDIR=$ENGINEDIR/logs
 BOOKDIR=$ENGINEDIR/books
 
