@@ -6,7 +6,7 @@ pub const PAWN_VALUE_PAIR: ScorePair = (100, 200);
 pub const KNIGHT_VALUE_PAIR: ScorePair = (620, 680);
 pub const BISHOP_VALUE_PAIR: ScorePair = (650, 725);
 pub const ROOK_VALUE_PAIR: ScorePair = (1000, 1100);
-pub const QUEEN_VALUE_PAIR: ScorePair = (1000, 1300);
+pub const QUEEN_VALUE_PAIR: ScorePair = (2000, 2300);
 
 pub const PAWN_VALUE_AVERAGE: Score = (PAWN_VALUE_PAIR.0 + PAWN_VALUE_PAIR.1) / 2;
 pub const KNIGHT_VALUE_AVERAGE: Score = (KNIGHT_VALUE_PAIR.0 + KNIGHT_VALUE_PAIR.1) / 2;
