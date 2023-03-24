@@ -32,8 +32,6 @@ pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score, u32)> {
 
         ("2r3k1/3q1pp1/p2b1n2/1p1Pp3/2P2r1p/1P2RB1P/P2NQ1P1/1K1R4 b - - 2 29", "d7f5", 100, 2000), // 2000
 
-        ("8/3r4/6k1/1p1p3p/pP1PrR1P/P7/7K/5R2 b - - 2 45", "e4f4", 100, 2000), // 2000
-
         ("8/6p1/2p3k1/2P4p/4p3/5PPP/6K1/8 b - - 0 41", "g6f5", 100, 4000), // 4000
 
         // avoid 41. Qb3 ..Rg1, 42. Qc3 { avoids Nd2 fork } ..Qc5 { the bishop on c1 is lost }

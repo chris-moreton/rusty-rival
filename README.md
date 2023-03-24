@@ -8,7 +8,7 @@ The engine can be about 50% faster if compiled on the machine on which it will b
 installed.
 
 ```
-RUSTFLAGS="-C target-cpu=native" cargo run --release
+RUSTFLAGS="-C target-cpu=native" RUST_MIN_STACK=4097152 cargo run --release
 ```
 
 ## Running Perft
