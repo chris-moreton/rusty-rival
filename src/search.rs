@@ -261,7 +261,7 @@ pub fn draw_value(position: &Position, search_state: &SearchState) -> Score {
 #[inline(always)]
 pub fn extend(predicate: bool, these_extentions: u8, ply: u8, search_state: &SearchState) -> u8 {
     if these_extentions == 0 && predicate && ply < search_state.iterative_depth * 2 {
-        0
+        1
     } else {
         0
     }
