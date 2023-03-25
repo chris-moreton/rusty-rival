@@ -133,14 +133,14 @@ pub fn generate_capture_pawn_moves_with_destinations_see(
 
 #[inline(always)]
 pub fn generate_diagonal_slider_moves_see(
-    mut slider_bitboard: Bitboard,
+    slider_bitboard: Bitboard,
     all_pieces_bitboard: Bitboard,
     move_list: &mut MoveList,
     valid_destinations: Bitboard,
     piece_mask: Move,
 ) {
     let capture_square = valid_destinations.trailing_zeros();
-    let mut bb = magic_moves_bishop(capture_square as Square, all_pieces_bitboard) & slider_bitboard;
+    let bb = magic_moves_bishop(capture_square as Square, all_pieces_bitboard) & slider_bitboard;
     if bb != 0 {
         move_list.push(from_square_mask(bb.trailing_zeros() as Square) | piece_mask | capture_square);
     }
@@ -148,14 +148,14 @@ pub fn generate_diagonal_slider_moves_see(
 
 #[inline(always)]
 pub fn generate_straight_slider_moves_see(
-    mut slider_bitboard: Bitboard,
+    slider_bitboard: Bitboard,
     all_pieces_bitboard: Bitboard,
     move_list: &mut MoveList,
     valid_destinations: Bitboard,
     piece_mask: Move,
 ) {
     let capture_square = valid_destinations.trailing_zeros();
-    let mut bb = magic_moves_rook(capture_square as Square, all_pieces_bitboard) & slider_bitboard;
+    let bb = magic_moves_rook(capture_square as Square, all_pieces_bitboard) & slider_bitboard;
     if bb != 0 {
         move_list.push(from_square_mask(bb.trailing_zeros() as Square) | piece_mask | capture_square);
     }
@@ -172,7 +172,7 @@ pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList 
     generate_capture_pawn_moves_with_destinations_see(&mut move_list, position.mover as usize, friendly.pawn_bitboard, valid_destinations);
 
     if move_list.is_empty() {
-        let mut knights = KNIGHT_MOVES_BITBOARDS[capture_square] & friendly.knight_bitboard;
+        let knights = KNIGHT_MOVES_BITBOARDS[capture_square] & friendly.knight_bitboard;
         if knights != 0 {
             let fsm = from_square_mask(knights.trailing_zeros() as Square) | PIECE_MASK_KNIGHT;
             move_list.push(fsm | capture_square as Move);
@@ -217,7 +217,7 @@ pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList 
     }
 
     if move_list.is_empty() {
-        let mut bb = KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations;
+        let bb = KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations;
         if bb != 0 {
             move_list.push(from_square_mask(friendly.king_square) | PIECE_MASK_KING | bb.trailing_zeros() as Move);
         }

@@ -62,6 +62,7 @@ fn replace_shortcuts(l: &str) -> &str {
         "bench08" => "position fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
         "bench09" => "position startpos",
         "bench10" => "position fen r1bqk2r/1ppp1ppp/p1n2n2/2b1p3/B3P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 0 1",
+        "bench11" => "position fen 8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42",
         "i" => "go infinite",
         _ => l,
     }
@@ -301,7 +302,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
 
 fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(
-        r#"id name Rusty Rival |good|
+        r#"id name Rusty Rival |No-Extend-20230325|
 id author Chris Moreton
 option name Clear Hash type button
 option name MultiPV type spin default 1 min 1 max 20

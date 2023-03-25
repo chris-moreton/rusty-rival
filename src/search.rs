@@ -261,7 +261,7 @@ pub fn draw_value(position: &Position, search_state: &SearchState) -> Score {
 #[inline(always)]
 pub fn extend(predicate: bool, these_extentions: u8, ply: u8, search_state: &SearchState) -> u8 {
     if these_extentions == 0 && predicate && ply < search_state.iterative_depth * 2 {
-        1
+        0
     } else {
         0
     }
@@ -310,6 +310,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
                 // adjusted it again such that it represented the distance from the root at which it was stored - e.g. we found it at ply 7, and wound
                 // up needing to store that score when it went back up to ply 5, so we adjusted it so it looked like it was found at ply 2.
+                // In other words, we marked it as a mate in 7 plies (99.93) when we found it (even though it's already mate), but if we need to store it in the
+                // has table at ply 5, we should record it as a mate in two plies (99.98).
                 // Now that we are retrieving it, we need to adjust it for the current ply. Following the previous example, if the current ply is 10, then
                 // we adjust the score to make it look like it was found at ply 12.
                 let score = match x.score {
