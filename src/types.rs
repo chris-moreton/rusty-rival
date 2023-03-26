@@ -45,6 +45,7 @@ pub struct UciState {
     pub mate: bool,
     pub move_time: u64,
     pub infinite: bool,
+    pub quit: bool,
 }
 
 pub fn default_uci_state() -> UciState {
@@ -62,6 +63,7 @@ pub fn default_uci_state() -> UciState {
         mate: false,
         move_time: u64::MAX,
         infinite: false,
+        quit: false,
     }
 }
 

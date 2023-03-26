@@ -23,5 +23,7 @@ regex = "1.5.4"
 arrayvec = "0.7.2"
 rayon = "1.5.1"
 ansi_term = "0.12.1"
+rustyline = "11.0.0"
+
 
 

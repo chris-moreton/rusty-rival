@@ -19,6 +19,7 @@ use crate::utils::{captured_piece_value, from_square_part, penultimate_pawn_push
 use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
+use crate::fen::algebraic_move_from_move;
 
 
 pub const MAX_WINDOW: Score = 20000;
@@ -101,22 +102,21 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     let aspiration_radius: Vec<Score> = vec![25, 50, 100, 200, 400, 800];
 
     for iterative_depth in 1..=max_depth {
+        //println!("Iterative depth {}", iterative_depth);
         let mut c = 0;
         search_state.iterative_depth = iterative_depth;
 
         loop {
+            //println!("Searching with aspiration window {} {} at [{}]", aspiration_window.0, aspiration_window.1, c);
             let aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window);
             if time_expired!(search_state) {
                 return search_state.current_best.0[0];
             }
 
             if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-                //println!("Found a move within the aspiration window {} {} {} {}", aspire_best.1, aspiration_window.0, aspiration_window.1, c);
-                if aspire_best.1 > search_state.current_best.1 {
-                    println!("Found a better move {} {}", aspire_best.0[0], aspire_best.1);
-                    search_state.current_best = aspire_best;
-                }
-                //println!("Current best move at iteration {} is {} {}", c, search_state.current_best.0[0], search_state.current_best.1);
+                //println!("Found a move within the aspiration window {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1);
+                search_state.current_best = aspire_best;
+                //println!("Current best move is {} {}", algebraic_move_from_move(search_state.current_best.0[0]), search_state.current_best.1);
                 break;
             } else {
                 //println!("Move score was outside the aspiration window {} {} {} {}", aspire_best.1, aspiration_window.0, aspiration_window.1, c);
