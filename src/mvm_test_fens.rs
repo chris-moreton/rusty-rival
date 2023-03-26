@@ -1,5 +1,9 @@
 use crate::types::Score;
 
+// Rival blunders analysed on Chess.com - Ra2 is a blunder
+// position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
+
+
 pub fn get_test_fens() -> Vec<(&'static str, &'static str, Score, u32)> {
     vec![
         ("8/8/2p5/2P4p/4Pk1P/8/5K2/8 b - - 0 45", "f4e4", 500, 250), // 250

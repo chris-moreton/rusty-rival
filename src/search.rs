@@ -111,9 +111,15 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             }
 
             if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
-                search_state.current_best = aspire_best;
+                //println!("Found a move within the aspiration window {} {} {} {}", aspire_best.1, aspiration_window.0, aspiration_window.1, c);
+                if aspire_best.1 > search_state.current_best.1 {
+                    println!("Found a better move {} {}", aspire_best.0[0], aspire_best.1);
+                    search_state.current_best = aspire_best;
+                }
+                //println!("Current best move at iteration {} is {} {}", c, search_state.current_best.0[0], search_state.current_best.1);
                 break;
             } else {
+                //println!("Move score was outside the aspiration window {} {} {} {}", aspire_best.1, aspiration_window.0, aspiration_window.1, c);
                 c += 1;
                 if c == aspiration_radius.len() {
                     aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
@@ -122,6 +128,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
                 } else if aspire_best.1 >= aspiration_window.1 {
                     aspiration_window.1 = min(MAX_WINDOW, aspiration_window.1 + aspiration_radius[c]);
                 }
+                //println!("New aspiration window {} {}", aspiration_window.0, aspiration_window.1);
             };
         }
 
@@ -261,7 +268,7 @@ pub fn draw_value(position: &Position, search_state: &SearchState) -> Score {
 #[inline(always)]
 pub fn extend(predicate: bool, these_extentions: u8, ply: u8, search_state: &SearchState) -> u8 {
     if these_extentions == 0 && predicate && ply < search_state.iterative_depth * 2 {
-        1
+        0
     } else {
         0
     }
