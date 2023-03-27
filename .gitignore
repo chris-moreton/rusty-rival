@@ -2,6 +2,7 @@
 .idea/*
 .idea
 perf.data*
+.DS_Store
 
 
 

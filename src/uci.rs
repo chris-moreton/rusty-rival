@@ -19,6 +19,9 @@ use crate::search::iterative_deepening;
 use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
+use crate::scan::screen_scan;
+
+use screenshots::Screen;
 
 fn replace_shortcuts(l: &str) -> &str {
     match l {
@@ -92,6 +95,7 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
         "quit" => exit(0),
         "mvm" => cmd_mvm(search_state, parts),
         "position" => cmd_position(uci_state, search_state, parts),
+        "scan" => cmd_scan(uci_state, search_state),
         _ => Left("Unknown command".parse().unwrap()),
     }
 }
@@ -131,6 +135,7 @@ pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
 }
 
 fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+//    cmd_ucinewgame(uci_state, search_state);
     let t = parts.get(1).unwrap();
     match *t {
         "fen" => {
@@ -393,5 +398,10 @@ fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchSta
         }
     }
     uci_state.fen = START_POS.parse().unwrap();
+    Right(None)
+}
+
+fn cmd_scan(mut uci_state: &mut UciState, mut search_state: &mut SearchState) -> Either<String, Option<String>> {
+    screen_scan().expect("TODO: panic message");
     Right(None)
 }

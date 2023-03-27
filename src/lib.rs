@@ -21,3 +21,4 @@ pub mod types;
 pub mod uci;
 pub mod uci_bench;
 pub mod utils;
+mod scan;
