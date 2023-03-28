@@ -2,7 +2,7 @@ use rusty_rival::bitboards::{bit, EMPTY_CASTLE_SQUARES_WHITE_QUEEN, RANK_4_BITS,
 use rusty_rival::fen::{algebraic_move_from_move, bitref_from_algebraic_squareref, get_position, move_from_algebraic_move};
 use rusty_rival::make_move::make_move;
 use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN};
-use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check, is_square_attacked, moves, verify_move};
+use rusty_rival::moves::{any_squares_in_bitboard_attacked, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check, is_square_attacked, generate_moves, verify_move};
 use rusty_rival::quiesce::quiesce_moves;
 use rusty_rival::types::{MoveList, Square, BLACK, WHITE};
 
@@ -360,11 +360,11 @@ pub fn it_checks_for_check() {
 #[test]
 pub fn it_gets_all_moves_for_a_position() {
     assert_eq!(
-        sort_moves(moves(&get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()))),
+        sort_moves(generate_moves(&get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string()))),
         vec!["e8d7", "e8d8", "e8e7", "e8f7", "e8f8"]
     );
     assert_eq!(
-        sort_moves(moves(&get_position(
+        sort_moves(generate_moves(&get_position(
             &"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/1R2K2R b Kkq - 0 1".to_string()
         ))),
         vec![
@@ -373,21 +373,21 @@ pub fn it_gets_all_moves_for_a_position() {
         ]
     );
     assert_eq!(
-        sort_moves(moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P4K1P/R6R b kq - 0 1".to_string()))),
+        sort_moves(generate_moves(&get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P4K1P/R6R b kq - 0 1".to_string()))),
         vec![
             "a7a6", "a8b8", "a8c8", "a8d8", "b4b3", "c4c3", "d3b1", "d3c2", "d3e2", "d3f1", "e4e3", "e8d7", "e8d8", "e8e7", "e8f7", "e8f8",
             "e8g8", "h7h5", "h7h6", "h8f8", "h8g8"
         ]
     );
     assert_eq!(
-        sort_moves(moves(&get_position(&"5k2/7p/p3B1p1/P4pP1/3K1P1P/8/8/8 w - f6 0 1".to_string()))),
+        sort_moves(generate_moves(&get_position(&"5k2/7p/p3B1p1/P4pP1/3K1P1P/8/8/8 w - f6 0 1".to_string()))),
         vec![
             "d4c3", "d4c4", "d4c5", "d4d3", "d4d5", "d4e3", "d4e4", "d4e5", "e6a2", "e6b3", "e6c4", "e6c8", "e6d5", "e6d7", "e6f5", "e6f7",
             "e6g8", "g5f6", "h4h5"
         ]
     );
     assert_eq!(
-        sort_moves(moves(&get_position(&"6k1/5p1p/p3B1p1/P5P1/3K1P1P/8/8/8 w - - 0 1".to_string()))),
+        sort_moves(generate_moves(&get_position(&"6k1/5p1p/p3B1p1/P5P1/3K1P1P/8/8/8 w - - 0 1".to_string()))),
         vec![
             "d4c3", "d4c4", "d4c5", "d4d3", "d4d5", "d4e3", "d4e4", "d4e5", "e6a2", "e6b3", "e6c4", "e6c8", "e6d5", "e6d7", "e6f5", "e6f7",
             "e6g4", "e6h3", "f4f5", "h4h5"
@@ -395,7 +395,7 @@ pub fn it_gets_all_moves_for_a_position() {
     );
 
     assert_eq!(
-        sort_moves(moves(&get_position(
+        sort_moves(generate_moves(&get_position(
             &"n5k1/1P2P1n1/1n2q2p/P1pP4/5R2/3K1B2/1r2N2P/6r1 w - c6 0 1".to_string()
         ))),
         vec![
@@ -407,7 +407,7 @@ pub fn it_gets_all_moves_for_a_position() {
     );
 
     assert_eq!(
-        sort_moves(moves(&get_position(
+        sort_moves(generate_moves(&get_position(
             &"n5k1/1P2P1n1/1n2q2p/P1pP4/3p1R2/2p2B2/1rPPN2P/R3K1r1 w Q - 0 1".to_string()
         ))),
         vec![
@@ -419,7 +419,7 @@ pub fn it_gets_all_moves_for_a_position() {
     );
 
     let original_position = &get_position(&"4k3/8/6N1/4K3/8/8/8/8 b - - 0 1".to_string());
-    let no_checks = moves(original_position)
+    let no_checks = generate_moves(original_position)
         .into_iter()
         .filter(|m| {
             let mut new_position = *original_position;
@@ -430,7 +430,7 @@ pub fn it_gets_all_moves_for_a_position() {
     assert_eq!(sort_moves(no_checks), vec!["e8d7", "e8d8", "e8f7"]);
 
     let original_position = &get_position(&"r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K2R w KQkq - 0 1".to_string());
-    let no_checks = moves(original_position)
+    let no_checks = generate_moves(original_position)
         .into_iter()
         .filter(|m| {
             let mut new_position = *original_position;
@@ -447,7 +447,7 @@ pub fn it_gets_all_moves_for_a_position() {
     );
 
     let original_position = &get_position(&"8/8/p7/1P6/K1k3pP/6P1/8/8 b - - 0 1".to_string());
-    let no_checks = moves(original_position)
+    let no_checks = generate_moves(original_position)
         .into_iter()
         .filter(|m| {
             let mut new_position = *original_position;
@@ -478,7 +478,7 @@ pub fn it_gets_all_capture_moves_for_a_position() {
 #[test]
 fn it_can_verify_a_move() {
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b - g3 5 56".to_string());
-    let mvs = moves(&position);
+    let mvs = generate_moves(&position);
     for m in mvs {
         assert!(verify_move(&position, m));
     }
@@ -489,7 +489,7 @@ fn it_can_verify_a_move() {
     assert!(!verify_move(&position,move_from_algebraic_move("d4d6".to_string(), PIECE_MASK_KNIGHT)));
 
     let position = get_position(&"r1b1kb1r/pp3ppp/4pn2/2pP2R1/1n6/2N2N2/PPPP1PPP/R1BQKB2 w Qkq c6 0 1".to_string());
-    let mvs = moves(&position);
+    let mvs = generate_moves(&position);
     for m in mvs {
         assert!(verify_move(&position, m));
     }

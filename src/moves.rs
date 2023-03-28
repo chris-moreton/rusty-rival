@@ -96,7 +96,7 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
 }
 
 #[inline(always)]
-pub fn moves(position: &Position) -> MoveList {
+pub fn generate_moves(position: &Position) -> MoveList {
     let mut move_list = Vec::with_capacity(80);
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;

@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
 use crate::move_constants::START_POS;
-use crate::moves::{is_check, moves};
+use crate::moves::{is_check, generate_moves};
 
 use crate::perft::perft;
 use crate::search::iterative_deepening;
@@ -120,7 +120,7 @@ fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<String>) {
 }
 
 pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
-    let moves = moves(position);
+    let moves = generate_moves(position);
     for m in moves {
         let am = algebraic_move_from_move(m);
         if am == algebraic_move {
@@ -211,7 +211,7 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
             make_move(&position, mv, &mut new_position);
 
             let mut legal_move_count = 0;
-            for m in moves(&new_position) {
+            for m in generate_moves(&new_position) {
                 let mut p = new_position;
                 make_move(&new_position, m, &mut p);
                 if !is_check(&p, new_position.mover) {

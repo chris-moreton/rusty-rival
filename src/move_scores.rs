@@ -87,15 +87,11 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
                 0
             }
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
-        let mask = m & PROMOTION_FULL_MOVE_MASK;
-        if mask == PROMOTION_ROOK_MOVE_MASK {
-            3
-        } else if mask == PROMOTION_BISHOP_MOVE_MASK {
-            2
-        } else if mask == PROMOTION_KNIGHT_MOVE_MASK {
-            1
-        } else {
-            GOOD_CAPTURE_START + QUEEN_VALUE_AVERAGE
+        match m & PROMOTION_FULL_MOVE_MASK {
+            PROMOTION_ROOK_MOVE_MASK => 3,
+            PROMOTION_BISHOP_MOVE_MASK => 2,
+            PROMOTION_KNIGHT_MOVE_MASK => 1,
+            _ => GOOD_CAPTURE_START + QUEEN_VALUE_AVERAGE,
         }
     } else if to_square == position.en_passant_square {
         GOOD_CAPTURE_START + PAWN_VALUE_AVERAGE + PAWN_ATTACKER_BONUS

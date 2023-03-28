@@ -113,58 +113,49 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
 #[inline(always)]
 pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
     check_time!(search_state);
-
     search_state.nodes += 1;
 
     let eval = evaluate(position);
 
-    if depth == 0 {
+    if depth == 0 || eval >= window.1 {
         return (vec![0], eval);
     }
 
-    if eval >= window.1 {
-        return (vec![0], eval);
-    }
-
-    let mut alpha = window.0;
-
-    if alpha < eval {
-        alpha = eval;
-    }
+    let mut alpha = window.0.max(eval);
+    let mut best_move: Move = 0;
 
     let ms = quiesce_moves(position);
 
-    if !ms.is_empty() {
-        let mut move_scores = if ms.len() > 1 {
-            let move_scores: MoveScoreList = ms
-                .into_iter()
-                .map(|m| {
-                    (m, score_quiesce_move(position, m, &position.pieces[opponent!(position.mover) as usize], search_state))
-                })
-                .collect();
+    // If there are no legal moves, return the evaluation score
+    if ms.is_empty() {
+        return (vec![0], eval);
+    }
 
-            move_scores
-        } else {
-            vec![(ms[0], 0)]
-        };
+    let mut move_scores: MoveScoreList = vec![];
 
-        while !move_scores.is_empty() {
-            let m = pick_high_score_move(&mut move_scores);
+    for &m in &ms {
+        let score = score_quiesce_move(position, m, &position.pieces[opponent!(position.mover) as usize], search_state);
+        move_scores.push((m, score));
+    }
 
-            let mut new_position = *position;
-            make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) && see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position) > 0 {
-                let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
-                check_time!(search_state);
-                if score >= window.1 {
-                    return (vec![m], window.1);
-                }
-                if score > alpha {
-                    alpha = score;
-                }
+    while !move_scores.is_empty() {
+        let m = pick_high_score_move(&mut move_scores);
+
+        let mut new_position = *position;
+        make_move(position, m, &mut new_position);
+        if !is_check(&new_position, position.mover) && see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position) > 0 {
+            let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
+            check_time!(search_state);
+
+            if score >= window.1 {
+                return (vec![m], window.1);
+            }
+            if score > alpha {
+                alpha = score;
+                best_move = m;
             }
         }
     }
 
-    (vec![0], alpha)
+    (vec![best_move], alpha)
 }

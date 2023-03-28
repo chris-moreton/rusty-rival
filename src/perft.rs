@@ -1,6 +1,6 @@
 use crate::fen::algebraic_move_from_move;
 use crate::make_move::make_move;
-use crate::moves::{is_check, moves};
+use crate::moves::{is_check, generate_moves};
 use crate::types::{Move, Position};
 use num_format::{Locale, ToFormattedString};
 use std::time::Instant;
@@ -14,7 +14,7 @@ pub fn perft(position: &Position, depth: u8) -> u64 {
         let mut count = 0;
         let mover = position.mover;
 
-        for m in moves(position) {
+        for m in generate_moves(position) {
             let mut new_position = *position;
             make_move(position, m, &mut new_position);
             // if new_position.zobrist_lock != zobrist_lock(&new_position) {

@@ -57,8 +57,6 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
         new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(new_position.en_passant_square)];
     }
     new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
-
-    //assert_eq!(new_position.zobrist_lock, zobrist_lock(new_position));
 }
 
 #[inline(always)]

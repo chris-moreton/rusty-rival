@@ -8,7 +8,7 @@ use crate::move_constants::{
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
 };
 use crate::move_scores::score_move;
-use crate::moves::{is_check, moves, verify_move};
+use crate::moves::{is_check, generate_moves, verify_move};
 use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::types::BoundType::{Exact, Lower, Upper};
@@ -78,7 +78,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
     search_state.start_time = Instant::now();
     search_state.hash_table_version += 1;
 
-    let mut legal_moves: MoveScoreList = moves(position)
+    let mut legal_moves: MoveScoreList = generate_moves(position)
         .into_iter()
         .filter(|m| {
             let mut new_position = *position;
@@ -432,12 +432,12 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 }
                 scout_search = true;
             }
-            moves(position).into_iter().filter(|m| *m != hash_move).collect()
+            generate_moves(position).into_iter().filter(|m| *m != hash_move).collect()
         } else {
-            moves(position)
+            generate_moves(position)
         }
     } else {
-        moves(position)
+        generate_moves(position)
     };
 
     let enemy = &position.pieces[opponent!(position.mover) as usize];

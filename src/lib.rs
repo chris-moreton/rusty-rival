@@ -13,7 +13,6 @@ pub mod moves;
 pub mod mvm_test_fens;
 pub mod perft;
 pub mod piece_square_tables;
-pub mod polyglot;
 pub mod quiesce;
 pub mod search;
 pub mod see;
