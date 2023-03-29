@@ -1,5 +1,4 @@
 #V2
-go movetime 10000
 ucinewgame
 go movetime 250
 ucinewgame
@@ -99,3 +98,4 @@ asd
 scan
 bench 1000
 scan
+position fen rnbqkbnr/pp--pppp/---p----/--p-----/----P---/-----N--/PPPP-PPP/RNBQKB-R b KQkq - 0 1

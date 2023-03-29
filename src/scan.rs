@@ -21,32 +21,27 @@ pub fn screen_scan() -> Result<()> {
 
     let mut move_number = 0;
     let mut mover = "";
-    let mut fen_list = Vec::new();
+    let mut last_fen: String = "".to_string();
 
-    fen_list.push("Start".parse().unwrap());
+    Command::new("screencapture")
+        .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
+        .output().map_err(|e| e.to_string()).expect("TODO: panic message");
+
+    let best_match_top_left = find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/eight.png")?;
+    let best_match_bottom_right = find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/h.png")?;
+
+    let chessboard_x = best_match_top_left.x;
+    let chessboard_y = best_match_top_left.y;
+
+    let chessboard_width = best_match_bottom_right.x - chessboard_x + 67;
 
     loop {
-        Command::new("screencapture")
-            .args(&["-D1", "-t", "png", "/tmp/screenshot.png"])
-            .output().map_err(|e| e.to_string()).expect("TODO: panic message");
-
         let whole_screen = imgcodecs::imread("/tmp/screenshot.png", imgcodecs::IMREAD_COLOR)?;
-
-        let best_match_top_left = find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/eight.png")?;
-        let best_match_bottom_right = find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/h.png")?;
-
-        let chessboard_x = best_match_top_left.x;
-        let chessboard_y = best_match_top_left.y;
-
-        let chessboard_width = best_match_bottom_right.x - chessboard_x + 67;
 
         let roi = Rect::new(chessboard_x, chessboard_y, chessboard_width, chessboard_width);
 
         let mut chessboard_image = Mat::roi(&whole_screen, roi)?;
         let mut chessboard_image_resized = resize_square_image(&chessboard_image, Size::new(RESIZED_BOARD_IMAGE_WIDTH, RESIZED_BOARD_IMAGE_WIDTH))?;
-
-        imgcodecs::imwrite(&*format!("/tmp/chessboard-cropped.png"), &chessboard_image, &Vector::new())?;
-        imgcodecs::imwrite(&*format!("/tmp/chessboard-resized.png"), &chessboard_image_resized, &Vector::new())?;
 
         let squares = extract_chessboard_squares(&chessboard_image_resized)?;
         let mut piece_list = Vec::new();
@@ -64,30 +59,31 @@ pub fn screen_scan() -> Result<()> {
             }
         }
 
-        mover = if move_number == 0 {
+        if move_number == 0 && mover == "" {
             if piece_list[0] == 'r' {
-                "w"
+                mover = "w"
             } else {
-                "b"
-            }
-        } else {
-            if mover == "w" {
-                "b"
-            } else {
-                "w"
-            }
-        };
-
-        let fen = vec_to_fen(&piece_list, mover);
-        if let Some(last_fen) = fen_list.last() {
-            if fen != *last_fen {
-                println!("{}", fen);
-                move_number += 1;
-                fen_list.push(fen.to_string());
+                mover = "b"
             }
         }
 
-        sleep(Duration::from_millis(2000))
+        let fen = vec_to_fen(&piece_list, mover);
+        println!("{}", fen);
+        if fen.split(" ").next() != last_fen.split(" ").next() {
+            println!("{}", fen);
+            move_number += 1;
+            if mover == "w" {
+                mover = "b"
+            } else {
+                mover = "w"
+            }
+            last_fen = fen.clone();
+        }
+
+        Command::new("screencapture")
+            .args(&["-D1", "-t", "-x", "png", "/tmp/screenshot.png"])
+            .output().map_err(|e| e.to_string()).expect("TODO: panic message");
+
     }
 
     Ok(())
@@ -123,7 +119,15 @@ fn vec_to_fen(pieces: &Vec<char>, mover: &str) -> String {
     // Update these according to the actual state of the game.
     fen.push_str(&*format!(" {} KQkq - 0 1", mover));
 
-    fen
+    fen.replace("--------", "8")
+        .replace("-------", "7")
+        .replace("------", "6")
+        .replace("-----", "5")
+        .replace("----", "4")
+        .replace("---", "3")
+        .replace("--", "2")
+        .replace("-", "1")
+
 }
 
 fn extract_center(square: &Mat) -> Result<Mat, opencv::Error> {
