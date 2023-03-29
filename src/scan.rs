@@ -7,10 +7,14 @@ use opencv::calib3d::{CALIB_CB_ADAPTIVE_THRESH, CALIB_CB_NORMALIZE_IMAGE, draw_c
 use opencv::core::{Point, Point2f, Rect, Vector, ToInputArray, InputArray, count_non_zero, BORDER_DEFAULT, Size_, min_max_loc, subtract, no_array, pow, sum_elems};
 use screenshots::Screen;
 use std::{fs};
-use std::ops::RangeInclusive;
+use std::ops::{Add, RangeInclusive};
 use std::process::Command;
 use std::thread::sleep;
 use opencv::types::VectorOfVectorOfPoint;
+use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT, test_bit};
+use crate::fen::{algebraic_move_from_move, get_position};
+use crate::search::iterative_deepening;
+use crate::types::{BLACK, default_search_state, WHITE};
 
 const BOARD_IMAGE_WIDTH: i32 = 2932;
 const RESIZED_BOARD_IMAGE_WIDTH: i32 = 1024;
@@ -22,6 +26,11 @@ pub fn screen_scan() -> Result<()> {
     let mut move_number = 0;
     let mut mover = "";
     let mut last_fen: String = "".to_string();
+    let starting_position = get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    let mut castle_white_queenside = false;
+    let mut castle_white_kingside = false;
+    let mut castle_black_queenside = false;
+    let mut castle_black_kingside = false;
 
     Command::new("screencapture")
         .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
@@ -67,10 +76,42 @@ pub fn screen_scan() -> Result<()> {
             }
         }
 
-        let fen = vec_to_fen(&piece_list, mover);
-        println!("{}", fen);
+        let mut castle_string = "".to_string();
+        if castle_white_queenside {
+            castle_string.push('Q')
+        }
+        if castle_white_kingside {
+            castle_string.push('K')
+        }
+        if castle_black_queenside {
+            castle_string.push('q')
+        }
+        if castle_black_kingside {
+            castle_string.push('k')
+        }
+        let fen = vec_to_fen(&piece_list, mover, &castle_string);
         if fen.split(" ").next() != last_fen.split(" ").next() {
             println!("{}", fen);
+
+            let mut search_state = default_search_state();
+            search_state.show_info = false;
+            search_state.end_time = Instant::now().add(Duration::from_millis(1000));
+            let position = get_position(&fen);
+            if !test_bit(position.pieces[WHITE as usize].rook_bitboard, A1_BIT) {
+                castle_white_queenside = true
+            }
+            if !test_bit(position.pieces[WHITE as usize].rook_bitboard, H1_BIT) {
+                castle_white_kingside = true
+            }
+            if !test_bit(position.pieces[BLACK as usize].rook_bitboard, A8_BIT) {
+                castle_black_queenside = true
+            }
+            if !test_bit(position.pieces[BLACK as usize].rook_bitboard, H8_BIT) {
+                castle_black_kingside = true
+            }
+            let mv = iterative_deepening(&position, 100_u8, &mut search_state);
+            println!("{}", algebraic_move_from_move(mv));
+
             move_number += 1;
             if mover == "w" {
                 mover = "b"
@@ -81,7 +122,7 @@ pub fn screen_scan() -> Result<()> {
         }
 
         Command::new("screencapture")
-            .args(&["-D1", "-t", "-x", "png", "/tmp/screenshot.png"])
+            .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
             .output().map_err(|e| e.to_string()).expect("TODO: panic message");
 
     }
@@ -89,7 +130,7 @@ pub fn screen_scan() -> Result<()> {
     Ok(())
 }
 
-fn vec_to_fen(pieces: &Vec<char>, mover: &str) -> String {
+fn vec_to_fen(pieces: &Vec<char>, mover: &str, castle_string: &str) -> String {
     let mut fen = String::new();
     let mut empty_squares = 0;
 
@@ -117,7 +158,7 @@ fn vec_to_fen(pieces: &Vec<char>, mover: &str) -> String {
 
     // Add the active player, castling rights, en passant square, halfmove clock, and fullmove number.
     // Update these according to the actual state of the game.
-    fen.push_str(&*format!(" {} KQkq - 0 1", mover));
+    fen.push_str(&*format!(" {} {} x 0 1", mover, castle_string));
 
     fen.replace("--------", "8")
         .replace("-------", "7")
@@ -127,6 +168,7 @@ fn vec_to_fen(pieces: &Vec<char>, mover: &str) -> String {
         .replace("---", "3")
         .replace("--", "2")
         .replace("-", "1")
+        .replace("x", "-")
 
 }
 
