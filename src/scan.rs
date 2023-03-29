@@ -1,14 +1,15 @@
 use std::arch::aarch64::int32x2_t;
 use opencv::prelude::*;
 
-use opencv::{core::{Mat, Size}, highgui, imgcodecs, imgproc::*, videoio, Result, imgproc};
+use opencv::{core::{Mat, Size}, highgui, imgcodecs, imgproc::*, videoio, Result, imgproc, ximgproc};
 use std::time::{Duration, Instant};
 use opencv::calib3d::{CALIB_CB_ADAPTIVE_THRESH, CALIB_CB_NORMALIZE_IMAGE, draw_chessboard_corners, find_chessboard_corners};
-use opencv::core::{Point, Point2f, Rect, Vector, ToInputArray, InputArray, count_non_zero, BORDER_DEFAULT, Size_};
+use opencv::core::{Point, Point2f, Rect, Vector, ToInputArray, InputArray, count_non_zero, BORDER_DEFAULT, Size_, min_max_loc, subtract, no_array, pow, sum_elems};
 use screenshots::Screen;
 use std::{fs};
 use std::ops::RangeInclusive;
 use std::process::Command;
+use std::thread::sleep;
 use opencv::types::VectorOfVectorOfPoint;
 
 const BOARD_IMAGE_WIDTH: i32 = 2932;
@@ -18,47 +19,121 @@ const CHESSBOARD_Y: i32 = 467;
 
 pub fn screen_scan() -> Result<()> {
 
-    let start = Instant::now();
+    let mut move_number = 0;
+    let mut mover = "";
+    let mut fen_list = Vec::new();
 
-    let output = Command::new("screencapture")
-        .args(&["-D1", "-t", "png", "/tmp/screenshot.png"])
-        .output().map_err(|e| e.to_string());
+    fen_list.push("Start".parse().unwrap());
 
-    println!("Running time: {:?}", start.elapsed());
+    loop {
+        Command::new("screencapture")
+            .args(&["-D1", "-t", "png", "/tmp/screenshot.png"])
+            .output().map_err(|e| e.to_string()).expect("TODO: panic message");
 
-    // Define the size of the chessboard
-    let whole_screen = imgcodecs::imread("/tmp/screenshot.png", imgcodecs::IMREAD_COLOR)?;
+        let whole_screen = imgcodecs::imread("/tmp/screenshot.png", imgcodecs::IMREAD_COLOR)?;
 
-    let roi = Rect::new(CHESSBOARD_X, CHESSBOARD_Y, BOARD_IMAGE_WIDTH, BOARD_IMAGE_WIDTH);
+        let best_match_top_left = find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/eight.png")?;
+        let best_match_bottom_right = find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/h.png")?;
 
-    let mut chessboard_image = Mat::roi(&whole_screen, roi)?;
-    let mut chessboard_image_resized = resize_square_image(&chessboard_image, Size::new(RESIZED_BOARD_IMAGE_WIDTH, RESIZED_BOARD_IMAGE_WIDTH))?;
+        let chessboard_x = best_match_top_left.x;
+        let chessboard_y = best_match_top_left.y;
 
-    let squares = extract_chessboard_squares(&chessboard_image_resized)?;
+        let chessboard_width = best_match_bottom_right.x - chessboard_x + 67;
 
-    for (i, square) in squares.iter().enumerate() {
-        let center = extract_center(&square)?;
-        let black_pixels = count_black_pixels(&center)?;
-        let piece = get_piece_string_from_pixels(black_pixels)?;
-        let center_of_square = resize_square_image(&square, Size::new(64, 64))?;
-        let square_num = i + 1;
-        imgcodecs::imwrite(&*format!("/tmp/square-{}.png", square_num), &square, &Vector::new())?;
-        println!("Square {}: {} black pixels - my guess is {}", square_num, black_pixels, piece);
+        let roi = Rect::new(chessboard_x, chessboard_y, chessboard_width, chessboard_width);
+
+        let mut chessboard_image = Mat::roi(&whole_screen, roi)?;
+        let mut chessboard_image_resized = resize_square_image(&chessboard_image, Size::new(RESIZED_BOARD_IMAGE_WIDTH, RESIZED_BOARD_IMAGE_WIDTH))?;
+
+        imgcodecs::imwrite(&*format!("/tmp/chessboard-cropped.png"), &chessboard_image, &Vector::new())?;
+        imgcodecs::imwrite(&*format!("/tmp/chessboard-resized.png"), &chessboard_image_resized, &Vector::new())?;
+
+        let squares = extract_chessboard_squares(&chessboard_image_resized)?;
+        let mut piece_list = Vec::new();
+
+        for (i, square) in squares.iter().enumerate() {
+            let center = extract_center(&square)?;
+            let piece = match_piece_image(&center)?;
+            let square_num = i + 1;
+            imgcodecs::imwrite(&*format!("/tmp/square-{}.png", square_num), &square, &Vector::new())?;
+
+            if let Some(first_char) = piece.chars().next() {
+                piece_list.push(first_char);
+            } else {
+                println!("The input string is empty.");
+            }
+        }
+
+        mover = if move_number == 0 {
+            if piece_list[0] == 'r' {
+                "w"
+            } else {
+                "b"
+            }
+        } else {
+            if mover == "w" {
+                "b"
+            } else {
+                "w"
+            }
+        };
+
+        let fen = vec_to_fen(&piece_list, mover);
+        if let Some(last_fen) = fen_list.last() {
+            if fen != *last_fen {
+                println!("{}", fen);
+                move_number += 1;
+                fen_list.push(fen.to_string());
+            }
+        }
+
+        sleep(Duration::from_millis(2000))
     }
 
     Ok(())
 }
 
+fn vec_to_fen(pieces: &Vec<char>, mover: &str) -> String {
+    let mut fen = String::new();
+    let mut empty_squares = 0;
+
+    for (index, &piece) in pieces.iter().enumerate() {
+        if piece == ' ' {
+            empty_squares += 1;
+        } else {
+            if empty_squares > 0 {
+                fen.push_str(&empty_squares.to_string());
+                empty_squares = 0;
+            }
+            fen.push(piece);
+        }
+
+        if (index + 1) % 8 == 0 {
+            if empty_squares > 0 {
+                fen.push_str(&empty_squares.to_string());
+                empty_squares = 0;
+            }
+            if index < 56 {
+                fen.push('/');
+            }
+        }
+    }
+
+    // Add the active player, castling rights, en passant square, halfmove clock, and fullmove number.
+    // Update these according to the actual state of the game.
+    fen.push_str(&*format!(" {} KQkq - 0 1", mover));
+
+    fen
+}
+
 fn extract_center(square: &Mat) -> Result<Mat, opencv::Error> {
-    let square_size = 128;
-    let center_size = 96;
 
     // Calculate the top-left point of the center region
-    let top_left_x = (square_size - center_size) / 2;
-    let top_left_y = (square_size - center_size) / 2;
+    let top_left_x = 4;
+    let top_left_y = 4;
 
     // Define the center region (ROI)
-    let center_roi = Rect::new(top_left_x, top_left_y, center_size, center_size);
+    let center_roi = Rect::new(top_left_x, top_left_y, 120, 120);
 
     // Extract the center region
     let center = Mat::roi(&square, center_roi)?;
@@ -82,43 +157,55 @@ fn in_range(i: i32, target: i32) -> RangeInclusive<i32> {
 
 // rnbqkbnr/rnbqkbnr/pppppppp/pppppppp/PPPPPPPP/PPPPPPPP/RNBQKBNR/RNBQKBNR w - - 0 1
 
-fn get_piece_string_from_pixels(white_pixels: i32) -> Result<String> {
-    let piece_ranges = [
-        (4255, "Black rook on light square"),
-        (4807, "Black knight on dark square"),
-        (3477, "Black bishop on light square"),
-        (3899, "Black queen on dark square"),
-        (3284, "Black king on light square"),
-        (3554, "Black bishop on dark square"),
-        (4358, "Black rook on dark square"),
-        (4710, "Black knight on light square"),
-        (2936, "Black pawn on light square"),
-        (2990, "Black pawn on dark square"),
-        (1176, "White rook on light square"),
-        (1301, "White knight on dark square"),
-        (1383, "White bishop on light square"),
-        (1526, "White queen on dark square"),
-        (1432, "White king on light square"),
-        (1459, "White bishop on dark square"),
-        (1229, "White knight on light square"),
-        (790, "White pawn on light square"),
-        (830, "White pawn on dark square"),
-    ];
+enum PixelColor {
+    Black,
+    White,
+}
 
-    let piece = if white_pixels == 0 {
-        "empty"
-    } else {
-        let mut found_piece = "unknown";
-        for (target, piece_name) in piece_ranges.iter() {
-            if in_range(white_pixels, *target).contains(&white_pixels) {
-                found_piece = piece_name;
-                break;
-            }
+fn match_piece_image(image: &Mat) -> Result<String> {
+
+    let white_pixels = count_pixels(image, PixelColor::White)?;
+    let black_pixels = count_pixels(image, PixelColor::Black)?;
+
+    let answer = if white_pixels + black_pixels == 0 {
+        "-"
+    } else if white_pixels == 0 && black_pixels > 0 {
+       "p"
+    } else if black_pixels == 0 && white_pixels > 0 {
+        "P"
+    } else if white_pixels < 250 {
+        if black_pixels < 4500 {
+            "r"
+        } else {
+            "n"
         }
-        found_piece
+    } else if white_pixels < 500 {
+        if black_pixels < 3600 {
+            "b"
+        } else {
+            "q"
+        }
+    } else if white_pixels > 800 && black_pixels > 2500 {
+        "k"
+    } else if white_pixels > 1500 && black_pixels < 750 {
+        "P"
+    } else if (2500..3000).contains(&white_pixels) && (500..1000).contains(&black_pixels) {
+        "R"
+    } else if (3400..3800).contains(&white_pixels) {
+        if (900..1100).contains(&black_pixels) {
+            "N"
+        } else {
+            "K"
+        }
+    } else if (1500..2000).contains(&white_pixels) && (1000..1200).contains(&black_pixels) {
+        "B"
+    } else if (2100..2300).contains(&white_pixels) && (1000..1200).contains(&black_pixels) {
+        "Q"
+    } else {
+        "?"
     };
 
-    Ok(piece.to_string())
+    Ok(answer.to_string())
 }
 
 fn extract_chessboard_squares(img: &Mat) -> Result<Vec<Mat>, opencv::Error> {
@@ -144,22 +231,32 @@ fn extract_chessboard_squares(img: &Mat) -> Result<Vec<Mat>, opencv::Error> {
     Ok(squares)
 }
 
-fn count_black_pixels(square: &Mat) -> Result<i32, opencv::Error> {
+fn count_pixels(square: &Mat, color: PixelColor) -> Result<i32, opencv::Error> {
+
     let mut gray = Mat::default();
     cvt_color(&square, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
 
     let mut thresh = Mat::default();
-    let threshold_value = 10.0; // Set the threshold value
+    let threshold_value = match color {
+        PixelColor::Black => 0.0,
+        PixelColor::White => 250.0,
+    };
+
+    let threshold_type = match color {
+        PixelColor::Black => imgproc::THRESH_BINARY_INV,
+        PixelColor::White => imgproc::THRESH_BINARY,
+    };
+
     threshold(
         &gray,
         &mut thresh,
         threshold_value,
         255.0,
-        imgproc::THRESH_BINARY_INV,
+        threshold_type,
     )?;
 
-    let black_pixels = count_non_zero(&thresh)?;
-    Ok(black_pixels)
+    let pixels = count_non_zero(&thresh)?;
+    Ok(pixels)
 }
 
 fn extract_pieces(img: &Mat) -> Result<Vec<String>> {
@@ -233,4 +330,45 @@ fn extract_pieces(img: &Mat) -> Result<Vec<String>> {
     }
 
     Ok(pieces)
+}
+
+fn find_scaled_template(large_img_path: &str, template_img_path: &str) -> opencv::Result<Point> {
+    // Load the images
+    let large_img = imgcodecs::imread(large_img_path, imgcodecs::IMREAD_COLOR)?;
+    let template_img = imgcodecs::imread(template_img_path, imgcodecs::IMREAD_COLOR)?;
+
+    let mut best_match = Point::new(-1, -1);
+    let mut best_match_val = f64::MAX;
+
+    // Perform template matching
+    let empty_mask = Mat::default();
+
+    let mut result = Mat::default();
+    imgproc::match_template(
+        &large_img,
+        &template_img,
+        &mut result,
+        imgproc::TM_SQDIFF_NORMED,
+        &empty_mask,
+    )?;
+
+
+    let (mut min_val, mut max_val) = (0.,0.);
+    let (mut min_loc, mut max_loc) = (Point::default(), Point::default());
+    min_max_loc(
+        &result,
+        Option::from(&mut min_val),
+        Option::from(&mut max_val),
+        Option::from(&mut min_loc),
+        Option::from(&mut max_loc),
+        &empty_mask,
+    )?;
+
+    // Update the best match if necessary
+    if min_val < best_match_val {
+        best_match_val = min_val;
+        best_match = min_loc;
+    }
+
+    Ok(best_match)
 }
