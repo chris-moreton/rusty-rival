@@ -4,11 +4,13 @@ use opencv::prelude::*;
 use opencv::{core::{Mat, Size}, highgui, imgcodecs, imgproc::*, videoio, Result, imgproc, ximgproc};
 use std::time::{Duration, Instant};
 use opencv::calib3d::{CALIB_CB_ADAPTIVE_THRESH, CALIB_CB_NORMALIZE_IMAGE, draw_chessboard_corners, find_chessboard_corners};
-use opencv::core::{Point, Point2f, Rect, Vector, ToInputArray, InputArray, count_non_zero, BORDER_DEFAULT, Size_, min_max_loc, subtract, no_array, pow, sum_elems};
+use opencv::core::{Point, Point2f, Rect, Vector, ToInputArray, InputArray, count_non_zero, BORDER_DEFAULT, Size_, min_max_loc, subtract, no_array, pow, sum_elems, absdiff, norm};
 use screenshots::Screen;
 use std::{fs};
+use std::io::Read;
 use std::ops::{Add, RangeInclusive};
-use std::process::Command;
+use std::path::Path;
+use std::process::{Command, exit};
 use std::thread::sleep;
 use opencv::types::VectorOfVectorOfPoint;
 use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT, test_bit};
@@ -26,7 +28,6 @@ pub fn screen_scan() -> Result<()> {
     let mut move_number = 0;
     let mut mover = "";
     let mut last_fen: String = "".to_string();
-    let starting_position = get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     let mut castle_white_queenside = false;
     let mut castle_white_kingside = false;
     let mut castle_black_queenside = false;
@@ -58,6 +59,7 @@ pub fn screen_scan() -> Result<()> {
         for (i, square) in squares.iter().enumerate() {
             let center = extract_center(&square)?;
             let piece = match_piece_image(&center)?;
+            //println!("{}: {}", i, piece);
             let square_num = i + 1;
             imgcodecs::imwrite(&*format!("/tmp/square-{}.png", square_num), &square, &Vector::new())?;
 
@@ -95,7 +97,7 @@ pub fn screen_scan() -> Result<()> {
 
             let mut search_state = default_search_state();
             search_state.show_info = false;
-            search_state.end_time = Instant::now().add(Duration::from_millis(1000));
+            search_state.end_time = Instant::now().add(Duration::from_millis(250));
             let position = get_position(&fen);
             if !test_bit(position.pieces[WHITE as usize].rook_bitboard, A1_BIT) {
                 castle_white_queenside = true
@@ -121,13 +123,50 @@ pub fn screen_scan() -> Result<()> {
             last_fen = fen.clone();
         }
 
-        Command::new("screencapture")
-            .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
-            .output().map_err(|e| e.to_string()).expect("TODO: panic message");
+        while !is_screenshot_ready(chessboard_x, chessboard_y, chessboard_width)? { }
 
     }
 
     Ok(())
+}
+
+fn is_screenshot_ready(chessboard_x: i32, chessboard_y: i32, chessboard_width: i32) -> Result<bool> {
+    Command::new("screencapture")
+        .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
+        .output().map_err(|e| e.to_string()).expect("TODO: panic message");
+
+    sleep(Duration::from_millis(250));
+
+    Command::new("screencapture")
+        .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot2.png"])
+        .output().map_err(|e| e.to_string()).expect("TODO: panic message");
+
+    let s = imgcodecs::imread("/tmp/screenshot.png", imgcodecs::IMREAD_COLOR)?;
+    let s2 = imgcodecs::imread("/tmp/screenshot2.png", imgcodecs::IMREAD_COLOR)?;
+
+    let roi = Rect::new(chessboard_x, chessboard_y, chessboard_width, chessboard_width);
+
+    let mut c = Mat::roi(&s, roi)?;
+    let mut c2 = Mat::roi(&s2, roi)?;
+
+    imgcodecs::imwrite("/tmp/board.png",&c, &Vector::new())?;
+    imgcodecs::imwrite("/tmp/board2.png", &c2, &Vector::new())?;
+
+    return Ok(compare_files("/tmp/board.png", "/tmp/board2.png"))
+
+}
+
+fn compare_files(path1: &str, path2: &str) -> bool {
+    let mut file1 = fs::File::open(path1).expect("");
+    let mut file2 = fs::File::open(path2).expect("");
+
+    let mut buf1 = Vec::new();
+    let mut buf2 = Vec::new();
+
+    file1.read_to_end(&mut buf1).expect("TODO: panic message");
+    file2.read_to_end(&mut buf2).expect("TODO: panic message");
+
+    buf1 == buf2
 }
 
 fn vec_to_fen(pieces: &Vec<char>, mover: &str, castle_string: &str) -> String {
@@ -248,7 +287,8 @@ fn match_piece_image(image: &Mat) -> Result<String> {
     } else if (2100..2300).contains(&white_pixels) && (1000..1200).contains(&black_pixels) {
         "Q"
     } else {
-        "?"
+        println!("{} {}", white_pixels, black_pixels);
+        exit(1);
     };
 
     Ok(answer.to_string())
