@@ -15,8 +15,10 @@ use std::thread::sleep;
 use opencv::types::VectorOfVectorOfPoint;
 use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT, test_bit};
 use crate::fen::{algebraic_move_from_move, get_position};
+use crate::moves::is_check;
 use crate::search::iterative_deepening;
 use crate::types::{BLACK, default_search_state, WHITE};
+use crate::utils::invert_fen;
 
 const BOARD_IMAGE_WIDTH: i32 = 2932;
 const RESIZED_BOARD_IMAGE_WIDTH: i32 = 1024;
@@ -26,12 +28,8 @@ const CHESSBOARD_Y: i32 = 467;
 pub fn screen_scan() -> Result<()> {
 
     let mut move_number = 0;
-    let mut mover = "";
     let mut last_fen: String = "".to_string();
-    let mut castle_white_queenside = false;
-    let mut castle_white_kingside = false;
-    let mut castle_black_queenside = false;
-    let mut castle_black_kingside = false;
+    let mut flipped_board = false;
 
     Command::new("screencapture")
         .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
@@ -70,56 +68,41 @@ pub fn screen_scan() -> Result<()> {
             }
         }
 
-        if move_number == 0 && mover == "" {
-            if piece_list[0] == 'r' {
-                mover = "w"
-            } else {
-                mover = "b"
-            }
+        let mut castle_string = "-".to_string();
+        let mut fen = vec_to_fen(&piece_list, "w", &castle_string);
+        if move_number == 0 && fen.starts_with("R") {
+            println!("Board is flipped");
+            flipped_board = true;
         }
-
-        let mut castle_string = "".to_string();
-        if castle_white_queenside {
-            castle_string.push('Q')
+        if flipped_board {
+            piece_list.reverse();
+            fen = invert_fen(&vec_to_fen(&piece_list, "w", &castle_string));
         }
-        if castle_white_kingside {
-            castle_string.push('K')
-        }
-        if castle_black_queenside {
-            castle_string.push('q')
-        }
-        if castle_black_kingside {
-            castle_string.push('k')
-        }
-        let fen = vec_to_fen(&piece_list, mover, &castle_string);
         if fen.split(" ").next() != last_fen.split(" ").next() {
             println!("{}", fen);
-
             let mut search_state = default_search_state();
             search_state.show_info = false;
             search_state.end_time = Instant::now().add(Duration::from_millis(250));
             let position = get_position(&fen);
-            if !test_bit(position.pieces[WHITE as usize].rook_bitboard, A1_BIT) {
-                castle_white_queenside = true
+
+            if is_check(&position, BLACK) {
+                println!("Black is in check");
+            } else {
+                let mv = iterative_deepening(&position, 100_u8, &mut search_state);
+                println!("White move is {}", algebraic_move_from_move(mv));
             }
-            if !test_bit(position.pieces[WHITE as usize].rook_bitboard, H1_BIT) {
-                castle_white_kingside = true
+            let fen = fen.replace(" w ", " b ");
+            let position = get_position(&fen);
+            if is_check(&position, WHITE) {
+                println!("White is in check");
+            } else {
+                search_state.end_time = Instant::now().add(Duration::from_millis(250));
+                let mv = iterative_deepening(&position, 100_u8, &mut search_state);
+                println!("Black move is {}", algebraic_move_from_move(mv));
             }
-            if !test_bit(position.pieces[BLACK as usize].rook_bitboard, A8_BIT) {
-                castle_black_queenside = true
-            }
-            if !test_bit(position.pieces[BLACK as usize].rook_bitboard, H8_BIT) {
-                castle_black_kingside = true
-            }
-            let mv = iterative_deepening(&position, 100_u8, &mut search_state);
-            println!("{}", algebraic_move_from_move(mv));
 
             move_number += 1;
-            if mover == "w" {
-                mover = "b"
-            } else {
-                mover = "w"
-            }
+
             last_fen = fen.clone();
         }
 
@@ -135,7 +118,7 @@ fn is_screenshot_ready(chessboard_x: i32, chessboard_y: i32, chessboard_width: i
         .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
         .output().map_err(|e| e.to_string()).expect("TODO: panic message");
 
-    sleep(Duration::from_millis(250));
+    sleep(Duration::from_millis(50));
 
     Command::new("screencapture")
         .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot2.png"])
@@ -277,14 +260,14 @@ fn match_piece_image(image: &Mat) -> Result<String> {
     } else if (2500..3000).contains(&white_pixels) && (500..1000).contains(&black_pixels) {
         "R"
     } else if (3400..3800).contains(&white_pixels) {
-        if (900..1100).contains(&black_pixels) {
+        if (900..1050).contains(&black_pixels) {
             "N"
         } else {
             "K"
         }
     } else if (1500..2000).contains(&white_pixels) && (1000..1200).contains(&black_pixels) {
         "B"
-    } else if (2100..2300).contains(&white_pixels) && (1000..1200).contains(&black_pixels) {
+    } else if (2100..2400).contains(&white_pixels) && (1000..1300).contains(&black_pixels) {
         "Q"
     } else {
         println!("{} {}", white_pixels, black_pixels);
