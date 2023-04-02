@@ -290,7 +290,7 @@ pub fn any_squares_in_bitboard_attacked(position: &Position, attacked: Mover, mu
 }
 
 #[inline(always)]
-pub fn is_square_attacked(position: &Position, attacked_square: Square, attacked: Mover) -> bool {
+pub fn is_square_attacked_old(position: &Position, attacked_square: Square, attacked: Mover) -> bool {
     let enemy = position.pieces[opponent!(attacked) as usize];
 
     enemy.pawn_bitboard & PAWN_MOVES_CAPTURE[attacked as usize][attacked_square as usize] != 0

@@ -20,28 +20,40 @@ use crate::search::iterative_deepening;
 use crate::types::{BLACK, default_search_state, WHITE};
 use crate::utils::invert_fen;
 
-const BOARD_IMAGE_WIDTH: i32 = 2932;
 const RESIZED_BOARD_IMAGE_WIDTH: i32 = 1024;
-const CHESSBOARD_X: i32 = 1322;
-const CHESSBOARD_Y: i32 = 467;
 
-pub fn screen_scan() -> Result<()> {
+pub fn screen_scan(flipped_board: bool) -> Result<()> {
 
     let mut move_number = 0;
     let mut last_fen: String = "".to_string();
-    let mut flipped_board = false;
 
+    if flipped_board {
+        println!("Board is flipped");
+    } else {
+        println!("Board is not flipped");
+    }
     Command::new("screencapture")
         .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
         .output().map_err(|e| e.to_string()).expect("TODO: panic message");
 
-    let best_match_top_left = find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/eight.png")?;
-    let best_match_bottom_right = find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/h.png")?;
+    let best_match_top_left = if flipped_board {
+        find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/one.png")?
+    } else {
+        find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/eight.png")?
+    };
 
     let chessboard_x = best_match_top_left.x;
     let chessboard_y = best_match_top_left.y;
 
+    let best_match_bottom_right = if flipped_board {
+        find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/a.png")?
+    } else {
+        find_scaled_template("/tmp/screenshot.png", "/Users/chris/git/chris-moreton/resources/h.png")?
+    };
+
     let chessboard_width = best_match_bottom_right.x - chessboard_x + 67;
+
+    println!("Chessboard x: {}, y: {}, width: {}", chessboard_x, chessboard_y, chessboard_width);
 
     loop {
         let whole_screen = imgcodecs::imread("/tmp/screenshot.png", imgcodecs::IMREAD_COLOR)?;
@@ -57,9 +69,7 @@ pub fn screen_scan() -> Result<()> {
         for (i, square) in squares.iter().enumerate() {
             let center = extract_center(&square)?;
             let piece = match_piece_image(&center)?;
-            //println!("{}: {}", i, piece);
             let square_num = i + 1;
-            imgcodecs::imwrite(&*format!("/tmp/square-{}.png", square_num), &square, &Vector::new())?;
 
             if let Some(first_char) = piece.chars().next() {
                 piece_list.push(first_char);
@@ -68,42 +78,41 @@ pub fn screen_scan() -> Result<()> {
             }
         }
 
-        let mut castle_string = "-".to_string();
-        let mut fen = vec_to_fen(&piece_list, "w", &castle_string);
-        if move_number == 0 && fen.starts_with("R") {
-            println!("Board is flipped");
-            flipped_board = true;
-        }
-        if flipped_board {
-            piece_list.reverse();
-            fen = invert_fen(&vec_to_fen(&piece_list, "w", &castle_string));
-        }
-        if fen.split(" ").next() != last_fen.split(" ").next() {
-            println!("{}", fen);
-            let mut search_state = default_search_state();
-            search_state.show_info = false;
-            search_state.end_time = Instant::now().add(Duration::from_millis(250));
-            let position = get_position(&fen);
+        if !piece_list.is_empty() {
+            let mut castle_string = "-".to_string();
+            let mut fen = vec_to_fen(&piece_list, "w", &castle_string);
 
-            if is_check(&position, BLACK) {
-                println!("Black is in check");
-            } else {
-                let mv = iterative_deepening(&position, 100_u8, &mut search_state);
-                println!("White move is {}", algebraic_move_from_move(mv));
+            if flipped_board {
+                piece_list.reverse();
+                fen = vec_to_fen(&piece_list, "w", &castle_string)
             }
-            let fen = fen.replace(" w ", " b ");
-            let position = get_position(&fen);
-            if is_check(&position, WHITE) {
-                println!("White is in check");
-            } else {
+            if fen.split(" ").next() != last_fen.split(" ").next() {
+                println!("{}", fen);
+                let mut search_state = default_search_state();
+                search_state.show_info = false;
                 search_state.end_time = Instant::now().add(Duration::from_millis(250));
-                let mv = iterative_deepening(&position, 100_u8, &mut search_state);
-                println!("Black move is {}", algebraic_move_from_move(mv));
+                let position = get_position(&fen);
+
+                if is_check(&position, BLACK) {
+                    println!("Black is in check");
+                } else {
+                    let mv = iterative_deepening(&position, 100_u8, &mut search_state);
+                    println!("White move is {}", algebraic_move_from_move(mv));
+                }
+                let fen = fen.replace(" w ", " b ");
+                let position = get_position(&fen);
+                if is_check(&position, WHITE) {
+                    println!("White is in check");
+                } else {
+                    search_state.end_time = Instant::now().add(Duration::from_millis(250));
+                    let mv = iterative_deepening(&position, 100_u8, &mut search_state);
+                    println!("Black move is {}", algebraic_move_from_move(mv));
+                }
+
+                move_number += 1;
+
+                last_fen = fen.clone();
             }
-
-            move_number += 1;
-
-            last_fen = fen.clone();
         }
 
         while !is_screenshot_ready(chessboard_x, chessboard_y, chessboard_width)? { }
@@ -420,7 +429,6 @@ fn find_scaled_template(large_img_path: &str, template_img_path: &str) -> opencv
         imgproc::TM_SQDIFF_NORMED,
         &empty_mask,
     )?;
-
 
     let (mut min_val, mut max_val) = (0.,0.);
     let (mut min_loc, mut max_loc) = (Point::default(), Point::default());

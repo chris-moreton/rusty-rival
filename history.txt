@@ -1,11 +1,5 @@
 #V2
 ucinewgame
-go movetime 250
-ucinewgame
-go movetime 200
-ucinewgame
-go movetime 250
-ucinewgame
 go movetime 225
 ucinewgame
 go movetime 500
@@ -99,3 +93,9 @@ scan
 bench 1000
 scan
 position fen rnbqkbnr/pp--pppp/---p----/--p-----/----P---/-----N--/PPPP-PPP/RNBQKB-R b KQkq - 0 1
+go perft 6
+ucinewgame
+position startpos
+go depth 12
+ucinewgame
+go depth 14

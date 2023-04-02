@@ -222,6 +222,7 @@ impl Copy for BoundType {}
 pub fn unset_white_castles(position: &mut Position) {
     position.castle_flags &= !(WK_CASTLE | WQ_CASTLE)
 }
+
 #[inline(always)]
 pub fn unset_black_castles(position: &mut Position) {
     position.castle_flags &= !(BK_CASTLE | BQ_CASTLE)
