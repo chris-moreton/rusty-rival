@@ -218,6 +218,21 @@ fn extract_center(square: &Mat) -> Result<Mat, opencv::Error> {
     Ok(center)
 }
 
+fn extract_top_quarter(square: &Mat) -> Result<Mat, opencv::Error> {
+
+    // Calculate the top-left point of the center region
+    let top_left_x = 0;
+    let top_left_y = 0;
+
+    // Define the center region (ROI)
+    let center_roi = Rect::new(top_left_x, top_left_y, 120, 30);
+
+    // Extract the center region
+    let center = Mat::roi(&square, center_roi)?;
+
+    Ok(center)
+}
+
 fn resize_square_image(img: &Mat, size: Size_<i32>) -> Result<Mat, opencv::Error> {
     let new_size = size;
     let mut resized_img = Mat::default();
@@ -244,46 +259,54 @@ fn match_piece_image(image: &Mat) -> Result<String> {
     let white_pixels = count_pixels(image, PixelColor::White)?;
     let black_pixels = count_pixels(image, PixelColor::Black)?;
 
-    let answer = if white_pixels + black_pixels == 0 {
-        "-"
-    } else if white_pixels == 0 && black_pixels > 0 {
-       "p"
-    } else if black_pixels == 0 && white_pixels > 0 {
-        "P"
-    } else if white_pixels < 250 {
-        if black_pixels < 4500 {
-            "r"
-        } else {
-            "n"
+    if (white_pixels + black_pixels) == 0 {
+        return Ok("-".to_string());
+    }
+
+    let ratio = white_pixels as f32 / black_pixels as f32;
+
+    let answer = match (white_pixels, black_pixels) {
+        (0, _) => "p",
+        (1..=249, 1..=4499) => "r",
+        (1..=249, _) => "n",
+        (250..=499, 1..=3599) => "b",
+        (250..=499, _) => "q",
+        (800.., 2500..) => "k",
+        (1500.., 1..=749) => "P",
+        (2500..=3000, 500..=1000) => "R",
+        (3400..=3800, _) => {
+            if is_knight(image)? {
+                "N"
+            } else {
+                "K"
+            }
         }
-    } else if white_pixels < 500 {
-        if black_pixels < 3600 {
-            "b"
-        } else {
-            "q"
+        (1500..=2000, 1000..=1200) => "B",
+        (2100..=2400, 1000..=1300) => "Q",
+        _ => {
+            println!("{} {}", white_pixels, black_pixels);
+            exit(1);
         }
-    } else if white_pixels > 800 && black_pixels > 2500 {
-        "k"
-    } else if white_pixels > 1500 && black_pixels < 750 {
-        "P"
-    } else if (2500..3000).contains(&white_pixels) && (500..1000).contains(&black_pixels) {
-        "R"
-    } else if (3400..3800).contains(&white_pixels) {
-        if (900..1050).contains(&black_pixels) {
-            "N"
-        } else {
-            "K"
-        }
-    } else if (1500..2000).contains(&white_pixels) && (1000..1200).contains(&black_pixels) {
-        "B"
-    } else if (2100..2400).contains(&white_pixels) && (1000..1300).contains(&black_pixels) {
-        "Q"
-    } else {
-        println!("{} {}", white_pixels, black_pixels);
-        exit(1);
     };
 
+    println!(
+        "{} {} {:.4} {}",
+        white_pixels,
+        black_pixels,
+        ratio,
+        answer
+    );
+
     Ok(answer.to_string())
+}
+
+fn is_knight(square: &Mat) -> Result<bool> {
+    let image = extract_top_quarter(&square)?;
+
+    let white_pixels = count_pixels(&image, PixelColor::White)?;
+    let black_pixels = count_pixels(&image, PixelColor::Black)?;
+
+    return Ok(white_pixels > 0)
 }
 
 fn extract_chessboard_squares(img: &Mat) -> Result<Vec<Mat>, opencv::Error> {

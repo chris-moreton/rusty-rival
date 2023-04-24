@@ -1,19 +1,4 @@
 #V2
-ucinewgame
-go movetime 225
-ucinewgame
-go movetime 500
-ucinewgame
-go movetime 50
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 50
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 50
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 50
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 50
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
 go movetime 50
 position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
 go movetime 50
@@ -99,3 +84,18 @@ position startpos
 go depth 12
 ucinewgame
 go depth 14
+position fen r4rk1/ppp2p1p/1b1q2b1/5pB1/6P1/1QNp1N1P/PP3P2/3RR1K1 w 1 - 0 1
+position fen r4rk1/ppp2p1p/1b1q2b1/5pB1/6P1/1QNp1N1P/PP3P2/3RR1K1 w
+position fen r4rk1/ppp2p1p/1b1q2b1/5pB1/6P1/1QNp1N1P/PP3P2/3RR1K1 w -
+position fen r4rk1/ppp2p1p/1b1q2b1/5pB1/6P1/1QNp1N1P/PP3P2/3RR1K1 w - -
+position fen r4rk1/ppp2p1p/1b1q2b1/5pB1/6P1/1QNp1N1P/PP3P2/3RR1K1 w - - -
+position fen /r4rk1/ppp2p1p/1b1q2b1/5pB1/6P1/1QNp1N1P/PP3P2/3RR1K1 w - - -
+position fen r4rk1/ppp2p1p/1b1q2b1/5pB1/6P1/1QNp1N1P/PP3P2/3RR1K1 w - - 0 1
+position fen 4rrk1/ppp2p1p/1b4b1/4N3/3q2PB/1QNp4/PP3P2/3RR1K1 w - - 0 1
+go depth 12
+position fen 4rrk1/ppp2p1p/1b4b1/4N3/3q2P1/1QN3B1/PP1p1P2/3RR1K1 w - - 0 1
+go depth 14
+position fen 4rrk1/ppp2p1p/1b6/4N3/3q2P1/1QNb2B1/PP1pRP2/3R2K1 w - - 0 1
+go depth 14
+scam white
+scam black
