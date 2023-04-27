@@ -143,7 +143,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
         let mut new_position = *position;
         make_move(position, m, &mut new_position);
-        if !is_check(&new_position, position.mover) && see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position) > 0 {
+        if !is_check(&new_position, position.mover) {
             let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
             check_time!(search_state);
 

@@ -1,28 +1,4 @@
 #V2
-go movetime 50
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 50
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 250
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 400
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 4000
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 40000
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 400
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 250
-ucinewgame
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 100
-go movetime 5000
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 250
-ucinewgame
-position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
-go movetime 100
 go movetime 5000
 ucinewgame
 position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
@@ -99,3 +75,27 @@ position fen 4rrk1/ppp2p1p/1b6/4N3/3q2P1/1QNb2B1/PP1pRP2/3R2K1 w - - 0 1
 go depth 14
 scam white
 scam black
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 w 1 - 0 1
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 w - - 0 1
+go movetime 250
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go movetime 250
+go movetime 2500
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go depth 1
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go depth 2
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go depth 3
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go depth 12
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go depth 3
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go depth 1
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go depth 2
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go depth 4
+position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
+go depth 5
