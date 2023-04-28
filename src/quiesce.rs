@@ -138,8 +138,9 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         move_scores.push((m, score));
     }
 
-    while !move_scores.is_empty() {
-        let m = pick_high_score_move(&mut move_scores);
+    move_scores.sort_unstable_by(|a, b| b.1.cmp(&a.1));
+
+    for (m, _) in move_scores {
 
         let mut new_position = *position;
         make_move(position, m, &mut new_position);

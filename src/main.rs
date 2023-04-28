@@ -22,7 +22,7 @@ fn repl() -> Result<()> {
         let readline = rl.readline("");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_str());
+                rl.add_history_entry(line.as_str()).or(Err(ReadlineError::Eof))?;
                 handle_cmd_line(&mut uci_state, &mut search_state, line)
             },
             Err(ReadlineError::Interrupted) => {
