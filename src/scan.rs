@@ -7,6 +7,7 @@ use opencv::calib3d::{CALIB_CB_ADAPTIVE_THRESH, CALIB_CB_NORMALIZE_IMAGE, draw_c
 use opencv::core::{Point, Point2f, Rect, Vector, ToInputArray, InputArray, count_non_zero, BORDER_DEFAULT, Size_, min_max_loc, subtract, no_array, pow, sum_elems, absdiff, norm, CV_8UC4};
 use screenshots::Screen;
 use std::{fs};
+use std::error::Error;
 use std::io::Read;
 use std::ops::{Add, RangeInclusive};
 use std::path::Path;
@@ -21,7 +22,6 @@ use crate::types::{BLACK, default_search_state, WHITE};
 use crate::utils::invert_fen;
 use scrap::{Capturer, Display};
 use image::{ImageBuffer, Rgba};
-use std::error::Error;
 use std::ffi::c_void;
 use std::thread;
 use std::fmt;
@@ -62,77 +62,106 @@ pub fn screen_scan(flipped_board: bool) -> Result<()> {
     println!("Chessboard x: {}, y: {}, width: {}", chessboard_x, chessboard_y, chessboard_width);
 
     loop {
+        let start = Instant::now();
         let whole_screen = imgcodecs::imread("/tmp/screenshot.png", imgcodecs::IMREAD_COLOR)?;
+        //println!("Reading screenshot file took: {:?}", start.elapsed());
 
         let roi = Rect::new(chessboard_x, chessboard_y, chessboard_width, chessboard_width);
 
+        let start = Instant::now();
         let mut chessboard_image = Mat::roi(&whole_screen, roi)?;
         let mut chessboard_image_resized = resize_square_image(&chessboard_image, Size::new(RESIZED_BOARD_IMAGE_WIDTH, RESIZED_BOARD_IMAGE_WIDTH))?;
+        //println!("Resizing chessboard_image took: {:?}", start.elapsed());
 
+        let start = Instant::now();
         let squares = extract_chessboard_squares(&chessboard_image_resized)?;
+        //println!("Extracting chessboard squares took: {:?}", start.elapsed());
+
         let mut piece_list = Vec::new();
 
-        for (i, square) in squares.iter().enumerate() {
-            let center = extract_center(&square)?;
-            let piece = match_piece_image(&center)?;
+        let start = Instant::now();
+        if extract_pieces_from_resized_squares(squares, &mut piece_list) {
+        //println!("Matching pieces took: {:?}", start.elapsed());
 
+            if !piece_list.is_empty() {
+                let start = Instant::now();
+
+                let mut castle_string = "-".to_string();
+                let mut fen = vec_to_fen(&piece_list, "w", &castle_string);
+
+                if flipped_board {
+                    piece_list.reverse();
+                    fen = vec_to_fen(&piece_list, "w", &castle_string)
+                }
+                if fen.split(" ").next() != last_fen.split(" ").next() {
+                    println!("{}", fen);
+                    let mut search_state = default_search_state();
+                    search_state.show_info = false;
+                    search_state.end_time = Instant::now().add(Duration::from_millis(250));
+                    let position = get_position(&fen);
+
+                    if is_check(&position, BLACK) {
+                        println!("Black is in check");
+                    } else {
+                        if !flipped_board {
+                            let mv = iterative_deepening(&position, 100_u8, &mut search_state);
+                            println!("White move is {}", algebraic_move_from_move(mv));
+                        }
+                    }
+                    let fen = fen.replace(" w ", " b ");
+                    let position = get_position(&fen);
+                    if is_check(&position, WHITE) {
+                        println!("White is in check");
+                    } else {
+                        if flipped_board {
+                            let mv = iterative_deepening(&position, 100_u8, &mut search_state);
+                            println!("Black move is {}", algebraic_move_from_move(mv));
+                        }
+                    }
+
+                    move_number += 1;
+
+                    last_fen = fen.clone();
+                }
+                //println!("Generating FEN took: {:?}", start.elapsed());
+            }
+        } else {
+            println!("Failed to match pieces");
+        }
+
+        let start = Instant::now();
+        Command::new("screencapture")
+            .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
+            .output().map_err(|e| e.to_string()).expect("TODO: panic message");
+        //println!("Taking screenshot took: {:?}", start.elapsed());
+
+    }
+}
+
+fn extract_pieces_from_resized_squares(squares: Vec<Mat>, piece_list: &mut Vec<char>) -> bool {
+    for (i, square) in squares.iter().enumerate() {
+        let center = extract_center(&square).unwrap();
+        let piece = match_piece_image(&center);
+        if piece != "" {
             if let Some(first_char) = piece.chars().next() {
-                if first_char == 'K' && piece_list.contains(&'K') {
-                    println!("White has more than one king");
-                    exit(1);
-                }
-                if first_char == 'k' && piece_list.contains(&'k') {
-                    println!("Black has more than one king");
-                    exit(1);
-                }
+                // if first_char == 'K' && piece_list.contains(&'K') {
+                //     println!("White has more than one king");
+                //     return false
+                // }
+                // if first_char == 'k' && piece_list.contains(&'k') {
+                //     println!("Black has more than one king");
+                //     return false
+                // }
 
                 piece_list.push(first_char);
             } else {
                 println!("The input string is empty.");
             }
+        } else {
+            return false
         }
-
-        if !piece_list.is_empty() {
-
-            let mut castle_string = "-".to_string();
-            let mut fen = vec_to_fen(&piece_list, "w", &castle_string);
-
-            if flipped_board {
-                piece_list.reverse();
-                fen = vec_to_fen(&piece_list, "w", &castle_string)
-            }
-            if fen.split(" ").next() != last_fen.split(" ").next() {
-                println!("{}", fen);
-                let mut search_state = default_search_state();
-                search_state.show_info = false;
-                search_state.end_time = Instant::now().add(Duration::from_millis(250));
-                let position = get_position(&fen);
-
-                if is_check(&position, BLACK) {
-                    println!("Black is in check");
-                } else {
-                    let mv = iterative_deepening(&position, 100_u8, &mut search_state);
-                    println!("White move is {}", algebraic_move_from_move(mv));
-                }
-                let fen = fen.replace(" w ", " b ");
-                let position = get_position(&fen);
-                if is_check(&position, WHITE) {
-                    println!("White is in check");
-                } else {
-                    search_state.end_time = Instant::now().add(Duration::from_millis(250));
-                    let mv = iterative_deepening(&position, 100_u8, &mut search_state);
-                    println!("Black move is {}", algebraic_move_from_move(mv));
-                }
-
-                move_number += 1;
-
-                last_fen = fen.clone();
-            }
-        }
-
-        while !is_screenshot_ready(chessboard_x, chessboard_y, chessboard_width)? { }
-
     }
+    return true
 }
 
 fn is_screenshot_ready(chessboard_x: i32, chessboard_y: i32, chessboard_width: i32) -> Result<bool> {
@@ -325,7 +354,7 @@ fn extract_top_quarter(square: &Mat) -> Result<Mat, opencv::Error> {
 fn resize_square_image(img: &Mat, size: Size_<i32>) -> Result<Mat, opencv::Error> {
     let new_size = size;
     let mut resized_img = Mat::default();
-    resize(&img, &mut resized_img, new_size, 0.0, 0.0, INTER_LINEAR)?;
+    resize(&img, &mut resized_img, new_size, 0.0, 0.0, INTER_AREA)?;
     Ok(resized_img)
 }
 
@@ -337,56 +366,71 @@ fn in_range(i: i32, target: i32) -> RangeInclusive<i32> {
 
 
 // rnbqkbnr/rnbqkbnr/pppppppp/pppppppp/PPPPPPPP/PPPPPPPP/RNBQKBNR/RNBQKBNR w - - 0 1
+// rnbqkbnr/rnbqkbnr/pppppppp/pppppppp/PPPPPPPP/PPPPPPPP/RNBQKBNR/RNBQKBNR w 1 - 0 1
 
 enum PixelColor {
     Black,
     White,
 }
 
-fn match_piece_image(image: &Mat) -> Result<String> {
+fn match_piece_image(image: &Mat) -> String {
 
-    let white_pixels = count_pixels(image, PixelColor::White)?;
-    let black_pixels = count_pixels(image, PixelColor::Black)?;
+    let white_pixels = count_pixels(image, PixelColor::White).unwrap();
+    let black_pixels = count_pixels(image, PixelColor::Black).unwrap();
 
-    if (white_pixels + black_pixels) == 0 {
-        return Ok("-".to_string());
-    }
+    let answer = if (white_pixels + black_pixels) == 0 {
+        "-".to_string()
+    } else {
+        if white_pixels < 1200 {
+            match_black_piece(white_pixels, black_pixels)
+        } else {
+            match_white_piece(white_pixels, black_pixels, image)
+        }
+    };
 
-    let ratio = white_pixels as f32 / black_pixels as f32;
+    //println!("{},{},{}", answer.to_string(), white_pixels, black_pixels);
+    answer
+}
 
-    let answer = match (white_pixels, black_pixels) {
-        (0, _) => "p",
-        (1..=249, 1..=4499) => "r",
-        (1..=249, _) => "n",
-        (250..=499, 1..=3599) => "b",
-        (250..=499, _) => "q",
-        (800.., 2500..) => "k",
-        (1500.., 1..=749) => "P",
-        (2500..=3000, 500..=1000) => "R",
-        (3400..=3800, _) => {
-            if is_knight(image)? {
+fn match_white_piece(white_pixels: i32, black_pixels: i32, image: &Mat) -> String {
+    match (white_pixels, black_pixels) {
+        (..=1900, ..=750) => "P",
+        (..=1900, 751..) => "B",
+        (..=2500, _) => "Q",
+        (..=3000, _) => "R",
+        (3000.., 600..) => {
+            if is_knight(image) {
                 "N"
             } else {
                 "K"
             }
-        }
-        (1500..=2000, 1000..=1200) => "B",
-        (2100..=2400, 1000..=1300) => "Q",
+        },
         _ => {
-            println!("{} {}", white_pixels, black_pixels);
-            exit(1);
+            "X"
         }
-    };
-
-    Ok(answer.to_string())
+    }.to_string()
 }
 
-fn is_knight(square: &Mat) -> Result<bool> {
-    let image = extract_top_quarter(&square)?;
+fn match_black_piece(white_pixels: i32, black_pixels: i32) -> String {
+    match (white_pixels, black_pixels) {
+        (0, _) => "p",
+        (_, 4300..) => "n",
+        (_, 4000..) => "r",
+        (_, 3450..) => "q",
+        (_, 3000..) => "b",
+        (_, 2500..) => "k",
+        _ => {
+            "X"
+        }
+    }.to_string()
+}
 
-    let white_pixels = count_pixels(&image, PixelColor::White)?;
+fn is_knight(square: &Mat) -> bool {
+    let image = extract_top_quarter(&square).unwrap();
 
-    return Ok(white_pixels > 0)
+    let white_pixels = count_pixels(&image, PixelColor::White).unwrap();
+
+    return white_pixels > 0
 }
 
 fn extract_chessboard_squares(img: &Mat) -> Result<Vec<Mat>, opencv::Error> {
