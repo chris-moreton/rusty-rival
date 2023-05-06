@@ -95,7 +95,8 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
         "quit" => exit(0),
         "mvm" => cmd_mvm(search_state, parts),
         "position" => cmd_position(uci_state, search_state, parts),
-        "scan" => cmd_scan(uci_state, search_state, parts),
+        "sw" => cmd_scan(true),
+        "sb" => cmd_scan(false),
         _ => Left("Unknown command".parse().unwrap()),
     }
 }
@@ -401,9 +402,8 @@ fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchSta
     Right(None)
 }
 
-fn cmd_scan(mut uci_state: &mut UciState, mut search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_scan(is_white: bool) -> Either<String, Option<String>> {
 
-    println!("Parts: {:?}", parts);
-    screen_scan(parts[1] == "black").expect("TODO: panic message");
+    screen_scan(!is_white).expect("TODO: panic message");
     Right(None)
 }

@@ -25,12 +25,14 @@ use image::{ImageBuffer, Rgba};
 use std::ffi::c_void;
 use std::thread;
 use std::fmt;
+use colored::*;
 
 const RESIZED_BOARD_IMAGE_WIDTH: i32 = 1024;
 
 pub fn screen_scan(flipped_board: bool) -> Result<()> {
 
     let mut move_number = 0;
+    let mut ticker = 0;
     let mut last_fen: String = "".to_string();
 
     if flipped_board {
@@ -62,6 +64,7 @@ pub fn screen_scan(flipped_board: bool) -> Result<()> {
     println!("Chessboard x: {}, y: {}, width: {}", chessboard_x, chessboard_y, chessboard_width);
 
     loop {
+
         let start = Instant::now();
         let whole_screen = imgcodecs::imread("/tmp/screenshot.png", imgcodecs::IMREAD_COLOR)?;
         //println!("Reading screenshot file took: {:?}", start.elapsed());
@@ -94,28 +97,26 @@ pub fn screen_scan(flipped_board: bool) -> Result<()> {
                     fen = vec_to_fen(&piece_list, "w", &castle_string)
                 }
                 if fen.split(" ").next() != last_fen.split(" ").next() {
-                    println!("{}", fen);
+                    // println!("{}", fen);
                     let mut search_state = default_search_state();
                     search_state.show_info = false;
                     search_state.end_time = Instant::now().add(Duration::from_millis(250));
                     let position = get_position(&fen);
 
-                    if is_check(&position, BLACK) {
-                        println!("Black is in check");
-                    } else {
+                    if !is_check(&position, BLACK) {
                         if !flipped_board {
                             let mv = iterative_deepening(&position, 100_u8, &mut search_state);
-                            println!("White move is {}", algebraic_move_from_move(mv));
+                            ticker += 1;
+                            println!("{}", colored_text(algebraic_move_from_move(mv), ticker));
                         }
                     }
                     let fen = fen.replace(" w ", " b ");
                     let position = get_position(&fen);
-                    if is_check(&position, WHITE) {
-                        println!("White is in check");
-                    } else {
+                    if !is_check(&position, WHITE) {
                         if flipped_board {
                             let mv = iterative_deepening(&position, 100_u8, &mut search_state);
-                            println!("Black move is {}", algebraic_move_from_move(mv));
+                            ticker += 1;
+                            println!("{}", colored_text(algebraic_move_from_move(mv), ticker));
                         }
                     }
 
@@ -138,20 +139,30 @@ pub fn screen_scan(flipped_board: bool) -> Result<()> {
     }
 }
 
+fn colored_text(text: String, number: u32) -> ColoredString {
+    let color_index = number % 4;
+
+    match color_index {
+        0 => text.red(),
+        1 => text.green(),
+        2 => text.blue(),
+        3 => text.yellow(),
+        _ => text.normal(), // This case should never be reached
+    }
+}
+
 fn extract_pieces_from_resized_squares(squares: Vec<Mat>, piece_list: &mut Vec<char>) -> bool {
     for (i, square) in squares.iter().enumerate() {
         let center = extract_center(&square).unwrap();
         let piece = match_piece_image(&center);
         if piece != "" {
             if let Some(first_char) = piece.chars().next() {
-                // if first_char == 'K' && piece_list.contains(&'K') {
-                //     println!("White has more than one king");
-                //     return false
-                // }
-                // if first_char == 'k' && piece_list.contains(&'k') {
-                //     println!("Black has more than one king");
-                //     return false
-                // }
+                if first_char == 'K' && piece_list.contains(&'K') {
+                    return false
+                }
+                if first_char == 'k' && piece_list.contains(&'k') {
+                    return false
+                }
 
                 piece_list.push(first_char);
             } else {
@@ -161,7 +172,7 @@ fn extract_pieces_from_resized_squares(squares: Vec<Mat>, piece_list: &mut Vec<c
             return false
         }
     }
-    return true
+    return piece_list.contains(&'k') && piece_list.contains(&'K');
 }
 
 fn is_screenshot_ready(chessboard_x: i32, chessboard_y: i32, chessboard_width: i32) -> Result<bool> {
