@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use opencv::core::{Point, Rect, count_non_zero, Size_, min_max_loc};
 use std::ops::{Add};
 use std::process::{Command};
-use crate::fen::{algebraic_move_from_move, get_position};
+use crate::fen::{algebraic_move_from_move, get_position, simple_algebraic_to_pretty_algebraic};
 use crate::moves::is_check;
 use crate::search::iterative_deepening;
 use crate::types::{BLACK, default_search_state, WHITE};
@@ -86,8 +86,9 @@ pub fn screen_scan(flipped_board: bool) -> Result<()> {
                     if !is_check(&position, BLACK) {
                         if !flipped_board {
                             let mv = iterative_deepening(&position, 100_u8, &mut search_state);
+                            let mv_text = simple_algebraic_to_pretty_algebraic(&*fen, algebraic_move_from_move(mv)).unwrap();
                             ticker += 1;
-                            show_move_text(algebraic_move_from_move(mv), ticker);
+                            show_move_text(mv_text, ticker);
                         }
                     }
                     let fen = fen.replace(" w ", " b ");
@@ -95,8 +96,9 @@ pub fn screen_scan(flipped_board: bool) -> Result<()> {
                     if !is_check(&position, WHITE) {
                         if flipped_board {
                             let mv = iterative_deepening(&position, 100_u8, &mut search_state);
+                            let mv_text = simple_algebraic_to_pretty_algebraic(&*fen, algebraic_move_from_move(mv)).unwrap();
                             ticker += 1;
-                            show_move_text(algebraic_move_from_move(mv), ticker);
+                            show_move_text(mv_text, ticker);
                         }
                     }
 

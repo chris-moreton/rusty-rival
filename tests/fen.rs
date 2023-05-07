@@ -1,5 +1,5 @@
 use rusty_rival::bitboards::{B2_BIT, C8_BIT, D8_BIT, E1_BIT, E2_BIT, F3_BIT, F4_BIT};
-use rusty_rival::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, fen_move_to_algebraic, get_fen, get_fen_ranks, get_piece_on_square, get_position, move_from_algebraic_move, piece_bitboard, rank_bits};
+use rusty_rival::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, simple_algebraic_to_pretty_algebraic, get_fen, get_fen_ranks, get_piece_on_square, get_position, move_from_algebraic_move, piece_bitboard, rank_bits};
 use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, START_POS};
 use rusty_rival::types::{is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, BLACK, WHITE};
 
@@ -186,9 +186,9 @@ fn it_creates_a_position_from_a_fen_2() {
 #[test]
 fn it_converts_a_simple_move_to_an_algebraic_move() {
     let fen = "6k1/P5p1/1pq1N2p/1p5P/1P3RP1/2PK1B2/1r2N3/7N w - - 0 1";
-    assert_eq!(fen_move_to_algebraic(fen, "f3a8"), Some(String::from("Ba8")));
-    assert_eq!(fen_move_to_algebraic(fen, "c3c4"), Some(String::from("c4")));
-    assert_eq!(fen_move_to_algebraic(fen, "a7a8q"), Some(String::from("a8q")));
-    assert_eq!(fen_move_to_algebraic(fen, "e2d4"), Some(String::from("N2d4")));
-    assert_eq!(fen_move_to_algebraic(fen, "h1g3"), Some(String::from("Nhg3")));
+    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "f3a8".to_string()), Some(String::from("Ba8")));
+    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "c3c4".to_string()), Some(String::from("c4")));
+    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "a7a8q".to_string()), Some(String::from("a8q")));
+    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "e2d4".to_string()), Some(String::from("N2d4")));
+    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "h1g3".to_string()), Some(String::from("Nhg3")));
 }

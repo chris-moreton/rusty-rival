@@ -314,7 +314,7 @@ pub fn get_fen(position: &Position) -> String {
     fen
 }
 
-pub fn fen_move_to_algebraic(fen: &str, move_str: &str) -> Option<String> {
+pub fn simple_algebraic_to_pretty_algebraic(fen: &str, move_str: String) -> Option<String> {
     let pieces = "RNBQKPrnbqkp";
     let mut piece_to_algebraic: HashMap<char, String> = HashMap::new();
     for ch in pieces.chars() {
