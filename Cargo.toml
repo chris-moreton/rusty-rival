@@ -27,10 +27,12 @@ rustyline = "11.0.0"
 screenshots = "0.5.3"
 fs = "0.0.5"
 image = "0.24.6"
-opencv = "0.78.2"
+opencv = "0.81.1"
 md5 = "0.7.0"
 scrap = "0.5.0"
 colored = "2.0.0"
+figlet-rs = "0.1.4"
+crossterm = "0.26.1"
 
 
 

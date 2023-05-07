@@ -1,6 +1,6 @@
 use crate::bitboards::{BISHOP_RAYS, bit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, ROOK_RAYS};
 
-use crate::moves::{generate_capture_pawn_moves_with_destinations, generate_diagonal_slider_moves, generate_straight_slider_moves, is_check};
+use crate::moves::{is_check};
 use crate::types::{Bitboard, BLACK, Move, MoveList, Position, Score, Square, WHITE};
 use crate::utils::{from_square_mask, from_square_part, to_square_part};
 use std::cmp::min;
@@ -8,7 +8,7 @@ use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_V
 
 
 use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_BISHOP, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, EN_PASSANT_CAPTURE_MASK, PROMOTION_SQUARES};
-use crate::{add_moves, get_and_unset_lsb, opponent};
+use crate::{get_and_unset_lsb, get_lsb, opponent};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 
 
@@ -115,12 +115,12 @@ pub fn generate_capture_pawn_moves_with_destinations_see(
     while from_squares != 0 {
         let from_square = get_and_unset_lsb!(from_squares);
 
-        let mut to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & valid_destinations;
+        let to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & valid_destinations;
 
         let fsm = from_square_mask(from_square);
         let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
         if to_bitboard != 0 {
-            let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
+            let base_move = fsm | get_lsb!(to_bitboard) as Move;
             if is_promotion {
                 move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
             } else {

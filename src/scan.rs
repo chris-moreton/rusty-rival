@@ -1,37 +1,26 @@
-use std::arch::aarch64::int32x2_t;
 use opencv::prelude::*;
 
-use opencv::{core::{Mat, Size}, highgui, imgcodecs, imgproc::*, videoio, Result, imgproc, ximgproc};
+use opencv::{core::{Mat, Size}, imgcodecs, imgproc::*, Result, imgproc};
 use std::time::{Duration, Instant};
-use opencv::calib3d::{CALIB_CB_ADAPTIVE_THRESH, CALIB_CB_NORMALIZE_IMAGE, draw_chessboard_corners, find_chessboard_corners};
-use opencv::core::{Point, Point2f, Rect, Vector, ToInputArray, InputArray, count_non_zero, BORDER_DEFAULT, Size_, min_max_loc, subtract, no_array, pow, sum_elems, absdiff, norm, CV_8UC4};
-use screenshots::Screen;
-use std::{fs};
-use std::error::Error;
-use std::io::Read;
-use std::ops::{Add, RangeInclusive};
-use std::path::Path;
-use std::process::{Command, exit};
-use std::thread::sleep;
-use opencv::types::VectorOfVectorOfPoint;
-use crate::bitboards::{A1_BIT, A8_BIT, bit, H1_BIT, H8_BIT, test_bit};
+use opencv::core::{Point, Rect, count_non_zero, Size_, min_max_loc};
+use std::ops::{Add};
+use std::process::{Command};
 use crate::fen::{algebraic_move_from_move, get_position};
 use crate::moves::is_check;
 use crate::search::iterative_deepening;
 use crate::types::{BLACK, default_search_state, WHITE};
-use crate::utils::invert_fen;
-use scrap::{Capturer, Display};
-use image::{ImageBuffer, Rgba};
-use std::ffi::c_void;
-use std::thread;
-use std::fmt;
 use colored::*;
+use figlet_rs::FIGfont;
+use crossterm::{
+    terminal::{self, ClearType},
+    execute,
+};
+use std::io::{stdout};
 
 const RESIZED_BOARD_IMAGE_WIDTH: i32 = 1024;
 
 pub fn screen_scan(flipped_board: bool) -> Result<()> {
 
-    let mut move_number = 0;
     let mut ticker = 0;
     let mut last_fen: String = "".to_string();
 
@@ -65,31 +54,22 @@ pub fn screen_scan(flipped_board: bool) -> Result<()> {
 
     loop {
 
-        let start = Instant::now();
         let whole_screen = imgcodecs::imread("/tmp/screenshot.png", imgcodecs::IMREAD_COLOR)?;
-        //println!("Reading screenshot file took: {:?}", start.elapsed());
 
         let roi = Rect::new(chessboard_x, chessboard_y, chessboard_width, chessboard_width);
 
-        let start = Instant::now();
-        let mut chessboard_image = Mat::roi(&whole_screen, roi)?;
-        let mut chessboard_image_resized = resize_square_image(&chessboard_image, Size::new(RESIZED_BOARD_IMAGE_WIDTH, RESIZED_BOARD_IMAGE_WIDTH))?;
-        //println!("Resizing chessboard_image took: {:?}", start.elapsed());
+        let chessboard_image = Mat::roi(&whole_screen, roi)?;
+        let chessboard_image_resized = resize_square_image(&chessboard_image, Size::new(RESIZED_BOARD_IMAGE_WIDTH, RESIZED_BOARD_IMAGE_WIDTH))?;
 
-        let start = Instant::now();
         let squares = extract_chessboard_squares(&chessboard_image_resized)?;
-        //println!("Extracting chessboard squares took: {:?}", start.elapsed());
 
         let mut piece_list = Vec::new();
 
-        let start = Instant::now();
         if extract_pieces_from_resized_squares(squares, &mut piece_list) {
-        //println!("Matching pieces took: {:?}", start.elapsed());
 
             if !piece_list.is_empty() {
-                let start = Instant::now();
 
-                let mut castle_string = "-".to_string();
+                let castle_string = "-".to_string();
                 let mut fen = vec_to_fen(&piece_list, "w", &castle_string);
 
                 if flipped_board {
@@ -107,7 +87,7 @@ pub fn screen_scan(flipped_board: bool) -> Result<()> {
                         if !flipped_board {
                             let mv = iterative_deepening(&position, 100_u8, &mut search_state);
                             ticker += 1;
-                            println!("{}", colored_text(algebraic_move_from_move(mv), ticker));
+                            show_move_text(algebraic_move_from_move(mv), ticker);
                         }
                     }
                     let fen = fen.replace(" w ", " b ");
@@ -116,43 +96,24 @@ pub fn screen_scan(flipped_board: bool) -> Result<()> {
                         if flipped_board {
                             let mv = iterative_deepening(&position, 100_u8, &mut search_state);
                             ticker += 1;
-                            println!("{}", colored_text(algebraic_move_from_move(mv), ticker));
+                            show_move_text(algebraic_move_from_move(mv), ticker);
                         }
                     }
-
-                    move_number += 1;
 
                     last_fen = fen.clone();
                 }
                 //println!("Generating FEN took: {:?}", start.elapsed());
             }
-        } else {
-            println!("Failed to match pieces");
         }
 
-        let start = Instant::now();
         Command::new("screencapture")
             .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
             .output().map_err(|e| e.to_string()).expect("TODO: panic message");
-        //println!("Taking screenshot took: {:?}", start.elapsed());
-
-    }
-}
-
-fn colored_text(text: String, number: u32) -> ColoredString {
-    let color_index = number % 4;
-
-    match color_index {
-        0 => text.red(),
-        1 => text.green(),
-        2 => text.blue(),
-        3 => text.yellow(),
-        _ => text.normal(), // This case should never be reached
     }
 }
 
 fn extract_pieces_from_resized_squares(squares: Vec<Mat>, piece_list: &mut Vec<char>) -> bool {
-    for (i, square) in squares.iter().enumerate() {
+    for (_, square) in squares.iter().enumerate() {
         let center = extract_center(&square).unwrap();
         let piece = match_piece_image(&center);
         if piece != "" {
@@ -175,119 +136,28 @@ fn extract_pieces_from_resized_squares(squares: Vec<Mat>, piece_list: &mut Vec<c
     return piece_list.contains(&'k') && piece_list.contains(&'K');
 }
 
-fn is_screenshot_ready(chessboard_x: i32, chessboard_y: i32, chessboard_width: i32) -> Result<bool> {
+fn show_move_text(text: String, number: u32) {
 
-    Command::new("screencapture")
-        .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot.png"])
-        .output().map_err(|e| e.to_string()).expect("TODO: panic message");
+    let color_index = number % 4;
 
-    sleep(Duration::from_millis(50));
+    execute!(stdout(), terminal::Clear(ClearType::All)).unwrap();
 
-    Command::new("screencapture")
-        .args(&["-D1", "-x", "-t", "png", "/tmp/screenshot2.png"])
-        .output().map_err(|e| e.to_string()).expect("TODO: panic message");
+    // Load a FIGfont
+    let font = FIGfont::standard().unwrap();
 
-    let s = imgcodecs::imread("/tmp/screenshot.png", imgcodecs::IMREAD_COLOR)?;
-    let s2 = imgcodecs::imread("/tmp/screenshot2.png", imgcodecs::IMREAD_COLOR)?;
+    // Generate the banner-style text
+    let banner = font.convert(text.as_str()).unwrap().to_string();
 
-    // let s = capture()?;
-    // sleep(Duration::from_millis(50));
-    // let s2 = capture()?;
-
-    let roi = Rect::new(chessboard_x, chessboard_y, chessboard_width, chessboard_width);
-
-    let mut c = Mat::roi(&s, roi)?;
-    let mut c2 = Mat::roi(&s2, roi)?;
-
-    imgcodecs::imwrite("/tmp/board.png",&c, &Vector::new())?;
-    imgcodecs::imwrite("/tmp/board2.png", &c2, &Vector::new())?;
-
-    return Ok(compare_files("/tmp/board.png", "/tmp/board2.png"))
-
-}
-
-fn capture() -> Result<Mat> {
-    let display = Display::primary();
-
-    match display {
-        Ok(display) => {
-            let mut capturer = Capturer::new(display);
-
-            match capturer {
-                Ok(mut capturer) => {
-                    let (width, height) = (capturer.width(), capturer.height());
-                    let frame = loop {
-                        match capturer.frame() {
-                            Ok(frame) => break frame,
-                            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                                thread::sleep(Duration::from_millis(100));
-                                continue;
-                            },
-                            Err(e) => {
-                                println!("Failed to capture frame: {}", e);
-                                exit(1)
-                            },
-                        }
-                    };
-
-                    let buffer =
-                        ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(width as u32, height as u32, frame.to_vec())
-                            .ok_or("Failed to create image buffer");
-
-                    match buffer {
-                        Ok(buffer) => {
-                            let mat = imgbuf_to_mat(&buffer);
-                            match mat {
-                                Ok(mat) => Ok(mat),
-                                Err(e) => {
-                                    println!("Failed to create mat: {}", e);
-                                    exit(1)
-                                }
-                            }
-                        },
-                        Err(e) => {
-                            println!("Failed to create image buffer: {}", e);
-                            exit(1)
-                        }
-                    }
-                },
-                Err(e) => {
-                    println!("Failed to create capturer: {}", e);
-                    exit(1)
-                }
-            }
-        },
-        Err(e) => {
-            println!("Failed to get display");
-            exit(1)
-        }
-    }
-
-}
-
-fn imgbuf_to_mat(imgbuf: &ImageBuffer<Rgba<u8>, Vec<u8>>) -> Result<Mat, Box<dyn Error>> {
-    let (width, height) = (imgbuf.width(), imgbuf.height());
-    let data = imgbuf.as_flat_samples();
-    let step = 4 * width;
-
-    let mat: Mat = unsafe {
-        Mat::new_rows_cols_with_data(height as i32, width as i32, CV_8UC4, data.as_slice().as_ptr() as *mut c_void, step as usize)?
+    // Print the banner-style text
+    let coloured_text = match color_index {
+        0 => banner.red(),
+        1 => banner.green(),
+        2 => banner.blue(),
+        3 => banner.yellow(),
+        _ => banner.yellow(), // This case should never be reached
     };
 
-    Ok(mat)
-}
-
-fn compare_files(path1: &str, path2: &str) -> bool {
-    let mut file1 = fs::File::open(path1).expect("");
-    let mut file2 = fs::File::open(path2).expect("");
-
-    let mut buf1 = Vec::new();
-    let mut buf2 = Vec::new();
-
-    file1.read_to_end(&mut buf1).expect("TODO: panic message");
-    file2.read_to_end(&mut buf2).expect("TODO: panic message");
-
-    buf1 == buf2
+    println!("{}", coloured_text);
 }
 
 fn vec_to_fen(pieces: &Vec<char>, mover: &str, castle_string: &str) -> String {
@@ -368,13 +238,6 @@ fn resize_square_image(img: &Mat, size: Size_<i32>) -> Result<Mat, opencv::Error
     resize(&img, &mut resized_img, new_size, 0.0, 0.0, INTER_AREA)?;
     Ok(resized_img)
 }
-
-fn in_range(i: i32, target: i32) -> RangeInclusive<i32> {
-    let lower = target - 10;
-    let upper = target + 10;
-    lower..=upper
-}
-
 
 // rnbqkbnr/rnbqkbnr/pppppppp/pppppppp/PPPPPPPP/PPPPPPPP/RNBQKBNR/RNBQKBNR w - - 0 1
 // rnbqkbnr/rnbqkbnr/pppppppp/pppppppp/PPPPPPPP/PPPPPPPP/RNBQKBNR/RNBQKBNR w 1 - 0 1
@@ -495,86 +358,13 @@ fn count_pixels(square: &Mat, color: PixelColor) -> Result<i32, opencv::Error> {
     Ok(pixels)
 }
 
-fn extract_pieces(img: &Mat) -> Result<Vec<String>> {
-    // Convert the image to grayscale
-    let mut gray = Mat::default();
-    cvt_color(&img, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
-
-    // Apply Gaussian blur to reduce noise
-    let mut blurred = Mat::default();
-    gaussian_blur(&gray, &mut blurred, Size::new(5, 5), 0.0, 0.0, BORDER_DEFAULT)?;
-
-    // Apply adaptive thresholding to the image
-    let mut thresh = Mat::default();
-    imgproc::adaptive_threshold(
-        &blurred,
-        &mut thresh,
-        255.0,
-        imgproc::ADAPTIVE_THRESH_MEAN_C,
-        imgproc::THRESH_BINARY,
-        11,
-        2.0,
-    )?;
-
-    // Find the contours of the thresholded image
-    let mut contours: VectorOfVectorOfPoint = VectorOfVectorOfPoint::new();
-    find_contours(
-        &thresh,
-        &mut contours,
-        imgproc::RETR_LIST,
-        imgproc::CHAIN_APPROX_SIMPLE,
-        Point::new(0.0 as i32, 0.0 as i32),
-    )?;
-
-    // Sort the contours by area and filter out small and large contours
-    let mut areas = vec![];
-    for contour in contours.iter() {
-        let area = contour_area(&contour, false)?;
-        areas.push((contour.clone(), area));
-    }
-    areas.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-
-    let mut pieces = Vec::new();
-    let mut last_area = 0.0;
-    for (contour, area) in areas.iter().rev() {
-        // Filter out contours that are too small or too large
-        if area < &(last_area / 2.0) || area > &(last_area * 2.0) {
-            continue;
-        }
-        last_area = *area;
-
-        // Find the bounding rectangle of the contour
-        let rect = bounding_rect(contour)?;
-
-        // Extract the sub-image within the bounding rectangle
-        let subimg = Mat::roi(img, rect)?;
-        let mut subimg_gray = Mat::default();
-        imgproc::cvt_color(&subimg, &mut subimg_gray, imgproc::COLOR_BGR2GRAY, 0)?;
-
-        // Threshold the sub-image and count the number of white pixels
-        let mut subimg_thresh = Mat::default();
-        imgproc::threshold(
-            &subimg_gray,
-            &mut subimg_thresh,
-            0.0,
-            255.0,
-            imgproc::THRESH_BINARY_INV | imgproc::THRESH_OTSU,
-        )?;
-        let white_pixels = count_non_zero(&subimg_thresh)?;
-
-        pieces.push(white_pixels.to_string());
-    }
-
-    Ok(pieces)
-}
-
 fn find_scaled_template(large_img_path: &str, template_img_path: &str) -> opencv::Result<Point> {
     // Load the images
     let large_img = imgcodecs::imread(large_img_path, imgcodecs::IMREAD_COLOR)?;
     let template_img = imgcodecs::imread(template_img_path, imgcodecs::IMREAD_COLOR)?;
 
     let mut best_match = Point::new(-1, -1);
-    let mut best_match_val = f64::MAX;
+    let best_match_val = f64::MAX;
 
     // Perform template matching
     let empty_mask = Mat::default();
@@ -601,7 +391,6 @@ fn find_scaled_template(large_img_path: &str, template_img_path: &str) -> opencv
 
     // Update the best match if necessary
     if min_val < best_match_val {
-        best_match_val = min_val;
         best_match = min_loc;
     }
 

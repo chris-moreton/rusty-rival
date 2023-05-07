@@ -15,12 +15,10 @@ use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Window, BLACK, WHITE,
 };
-use crate::utils::{captured_piece_value, from_square_part, penultimate_pawn_push, send_info, to_square_part};
+use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
-use crate::fen::algebraic_move_from_move;
-
 
 pub const MAX_WINDOW: Score = 20000;
 pub const MATE_SCORE: Score = 10000;
@@ -307,7 +305,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_height = 0;
     let mut hash_version = 0;
     let mut best_pathscore: PathScore = (vec![0], -MATE_SCORE);
-    let mut hash_score_was_a_lower_bound = false;
 
     let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let mut hash_move = match search_state.hash_table_height.get(index) {
@@ -336,7 +333,6 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     }
                     if x.bound == Lower && score > alpha {
                         alpha = score;
-                        hash_score_was_a_lower_bound = true
                     }
                     if x.bound == Upper && score < beta {
                         beta = score
@@ -398,7 +394,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     let mut these_extensions = 0;
     these_extensions = extend(in_check, these_extensions, ply, search_state);
-    let mut real_depth = depth + these_extensions;
+    let real_depth = depth + these_extensions;
 
     let verified_hash_move = if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
@@ -416,8 +412,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             legal_move_count += 1;
             let path_score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &new_position, 0);
             check_time!(search_state);
-            let mut score = path_score.1;
-            let mut singular_depth = real_depth;
+            let score = path_score.1;
+            let singular_depth = real_depth;
 
             if score > best_pathscore.1 {
                 let mut p = vec![hash_move];

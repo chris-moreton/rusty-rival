@@ -21,8 +21,6 @@ use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
 use crate::scan::screen_scan;
 
-use screenshots::Screen;
-
 fn replace_shortcuts(l: &str) -> &str {
     match l {
         "pv" => "setoption name multipv value 10",

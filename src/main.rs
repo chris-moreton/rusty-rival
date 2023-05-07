@@ -1,13 +1,11 @@
 use either::{Left, Right};
 use rusty_rival::types::{default_search_state, default_uci_state, SearchState, UciState};
 use rusty_rival::uci::run_command;
-use std::io;
-use std::io::BufRead;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
 fn main() {
-    repl();
+    repl().unwrap();
 }
 
 fn repl() -> Result<()> {
@@ -17,7 +15,7 @@ fn repl() -> Result<()> {
 
     // `()` can be used when no completer is required
     let mut rl = DefaultEditor::new()?;
-    rl.load_history("history.txt");
+    rl.load_history("history.txt").unwrap();
     loop {
         let readline = rl.readline("");
         match readline {
@@ -39,25 +37,6 @@ fn repl() -> Result<()> {
         rl.save_history("history.txt").expect("TODO: panic message");
     }
     Ok(())
-}
-
-fn repl_old() {
-    let stdin = io::stdin();
-    let mut uci_state = default_uci_state();
-    let mut search_state = default_search_state();
-
-    println!("Rusty Rival");
-    println!("READY");
-    for line in stdin.lock().lines() {
-        match line {
-            Ok(l) => {
-                handle_cmd_line(&mut uci_state, &mut search_state, l)
-            }
-            Err(e) => {
-                panic!("{}", e)
-            }
-        }
-    }
 }
 
 fn handle_cmd_line(mut uci_state: &mut UciState, mut search_state: &mut SearchState, l: String) {

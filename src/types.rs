@@ -189,6 +189,14 @@ macro_rules! get_and_unset_lsb {
     }};
 }
 
+#[macro_export]
+macro_rules! get_lsb {
+    ($a:expr) => {{
+        let lsb = $a.trailing_zeros() as Square;
+        lsb
+    }};
+}
+
 pub const WHITE: Mover = 0;
 pub const BLACK: Mover = 1;
 

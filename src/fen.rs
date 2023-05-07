@@ -6,6 +6,7 @@ use crate::move_constants::{
 };
 use crate::types::{Bitboard, Move, Mover, Pieces, Position, Square, BLACK, WHITE};
 use crate::utils::from_square_mask;
+use std::collections::HashMap;
 
 const EN_PASSANT_UNAVAILABLE: i8 = -1;
 
@@ -311,4 +312,185 @@ pub fn get_fen(position: &Position) -> String {
     fen += " ";
     fen += &position.move_number.to_string();
     fen
+}
+
+pub fn fen_move_to_algebraic(fen: &str, move_str: &str) -> Option<String> {
+    let pieces = "RNBQKPrnbqkp";
+    let mut piece_to_algebraic: HashMap<char, String> = HashMap::new();
+    for ch in pieces.chars() {
+        piece_to_algebraic.insert(ch, ch.to_string().to_uppercase());
+    }
+
+    let fen_parts: Vec<&str> = fen.split_whitespace().collect();
+    let board = fen_parts[0];
+
+    let from = &move_str[0..2];
+    let to = &move_str[2..4];
+
+    let mut board_str = String::new();
+    for ch in board.chars() {
+        if ch.is_digit(10) {
+            let empty_squares = ch.to_digit(10).unwrap() as usize;
+            board_str.push_str(&".".repeat(empty_squares));
+        } else if ch == '/' {
+            continue;
+        } else {
+            board_str.push(ch);
+        }
+
+        if board_str.len() >= 64 {
+            break;
+        }
+    }
+
+    let from_sq_idx = square_to_index(from)?;
+
+    let to_sq_idx = square_to_index(to)?;
+
+    let moving_piece = board_str.chars().nth(from_sq_idx)?;
+
+    let mut alg_notation = String::new();
+    if moving_piece != 'P' && moving_piece != 'p' {
+        alg_notation.push_str(&piece_to_algebraic[&moving_piece]);
+    }
+
+    let disambiguation_rank = find_disambiguation_rank(&board_str, moving_piece, from_sq_idx, to_sq_idx);
+    if let Some(rank) = disambiguation_rank {
+        alg_notation.push(rank);
+    }
+
+    if move_str.len() == 5 {
+        let promotion = move_str.chars().nth(4)?;
+        alg_notation.push_str(&format!("{}{}", to, piece_to_algebraic[&promotion].to_lowercase()));
+    } else {
+        alg_notation.push_str(to);
+    }
+
+    Some(alg_notation)
+}
+
+fn square_to_index(square: &str) -> Option<usize> {
+    let file = square.chars().nth(0)?;
+    let rank = square.chars().nth(1)?;
+
+    if file < 'a' || file > 'h' || rank < '1' || rank > '8' {
+        return None;
+    }
+
+    let file_idx = (file as u8 - 'a' as u8) as usize;
+    let rank_idx = (rank as u8 - '1' as u8) as usize;
+
+    Some((7 - rank_idx) * 8 + file_idx)
+}
+
+fn find_disambiguation_rank(board: &str, piece: char, from_idx: usize, to_idx: usize) -> Option<char> {
+    let (from_file, from_rank) = index_to_file_rank(from_idx);
+
+    let mut disambiguate_on_file = false;
+    let mut disambiguate_on_rank = false;
+
+    for idx in 0..64 {
+        if idx == from_idx {
+            continue;
+        }
+
+        if board.chars().nth(idx)? == piece && can_move_to(board, idx, to_idx) {
+            let (other_file, _) = index_to_file_rank(idx);
+
+            if other_file == from_file {
+                disambiguate_on_rank = true;
+            } else {
+                disambiguate_on_file = true;
+            }
+        }
+    }
+
+    if disambiguate_on_file && disambiguate_on_rank {
+        return Some((from_rank as u8 + '1' as u8) as char);
+    } else if disambiguate_on_file {
+        return Some((from_file as u8 + 'a' as u8) as char);
+    } else if disambiguate_on_rank {
+        return Some((from_rank as u8 + '1' as u8) as char);
+    }
+
+    None
+}
+
+fn can_move_to(board: &str, from_idx: usize, to_idx: usize) -> bool {
+    let piece = board.chars().nth(from_idx).unwrap();
+
+    match piece.to_ascii_uppercase() {
+        'R' => can_rook_move(from_idx, to_idx),
+        'N' => can_knight_move(from_idx, to_idx),
+        'B' => can_bishop_move(from_idx, to_idx),
+        'Q' => can_rook_move(from_idx, to_idx) || can_bishop_move(from_idx, to_idx),
+        'K' => can_king_move(from_idx, to_idx),
+        'P' => can_pawn_move(board, from_idx, to_idx, piece),
+        _ => false,
+    }
+}
+
+fn can_rook_move(from_idx: usize, to_idx: usize) -> bool {
+    let (from_file, from_rank) = index_to_file_rank(from_idx);
+    let (to_file, to_rank) = index_to_file_rank(to_idx);
+
+    from_file == to_file || from_rank == to_rank
+}
+
+fn can_knight_move(from_idx: usize, to_idx: usize) -> bool {
+    let (from_file, from_rank) = index_to_file_rank(from_idx);
+    let (to_file, to_rank) = index_to_file_rank(to_idx);
+
+    let file_diff = (from_file as isize - to_file as isize).abs();
+    let rank_diff = (from_rank as isize - to_rank as isize).abs();
+
+    let response = (file_diff == 2 && rank_diff == 1) || (file_diff == 1 && rank_diff == 2);
+    response
+
+}
+
+fn can_bishop_move(from_idx: usize, to_idx: usize) -> bool {
+    let (from_file, from_rank) = index_to_file_rank(from_idx);
+    let (to_file, to_rank) = index_to_file_rank(to_idx);
+
+    (from_file as isize - to_file as isize).abs() == (from_rank as isize - to_rank as isize).abs()
+}
+
+fn can_king_move(from_idx: usize, to_idx: usize) -> bool {
+    let (from_file, from_rank) = index_to_file_rank(from_idx);
+    let (to_file, to_rank) = index_to_file_rank(to_idx);
+
+    let file_diff = (from_file as isize - to_file as isize).abs();
+    let rank_diff = (from_rank as isize - to_rank as isize).abs();
+
+    file_diff <= 1 && rank_diff <= 1
+}
+
+fn can_pawn_move(board: &str, from_idx: usize, to_idx: usize, piece: char) -> bool {
+    let (from_file, from_rank) = index_to_file_rank(from_idx);
+    let (to_file, to_rank) = index_to_file_rank(to_idx);
+
+    let file_diff = (from_file as isize - to_file as isize).abs();
+    let rank_diff = if piece == 'P' {
+        to_rank as isize - from_rank as isize
+    } else {
+        from_rank as isize - to_rank as isize
+    };
+
+    if file_diff == 1 && rank_diff == 1 {
+        let capture_piece = board.chars().nth(to_idx).unwrap();
+        return capture_piece != '.' && piece.is_uppercase() != capture_piece.is_uppercase();
+    }
+
+    if file_diff == 0 && rank_diff == 1 {
+        return board.chars().nth(to_idx).unwrap() == '.';
+    }
+
+    false
+}
+
+fn index_to_file_rank(idx: usize) -> (usize, usize) {
+    let file = idx % 8;
+    let rank = idx / 8;
+    (file, 7-rank)
 }

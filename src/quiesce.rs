@@ -8,7 +8,6 @@ use crate::move_constants::{
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
-use crate::search::{pick_high_score_move};
 use crate::types::{
     Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
