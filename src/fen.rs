@@ -348,6 +348,7 @@ pub fn simple_algebraic_to_pretty_algebraic(fen: &str, move_str: String) -> Opti
     let to_sq_idx = square_to_index(to)?;
 
     let moving_piece = board_str.chars().nth(from_sq_idx)?;
+    let captured_piece = board_str.chars().nth(to_sq_idx)?;
 
     let mut alg_notation = String::new();
     if moving_piece != 'P' && moving_piece != 'p' {
@@ -357,6 +358,15 @@ pub fn simple_algebraic_to_pretty_algebraic(fen: &str, move_str: String) -> Opti
     let disambiguation_rank = find_disambiguation_rank(&board_str, moving_piece, from_sq_idx, to_sq_idx);
     if let Some(rank) = disambiguation_rank {
         alg_notation.push(rank);
+    } else {
+        if (moving_piece == 'P' || moving_piece == 'p') && captured_piece != '.' {
+            alg_notation.push_str(&from[0..1]);
+        }
+
+    }
+
+    if captured_piece != '.' {
+        alg_notation.push_str("x");
     }
 
     if move_str.len() == 5 {
