@@ -371,7 +371,7 @@ pub fn simple_algebraic_to_pretty_algebraic(fen: &str, move_str: String) -> Opti
 
     if move_str.len() == 5 {
         let promotion = move_str.chars().nth(4)?;
-        alg_notation.push_str(&format!("{}{}", to, piece_to_algebraic[&promotion].to_lowercase()));
+        alg_notation.push_str(&format!("{}={}", to, piece_to_algebraic[&promotion].to_lowercase()));
     } else {
         alg_notation.push_str(to);
     }

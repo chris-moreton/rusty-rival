@@ -188,7 +188,7 @@ fn it_converts_a_simple_move_to_an_algebraic_move() {
     let fen = "6k1/P5p1/1pq1N2p/2p4P/1P1p1RP1/2PKPB2/1r2N3/7N w - - 0 1";
     assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "f3a8".to_string()), Some(String::from("Ba8")));
     assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "c3c4".to_string()), Some(String::from("c4")));
-    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "a7a8q".to_string()), Some(String::from("a8q")));
+    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "a7a8q".to_string()), Some(String::from("a8=q")));
     assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "e2d4".to_string()), Some(String::from("N2xd4")));
     assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "h1g3".to_string()), Some(String::from("Nhg3")));
     assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "e6c5".to_string()), Some(String::from("Nxc5")));
