@@ -1,6 +1,6 @@
 # Rusty Rival
 
-A [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) chess engine written in Rust.
+A [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) chess engine written in Rust. Please take a look at the [UCI Documentation](https://en.wikipedia.org/wiki/Universal_Chess_Interface) for usage instructions.
 
 Binaries for Windows, Mac OS and Linux are available on the [releases](https://github.com/chris-moreton/rusty-rival/releases) page.
 
