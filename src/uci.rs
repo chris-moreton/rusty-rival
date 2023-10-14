@@ -19,7 +19,7 @@ use crate::search::iterative_deepening;
 use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
-use crate::scan::screen_scan;
+// use crate::scan::screen_scan;
 
 fn replace_shortcuts(l: &str) -> &str {
     match l {
@@ -402,6 +402,6 @@ fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchSta
 
 fn cmd_scan(is_white: bool) -> Either<String, Option<String>> {
 
-    screen_scan(!is_white).expect("TODO: panic message");
+    // screen_scan(!is_white).expect("TODO: panic message");
     Right(None)
 }

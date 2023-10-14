@@ -1,6 +1,4 @@
 #V2
-go movetime 5000
-ucinewgame
 position fen 4k3/1r3p2/n2Bb1r1/p1p2N2/2P3P1/5P2/3R4/4R1K1 w - - 4 42
 go movetime 100
 go movetime 5000
@@ -99,3 +97,5 @@ position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
 go depth 4
 position fen q2r2k1/R4ppp/1n6/4P3/p2Q4/P5P1/1P3P1P/6K1 b - - 0 1
 go depth 5
+go perft 6
+q
