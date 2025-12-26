@@ -37,6 +37,13 @@ Time elapsed in perft is: 2.290587309s
 178633661 nodes 78005965.50218341 nps
 ```
 
+  1. Build the engine:
+  cargo build --release
 
+  2. Store the executable in engines directory:
+  mkdir -p engines/v3-improved
+  cp target/release/rusty-rival engines/v3-improved/
 
-
+  3. Run the competition:
+  source .venv/bin/activate
+  ./scripts/compete.py v1-baseline v3-improved --games 100 --time 0.5

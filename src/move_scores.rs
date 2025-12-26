@@ -6,6 +6,7 @@ use crate::move_constants::{
     PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
 };
 use crate::search::piece_index_12;
+use crate::see::static_exchange_evaluation;
 
 use crate::types::{Move, Pieces, Position, Score, SearchState, Square, BLACK, WHITE};
 use crate::utils::{from_square_part, linear_scale, to_square_part};
@@ -73,19 +74,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     let to_square = to_square_part(m);
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
-        // let mut new_position = *position;
-        // make_see_move(m, &mut new_position);
-        // GOOD_CAPTURE_START + see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position)
-
-        let pv = piece_value(enemy, to_square);
-        GOOD_CAPTURE_START
-            + pv
-            + attacker_bonus(m & PIECE_MASK_FULL)
-            + if pv < attacker_value(m & PIECE_MASK_FULL) {
-                GOOD_CAPTURE_BONUS
-            } else {
-                0
-            }
+        GOOD_CAPTURE_START + static_exchange_evaluation(position, m)
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         match m & PROMOTION_FULL_MOVE_MASK {
             PROMOTION_ROOK_MOVE_MASK => 3,

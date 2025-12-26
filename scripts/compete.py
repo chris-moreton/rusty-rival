@@ -14,6 +14,7 @@ Usage:
 """
 
 import argparse
+import math
 import os
 import sys
 import chess
@@ -22,6 +23,41 @@ import chess.pgn
 from datetime import datetime
 from pathlib import Path
 from itertools import combinations
+
+
+def calculate_elo_difference(wins: int, losses: int, draws: int) -> tuple[float, float]:
+    """
+    Calculate Elo difference and error margin from match results.
+    Returns (elo_diff, error_margin) where positive means engine1 is stronger.
+    """
+    total = wins + losses + draws
+    if total == 0:
+        return 0.0, 0.0
+
+    # Score from engine1's perspective
+    score = (wins + draws * 0.5) / total
+
+    # Avoid division by zero at extremes
+    if score <= 0.001:
+        return -800.0, 100.0
+    if score >= 0.999:
+        return 800.0, 100.0
+
+    # Elo difference formula
+    elo_diff = -400 * math.log10(1 / score - 1)
+
+    # Error margin (approximate 95% confidence interval)
+    # Based on standard error of proportion
+    std_error = math.sqrt(score * (1 - score) / total)
+
+    # Convert to Elo error (derivative of Elo formula)
+    if 0.01 < score < 0.99:
+        elo_error = 400 * std_error / (score * (1 - score) * math.log(10))
+        elo_error = min(elo_error, 200)  # Cap at reasonable value
+    else:
+        elo_error = 100
+
+    return elo_diff, elo_error
 
 
 def get_engine_path(name: str, engine_dir: Path) -> Path:
@@ -120,7 +156,8 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
         # Live update
         game_num = i + 1
         print(f"Game {game_num:3d}/{num_games}: {white} vs {black} -> {result}  "
-              f"| Score: {engine1_name} {engine1_points:.1f} - {engine2_points:.1f} {engine2_name}")
+              f"| Score: {engine1_name} {engine1_points:.1f} - {engine2_points:.1f} {engine2_name}",
+              flush=True)
 
     # Save PGN
     with open(pgn_file, "w") as f:
@@ -128,20 +165,38 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
             print(game, file=f)
             print(file=f)
 
+    # Calculate Elo difference
+    # From engine1's perspective: wins are when engine1 won
+    engine1_wins = int(engine1_points - (results["1/2-1/2"] * 0.5))
+    engine1_losses = int(engine2_points - (results["1/2-1/2"] * 0.5))
+    elo_diff, elo_error = calculate_elo_difference(
+        engine1_wins, engine1_losses, results["1/2-1/2"]
+    )
+
     # Print summary
     print(f"\n{'='*60}")
     print("FINAL RESULTS")
     print(f"{'='*60}")
     print(f"{engine1_name}: {engine1_points:.1f} points")
     print(f"{engine2_name}: {engine2_points:.1f} points")
-    print(f"\nResults breakdown: +{results['1-0']} -{results['0-1']} ={results['1/2-1/2']}")
-    print(f"PGN saved to: {pgn_file}")
+    print(f"\nResults: +{engine1_wins} -{engine1_losses} ={results['1/2-1/2']}")
+    win_rate = engine1_points / num_games * 100
+    print(f"Win rate: {win_rate:.1f}%")
+
+    if elo_diff > 0:
+        print(f"\nElo difference: {engine1_name} is +{elo_diff:.0f} (±{elo_error:.0f}) stronger")
+    else:
+        print(f"\nElo difference: {engine2_name} is +{-elo_diff:.0f} (±{elo_error:.0f}) stronger")
+
+    print(f"\nPGN saved to: {pgn_file}")
     print(f"{'='*60}\n")
 
     return {
         engine1_name: engine1_points,
         engine2_name: engine2_points,
-        "results": results
+        "results": results,
+        "elo_diff": elo_diff,
+        "elo_error": elo_error
     }
 
 
