@@ -1,0 +1,30 @@
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.26"]
+[Round "?"]
+[White "v1-baseline"]
+[Black "v2-weak-queen"]
+[Result "1-0"]
+
+1. Nc3 Nf6 2. e4 Nc6 3. d4 d5 4. e5 Ne4 5. Nxe4 dxe4 6. c3 f6 7. Ne2 g6 8. Ng3 f5 9. Ne2 e6 10. Nf4 Kf7 11. Be2 g5 12. Bh5+ Ke7 13. Nxe6 Kxe6 14. Qb3+ Qd5 15. Bf7+ Kxf7 16. Qxd5+ Kg6 17. g4 fxg4 18. e6 h6 19. Qxe4+ Kf6 20. h4 gxh3 21. Rxh3 Bxe6 22. Rf3+ Ke7 23. d5 Nd8 24. Qe5 g4 25. Qxc7+ Bd7 26. Qe5+ Be6 27. Rf4 Rh7 28. dxe6 Nxe6 29. Qe4 Rh8 30. Qxb7+ Ke8 31. Re4 Rh7 32. Qxh7 Kd8 33. Rxe6 Bc5 34. Qf7 Be7 35. Rxe7 a5 36. Qe8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.26"]
+[Round "?"]
+[White "v2-weak-queen"]
+[Black "v1-baseline"]
+[Result "0-1"]
+
+1. Nc3 d5 2. d4 Nf6 3. Nf3 e6 4. e3 Nbd7 5. Bd3 c5 6. Be2 a6 7. O-O Qc7 8. dxc5 Nxc5 9. Qd4 Bd6 10. Rd1 Rg8 11. Rb1 Bd7 12. Qh4 h6 13. g3 Rc8 14. Bf1 Be7 15. Qf4 Nce4 16. Qxc7 Rxc7 17. Nxe4 Nxe4 18. Bd3 Nc5 19. Be2 Ne4 20. Bd3 Nc5 21. Be2 Ne4 22. Bd3 Nc5 23. Be2 f6 24. c4 dxc4 25. Bxc4 b5 26. Be2 e5 27. Nh4 g6 28. Nxg6 Rxg6 29. Bh5 Bf5 30. Ra1 Nd3 31. e4 Bxe4 32. Bxh6 Bc5 33. Bxg6+ Bxg6 34. Be3 Bxe3 35. fxe3 Rc2 36. b3 Nf2 37. Rdc1 Nh3+ 38. Kf1 Bd3+ 39. Ke1 Re2+ 40. Kf1 Rxh2+ 41. Ke1 Re2+ 42. Kf1 Rxa2+ 43. Ke1 Re2+ 44. Kf1 Rh2+ 45. Ke1 Ng5 46. Rc8+ Kd7 47. Rh8 Nf3+ 48. Kd1 Rxh8 49. Kc1 Rh1+ 50. Kb2 Rxa1 51. Kxa1 Nh2 52. Kb2 e4 53. Kc1 Nf1 54. Kd1 Nxg3 55. b4 Nf5 56. Kd2 Ke7 57. Ke1 Nxe3 58. Kd2 Nd5 59. Ke1 e3 60. Kd1 Ke8 61. Kc1 Nxb4 62. Kd1 Nc2 63. Kc1 e2 64. Kd2 e1=Q+ 65. Kxd3 Nb4+ 66. Kd4 Qe5# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.26"]
+[Round "?"]
+[White "v1-baseline"]
+[Black "v2-weak-queen"]
+[Result "1-0"]
+
+1. Nc3 Nf6 2. e4 Nc6 3. d4 d5 4. e5 Ne4 5. Nge2 Nxc3 6. Nxc3 e6 7. Be3 f6 8. Bb5 a6 9. Bxc6+ bxc6 10. O-O Rb8 11. Rb1 h5 12. Ne2 g5 13. Qd2 Rg8 14. Ng3 h4 15. Nh5 fxe5 16. dxe5 d4 17. Nf6+ Qxf6 18. exf6 h3 19. Qxd4 hxg2 20. Rfd1 Bd6 21. Qe4 c5 22. Qh7 Rh8 23. Qxh8+ Kd7 24. f7 Kc6 25. Qe8+ Kb7 26. Rxd6 Bd7 27. Qxd7 Rc8 28. Bxc5 Rh8 29. Rxa6 Kxa6 30. Qc6+ Ka5 31. b4# 1-0
+
