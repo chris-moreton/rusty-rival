@@ -213,7 +213,7 @@ The position is passed by mutable reference. The current implementation uses cop
 ## Git Commit Guidelines
 
 - **Do NOT add Claude/AI attributions** to commit messages (no "Generated with Claude Code", no "Co-Authored-By: Claude")
-- **Always tag commits** when creating new engine versions (e.g., `git tag v9-unmake-opt`)
+- **Always tag commits when creating new engine versions** - a "new engine version" means copying the compiled binary into `engines/v*-name/` folder for benchmarking/comparison (e.g., `git tag v9-unmake-opt`)
 - Keep commit messages concise and focused on what changed
 
 ## GitHub Issues
