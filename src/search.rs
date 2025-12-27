@@ -85,6 +85,11 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
         .map(|m| (m, -MATE_SCORE))
         .collect();
 
+    // No legal moves = checkmate or stalemate, return null move
+    if legal_moves.is_empty() {
+        return 0;
+    }
+
     clear_history_table(search_state);
     clear_killers(search_state);
 

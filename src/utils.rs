@@ -217,7 +217,7 @@ pub fn pawn_push(position: &Position, m: Move) -> bool {
 }
 
 pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
-    if !search_state.show_info {
+    if !search_state.show_info || search_state.root_moves.is_empty() {
         return;
     }
     let multi_pv = if show_multi_pv { search_state.multi_pv } else { 1 };
