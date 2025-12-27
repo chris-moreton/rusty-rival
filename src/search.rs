@@ -16,7 +16,6 @@ use crate::types::{
     BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
-use std::borrow::Borrow;
 use std::cmp::{max, min};
 use std::time::Instant;
 
@@ -97,7 +96,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     search_state.current_best = (vec![0], -MATE_SCORE);
 
-    let aspiration_radius: Vec<Score> = vec![25, 50, 100, 200, 400, 800];
+    const ASPIRATION_RADIUS: [Score; 6] = [25, 50, 100, 200, 400, 800];
 
     for iterative_depth in 1..=max_depth {
         //println!("Iterative depth {}", iterative_depth);
@@ -119,12 +118,12 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
             } else {
                 //println!("Move score was outside the aspiration window {} {} {} {}", aspire_best.1, aspiration_window.0, aspiration_window.1, c);
                 c += 1;
-                if c == aspiration_radius.len() {
+                if c == ASPIRATION_RADIUS.len() {
                     aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
                 } else if aspire_best.1 <= aspiration_window.0 {
-                    aspiration_window.0 = max(-MAX_WINDOW, aspiration_window.0 - aspiration_radius[c]);
+                    aspiration_window.0 = max(-MAX_WINDOW, aspiration_window.0 - ASPIRATION_RADIUS[c]);
                 } else if aspire_best.1 >= aspiration_window.1 {
-                    aspiration_window.1 = min(MAX_WINDOW, aspiration_window.1 + aspiration_radius[c]);
+                    aspiration_window.1 = min(MAX_WINDOW, aspiration_window.1 + ASPIRATION_RADIUS[c]);
                 }
                 //println!("New aspiration window {} {}", aspiration_window.0, aspiration_window.1);
             };
@@ -137,8 +136,8 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
         if search_state.multi_pv == 1 {
             aspiration_window = (
-                search_state.current_best.1 - aspiration_radius[0],
-                search_state.current_best.1 + aspiration_radius[0],
+                search_state.current_best.1 - ASPIRATION_RADIUS[0],
+                search_state.current_best.1 + ASPIRATION_RADIUS[0],
             );
         }
 
@@ -202,11 +201,9 @@ fn clear_killers(search_state: &mut SearchState) {
 }
 
 fn clear_history_table(search_state: &mut SearchState) {
-    for i in 0..12 {
-        for j in 0..64 {
-            for k in 0..64 {
-                search_state.history_moves[i][j][k] = 0;
-            }
+    for piece in &mut search_state.history_moves {
+        for from_sq in piece {
+            from_sq.fill(0);
         }
     }
     search_state.highest_history_score = 0;
@@ -459,7 +456,8 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
                 && real_depth > LMR_MIN_DEPTH
                 && !is_capture
-                && !search_state.killer_moves[ply as usize].contains(m.borrow())
+                && m != search_state.killer_moves[ply as usize][0]
+                && m != search_state.killer_moves[ply as usize][1]
                 && !is_check(&new_position, new_position.mover)
             {
                 LMR_REDUCTION
@@ -539,6 +537,7 @@ fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bo
         > 1
 }
 
+#[inline(always)]
 #[allow(clippy::needless_range_loop)]
 pub fn pick_high_score_move(move_scores: &mut Vec<(Move, Score)>) -> Move {
     let mut best_index = 0;
