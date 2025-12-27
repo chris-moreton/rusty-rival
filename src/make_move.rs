@@ -569,26 +569,27 @@ fn unmake_promotion(position: &mut Position, from: Square, to: Square, promotion
 
 #[inline(always)]
 fn unmake_castle(position: &mut Position, mv: Move, mover: usize) {
+    // Use the same constants as perform_castle to reverse the operation
     match mv {
         WHITE_KING_CASTLE_MOVE => {
-            position.pieces[mover].king_square = 4;  // e1
-            position.pieces[mover].rook_bitboard ^= bit(5) | bit(7);  // f1, h1
-            position.pieces[mover].all_pieces_bitboard ^= bit(4) | bit(5) | bit(6) | bit(7);
+            position.pieces[mover].king_square = KING_START[WHITE as usize];
+            position.pieces[mover].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[CASTLE_INDEX_WHITE_KING];
+            position.pieces[mover].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[CASTLE_INDEX_WHITE_KING];
         }
         WHITE_QUEEN_CASTLE_MOVE => {
-            position.pieces[mover].king_square = 4;  // e1
-            position.pieces[mover].rook_bitboard ^= bit(0) | bit(3);  // a1, d1
-            position.pieces[mover].all_pieces_bitboard ^= bit(0) | bit(2) | bit(3) | bit(4);
+            position.pieces[mover].king_square = KING_START[WHITE as usize];
+            position.pieces[mover].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[CASTLE_INDEX_WHITE_QUEEN];
+            position.pieces[mover].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[CASTLE_INDEX_WHITE_QUEEN];
         }
         BLACK_KING_CASTLE_MOVE => {
-            position.pieces[mover].king_square = 60;  // e8
-            position.pieces[mover].rook_bitboard ^= bit(61) | bit(63);  // f8, h8
-            position.pieces[mover].all_pieces_bitboard ^= bit(60) | bit(61) | bit(62) | bit(63);
+            position.pieces[mover].king_square = KING_START[BLACK as usize];
+            position.pieces[mover].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[CASTLE_INDEX_BLACK_KING];
+            position.pieces[mover].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[CASTLE_INDEX_BLACK_KING];
         }
         BLACK_QUEEN_CASTLE_MOVE => {
-            position.pieces[mover].king_square = 60;  // e8
-            position.pieces[mover].rook_bitboard ^= bit(56) | bit(59);  // a8, d8
-            position.pieces[mover].all_pieces_bitboard ^= bit(56) | bit(58) | bit(59) | bit(60);
+            position.pieces[mover].king_square = KING_START[BLACK as usize];
+            position.pieces[mover].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[CASTLE_INDEX_BLACK_QUEEN];
+            position.pieces[mover].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[CASTLE_INDEX_BLACK_QUEEN];
         }
         _ => {}
     }

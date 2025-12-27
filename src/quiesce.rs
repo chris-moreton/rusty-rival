@@ -111,7 +111,15 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
 
 #[inline(always)]
 pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
+    // Check stop flag at TOP before any moves are made - safe to return here
+    if search_state.stop {
+        return (pv_single(0), 0);
+    }
+
     check_time!(search_state);
+    if search_state.stop {
+        return (pv_single(0), 0);
+    }
     search_state.nodes += 1;
 
     let eval = evaluate(position);
@@ -150,6 +158,9 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
             unmake_move(position, m, &unmake);
 
             check_time!(search_state);
+            if search_state.stop {
+                break;
+            }
 
             if score >= window.1 {
                 return (pv_single(m), window.1);

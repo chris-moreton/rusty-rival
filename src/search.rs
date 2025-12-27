@@ -13,7 +13,7 @@ use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    pv_single, pv_prepend, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Window, BLACK, WHITE,
+    pv_single, pv_prepend, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
@@ -38,8 +38,11 @@ macro_rules! time_remains {
 #[macro_export]
 macro_rules! time_expired {
     ($search_state:expr) => {
-        if Instant::now() >= $search_state.end_time {
-            send_info($search_state, false);
+        if $search_state.stop || Instant::now() >= $search_state.end_time {
+            if !$search_state.stop {
+                $search_state.stop = true;
+                send_info($search_state, false);
+            }
             true
         } else {
             false
@@ -50,10 +53,10 @@ macro_rules! time_expired {
 #[macro_export]
 macro_rules! check_time {
     ($search_state:expr) => {
-        if $search_state.nodes % 1000 == 0 {
+        if !$search_state.stop && $search_state.nodes % 1000 == 0 {
             if $search_state.end_time < Instant::now() {
+                $search_state.stop = true;
                 send_info($search_state, false);
-                return (pv_single(0), 0);
             }
         }
         if $search_state.nodes % 1000000 == 0 {
@@ -73,6 +76,7 @@ macro_rules! debug_out {
 
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState) -> Move {
     search_state.start_time = Instant::now();
+    search_state.stop = false;
     search_state.hash_table_version += 1;
 
     let original_mover = position.mover;
@@ -286,15 +290,15 @@ pub fn null_move_reduced_depth(depth: u8) -> u8 {
 
 #[inline(always)]
 pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, on_null_move: bool) -> PathScore {
-    let saved_position = *position;
-    let result = search_impl(position, depth, ply, window, search_state, on_null_move);
-    *position = saved_position;
-    result
-}
+    // Check stop flag at TOP before any moves are made - safe to return here
+    if search_state.stop {
+        return (pv_single(0), 0);
+    }
 
-#[inline(always)]
-fn search_impl(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, on_null_move: bool) -> PathScore {
     check_time!(search_state);
+    if search_state.stop {
+        return (pv_single(0), 0);
+    }
 
     if is_draw(position, search_state, ply) {
         search_state.nodes += 1;
@@ -385,8 +389,7 @@ fn search_impl(position: &mut Position, depth: u8, ply: u8, window: Window, sear
     };
 
     if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
-        let saved_position = *position;
-        make_null_move(position);
+        let old_ep = make_null_move(position);
 
         let score = -search(
             position,
@@ -397,8 +400,11 @@ fn search_impl(position: &mut Position, depth: u8, ply: u8, window: Window, sear
             true,
         ).1;
 
-        // Restore position
-        *position = saved_position;
+        unmake_null_move(position, old_ep);
+
+        if search_state.stop {
+            return (pv_single(0), 0);
+        }
 
         if score >= beta {
             return (pv_single(0), beta);
@@ -431,6 +437,9 @@ fn search_impl(position: &mut Position, depth: u8, ply: u8, window: Window, sear
 
             unmake_move(position, hash_move, &unmake);
             check_time!(search_state);
+            if search_state.stop {
+                return best_pathscore;
+            }
 
             if score > best_pathscore.1 {
                 best_pathscore = (pv_prepend(hash_move, &path_score.0), score);
@@ -502,6 +511,9 @@ fn search_impl(position: &mut Position, depth: u8, ply: u8, window: Window, sear
             unmake_move(position, m, &unmake);
 
             check_time!(search_state);
+            if search_state.stop {
+                break;
+            }
 
             if score < beta {
                 update_history(position, search_state, m, -(real_depth as i64) * if score < alpha { 2 } else { 1 });
@@ -609,13 +621,25 @@ fn lmr_scout_search(
 }
 
 #[inline(always)]
-fn make_null_move(new_position: &mut Position) {
-    if new_position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
-        new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(new_position.en_passant_square)];
-        new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
+fn make_null_move(position: &mut Position) -> Square {
+    let old_ep = position.en_passant_square;
+    if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
+        position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];
+        position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
     }
-    new_position.mover ^= 1;
-    new_position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
+    position.mover ^= 1;
+    position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
+    old_ep
+}
+
+#[inline(always)]
+fn unmake_null_move(position: &mut Position, old_ep: Square) {
+    position.mover ^= 1;
+    position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
+    if old_ep != EN_PASSANT_NOT_AVAILABLE {
+        position.en_passant_square = old_ep;
+        position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(old_ep)];
+    }
 }
 
 #[inline(always)]

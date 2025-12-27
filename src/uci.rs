@@ -333,7 +333,7 @@ fn cmd_debug(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, O
 
 fn cmd_perft(depth: u8, uci_state: &UciState) -> Either<String, Option<String>> {
     let start = Instant::now();
-    let nodes = perft(&get_position(uci_state.fen.trim()), depth - 1);
+    let nodes = perft(&mut get_position(uci_state.fen.trim()), depth - 1);
     let duration = start.elapsed();
     println!("Time elapsed in perft is: {:?}", duration);
     println!("{} nodes {} nps", nodes, (nodes as f64 / (duration.as_millis() as f64)) * 1000.0);

@@ -112,6 +112,7 @@ pub struct SearchState {
     pub multi_pv: u8,
     pub contempt: Score,
     pub ignore_root_move: Move,
+    pub stop: bool,
 }
 
 pub fn default_search_state() -> SearchState {
@@ -150,6 +151,7 @@ pub fn default_search_state() -> SearchState {
         multi_pv: 1,
         contempt: 0,
         ignore_root_move: 0,
+        stop: false,
     }
 }
 
