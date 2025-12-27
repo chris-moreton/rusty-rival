@@ -1,5 +1,6 @@
 use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
+use arrayvec::ArrayVec;
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -15,7 +16,27 @@ pub type Score = i32;
 pub type HashLock = u128;
 pub type HashIndex = u32;
 pub type HashArray = [HashEntry; NUM_HASH_ENTRIES as usize];
-pub type PathScore = (Vec<Move>, Score);
+pub const MAX_PV_LENGTH: usize = 64;
+pub type PV = ArrayVec<Move, MAX_PV_LENGTH>;
+pub type PathScore = (PV, Score);
+
+/// Create a PV with a single move
+#[inline(always)]
+pub fn pv_single(m: Move) -> PV {
+    let mut pv = PV::new();
+    pv.push(m);
+    pv
+}
+
+/// Create a PV with a move prepended to an existing PV
+#[inline(always)]
+pub fn pv_prepend(m: Move, rest: &PV) -> PV {
+    let mut pv = PV::new();
+    pv.push(m);
+    pv.try_extend_from_slice(rest).ok();
+    pv
+}
+
 pub type MoveScore = (Move, Score);
 pub type MoveScoreList = Vec<MoveScore>;
 pub type PositionHistory = Vec<HashLock>;
@@ -93,7 +114,7 @@ pub struct SearchState {
 
 pub fn default_search_state() -> SearchState {
     SearchState {
-        current_best: (vec![], 0),
+        current_best: (PV::new(), 0),
         root_moves: vec![],
         start_time: Instant::now(),
         end_time: Instant::now(),

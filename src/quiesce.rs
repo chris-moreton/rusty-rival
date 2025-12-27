@@ -9,7 +9,7 @@ use crate::move_constants::{
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
 use crate::types::{
-    Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
+    pv_single, Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
 use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
@@ -117,7 +117,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
     let eval = evaluate(position);
 
     if depth == 0 || eval >= window.1 {
-        return (vec![0], eval);
+        return (pv_single(0), eval);
     }
 
     let mut alpha = window.0.max(eval);
@@ -127,7 +127,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
 
     // If there are no legal moves, return the evaluation score
     if ms.is_empty() {
-        return (vec![0], eval);
+        return (pv_single(0), eval);
     }
 
     let mut move_scores: MoveScoreList = vec![];
@@ -148,7 +148,7 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
             check_time!(search_state);
 
             if score >= window.1 {
-                return (vec![m], window.1);
+                return (pv_single(m), window.1);
             }
             if score > alpha {
                 alpha = score;
@@ -157,5 +157,5 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
         }
     }
 
-    (vec![best_move], alpha)
+    (pv_single(best_move), alpha)
 }

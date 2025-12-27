@@ -13,7 +13,7 @@ use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Window, BLACK, WHITE,
+    pv_single, pv_prepend, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
@@ -53,7 +53,7 @@ macro_rules! check_time {
         if $search_state.nodes % 1000 == 0 {
             if $search_state.end_time < Instant::now() {
                 send_info($search_state, false);
-                return (vec![0], 0);
+                return (pv_single(0), 0);
             }
         }
         if $search_state.nodes % 1000000 == 0 {
@@ -99,7 +99,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 
     let mut aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
 
-    search_state.current_best = (vec![0], -MATE_SCORE);
+    search_state.current_best = (pv_single(0), -MATE_SCORE);
 
     const ASPIRATION_RADIUS: [Score; 6] = [25, 50, 100, 200, 400, 800];
 
@@ -159,7 +159,7 @@ pub fn start_search(
     search_state: &mut SearchState,
     window: Window,
 ) -> PathScore {
-    let mut current_best: PathScore = (vec![legal_moves[0].0], window.0);
+    let mut current_best: PathScore = (pv_single(legal_moves[0].0), window.0);
 
     for mv in legal_moves {
         let mut new_position = *position;
@@ -180,14 +180,10 @@ pub fn start_search(
         mv.1 = path_score.1;
 
         if mv.1 > current_best.1 && time_remains!(search_state.end_time) {
-            let mut p = vec![mv.0];
-            p.extend(path_score.0.clone());
-            current_best = (p, mv.1);
+            current_best = (pv_prepend(mv.0, &path_score.0), mv.1);
         }
 
-        let mut p = vec![mv.0];
-        p.extend(path_score.0.clone());
-        search_state.pv.insert(mv.0, (p, mv.1));
+        search_state.pv.insert(mv.0, (pv_prepend(mv.0, &path_score.0), mv.1));
 
         if time_expired!(search_state) {
             return current_best;
@@ -288,7 +284,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     if is_draw(position, search_state, ply) {
         search_state.nodes += 1;
-        return (vec![0], draw_value(position, search_state));
+        return (pv_single(0), draw_value(position, search_state));
     }
 
     let scouting = window.1 - window.0 == 1;
@@ -306,7 +302,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     let mut hash_flag = Upper;
     let mut hash_height = 0;
     let mut hash_version = 0;
-    let mut best_pathscore: PathScore = (vec![0], -MATE_SCORE);
+    let mut best_pathscore: PathScore = (pv_single(0), -MATE_SCORE);
 
     let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let mut hash_move = match search_state.hash_table_height.get(index) {
@@ -331,7 +327,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                     hash_version = x.version;
                     if x.bound == Exact {
                         search_state.hash_hits_exact += 1;
-                        return (vec![x.mv], score);
+                        return (pv_single(x.mv), score);
                     }
                     if x.bound == Lower && score > alpha {
                         alpha = score;
@@ -340,7 +336,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                         beta = score
                     }
                     if alpha >= beta {
-                        return (vec![x.mv], score);
+                        return (pv_single(x.mv), score);
                     }
                 }
                 x.mv
@@ -360,7 +356,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         lazy_eval = evaluate(position);
         let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
         if lazy_eval - margin as Score >= beta {
-            return (vec![0], lazy_eval - margin);
+            return (pv_single(0), lazy_eval - margin);
         }
     }
 
@@ -388,7 +384,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
         ).1;
 
         if score >= beta {
-            return (vec![0], beta);
+            return (pv_single(0), beta);
         }
     }
 
@@ -418,9 +414,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             let singular_depth = real_depth;
 
             if score > best_pathscore.1 {
-                let mut p = vec![hash_move];
-                p.extend(path_score.0);
-                best_pathscore = (p, score);
+                best_pathscore = (pv_prepend(hash_move, &path_score.0), score);
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
@@ -489,9 +483,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             }
 
             if score > best_pathscore.1 {
-                let mut p = vec![m];
-                p.extend(path_score.0);
-                best_pathscore = (p, score);
+                best_pathscore = (pv_prepend(m, &path_score.0), score);
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
