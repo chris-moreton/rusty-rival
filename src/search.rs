@@ -430,7 +430,11 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 }
                 scout_search = true;
             }
-            generate_moves(position).into_iter().filter(|m| *m != hash_move).collect()
+            {
+                let mut moves = generate_moves(position);
+                moves.retain(|m| *m != hash_move);
+                moves
+            }
         } else {
             generate_moves(position)
         }
