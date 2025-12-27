@@ -116,7 +116,12 @@ Engines are stored in `engines/<version>/rusty-rival`. Create new versions:
 RUSTFLAGS="-C target-cpu=native" cargo build --release
 mkdir -p engines/v7-new-feature
 cp target/release/rusty-rival engines/v7-new-feature/
+
+# IMPORTANT: Always tag the commit when creating a new version
+git tag v7-new-feature
 ```
+
+**Always tag commits when creating new engine versions** - this allows us to recreate any version later.
 
 ## Key Source Files
 
@@ -204,6 +209,12 @@ iterative_deepening()
 ```
 
 The position is passed by mutable reference. The current implementation uses copy-based move making where a new Position is created for each move in the tree.
+
+## Git Commit Guidelines
+
+- **Do NOT add Claude/AI attributions** to commit messages (no "Generated with Claude Code", no "Co-Authored-By: Claude")
+- **Always tag commits** when creating new engine versions (e.g., `git tag v9-unmake-opt`)
+- Keep commit messages concise and focused on what changed
 
 ## GitHub Issues
 
