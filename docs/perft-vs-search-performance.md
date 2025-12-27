@@ -27,6 +27,16 @@ This is approximately a **15% slowdown** in perft.
 
 3. **Reduced stack pressure** - Position is 156 bytes; at depth 30+ with many moves, stack copies add up significantly.
 
+## Optimization Applied
+
+After the initial implementation, we optimized `unmake_move` by eliminating duplicate captured piece detection:
+
+**Problem**: The original code called `get_captured_piece()` before making the move, which probed all piece bitboards. Then the make functions (`make_pawn_capture_move`, etc.) probed the same bitboards again to remove the captured piece.
+
+**Solution**: Modified the make functions to return the captured piece type, avoiding the redundant probing.
+
+**Result**: ~5% improvement in search NPS (4.13M -> 4.33M on test position)
+
 ## Conclusion
 
 The perft slowdown is **expected and acceptable**. Perft is a special case where the simplicity of position copying wins. In actual search, the make/unmake pattern provides memory efficiency benefits that outweigh the small overhead of reversing moves.
@@ -38,6 +48,10 @@ To verify unmake isn't hurting search performance, run a benchmark on a tactical
 ```bash
 echo "position fen r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4
 go depth 12" | ./target/release/rusty-rival
+```
+```bash
+echo "position startpos
+go depth 15" | ./target/release/rusty-rival
 ```
 
 If the engine finds moves quickly and NPS is similar to before the change, search performance is unaffected.

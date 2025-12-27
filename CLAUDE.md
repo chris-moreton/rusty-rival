@@ -149,14 +149,41 @@ cp target/release/rusty-rival engines/v7-new-feature/
 
 ## Common Issues
 
-### Stack Overflow in Tests
-Debug builds have larger stack frames. Use release mode or increase stack:
+### Stack Overflow in Tests (IMPORTANT)
+
+**The search tests WILL stack-overflow in debug mode** because:
+1. Debug builds have much larger stack frames (no inlining, extra debug info)
+2. Chess search recurses deeply (depth 9+ with many moves per ply)
+3. Each recursion level uses significant stack space
+
+**This is EXPECTED behavior, not a bug in the code.**
+
+To run search tests successfully:
 ```bash
-RUST_MIN_STACK=4097152 cargo test --release
+# Option 1: Use large stack (16MB) - recommended for debug mode
+RUST_MIN_STACK=16777216 cargo test --test search
+
+# Option 2: Use release mode (smaller stack frames)
+cargo test --release --test search
+
+# Option 3: Run quick perft test to verify correctness without deep search
+echo "position startpos\ngo perft 5" | ./target/release/rusty-rival
 ```
 
-### Slow Compilation
-LTO (Link-Time Optimization) is enabled in release profile. Test compilation can be slow.
+**When you see stack overflow in tests, don't investigate - just increase stack or use release mode.**
+
+### Slow Test Compilation in Release Mode
+Running `cargo test --release` triggers full LTO compilation for ALL test files, which can take 10+ minutes. Instead:
+
+```bash
+# Quick debug test with large stack - use for most testing
+RUST_MIN_STACK=16777216 cargo test --test search
+
+# Only use release mode when actually needed for performance-sensitive tests
+cargo test --release --test search
+```
+
+**Best Practice:** Verify correctness with perft (which uses less stack), then run benchmarks in release mode.
 
 ### Position Corruption
 If the search returns wrong moves or crashes, check:
