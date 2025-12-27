@@ -1,7 +1,7 @@
 use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE};
 use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
 use crate::evaluate::evaluate;
-use crate::make_move::make_move;
+use crate::make_move::{make_move_in_place, unmake_move};
 use crate::move_constants::{
     PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
     PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
@@ -110,8 +110,16 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
 }
 
 #[inline(always)]
-pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
+pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
+    // Check stop flag at TOP before any moves are made - safe to return here
+    if search_state.stop {
+        return (pv_single(0), 0);
+    }
+
     check_time!(search_state);
+    if search_state.stop {
+        return (pv_single(0), 0);
+    }
     search_state.nodes += 1;
 
     let eval = evaluate(position);
@@ -140,12 +148,19 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
     move_scores.sort_unstable_by(|a, b| b.1.cmp(&a.1));
 
     for (m, _) in move_scores {
+        let old_mover = position.mover;
+        let see_value = captured_piece_value_see(position, m);
+        let unmake = make_move_in_place(position, m);
 
-        let mut new_position = *position;
-        make_move(position, m, &mut new_position);
-        if !is_check(&new_position, position.mover) && see(captured_piece_value_see(position, m), bit(to_square_part(m)), &new_position) > 0 {
-            let score = -quiesce(&new_position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
+        if !is_check(position, old_mover) && see(see_value, bit(to_square_part(m)), position) > 0 {
+            let score = -quiesce(position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
+
+            unmake_move(position, m, &unmake);
+
             check_time!(search_state);
+            if search_state.stop {
+                break;
+            }
 
             if score >= window.1 {
                 return (pv_single(m), window.1);
@@ -154,6 +169,8 @@ pub fn quiesce(position: &Position, depth: u8, ply: u8, window: Window, search_s
                 alpha = score;
                 best_move = m;
             }
+        } else {
+            unmake_move(position, m, &unmake);
         }
     }
 

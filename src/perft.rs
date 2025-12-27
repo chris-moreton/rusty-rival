@@ -1,30 +1,27 @@
 use crate::fen::algebraic_move_from_move;
-use crate::make_move::make_move;
+use crate::make_move::{make_move_in_place, unmake_move};
 use crate::moves::{is_check, generate_moves};
 use crate::types::{Move, Position};
 use num_format::{Locale, ToFormattedString};
 use std::time::Instant;
 
-pub fn perft(position: &Position, depth: u8) -> u64 {
+pub fn perft(position: &mut Position, depth: u8) -> u64 {
     let start = Instant::now();
 
-    return perft(position, depth, depth, start, 0);
+    return perft_inner(position, depth, depth, start, 0);
 
-    pub fn perft(position: &Position, depth: u8, start_depth: u8, start_time: Instant, mut total_nodes: u64) -> u64 {
+    fn perft_inner(position: &mut Position, depth: u8, start_depth: u8, start_time: Instant, mut total_nodes: u64) -> u64 {
         let mut count = 0;
         let mover = position.mover;
 
         for m in generate_moves(position) {
-            let mut new_position = *position;
-            make_move(position, m, &mut new_position);
-            // if new_position.zobrist_lock != zobrist_lock(&new_position) {
-            //     panic!("{} {}", get_fen(position), algebraic_move_from_move(m));
-            // }
-            if !is_check(&new_position, mover) {
+            let unmake_info = make_move_in_place(position, m);
+
+            if !is_check(position, mover) {
                 count += if depth == 0 {
                     1
                 } else {
-                    let nodes = perft(&new_position, depth - 1, start_depth, start_time, total_nodes);
+                    let nodes = perft_inner(position, depth - 1, start_depth, start_time, total_nodes);
                     total_nodes += nodes;
                     if depth == start_depth {
                         show_for_move(start_time, total_nodes, m, nodes)
@@ -32,6 +29,8 @@ pub fn perft(position: &Position, depth: u8) -> u64 {
                     nodes
                 }
             }
+
+            unmake_move(position, m, &unmake_info);
         }
 
         count
