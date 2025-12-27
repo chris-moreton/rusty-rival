@@ -43,12 +43,14 @@ pub type PositionHistory = Vec<HashLock>;
 pub type HistoryScore = i64;
 pub type ScorePair = (Score, Score);
 
-pub struct UnmakeMoveDetails {
-    pub captured_piece: Piece,
-    pub captured_square: Square,
-    pub moved_piece: Piece,
-    pub moved_from_square: Square,
-    pub promotion_piece: Piece,
+/// Information needed to unmake a move
+#[derive(Copy, Clone)]
+pub struct UnmakeInfo {
+    pub castle_flags: u8,
+    pub en_passant_square: Square,
+    pub half_moves: u16,
+    pub zobrist_lock: HashLock,
+    pub captured_piece: u8,  // 0 = none, 1-5 = pawn/knight/bishop/rook/queen
 }
 
 #[derive(Debug, Clone)]

@@ -2,7 +2,7 @@ use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, 
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
-use crate::make_move::make_move;
+use crate::make_move::{make_move_in_place, unmake_move};
 use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
@@ -71,19 +71,25 @@ macro_rules! debug_out {
     };
 }
 
-pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mut SearchState) -> Move {
+pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState) -> Move {
     search_state.start_time = Instant::now();
     search_state.hash_table_version += 1;
 
-    let mut legal_moves: MoveScoreList = generate_moves(position)
-        .into_iter()
-        .filter(|m| {
-            let mut new_position = *position;
-            make_move(position, *m, &mut new_position);
-            !is_check(&new_position, position.mover) && *m != search_state.ignore_root_move
-        })
-        .map(|m| (m, -MATE_SCORE))
-        .collect();
+    let original_mover = position.mover;
+    let all_moves = generate_moves(position);
+    let mut legal_moves: MoveScoreList = Vec::with_capacity(all_moves.len());
+
+    for m in all_moves {
+        if m == search_state.ignore_root_move {
+            continue;
+        }
+        let unmake = make_move_in_place(position, m);
+        let legal = !is_check(position, original_mover);
+        unmake_move(position, m, &unmake);
+        if legal {
+            legal_moves.push((m, -MATE_SCORE));
+        }
+    }
 
     // No legal moves = checkmate or stalemate, return null move
     if legal_moves.is_empty() {
@@ -154,7 +160,7 @@ pub fn iterative_deepening(position: &Position, max_depth: u8, search_state: &mu
 }
 
 pub fn start_search(
-    position: &Position,
+    position: &mut Position,
     legal_moves: &mut MoveScoreList,
     search_state: &mut SearchState,
     window: Window,
@@ -162,12 +168,11 @@ pub fn start_search(
     let mut current_best: PathScore = (pv_single(legal_moves[0].0), window.0);
 
     for mv in legal_moves {
-        let mut new_position = *position;
-        make_move(position, mv.0, &mut new_position);
-        search_state.history.push(new_position.zobrist_lock);
+        let unmake = make_move_in_place(position, mv.0);
+        search_state.history.push(position.zobrist_lock);
 
         let mut path_score = search(
-            &new_position,
+            position,
             search_state.iterative_depth - 1,
             1,
             (-window.1, -current_best.1),
@@ -177,6 +182,7 @@ pub fn start_search(
         path_score.1 = -path_score.1;
 
         search_state.history.pop();
+        unmake_move(position, mv.0, &unmake);
         mv.1 = path_score.1;
 
         if mv.1 > current_best.1 && time_remains!(search_state.end_time) {
@@ -279,7 +285,15 @@ pub fn null_move_reduced_depth(depth: u8) -> u8 {
 }
 
 #[inline(always)]
-pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, on_null_move: bool) -> PathScore {
+pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, on_null_move: bool) -> PathScore {
+    let saved_position = *position;
+    let result = search_impl(position, depth, ply, window, search_state, on_null_move);
+    *position = saved_position;
+    result
+}
+
+#[inline(always)]
+fn search_impl(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, on_null_move: bool) -> PathScore {
     check_time!(search_state);
 
     if is_draw(position, search_state, ply) {
@@ -371,17 +385,20 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     };
 
     if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
-        let mut new_position = *position;
-        make_null_move(&mut new_position);
+        let saved_position = *position;
+        make_null_move(position);
 
         let score = -search(
-            &new_position,
+            position,
             null_move_reduced_depth(depth),
             ply + 1,
             (-beta, (-beta) + 1),
             search_state,
             true,
         ).1;
+
+        // Restore position
+        *position = saved_position;
 
         if score >= beta {
             return (pv_single(0), beta);
@@ -402,23 +419,25 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
     };
 
     let these_moves = if verified_hash_move {
+        let old_mover = position.mover;
+        let hash_is_capture = captured_piece_value(position, hash_move) > 0;
+        let unmake = make_move_in_place(position, hash_move);
 
-        let mut new_position = *position;
-        make_move(position, hash_move, &mut new_position);
-
-        if !is_check(&new_position, position.mover) {
+        if !is_check(position, old_mover) {
             legal_move_count += 1;
-            let path_score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &new_position, 0);
-            check_time!(search_state);
+            let path_score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), position, 0);
             let score = path_score.1;
             let singular_depth = real_depth;
+
+            unmake_move(position, hash_move, &unmake);
+            check_time!(search_state);
 
             if score > best_pathscore.1 {
                 best_pathscore = (pv_prepend(hash_move, &path_score.0), score);
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        return cutoff(position, singular_depth, ply, search_state, best_pathscore, hash_height, hash_version,hash_move, &mut new_position);
+                        return cutoff_unmake(position, singular_depth, ply, search_state, best_pathscore, hash_height, hash_version, hash_move, hash_is_capture);
                     }
                     hash_flag = Exact;
                 }
@@ -430,6 +449,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 moves
             }
         } else {
+            unmake_move(position, hash_move, &unmake);
             generate_moves(position)
         }
     } else {
@@ -444,14 +464,17 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
 
     while !move_scores.is_empty() {
         let m = pick_high_score_move(&mut move_scores);
+        let old_mover = position.mover;
+        let is_capture = captured_piece_value(position, m) > 0;
 
-        let mut new_position = *position;
-        make_move(position, m, &mut new_position);
-        if !is_check(&new_position, position.mover) {
+        let unmake = make_move_in_place(position, m);
+
+        // Check if move is legal (king not in check after move)
+        if !is_check(position, old_mover) {
             legal_move_count += 1;
 
-            let is_capture = captured_piece_value(position, m) > 0;
-            if legal_move_count > 1 && alpha_prune_flag && !is_capture && !is_check(&new_position, new_position.mover) {
+            if legal_move_count > 1 && alpha_prune_flag && !is_capture && !is_check(position, position.mover) {
+                unmake_move(position, m, &unmake);
                 continue;
             }
 
@@ -461,7 +484,7 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 && !is_capture
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
-                && !is_check(&new_position, new_position.mover)
+                && !is_check(position, position.mover)
             {
                 LMR_REDUCTION
             } else {
@@ -469,15 +492,17 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
             };
 
             let path_score = if scout_search {
-                lmr_scout_search(lmr, ply, search_state, (alpha, beta), real_depth, &mut new_position)
+                lmr_scout_search(lmr, ply, search_state, (alpha, beta), real_depth, position)
             } else {
-                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), &new_position, 0)
+                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), position, 0)
             };
 
             let score = path_score.1;
 
+            unmake_move(position, m, &unmake);
+
             check_time!(search_state);
-            
+
             if score < beta {
                 update_history(position, search_state, m, -(real_depth as i64) * if score < alpha { 2 } else { 1 });
             }
@@ -487,12 +512,14 @@ pub fn search(position: &Position, depth: u8, ply: u8, window: Window, search_st
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        return cutoff(position, real_depth, ply, search_state, best_pathscore, hash_height, hash_version, m, &mut new_position);
+                        return cutoff_unmake(position, real_depth, ply, search_state, best_pathscore, hash_height, hash_version, m, is_capture);
                     }
                     hash_flag = Exact;
                 }
                 scout_search = true;
             }
+        } else {
+            unmake_move(position, m, &unmake);
         }
     }
 
@@ -592,16 +619,16 @@ fn make_null_move(new_position: &mut Position) {
 }
 
 #[inline(always)]
-fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, new_position: &Position, lmr: u8) -> PathScore {
-    search_state.history.push(new_position.zobrist_lock);
-    let path_score = search(new_position, depth - 1 - lmr, ply + 1, window, search_state, false);
+fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, position: &mut Position, lmr: u8) -> PathScore {
+    search_state.history.push(position.zobrist_lock);
+    let path_score = search(position, depth - 1 - lmr, ply + 1, window, search_state, false);
     search_state.history.pop();
     (path_score.0, -path_score.1)
 }
 
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]
-fn cutoff(
+fn cutoff_unmake(
     position: &Position,
     depth: u8,
     ply: u8,
@@ -610,7 +637,7 @@ fn cutoff(
     hash_height: u8,
     hash_version: u32,
     m: Move,
-    new_position: &mut Position,
+    is_capture: bool,
 ) -> PathScore {
     store_hash_entry(
         position,
@@ -623,7 +650,7 @@ fn cutoff(
         ply,
     );
     update_history(position, search_state, m, depth as i64 * depth as i64);
-    update_killers(position, ply, search_state, m, new_position, best_pathscore.1);
+    update_killers(ply, search_state, m, best_pathscore.1, is_capture);
     best_pathscore
 }
 
@@ -678,14 +705,12 @@ pub fn piece_index_12(position: &Position, m: Move) -> usize {
 }
 
 #[inline(always)]
-fn update_killers(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, new_position: &mut Position, score: Score) {
+fn update_killers(ply: u8, search_state: &mut SearchState, m: Move, score: Score, is_capture: bool) {
     if score > MATE_START {
         search_state.mate_killer[ply as usize] = m;
     }
     if search_state.killer_moves[ply as usize][0] != m {
-        let opponent_index = opponent!(position.mover) as usize;
-        let was_capture = position.pieces[opponent_index].all_pieces_bitboard != new_position.pieces[opponent_index].all_pieces_bitboard;
-        if (m & PROMOTION_FULL_MOVE_MASK == 0) && !was_capture {
+        if (m & PROMOTION_FULL_MOVE_MASK == 0) && !is_capture {
             search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
             search_state.killer_moves[ply as usize][0] = m;
         }
