@@ -1,0 +1,130 @@
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v1-baseline"]
+[Black "v3-improved"]
+[Result "1-0"]
+[FEN "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"]
+[SetUp "1"]
+[Opening "Two Knights"]
+
+4. Nc3 Nxe4 5. Nxe4 d5 6. d4 exd4 7. Bb5 dxe4 8. Nxd4 Bd7 9. Nxc6 bxc6 10. Bc4 Bd6 11. Qd4 O-O 12. Bd2 c5 13. Qc3 Qe7 14. O-O-O Be5 15. Qe3 Rab8 16. c3 Bf5 17. Bd5 Bxh2 18. f3 Qd6 19. fxe4 Bg6 20. Qf2 c6 21. Rxh2 Qxh2 22. Bf4 Qh5 23. Bxb8 Rxb8 24. Qg3 Rf8 25. Bxc6 Qe2 26. Re1 Qa6 27. Bd5 Kh8 28. a3 Rc8 29. Kb1 Re8 30. Ka1 Rc8 31. Qf4 Qa4 32. Bxf7 Bxf7 33. Qxf7 Rb8 34. Qc7 Qb3 35. Rb1 Qb6 36. Qf7 Rd8 37. e5 Qb8 38. Rf1 a5 39. e6 Rg8 40. e7 Qc8 41. Rf5 c4 42. Qf8 Qe6 43. Qxg8+ Qxg8 44. Rf8 h6 45. e8=Q Qxf8 46. Qxf8+ Kh7 47. Qf5+ Kg8 48. a4 Kh8 49. Qxa5 g5 50. Qb5 Kg7 51. Qxc4 h5 52. a5 h4 53. a6 h3 54. gxh3 Kf6 55. Qg4 Ke7 56. a7 Kf6 57. a8=Q Ke7 58. Qge4+ Kd7 59. Qab7+ Kd8 60. Qee7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v3-improved"]
+[Black "v1-baseline"]
+[Result "1/2-1/2"]
+[FEN "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4"]
+[SetUp "1"]
+[Opening "Two Knights"]
+
+4. d3 d5 5. exd5 Nxd5 6. O-O h6 7. Qe1 f6 8. Qe4 Be6 9. Bd2 Nce7 10. Nc3 Qd6 11. Nxd5 Bxd5 12. Bxd5 Qxd5 13. Qxd5 Nxd5 14. d4 exd4 15. Nxd4 O-O-O 16. Ne6 Re8 17. Nxf8 Rhxf8 18. Rae1 b5 19. Ba5 Rxe1 20. Rxe1 Kb7 21. b3 Ka6 22. Bd2 Rd8 23. a3 Ne7 24. Bc3 Nc6 25. g4 Kb7 26. h3 Nd4 27. Bxd4 Rxd4 28. Re7 g5 29. Rh7 Rd2 30. Rxh6 Rxc2 31. Rxf6 Rc3 32. b4 a5 33. Rf5 a4 34. Kg2 Kc6 35. Rf3 Rb3 36. Re3 Kd5 37. h4 c5 38. h5 cxb4 39. h6 Rxe3 40. fxe3 b3 41. h7 b2 42. h8=Q b1=Q 43. Qd8+ Ke6 44. Qxg5 Qb2+ 45. Kf3 Qf6+ 46. Qxf6+ Kxf6 47. Ke2 b4 48. Kd2 bxa3 49. Kc1 Kg5 50. Kb1 Kxg4 51. Ka2 Kf3 52. e4 Kxe4 53. Kxa3 Kd3 54. Kxa4 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v1-baseline"]
+[Black "v3-improved"]
+[Result "1-0"]
+[FEN "rnbqkb1r/pp2pppp/2p2n2/3p4/3PP3/2N5/PPP2PPP/R1BQKBNR w KQkq - 2 4"]
+[SetUp "1"]
+[Opening "Caro-Kann Classical"]
+
+4. e5 Ne4 5. Nxe4 dxe4 6. Ne2 c5 7. dxc5 Qxd1+ 8. Kxd1 Nd7 9. Nc3 Nxc5 10. Ke1 f5 11. b4 Ne6 12. Bb5+ Bd7 13. Bxd7+ Kxd7 14. Bb2 Rc8 15. Rd1+ Ke8 16. Rd2 g6 17. Nd5 Bh6 18. Ne3 f4 19. Ng4 Bg7 20. h4 a5 21. bxa5 h5 22. Nf6+ exf6 23. exf6 Bh6 24. f7+ Ke7 25. Bxh8 Rxh8 26. Rd5 Rc8 27. Rh3 Rc7 28. Rb3 Kxf7 29. Rb6 Bg7 30. Rdd6 Nf8 31. a6 bxa6 32. Rdc6 Rxc6 33. Rxc6 Ne6 34. Rxa6 Bc3+ 35. Kf1 e3 36. Ra7+ Ke8 37. Ra3 Bb4 38. Rd3 exf2 39. Kxf2 Be7 40. g3 Ng7 41. a4 Nf5 42. gxf4 Bxh4+ 43. Kf3 Bd8 44. c4 Bc7 45. c5 Ne7 46. Rd4 Ba5 47. Rd1 Bb4 48. Rd3 h4 49. Kg4 Nf5 50. Kg5 Bxc5 51. a5 Ba7 52. a6 Bc5 53. Kg4 Bg1 54. Ra3 Ba7 55. Rb3 Be3 56. Rb7 Kf8 57. a7 Bxa7 58. Rxa7 Ke8 59. Kg5 h3 60. Rh7 Ne7 61. Kf6 Nd5+ 62. Ke5 Nb6 63. Ke6 Kf8 64. Rxh3 Nc4 65. Kf6 Ke8 66. Kxg6 Kf8 67. Rh7 Nb6 68. f5 Nd5 69. f6 Nxf6 70. Kxf6 Ke8 71. Rc7 Kd8 72. Rc3 Kd7 73. Ke5 Ke7 74. Rc7+ Kd8 75. Kd6 Ke8 76. Ke6 Kf8 77. Rd7 Kg8 78. Kf6 Kh8 79. Kg6 Kg8 80. Rd8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v3-improved"]
+[Black "v1-baseline"]
+[Result "0-1"]
+[FEN "rnbqkb1r/pp2pppp/2p2n2/3p4/3PP3/2N5/PPP2PPP/R1BQKBNR w KQkq - 2 4"]
+[SetUp "1"]
+[Opening "Caro-Kann Classical"]
+
+4. e5 Ne4 5. Nxe4 dxe4 6. Bc4 Nd7 7. Bb3 c5 8. c3 Qa5 9. Kf1 e6 10. Qe2 cxd4 11. cxd4 Qb4 12. Qxe4 Nc5 13. Qe3 Nxb3 14. axb3 Bd7 15. Ne2 Bc6 16. Bd2 Qb5 17. Ra5 Qb6 18. Qc3 Bb5 19. Ra1 f5 20. Be3 Bb4 21. d5 Bxc3 22. Bxb6 Bxb2 23. Rxa7 O-O 24. f4 Rxa7 25. Bxa7 Ra8 26. Bg1 Bc3 27. dxe6 Ra2 28. Kf2 Rxe2+ 29. Kg3 Be1+ 30. Kf3 Rb2 31. e7 Rxb3+ 32. Be3 Bd2 33. Rb1 Rxe3+ 34. Kf2 Re2+ 35. Kf3 Re3+ 36. Kf2 Bc6 37. Rd1 Re4 38. Rxd2 Rxf4+ 39. Kg1 Kf7 40. Rd8 Kxe7 41. Rh8 h6 42. Rg8 Rg4 43. g3 f4 44. Kf2 f3 45. h3 Rg6 46. Rc8 Re6 47. Rc7+ Kf8 48. Rc8+ Re8 49. Rc7 Ra8 50. Rxc6 bxc6 51. Kxf3 Ra3+ 52. Kf2 Ra5 53. Ke2 Rxe5+ 54. Kd3 Rh5 55. h4 g5 56. hxg5 Rxg5 57. Ke4 Rxg3 58. Kf4 Rg5 59. Ke3 h5 60. Kf4 Rg7 61. Ke4 h4 62. Kd3 Rg1 63. Kc3 h3 64. Kb4 h2 65. Kc4 h1=Q 66. Kd4 Rg4+ 67. Kc5 Qd5+ 68. Kb6 Rg7 69. Ka6 Qb5# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v1-baseline"]
+[Black "v3-improved"]
+[Result "1-0"]
+[FEN "rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"]
+[SetUp "1"]
+[Opening "Petrov Defense"]
+
+3. Nc3 Bb4 4. Nxe5 Qe7 5. Ng4 Nxe4 6. Nd5 Qc5 7. Nge3 O-O 8. c3 Ba5 9. b4 Qd6 10. bxa5 Nc6 11. Qg4 Nf6 12. Qg3 Nxd5 13. Qxd6 cxd6 14. Nxd5 Re8+ 15. Kd1 Re5 16. c4 Nxa5 17. Ba3 Nc6 18. Nc7 Rb8 19. Bxd6 Rg5 20. d4 Rg4 21. f4 b6 22. Nb5 Ra8 23. d5 Na5 24. g3 Rg6 25. Be7 f6 26. Nd6 Ba6 27. Bd3 Rh6 28. h4 Rb8 29. Nf5 Rh5 30. g4 Bxc4 31. Bxc4 Rxf5 32. gxf5 Nxc4 33. Re1 Rc8 34. h5 h6 35. Ke2 a5 36. a4 Re8 37. Kd3 Ne5+ 38. fxe5 Rxe7 39. exf6 Rf7 40. Re8+ Kh7 41. Rc1 gxf6 42. Rcc8 Rf8 43. Rxf8 Kg7 44. Rfd8 d6 45. Rd7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v3-improved"]
+[Black "v1-baseline"]
+[Result "1-0"]
+[FEN "rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"]
+[SetUp "1"]
+[Opening "Petrov Defense"]
+
+3. Nc3 Nc6 4. Bc4 Bb4 5. a3 Be7 6. O-O Nxe4 7. Nxe4 d5 8. Bd3 dxe4 9. Bxe4 f6 10. c3 Qd6 11. Qb3 Bf8 12. Bd5 Kd8 13. d3 Ne7 14. Be4 f5 15. Ng5 Qf6 16. d4 exd4 17. Nf7+ Ke8 18. Bxb7 Bxb7 19. Qxb7 Kxf7 20. Qxa8 dxc3 21. bxc3 Qxc3 22. Bg5 Qc5 23. Rac1 Qd5 24. Qxa7 h6 25. Bxe7 Bxe7 26. Rxc7 Qe5 27. a4 Rg8 28. Qb7 Re8 29. Rc8 Rxc8 30. Qxc8 g5 31. Qc4+ Kg7 32. Rd1 Kg6 33. Qg8+ Kf6 34. Qh8+ Ke6 35. Qxe5+ Kxe5 36. a5 Bc5 37. a6 g4 38. Rd7 Kf6 39. g3 Kg6 40. Rc7 Bd4 41. Kg2 Kf6 42. a7 Bxa7 43. Rxa7 Kg6 44. f4 Kf6 45. Ra6+ Kg7 46. Re6 Kh7 47. h4 gxh3+ 48. Kxh3 Kg7 49. Ra6 Kh7 50. Kh4 Kg7 51. Kh5 Kf7 52. Kxh6 Ke8 53. Rb6 Kd7 54. Kg5 Kc7 55. Rf6 Kb7 56. Rf7+ Ka6 57. Kxf5 Kb5 58. g4 Kc5 59. g5 Kb4 60. g6 Kc5 61. g7 Kb5 62. g8=Q Kc4 63. Rc7+ Kd3 64. Qb3+ Kd4 65. Qg3 Kd5 66. Qd3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v1-baseline"]
+[Black "v3-improved"]
+[Result "1/2-1/2"]
+[FEN "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"]
+[SetUp "1"]
+[Opening "Ruy Lopez"]
+
+3... a6 4. Bxc6 dxc6 5. Nc3 f6 6. d4 exd4 7. Qxd4 Qxd4 8. Nxd4 Bd6 9. h3 Ne7 10. Be3 c5 11. Nde2 O-O 12. Nf4 Nc6 13. O-O-O Ne5 14. Nd3 Nxd3+ 15. cxd3 b5 16. h4 Be6 17. h5 b4 18. Nd5 h6 19. b3 a5 20. Rd2 a4 21. Kb2 Be5+ 22. d4 cxd4 23. Bxd4 Bxd4+ 24. Rxd4 c5 25. Rd3 Rfe8 26. Nc7 axb3 27. Nxa8 Rxa8 28. axb3 c4 29. bxc4 Bxc4 30. Rd4 Ra2+ 31. Kb1 Be6 32. f4 b3 33. f5 Bf7 34. Rd8+ Kh7 35. Rd7 Bc4 36. Rd4 Bb5 37. Rh3 Rxg2 38. Rxb3 Be2 39. Rh3 Rg5 40. Kc2 Bxh5 41. Kc3 Be8 42. Rh2 Rg3+ 43. Rd3 Rg1 44. Kd4 Bb5 45. Rc3 Rd1+ 46. Ke3 Rd7 47. Rg2 Re7 48. Rgc2 Rd7 49. Rc7 Rd3+ 50. Kf4 Be8 51. Rg2 Rd7 52. Rxd7 Bxd7 53. Rc2 Ba4 54. Rc3 Bd1 55. Ke3 h5 56. Rc7 Kh6 57. Rc6 Bg4 58. Kf4 Kh7 59. Rc7 Bd1 60. Ra7 Kh6 61. Ra8 Kh7 62. Ra2 Bg4 63. Rc2 g5+ 64. fxg6+ Kxg6 65. Rc6 Kg7 66. Ra6 Bh3 67. Ra7+ Kg6 68. Kg3 Bg4 69. Rc7 Be6 70. Rc6 Kf7 71. Rc5 Kg6 72. Rc7 Kg5 73. Rg7+ Kh6 74. Re7 Bg4 75. Rb7 Kg6 76. Kf4 Bh3 77. Rb2 Kf7 78. Rh2 Bg4 79. Ra2 Be6 80. Ra7+ Kg8 81. Re7 Bh3 82. Kg3 Kf8 83. Rh7 Bg4 84. Rb7 Be6 85. Kf4 Kg8 86. Rb6 Kf7 87. Kg3 Bg4 88. Rb1 Kf8 89. Rb5 Kg7 90. Kf4 Kg6 91. Rb6 Kg7 92. Rc6 Bh3 93. Kg3 Bg4 94. Rc7+ Kh6 95. Rf7 Kg5 96. Rg7+ Kh6 97. Rg8 Kh7 98. Ra8 Kg7 99. Ra5 Kg6 100. Kf4 Bh3 101. Ra1 Kg7 102. Kg3 Bg4 103. Ra6 Bc8 104. Rb6 Bg4 105. Rc6 Kf7 106. Rc7+ Kg6 107. Rb7 Kg5 108. Rh7 Be6 109. Kf3 Bg4+ 110. Ke3 f5 111. Rg7+ Kf6 112. Rg8 Kf7 113. Rh8 fxe4 114. Kxe4 Kg7 115. Re8 Kf7 116. Rh8 Kg7 117. Ra8 h4 118. Kf4 Be2 119. Ra2 Bc4 120. Rh2 Bg8 121. Rxh4 Bb3 122. Ke5 Kg8 123. Rb4 Bd1 124. Rb2 Ba4 125. Kd5 Kg7 126. Rb4 Bc2 127. Kd4 Bh7 128. Rb6 Bg8 129. Ke5 Kh7 130. Rb7+ Kh8 131. Rb2 Bh7 132. Rb8+ Bg8 133. Kf6 Kh7 134. Rb4 Ba2 135. Rb7+ Kh8 136. Rb8+ Kh7 137. Ke5 Bc4 138. Rb7+ Kh8 139. Ra7 Bd3 140. Rc7 Bh7 141. Kf6 Be4 142. Re7 Bd5 143. Re5 Bc6 144. Rh5+ Kg8 145. Rc5 Bb7 146. Rg5+ Kh8 147. Kf7 Bf3 148. Rg8+ Kh7 149. Rd8 Kh6 150. Kf6 Kh5 151. Kf5 Bg4+ 152. Ke5 Be2 153. Rd2 Bb5 154. Rb2 Bf1 155. Rf2 Bb5 156. Rf4 Kg5 157. Rf7 Kg4 158. Rb7 Bc6 159. Rg7+ Kh3 160. Kd6 Bf3 161. Rh7+ Kg3 162. Ke5 Bg2 163. Kd4 Kf2 164. Rg7 Ba8 165. Rd7 Kg1 166. Ke3 Bc6 167. Rg7+ Kh2 168. Kf2 Kh3 169. Rh7+ Kg4 170. Rd7 Bxd7 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v3-improved"]
+[Black "v1-baseline"]
+[Result "1-0"]
+[FEN "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3"]
+[SetUp "1"]
+[Opening "Ruy Lopez"]
+
+3... a6 4. Bxc6 dxc6 5. O-O Nf6 6. d3 Qd6 7. Nc3 c5 8. Qe2 c6 9. Na4 Nd7 10. Nc3 Nf6 11. b3 g6 12. Na4 Nd7 13. Nc3 Nf6 14. Bg5 h6 15. Bd2 b5 16. Rae1 Qc7 17. Qd1 b4 18. Na4 Be6 19. Be3 Nd7 20. c3 Qd6 21. cxb4 cxb4 22. Nb2 g5 23. Nc4 Bxc4 24. bxc4 Qe6 25. Nd2 Bc5 26. Bxc5 Nxc5 27. Nb3 Nd7 28. Qf3 c5 29. a3 bxa3 30. Ra1 Rf8 31. Rxa3 g4 32. Qg3 Rg8 33. Raa1 Rg6 34. Kh1 Rb8 35. Rab1 f5 36. f4 gxf3 37. Qxf3 fxe4 38. Qxe4 Qc6 39. Qe2 Rf6 40. Rfc1 Qc7 41. Nd2 Rxb1 42. Rxb1 Rb6 43. Qh5+ Kd8 44. Rd1 Qc6 45. Ne4 Rb2 46. Qg4 a5 47. Ra1 Kc7 48. Nc3 Kb6 49. Nd5+ Ka6 50. Qg7 Qd6 51. h3 Rf2 52. Qg8 Rf8 53. Qg3 Nf6 54. Qe1 Nxd5 55. Qxa5+ Kb7 56. Qa7+ Kc8 57. cxd5 e4 58. Qg7 Kb8 59. Qb2+ Kc7 60. Ra7+ Kd8 61. Ra8+ Ke7 62. Qg7+ Rf7 63. Ra7+ Qc7 64. Rxc7+ Kd6 65. Qxf7 Ke5 66. Qe8+ Kd4 67. dxe4 Kd3 68. d6 Kd2 69. d7 c4 70. d8=Q+ Ke3 71. Qf8 Ke2 72. Qf3+ Ke1 73. Qdd1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v1-baseline"]
+[Black "v3-improved"]
+[Result "1/2-1/2"]
+[FEN "r1bqkb1r/1ppp1ppp/p1n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 5"]
+[SetUp "1"]
+[Opening "Ruy Lopez Morphy"]
+
+5. Bxc6 dxc6 6. O-O Ng4 7. Nc3 Bd6 8. h3 Nf6 9. d4 exd4 10. Qxd4 Be7 11. Qxd8+ Bxd8 12. Rd1 O-O 13. e5 Nd7 14. Be3 Be7 15. Ne4 Nb6 16. Bc1 Kh8 17. a4 Bf5 18. Re1 Rad8 19. a5 Nc4 20. Ra4 Bxe4 21. Rxc4 Bd5 22. Ra4 c5 23. c4 Bc6 24. Ra3 Rde8 25. Bd2 Rd8 26. Re2 Bd7 27. Ra1 Bf5 28. Rc1 Rd3 29. Be3 Rb3 30. Kh1 Be6 31. g4 Bd7 32. Kh2 Bc6 33. Ne1 b6 34. Ra1 Bb7 35. Rd2 Rd8 36. Rxd8+ Bxd8 37. Rd1 Bh4 38. axb6 cxb6 39. Rd2 h6 40. Ng2 Bg5 41. h4 Bxe3 42. Nxe3 Kh7 43. h5 b5 44. Rc2 Kg8 45. Rd2 Kh7 46. Rc2 Rb4 47. cxb5 axb5 48. Kg3 c4 49. f4 Rb3 50. Kf2 b4 51. Nxc4 Rf3+ 52. Ke1 Rxf4 53. Ne3 Re4 54. Kf2 Kh8 55. Rc4 Rxc4 56. Nxc4 Bd5 57. Ne3 Bb7 58. Ke2 Be4 59. Nf5 Bc2 60. Nd4 Be4 61. Ke3 Bd5 62. Nc2 b3 63. Nd4 Kg8 64. Kd2 Kf8 65. Kd3 Bb7 66. Ke3 Bd5 67. Kd2 Bb7 68. Kc3 Bc8 69. Nf5 Be6 70. Kd4 Kg8 71. Ke4 Kh7 72. Kf3 Bc4 73. Nd4 Kg8 74. Ke4 Kf8 75. Kf4 Kg8 76. Kg3 Kh7 77. Kf2 Kg8 78. Nf5 Kh8 79. Ke3 Be6 80. Kf4 Bd5 81. Nd4 Kh7 82. Nb5 Kg8 83. Nc3 Bc4 84. Kf3 Kh7 85. Ne4 Bd5 86. Kf4 Be6 87. Nd6 Bd5 88. Nc8 Kh8 89. Ne7 Be6 90. Kg3 Bc4 91. Kf3 Ba6 92. Ke3 Bc4 93. Kd2 Kh7 94. Nf5 Be6 95. Ke2 Kg8 96. Kd3 Kh7 97. Ke4 Kg8 98. Kf3 Bd5+ 99. Kf2 Be6 100. Kg3 Bc4 101. Kh4 Be2 102. Nd4 Bc4 103. Kh3 Kh8 104. Kg2 Kh7 105. Kg3 Kh8 106. Kh2 Bd5 107. Nf5 Bf3 108. Kg3 Ba8 109. Nd4 Bd5 110. Kf2 Kg8 111. Ke2 Kf8 112. Kd1 Ke7 113. Ke1 Kd7 114. Kf1 Ke7 115. Kg1 Kd7 116. Kf1 Ke7 117. Kg1 Kd7 118. Kf1 Ke7 119. Kg1 Kd7 120. Kf1 Ke7 121. Kg1 Kd7 122. Kf1 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "?"]
+[White "v3-improved"]
+[Black "v1-baseline"]
+[Result "1/2-1/2"]
+[FEN "r1bqkb1r/1ppp1ppp/p1n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 5"]
+[SetUp "1"]
+[Opening "Ruy Lopez Morphy"]
+
+5. Bxc6 dxc6 6. Nc3 Bg4 7. d3 Bb4 8. O-O Rf8 9. Kh1 Qd6 10. Bd2 h6 11. a3 Ba5 12. Be3 Bb6 13. Bxb6 cxb6 14. h3 Bh5 15. g4 Bg6 16. Nh4 Bh7 17. Rc1 g6 18. Nf3 c5 19. Nd2 b5 20. Qf3 Rd8 21. Qg3 Bg8 22. a4 b4 23. Nc4 Qe6 24. Nb1 Nxe4 25. dxe4 Qxc4 26. Qxe5+ Kd7 27. Nd2 Qd4 28. Qxd4+ cxd4 29. Nf3 Kc8 30. b3 f5 31. gxf5 gxf5 32. Nd2 fxe4 33. Nxe4 Bd5 34. Rce1 Rf3 35. Kh2 Rdf8 36. Re2 Bxe4 37. Rxe4 Rxf2+ 38. Rxf2 Rxf2+ 39. Kg1 Rxc2 40. Rxd4 a5 41. Rh4 Rc3 42. Kf2 Rxb3 43. Rxh6 Ra3 44. Rh8+ Kd7 45. Rh7+ Kc6 46. Rh6+ Kc7 47. Rh7+ Kd8 48. Rxb7 Rxa4 49. h4 Ra2+ 50. Ke3 Ke8 51. Kd3 Kf8 52. h5 Rh2 53. Rb8+ Kg7 54. Rb7+ Kh6 55. Rb6+ Kh7 56. Rb7+ Kg8 57. Rb8+ Kf7 58. Rb7+ Ke6 59. Rb6+ Ke7 60. Rb7+ Kf6 61. Rb6+ Kf5 62. Rb5+ Kg4 63. Rxa5 Rxh5 64. Rxh5 Kxh5 65. Kc4 Kg5 66. Kxb4 1/2-1/2
+
