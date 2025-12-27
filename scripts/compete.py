@@ -468,9 +468,12 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
         print(f"Opening book: {len(OPENING_BOOK)} positions (randomized)")
     else:
         print("Opening book: disabled")
+    print(f"PGN output: {pgn_file}")
     print(f"{'='*60}\n", flush=True)
 
-    games = []
+    # Clear/create the PGN file at the start
+    with open(pgn_file, "w") as f:
+        pass
 
     for i in range(num_games):
         # Get opening for this game pair
@@ -492,8 +495,12 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
 
         result, game = play_game(white_path, black_path, white, black,
                                   time_per_move, opening_fen, opening_name)
-        games.append(game)
         results[result] += 1
+
+        # Append game to PGN file immediately (crash-safe)
+        with open(pgn_file, "a") as f:
+            print(game, file=f)
+            print(file=f)
 
         # Calculate points
         if result == "1-0":
@@ -516,12 +523,6 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
         print(f"Game {game_num:3d}/{num_games}: {white} vs {black} -> {result}{opening_info}  "
               f"| Score: {engine1_name} {engine1_points:.1f} - {engine2_points:.1f} {engine2_name}",
               flush=True)
-
-    # Save PGN
-    with open(pgn_file, "w") as f:
-        for game in games:
-            print(game, file=f)
-            print(file=f)
 
     # Calculate Elo difference
     # From engine1's perspective: wins are when engine1 won
