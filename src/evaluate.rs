@@ -2,7 +2,7 @@ use crate::bitboards::{
     bit, north_fill, south_fill, BISHOP_RAYS, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
-use crate::engine_constants::{BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KING_THREAT_BONUS_ROOK};
+use crate::engine_constants::{BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KING_THREAT_BONUS_ROOK, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, Position, Score, Square, BLACK, WHITE};
@@ -32,7 +32,8 @@ pub fn evaluate(position: &Position) -> Score {
         + backward_pawn_score(position)
         + bishop_pair_bonus(position.pieces[WHITE as usize].bishop_bitboard, position.pieces[WHITE as usize].pawn_bitboard)
         - bishop_pair_bonus(position.pieces[BLACK as usize].bishop_bitboard, position.pieces[BLACK as usize].pawn_bitboard)
-        + knight_fork_threat_score(position);
+        + knight_fork_threat_score(position)
+        + rook_file_score(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -656,4 +657,53 @@ pub fn backward_pawn_score(position: &Position) -> Score {
     let black_backward = black_pawns & !north_fill(black_pawn_attacks) & (white_pawn_attacks << 8);
 
     (black_backward.count_ones() as Score - white_backward.count_ones() as Score) * VALUE_BACKWARD_PAWN_PENALTY
+}
+
+/// File masks for each file (indexed by file number 0-7)
+const FILE_MASKS: [Bitboard; 8] = [
+    FILE_A_BITS,
+    FILE_A_BITS << 1,
+    FILE_A_BITS << 2,
+    FILE_A_BITS << 3,
+    FILE_A_BITS << 4,
+    FILE_A_BITS << 5,
+    FILE_A_BITS << 6,
+    FILE_A_BITS << 7,
+];
+
+#[inline(always)]
+pub fn rook_file_score(position: &Position) -> Score {
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+    let all_pawns = white_pawns | black_pawns;
+
+    let mut score: Score = 0;
+
+    // White rooks
+    let mut rooks = position.pieces[WHITE as usize].rook_bitboard;
+    while rooks != 0 {
+        let sq = get_and_unset_lsb!(rooks);
+        let file_mask = FILE_MASKS[(sq % 8) as usize];
+
+        if file_mask & all_pawns == 0 {
+            score += ROOK_OPEN_FILE_BONUS;
+        } else if file_mask & white_pawns == 0 {
+            score += ROOK_SEMI_OPEN_FILE_BONUS;
+        }
+    }
+
+    // Black rooks
+    let mut rooks = position.pieces[BLACK as usize].rook_bitboard;
+    while rooks != 0 {
+        let sq = get_and_unset_lsb!(rooks);
+        let file_mask = FILE_MASKS[(sq % 8) as usize];
+
+        if file_mask & all_pawns == 0 {
+            score -= ROOK_OPEN_FILE_BONUS;
+        } else if file_mask & black_pawns == 0 {
+            score -= ROOK_SEMI_OPEN_FILE_BONUS;
+        }
+    }
+
+    score
 }
