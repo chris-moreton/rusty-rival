@@ -4,13 +4,15 @@ Engine vs Engine competition harness using python-chess.
 
 Usage:
     # Single match between two engines (uses opening book by default)
-    ./scripts/compete.py v1-baseline v2-weak-queen --games 100 --time 1.0
+    # Engine names can be shorthand (v1) or full (v1-baseline)
+    ./scripts/compete.py v1 v2 --games 100 --time 1.0
 
-    # League (round-robin) between multiple engines
-    ./scripts/compete.py v1-baseline v2-weak-queen v3-test --league --games 10 --time 0.5
+    # Round-robin between 3+ engines (interleaved format)
+    # Shows league table with Elo estimates after each round
+    ./scripts/compete.py v1 v2 v10 v11 --games 250 --time 0.25
 
     # Disable opening book (start from initial position)
-    ./scripts/compete.py v1-baseline v2-weak-queen --games 10 --no-book
+    ./scripts/compete.py v1 v2 --games 10 --no-book
 """
 
 import argparse
@@ -372,6 +374,30 @@ def calculate_elo_difference(wins: int, losses: int, draws: int) -> tuple[float,
     return elo_diff, elo_error
 
 
+def resolve_engine_name(shorthand: str, engine_dir: Path) -> str:
+    """
+    Resolve a shorthand engine name to the full directory name.
+    E.g., 'v1' -> 'v1-baseline', 'v10' -> 'v10-arrayvec-movelist'
+    """
+    # If exact match exists, use it
+    if (engine_dir / shorthand).exists():
+        return shorthand
+
+    # Look for directories starting with the shorthand followed by '-'
+    pattern = f"{shorthand}-*"
+    matches = list(engine_dir.glob(pattern))
+
+    if len(matches) == 1:
+        return matches[0].name
+    elif len(matches) == 0:
+        print(f"Error: No engine found matching '{shorthand}'")
+        print(f"Available engines: {', '.join(sorted(d.name for d in engine_dir.iterdir() if d.is_dir()))}")
+        sys.exit(1)
+    else:
+        print(f"Error: Ambiguous engine name '{shorthand}' matches: {', '.join(m.name for m in matches)}")
+        sys.exit(1)
+
+
 def get_engine_path(name: str, engine_dir: Path) -> Path:
     path = engine_dir / name / "rusty-rival"
     if not path.exists():
@@ -559,52 +585,226 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
     }
 
 
+def calculate_league_elo(engine_names: list[str], head_to_head: dict) -> dict[str, float]:
+    """
+    Calculate estimated Elo ratings for all engines based on head-to-head results.
+    Uses a simple iterative approach: set first engine to 1500, calculate others relative to it.
+    """
+    if len(engine_names) < 2:
+        return {name: 1500.0 for name in engine_names}
+
+    # Start with all engines at 1500
+    elo = {name: 1500.0 for name in engine_names}
+
+    # Iteratively adjust ratings based on results (simple approach)
+    for _ in range(10):  # Converge over iterations
+        new_elo = {name: 0.0 for name in engine_names}
+        counts = {name: 0 for name in engine_names}
+
+        for (e1, e2), (wins1, wins2, draws) in head_to_head.items():
+            total = wins1 + wins2 + draws
+            if total == 0:
+                continue
+
+            # Calculate performance rating for e1 vs e2
+            score1 = (wins1 + draws * 0.5) / total
+            if 0.001 < score1 < 0.999:
+                diff = -400 * math.log10(1 / score1 - 1)
+            elif score1 >= 0.999:
+                diff = 400
+            else:
+                diff = -400
+
+            # e1's rating implied by this matchup
+            new_elo[e1] += elo[e2] + diff
+            counts[e1] += 1
+
+            # e2's rating implied by this matchup
+            new_elo[e2] += elo[e1] - diff
+            counts[e2] += 1
+
+        # Average the ratings
+        for name in engine_names:
+            if counts[name] > 0:
+                elo[name] = new_elo[name] / counts[name]
+
+    # Normalize so average is 1500
+    avg = sum(elo.values()) / len(elo)
+    for name in elo:
+        elo[name] += 1500 - avg
+
+    return elo
+
+
+def print_league_table(engine_names: list[str], standings: dict[str, float],
+                       head_to_head: dict, round_num: int, is_final: bool = False):
+    """Print the current league standings with Elo estimates."""
+    elo_ratings = calculate_league_elo(engine_names, head_to_head)
+
+    header = "FINAL LEAGUE STANDINGS" if is_final else f"STANDINGS AFTER ROUND {round_num}"
+    print(f"\n{'='*70}")
+    print(header)
+    print(f"{'='*70}")
+    print(f"{'Rank':<6}{'Engine':<30}{'Points':<12}{'Elo':<10}")
+    print(f"{'-'*70}")
+
+    sorted_standings = sorted(standings.items(), key=lambda x: (-x[1], -elo_ratings[x[0]]))
+    for i, (name, points) in enumerate(sorted_standings, 1):
+        elo = elo_ratings[name]
+        print(f"{i:<6}{name:<30}{points:<12.1f}{elo:<10.0f}")
+
+    print(f"{'='*70}\n")
+
+
 def run_league(engine_names: list[str], engine_dir: Path,
                games_per_pairing: int, time_per_move: float, results_dir: Path,
                use_opening_book: bool = True):
-    """Run a round-robin league between multiple engines."""
+    """Run a round-robin league with interleaved pairings."""
 
-    print(f"\n{'='*60}")
-    print("LEAGUE MODE - Round Robin Tournament")
-    print(f"Engines: {', '.join(engine_names)}")
-    print(f"Games per pairing: {games_per_pairing}")
-    print(f"Time: {time_per_move}s/move")
-    print(f"{'='*60}\n")
-
-    standings = {name: 0.0 for name in engine_names}
     pairings = list(combinations(engine_names, 2))
+    num_pairings = len(pairings)
 
+    # Games per pairing should be even (play each opening from both sides)
+    if games_per_pairing % 2 != 0:
+        games_per_pairing += 1
+        print(f"Adjusted games per pairing to {games_per_pairing} (must be even)")
+
+    # Number of complete rounds (each round = 2 games per pairing = one opening played both ways)
+    num_rounds = games_per_pairing // 2
+    total_games = num_rounds * num_pairings * 2
+
+    print(f"\n{'='*70}")
+    print("ROUND ROBIN TOURNAMENT")
+    print(f"{'='*70}")
+    print(f"Engines: {', '.join(engine_names)}")
+    print(f"Pairings: {num_pairings}")
+    print(f"Games per pairing: {games_per_pairing}")
+    print(f"Rounds: {num_rounds} (each round = 2 games per pairing)")
+    print(f"Total games: {total_games}")
+    print(f"Time: {time_per_move}s/move")
+    if use_opening_book:
+        print(f"Opening book: {len(OPENING_BOOK)} positions")
+    print(f"{'='*70}\n")
+
+    # Initialize tracking
+    standings = {name: 0.0 for name in engine_names}
+    # head_to_head[(e1, e2)] = (e1_wins, e2_wins, draws) where e1 < e2 alphabetically
+    head_to_head = {}
+    for e1, e2 in pairings:
+        key = (e1, e2) if e1 < e2 else (e2, e1)
+        head_to_head[key] = (0, 0, 0)
+
+    # Prepare openings
+    if use_opening_book:
+        openings = OPENING_BOOK.copy()
+        random.shuffle(openings)
+        # Extend if we need more
+        while len(openings) < num_rounds:
+            extra = OPENING_BOOK.copy()
+            random.shuffle(extra)
+            openings.extend(extra)
+    else:
+        openings = [(None, None)] * num_rounds
+
+    # Get engine paths
+    engine_paths = {name: get_engine_path(name, engine_dir) for name in engine_names}
+
+    # Create PGN file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    pgn_file = results_dir / f"league_{timestamp}.pgn"
+    with open(pgn_file, "w") as f:
+        f.write(f"; Round Robin Tournament\n")
+        f.write(f"; Engines: {', '.join(engine_names)}\n")
+        f.write(f"; Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
 
-    for engine1, engine2 in pairings:
-        pgn_file = results_dir / f"league_{engine1}_vs_{engine2}_{timestamp}.pgn"
-        match_results = run_match(engine1, engine2, engine_dir,
-                                  games_per_pairing, time_per_move, pgn_file,
-                                  use_opening_book)
-        standings[engine1] += match_results[engine1]
-        standings[engine2] += match_results[engine2]
+    game_num = 0
+
+    # Play rounds
+    for round_idx in range(num_rounds):
+        opening_fen, opening_name = openings[round_idx]
+        print(f"\n--- Round {round_idx + 1}/{num_rounds}: {opening_name or 'Starting position'} ---\n")
+
+        # Play each pairing twice (once per color) for this opening
+        for pairing_idx, (engine1, engine2) in enumerate(pairings):
+            match_label = f"Match {pairing_idx + 1}/{num_pairings}"
+
+            for color_swap in [False, True]:
+                game_num += 1
+
+                if color_swap:
+                    white, black = engine2, engine1
+                else:
+                    white, black = engine1, engine2
+
+                white_path = engine_paths[white]
+                black_path = engine_paths[black]
+
+                result, game = play_game(white_path, black_path, white, black,
+                                         time_per_move, opening_fen, opening_name)
+
+                # Append to PGN
+                with open(pgn_file, "a") as f:
+                    print(game, file=f)
+                    print(file=f)
+
+                # Update standings
+                key = (engine1, engine2) if engine1 < engine2 else (engine2, engine1)
+                e1_wins, e2_wins, draws = head_to_head[key]
+
+                if result == "1-0":
+                    standings[white] += 1
+                    if white == key[0]:
+                        e1_wins += 1
+                    else:
+                        e2_wins += 1
+                elif result == "0-1":
+                    standings[black] += 1
+                    if black == key[0]:
+                        e1_wins += 1
+                    else:
+                        e2_wins += 1
+                elif result == "1/2-1/2":
+                    standings[white] += 0.5
+                    standings[black] += 0.5
+                    draws += 1
+
+                head_to_head[key] = (e1_wins, e2_wins, draws)
+
+                # Print game result
+                color_label = "(colors swapped)" if color_swap else ""
+                print(f"Game {game_num:3d}/{total_games} {match_label}: {white} vs {black} -> {result} {color_label}")
+
+        # Print standings after each complete round
+        print_league_table(engine_names, standings, head_to_head, round_idx + 1)
 
     # Print final standings
-    print(f"\n{'='*60}")
-    print("FINAL LEAGUE STANDINGS")
-    print(f"{'='*60}")
+    print_league_table(engine_names, standings, head_to_head, num_rounds, is_final=True)
 
-    sorted_standings = sorted(standings.items(), key=lambda x: -x[1])
-    for i, (name, points) in enumerate(sorted_standings, 1):
-        print(f"{i}. {name}: {points:.1f} points")
+    # Print head-to-head results
+    print(f"{'='*70}")
+    print("HEAD-TO-HEAD RESULTS")
+    print(f"{'='*70}")
+    for (e1, e2), (w1, w2, d) in sorted(head_to_head.items()):
+        total = w1 + w2 + d
+        if total > 0:
+            elo_diff, elo_err = calculate_elo_difference(w1, w2, d)
+            print(f"{e1} vs {e2}: +{w1} -{w2} ={d}  (Elo diff: {elo_diff:+.0f} ±{elo_err:.0f})")
+    print(f"{'='*70}")
 
-    print(f"{'='*60}\n")
+    print(f"\nPGN saved to: {pgn_file}\n")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Chess engine competition harness")
-    parser.add_argument("engines", nargs="+", help="Engine version names (e.g., v1-baseline)")
+    parser = argparse.ArgumentParser(
+        description="Chess engine competition harness",
+        epilog="Engine names can be shorthand (v1, v10) or full (v1-baseline, v10-arrayvec-movelist)"
+    )
+    parser.add_argument("engines", nargs="+",
+                        help="Engine version names (e.g., v1, v10, or v1-baseline)")
     parser.add_argument("--games", "-g", type=int, default=100,
-                        help="Number of games (default: 100)")
+                        help="Number of games per pairing (default: 100)")
     parser.add_argument("--time", "-t", type=float, default=1.0,
                         help="Time per move in seconds (default: 1.0)")
-    parser.add_argument("--league", "-l", action="store_true",
-                        help="Run round-robin league (requires 3+ engines)")
     parser.add_argument("--no-book", action="store_true",
                         help="Disable opening book (start all games from initial position)")
 
@@ -617,20 +817,26 @@ def main():
 
     use_opening_book = not args.no_book
 
-    if args.league:
-        if len(args.engines) < 3:
-            print("Error: League mode requires at least 3 engines")
-            sys.exit(1)
-        run_league(args.engines, engine_dir, args.games, args.time, results_dir, use_opening_book)
-    else:
-        if len(args.engines) != 2:
-            print("Error: Match mode requires exactly 2 engines")
-            sys.exit(1)
+    # Resolve shorthand engine names to full names
+    resolved_engines = [resolve_engine_name(e, engine_dir) for e in args.engines]
 
+    # Print resolved names if different from input
+    for orig, resolved in zip(args.engines, resolved_engines):
+        if orig != resolved:
+            print(f"Resolved '{orig}' -> '{resolved}'")
+
+    if len(resolved_engines) >= 3:
+        # Round-robin league for 3+ engines
+        run_league(resolved_engines, engine_dir, args.games, args.time, results_dir, use_opening_book)
+    elif len(resolved_engines) == 2:
+        # Head-to-head match for exactly 2 engines
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pgn_file = results_dir / f"{args.engines[0]}_vs_{args.engines[1]}_{timestamp}.pgn"
-        run_match(args.engines[0], args.engines[1], engine_dir,
+        pgn_file = results_dir / f"{resolved_engines[0]}_vs_{resolved_engines[1]}_{timestamp}.pgn"
+        run_match(resolved_engines[0], resolved_engines[1], engine_dir,
                   args.games, args.time, pgn_file, use_opening_book)
+    else:
+        print("Error: At least 2 engines are required")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

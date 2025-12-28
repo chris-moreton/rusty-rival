@@ -46,10 +46,10 @@ rusty-rival/
 cargo build --release
 
 # Optimized for native CPU (recommended)
-RUSTFLAGS="-C target-cpu=native" cargo build --release
-
-# Run with increased stack (needed for deep searches)
-RUST_MIN_STACK=4097152 cargo run --release
+# The following env vars should already be in the environment, don't add them to the command
+# RUSTFLAGS="-C target-cpu=native"
+# RUST_MIN_STACK=4097152
+cargo build --release
 ```
 
 ## Testing
@@ -112,13 +112,13 @@ Features:
 Engines are stored in `engines/<version>/rusty-rival`. Create new versions:
 
 ```bash
-# Build and save new version
+# Build and save new version - note three digit version number so alphabetical sorting works
 RUSTFLAGS="-C target-cpu=native" cargo build --release
-mkdir -p engines/v7-new-feature
-cp target/release/rusty-rival engines/v7-new-feature/
+mkdir -p engines/v007-new-feature
+cp target/release/rusty-rival engines/v007-new-feature/
 
 # IMPORTANT: Always tag the commit when creating a new version
-git tag v7-new-feature
+git tag v007-new-feature
 ```
 
 **Always tag commits when creating new engine versions** - this allows us to recreate any version later.

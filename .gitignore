@@ -3,7 +3,7 @@
 .idea
 perf.data*
 .DS_Store
-/engines/
+/engines/*
 /.venv/
 
 

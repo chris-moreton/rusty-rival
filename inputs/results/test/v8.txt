@@ -1,0 +1,21 @@
+info score cp 601 depth 1 time 2 nodes 32 nps 16000 multipv 1 pv a8b8 
+info score cp 573 depth 2 time 4 nodes 138 nps 34500 multipv 1 pv a8b8 g1g7 
+info score cp 581 depth 3 time 8 nodes 696 nps 87000 multipv 1 pv b4b3 a2b3 c4b3 
+info score cp 582 depth 4 time 11 nodes 1654 nps 150363 multipv 1 pv b4b3 a5c3 h8f8 g1g7 
+info score cp 578 depth 5 time 13 nodes 3506 nps 269692 multipv 1 pv b4b3 a2b3 c4b3 a5b6 a7a6 
+info score cp 591 depth 6 time 17 nodes 8979 nps 528176 multipv 1 pv b4b3 a2b3 c4b3 a5c3 h8f8 e1c1 
+info score cp 606 depth 7 time 22 nodes 16953 nps 770590 multipv 1 pv a8b8 a5c7 b8b7 g1g7 e8f8 g7d7 c4c3 
+info score cp 586 depth 8 time 31 nodes 29191 nps 941645 multipv 1 pv b4b3 a2b3 c4b3 a5c3 h8f8 c3g7 f8f3 e1c1 
+info score cp 597 depth 9 time 38 nodes 44394 nps 1168263 multipv 1 pv b4b3 a2b3 c4b3 e1c1 a8c8 c1b2 d3c2 d1e1 c8c5 e1e4 
+info score cp 602 depth 10 time 59 nodes 91224 nps 1546169 multipv 1 pv b4b3 a2b3 c4b3 e1c1 a8c8 c1b2 
+info score cp 606 depth 11 time 123 nodes 261779 nps 2128284 multipv 1 pv a8b8 a5c7 b8b7 g1g7 b4b3 a2b3 c4b3 a1a5 b3b2 a5e5 e8f8 e5e7 
+info score cp 619 depth 12 time 206 nodes 513349 nps 2491985 multipv 1 pv a8b8 a5c7 b8b7 c7e5 h8f8 e5d6 f8f7 d6c5 e8d7 a2a3 
+info score cp 621 depth 13 time 271 nodes 680530 nps 2511180 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 e1c1 b4b3 a2b3 b7b3 d6b4 b3b4 
+info score cp 624 depth 14 time 369 nodes 973181 nps 2637346 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 624 depth 15 time 378 nodes 1000000 nps 2645502 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 624 depth 15 time 723 nodes 2000000 nps 2766251 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 624 depth 15 time 723 nodes 2000000 nps 2766251 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 624 depth 15 time 723 nodes 2000000 nps 2766251 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 641 depth 15 time 966 nodes 2662472 nps 2756182 multipv 1 pv a8b8 e1c1 b8b5 a5c7 b5f5 c7g3 c4c3 g1e1 e8f7 g3d6 a7a5 a2a3 b4b3 e1g1 f5f2 
+info score cp 641 depth 15 time 966 nodes 2662472 nps 2756182 multipv 1 pv a8b8 e1c1 b8b5 a5c7 b5f5 c7g3 c4c3 g1e1 e8f7 g3d6 a7a5 a2a3 b4b3 e1g1 f5f2 
+bestmove a8b8
