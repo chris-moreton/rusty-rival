@@ -31,7 +31,8 @@ pub fn evaluate(position: &Position) -> Score {
         + bishop_mobility_score(position)
         + backward_pawn_score(position)
         + bishop_pair_bonus(position.pieces[WHITE as usize].bishop_bitboard, position.pieces[WHITE as usize].pawn_bitboard)
-        - bishop_pair_bonus(position.pieces[BLACK as usize].bishop_bitboard, position.pieces[BLACK as usize].pawn_bitboard);
+        - bishop_pair_bonus(position.pieces[BLACK as usize].bishop_bitboard, position.pieces[BLACK as usize].pawn_bitboard)
+        + knight_fork_threat_score(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
