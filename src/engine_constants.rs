@@ -79,3 +79,9 @@ pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 12;
 
 // Rook mobility bonus based on number of squares available (0-14)
 pub const VALUE_ROOK_MOBILITY: [Score; 15] = [-10, -6, -3, 0, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12];
+
+// Queen mobility bonus based on number of squares available (0-27)
+pub const VALUE_QUEEN_MOBILITY: [Score; 28] = [
+    -12, -8, -5, -2, 0, 1, 2, 3, 4, 5, 6, 6, 7, 7,
+    8, 8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12, 12
+];

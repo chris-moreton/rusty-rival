@@ -2,7 +2,7 @@ use crate::bitboards::{
     bit, north_fill, south_fill, BISHOP_RAYS, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
-use crate::engine_constants::{BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KING_THREAT_BONUS_ROOK, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, VALUE_ROOK_MOBILITY};
+use crate::engine_constants::{BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KING_THREAT_BONUS_ROOK, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, VALUE_ROOK_MOBILITY, VALUE_QUEEN_MOBILITY};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, Position, Score, Square, BLACK, WHITE};
@@ -34,7 +34,8 @@ pub fn evaluate(position: &Position) -> Score {
         - bishop_pair_bonus(position.pieces[BLACK as usize].bishop_bitboard, position.pieces[BLACK as usize].pawn_bitboard)
         + knight_fork_threat_score(position)
         + rook_file_score(position)
-        + rook_mobility_score(position);
+        + rook_mobility_score(position)
+        + queen_mobility_score(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -663,6 +664,31 @@ pub fn rook_mobility_score(position: &Position) -> Score {
         let sq = get_and_unset_lsb!(black_rooks);
         let moves = magic_moves_rook(sq, all_pieces).count_ones() as usize;
         black_score += VALUE_ROOK_MOBILITY[min(moves, 14)];
+    }
+
+    white_score - black_score
+}
+
+#[inline(always)]
+pub fn queen_mobility_score(position: &Position) -> Score {
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard
+        | position.pieces[BLACK as usize].all_pieces_bitboard;
+
+    let mut white_score: Score = 0;
+    let mut black_score: Score = 0;
+
+    let mut white_queens = position.pieces[WHITE as usize].queen_bitboard;
+    while white_queens != 0 {
+        let sq = get_and_unset_lsb!(white_queens);
+        let moves = (magic_moves_rook(sq, all_pieces) | magic_moves_bishop(sq, all_pieces)).count_ones() as usize;
+        white_score += VALUE_QUEEN_MOBILITY[min(moves, 27)];
+    }
+
+    let mut black_queens = position.pieces[BLACK as usize].queen_bitboard;
+    while black_queens != 0 {
+        let sq = get_and_unset_lsb!(black_queens);
+        let moves = (magic_moves_rook(sq, all_pieces) | magic_moves_bishop(sq, all_pieces)).count_ones() as usize;
+        black_score += VALUE_QUEEN_MOBILITY[min(moves, 27)];
     }
 
     white_score - black_score
