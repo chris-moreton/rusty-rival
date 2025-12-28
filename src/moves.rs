@@ -25,7 +25,7 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
         return false;
     }
 
-    let mut move_list = Vec::with_capacity(10);
+    let mut move_list = MoveList::new();
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
@@ -97,7 +97,7 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
 
 #[inline(always)]
 pub fn generate_moves(position: &Position) -> MoveList {
-    let mut move_list = Vec::with_capacity(80);
+    let mut move_list = MoveList::new();
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
@@ -155,7 +155,7 @@ pub fn generate_moves(position: &Position) -> MoveList {
 #[inline(always)]
 fn generate_pawn_moves(
     position: &Position,
-    move_list: &mut Vec<Move>,
+    move_list: &mut MoveList,
     empty_squares: Bitboard,
     colour_index: usize,
     mut from_squares: Bitboard,
@@ -195,7 +195,7 @@ fn generate_pawn_moves(
 
 #[inline(always)]
 pub fn generate_capture_pawn_moves_with_destinations(
-    move_list: &mut Vec<Move>,
+    move_list: &mut MoveList,
     colour_index: usize,
     mut from_squares: Bitboard,
     valid_destinations: Bitboard,
@@ -219,7 +219,7 @@ pub fn generate_capture_pawn_moves_with_destinations(
 }
 
 #[inline(always)]
-fn generate_castle_moves(position: &Position, move_list: &mut Vec<Move>, all_pieces: Bitboard, colour_index: usize) {
+fn generate_castle_moves(position: &Position, move_list: &mut MoveList, all_pieces: Bitboard, colour_index: usize) {
     for side in [KING_INDEX, QUEEN_INDEX] {
         if position.castle_flags & CASTLE_FLAG[side][colour_index] != 0
             && all_pieces & EMPTY_CASTLE_SQUARES[side][colour_index] == 0
@@ -231,7 +231,7 @@ fn generate_castle_moves(position: &Position, move_list: &mut Vec<Move>, all_pie
 }
 
 #[inline(always)]
-pub fn generate_knight_moves(move_list: &mut Vec<Move>, valid_destinations: Bitboard, mut from_squares_bitboard: Bitboard) {
+pub fn generate_knight_moves(move_list: &mut MoveList, valid_destinations: Bitboard, mut from_squares_bitboard: Bitboard) {
     while from_squares_bitboard != 0 {
         let from_square = get_and_unset_lsb!(from_squares_bitboard);
         add_moves!(

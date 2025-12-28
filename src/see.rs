@@ -107,7 +107,7 @@ pub fn captured_piece_value_see(position: &Position, mv: Move) -> Score {
 
 #[inline(always)]
 pub fn generate_capture_pawn_moves_with_destinations_see(
-    move_list: &mut Vec<Move>,
+    move_list: &mut MoveList,
     colour_index: usize,
     mut from_squares: Bitboard,
     valid_destinations: Bitboard,
@@ -163,7 +163,7 @@ pub fn generate_straight_slider_moves_see(
 
 #[inline(always)]
 pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList {
-    let mut move_list = Vec::with_capacity(1);
+    let mut move_list = MoveList::new();
     let capture_square = valid_destinations.trailing_zeros() as usize;
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;

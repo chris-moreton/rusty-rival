@@ -19,7 +19,7 @@ use crate::see::{captured_piece_value_see, see};
 
 #[inline(always)]
 pub fn quiesce_moves(position: &Position) -> MoveList {
-    let mut move_list = Vec::with_capacity(4);
+    let mut move_list = MoveList::new();
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
@@ -66,7 +66,7 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
 }
 
 #[inline(always)]
-fn generate_capture_pawn_moves(position: &Position, move_list: &mut Vec<Move>, colour_index: usize, mut from_squares: Bitboard) {
+fn generate_capture_pawn_moves(position: &Position, move_list: &mut MoveList, colour_index: usize, mut from_squares: Bitboard) {
     while from_squares != 0 {
         let from_square = get_and_unset_lsb!(from_squares);
 
