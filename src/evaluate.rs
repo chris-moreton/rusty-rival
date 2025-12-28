@@ -29,7 +29,9 @@ pub fn evaluate(position: &Position) -> Score {
         + knight_outpost_scores(position, &mut cache)
         + doubled_and_isolated_pawn_score(position, &mut cache)
         + bishop_mobility_score(position)
-        + backward_pawn_score(position);
+        + backward_pawn_score(position)
+        + bishop_pair_bonus(position.pieces[WHITE as usize].bishop_bitboard, position.pieces[WHITE as usize].pawn_bitboard)
+        - bishop_pair_bonus(position.pieces[BLACK as usize].bishop_bitboard, position.pieces[BLACK as usize].pawn_bitboard);
 
     10 + if position.mover == WHITE { score } else { -score }
 }

@@ -1,2 +1,2 @@
 position fen r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K1R1 b Qkq - 0 1
-go depth 19
+go depth 15
