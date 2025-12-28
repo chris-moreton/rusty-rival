@@ -8,7 +8,7 @@ use crate::move_constants::{
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
 };
 use crate::move_scores::score_move;
-use crate::moves::{is_check, generate_moves, generate_captures, generate_quiet_moves, verify_move};
+use crate::moves::{is_check, generate_moves, generate_captures, generate_quiet_moves, generate_check_evasions, verify_move};
 use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::types::BoundType::{Exact, Lower, Upper};
@@ -458,21 +458,39 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
         }
     }
 
-    // STAGED MOVE GENERATION: Start with captures, add quiets if needed
-    let mut captures = generate_captures(position);
-    if verified_hash_move {
-        captures.retain(|m| *m != hash_move);
+    // MOVE GENERATION: Use check evasions when in check, staged generation otherwise
+    let mut move_scores: Vec<(Move, Score)>;
+    let mut quiets_added: bool;
+
+    if in_check {
+        // When in check, generate only check evasion moves
+        let mut evasions = generate_check_evasions(position);
+        if verified_hash_move {
+            evasions.retain(|m| *m != hash_move);
+        }
+        move_scores = {
+            let enemy = &position.pieces[opponent!(position.mover) as usize];
+            evasions
+                .into_iter()
+                .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
+                .collect()
+        };
+        quiets_added = true; // No staged generation when in check
+    } else {
+        // Normal staged move generation: captures first, then quiets
+        let mut captures = generate_captures(position);
+        if verified_hash_move {
+            captures.retain(|m| *m != hash_move);
+        }
+        move_scores = {
+            let enemy = &position.pieces[opponent!(position.mover) as usize];
+            captures
+                .into_iter()
+                .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
+                .collect()
+        };
+        quiets_added = false;
     }
-
-    let mut move_scores: Vec<(Move, Score)> = {
-        let enemy = &position.pieces[opponent!(position.mover) as usize];
-        captures
-            .into_iter()
-            .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
-            .collect()
-    };
-
-    let mut quiets_added = false;
 
     loop {
         // If we've exhausted the current move list, add quiet moves if we haven't yet

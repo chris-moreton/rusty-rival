@@ -524,3 +524,240 @@ pub fn is_square_attacked_by_diagonal_slider(attacking_sliders: Bitboard, attack
 pub fn is_check(position: &Position, mover: Mover) -> bool {
     is_square_attacked(position, position.pieces[mover as usize].king_square, mover)
 }
+
+/// Returns a bitboard of all pieces giving check to the specified side's king
+#[inline(always)]
+pub fn get_checkers(position: &Position, mover: Mover) -> Bitboard {
+    let king_square = position.pieces[mover as usize].king_square;
+    let enemy = position.pieces[opponent!(mover) as usize];
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+
+    let mut checkers: Bitboard = 0;
+
+    // Pawn checkers
+    checkers |= enemy.pawn_bitboard & PAWN_MOVES_CAPTURE[mover as usize][king_square as usize];
+
+    // Knight checkers
+    checkers |= enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS[king_square as usize];
+
+    // Rook/Queen checkers (straight sliders)
+    let straight_sliders = enemy.rook_bitboard | enemy.queen_bitboard;
+    if straight_sliders != 0 {
+        checkers |= magic_moves_rook(king_square, all_pieces) & straight_sliders;
+    }
+
+    // Bishop/Queen checkers (diagonal sliders)
+    let diagonal_sliders = enemy.bishop_bitboard | enemy.queen_bitboard;
+    if diagonal_sliders != 0 {
+        checkers |= magic_moves_bishop(king_square, all_pieces) & diagonal_sliders;
+    }
+
+    checkers
+}
+
+/// Returns a bitboard of squares between two squares (exclusive), for slider blocking
+#[inline(always)]
+fn between_squares(sq1: Square, sq2: Square) -> Bitboard {
+    // Pre-compute this in a lookup table would be faster, but for now compute it
+    let all_pieces = bit(sq1) | bit(sq2);
+
+    // Check if they're on the same rank, file, or diagonal
+    let rook_attacks_from_sq1 = magic_moves_rook(sq1, all_pieces);
+    let rook_attacks_from_sq2 = magic_moves_rook(sq2, all_pieces);
+
+    if rook_attacks_from_sq1 & bit(sq2) != 0 {
+        // On same rank or file
+        return rook_attacks_from_sq1 & rook_attacks_from_sq2;
+    }
+
+    let bishop_attacks_from_sq1 = magic_moves_bishop(sq1, all_pieces);
+    let bishop_attacks_from_sq2 = magic_moves_bishop(sq2, all_pieces);
+
+    if bishop_attacks_from_sq1 & bit(sq2) != 0 {
+        // On same diagonal
+        return bishop_attacks_from_sq1 & bishop_attacks_from_sq2;
+    }
+
+    0 // Not on same line
+}
+
+/// Generate moves when in check (check evasions only)
+#[inline(always)]
+pub fn generate_check_evasions(position: &Position) -> MoveList {
+    let mut move_list = MoveList::new();
+    let mover = position.mover;
+    let friendly = position.pieces[mover as usize];
+    let enemy = position.pieces[opponent!(mover) as usize];
+    let all_pieces = friendly.all_pieces_bitboard | enemy.all_pieces_bitboard;
+    let king_square = friendly.king_square;
+
+    let checkers = get_checkers(position, mover);
+    let num_checkers = checkers.count_ones();
+
+    // Generate king moves to safe squares (always valid in check)
+    let king_moves = KING_MOVES_BITBOARDS[king_square as usize] & !friendly.all_pieces_bitboard;
+    add_moves!(
+        move_list,
+        from_square_mask(king_square) | PIECE_MASK_KING,
+        king_moves
+    );
+
+    // If double check, only king moves are legal
+    if num_checkers > 1 {
+        return move_list;
+    }
+
+    // Single check - can also block or capture the checker
+    let checker_square = checkers.trailing_zeros() as Square;
+    let checker_bit = bit(checker_square);
+
+    // Squares that block the check (between king and checker) - only for sliders
+    let block_squares = if (enemy.rook_bitboard | enemy.queen_bitboard | enemy.bishop_bitboard) & checker_bit != 0 {
+        between_squares(king_square, checker_square)
+    } else {
+        0 // Non-slider, can't block
+    };
+
+    // Valid destination squares: capture checker OR block
+    let valid_destinations = checker_bit | block_squares;
+
+    // Generate captures/blocks with each piece type
+
+    // Knights
+    generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
+
+    // Rooks
+    generate_straight_slider_moves(
+        friendly.rook_bitboard,
+        all_pieces,
+        &mut move_list,
+        valid_destinations,
+        PIECE_MASK_ROOK,
+    );
+
+    // Bishops
+    generate_diagonal_slider_moves(
+        friendly.bishop_bitboard,
+        all_pieces,
+        &mut move_list,
+        valid_destinations,
+        PIECE_MASK_BISHOP,
+    );
+
+    // Queens
+    generate_straight_slider_moves(
+        friendly.queen_bitboard,
+        all_pieces,
+        &mut move_list,
+        valid_destinations,
+        PIECE_MASK_QUEEN,
+    );
+    generate_diagonal_slider_moves(
+        friendly.queen_bitboard,
+        all_pieces,
+        &mut move_list,
+        valid_destinations,
+        PIECE_MASK_QUEEN,
+    );
+
+    // Pawns - captures of checker
+    if checker_bit != 0 {
+        generate_pawn_evasion_captures(position, &mut move_list, mover as usize, friendly.pawn_bitboard, checker_square);
+    }
+
+    // Pawns - blocks (forward moves to block squares)
+    if block_squares != 0 {
+        generate_pawn_evasion_blocks(position, &mut move_list, !all_pieces, mover as usize, friendly.pawn_bitboard, block_squares);
+    }
+
+    move_list
+}
+
+/// Generate pawn captures that capture the checking piece
+#[inline(always)]
+fn generate_pawn_evasion_captures(
+    position: &Position,
+    move_list: &mut MoveList,
+    colour_index: usize,
+    mut from_squares: Bitboard,
+    checker_square: Square,
+) {
+    let checker_bit = bit(checker_square);
+    // Also consider en passant if the checker is the pawn that just moved
+    let ep_target = if position.en_passant_square != -1 {
+        // The pawn that can be captured via en passant is one rank behind the ep square
+        let ep_pawn_square = if colour_index == WHITE as usize {
+            position.en_passant_square - 8
+        } else {
+            position.en_passant_square + 8
+        };
+        if ep_pawn_square == checker_square {
+            epsbit(position.en_passant_square)
+        } else {
+            0
+        }
+    } else {
+        0
+    };
+
+    let capture_targets = checker_bit | ep_target;
+
+    while from_squares != 0 {
+        let from_square = get_and_unset_lsb!(from_squares);
+        let mut to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & capture_targets;
+
+        let fsm = from_square_mask(from_square);
+        let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
+        while to_bitboard != 0 {
+            let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
+            if is_promotion {
+                move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
+            } else {
+                move_list.push(base_move);
+            }
+        }
+    }
+}
+
+/// Generate pawn forward moves that block the check
+#[inline(always)]
+fn generate_pawn_evasion_blocks(
+    position: &Position,
+    move_list: &mut MoveList,
+    empty_squares: Bitboard,
+    colour_index: usize,
+    mut from_squares: Bitboard,
+    block_squares: Bitboard,
+) {
+    while from_squares != 0 {
+        let from_square = get_and_unset_lsb!(from_squares);
+        let pawn_moves = PAWN_MOVES_FORWARD[colour_index][from_square as usize] & empty_squares;
+
+        // If you can move one square, maybe you can move two
+        let shifted = if position.mover == WHITE {
+            pawn_moves << 8
+        } else {
+            pawn_moves >> 8
+        } & DOUBLE_MOVE_RANK_BITS[colour_index]
+            & empty_squares;
+
+        let mut to_bitboard = (pawn_moves | shifted) & block_squares;
+
+        let fsm = from_square_mask(from_square);
+        let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
+        while to_bitboard != 0 {
+            let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
+            if is_promotion {
+                move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
+            } else {
+                move_list.push(base_move);
+            }
+        }
+    }
+}
