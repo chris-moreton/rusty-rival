@@ -346,10 +346,8 @@ fn generate_pawn_quiet_moves(
         while to_bitboard != 0 {
             let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
             if is_promotion {
+                // Only generate queen promotions for quiet moves (underpromotions are rare)
                 move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
-                move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
-                move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
-                move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
             } else {
                 move_list.push(base_move);
             }

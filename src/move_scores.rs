@@ -34,7 +34,6 @@ const CURRENT_PLY_KILLER_2: Score = 400;
 const HISTORY_TOP: Score = 500;
 const DISTANT_KILLER_1: Score = 300;
 const DISTANT_KILLER_2: Score = 200;
-const GOOD_CAPTURE_BONUS: Score = 300;
 const HISTORY_START: Score = 0;
 const PAWN_PUSH_1: Score = 250;
 const PAWN_PUSH_2: Score = 50;
