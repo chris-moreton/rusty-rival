@@ -152,6 +152,211 @@ pub fn generate_moves(position: &Position) -> MoveList {
     move_list
 }
 
+/// Generate only capture moves (for staged move generation)
+#[inline(always)]
+pub fn generate_captures(position: &Position) -> MoveList {
+    let mut move_list = MoveList::new();
+
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let friendly = position.pieces[position.mover as usize];
+    let enemy = position.pieces[opponent!(position.mover) as usize];
+    let capture_targets = enemy.all_pieces_bitboard;
+
+    // King captures
+    add_moves!(
+        move_list,
+        from_square_mask(friendly.king_square) | PIECE_MASK_KING,
+        KING_MOVES_BITBOARDS[friendly.king_square as usize] & capture_targets
+    );
+
+    // Rook captures
+    generate_straight_slider_moves(
+        friendly.rook_bitboard,
+        all_pieces,
+        &mut move_list,
+        capture_targets,
+        PIECE_MASK_ROOK,
+    );
+
+    // Knight captures
+    generate_knight_moves(&mut move_list, capture_targets, friendly.knight_bitboard);
+
+    // Bishop captures
+    generate_diagonal_slider_moves(
+        friendly.bishop_bitboard,
+        all_pieces,
+        &mut move_list,
+        capture_targets,
+        PIECE_MASK_BISHOP,
+    );
+
+    // Queen captures
+    generate_straight_slider_moves(
+        friendly.queen_bitboard,
+        all_pieces,
+        &mut move_list,
+        capture_targets,
+        PIECE_MASK_QUEEN,
+    );
+    generate_diagonal_slider_moves(
+        friendly.queen_bitboard,
+        all_pieces,
+        &mut move_list,
+        capture_targets,
+        PIECE_MASK_QUEEN,
+    );
+
+    // Pawn captures (including en passant and capture-promotions)
+    generate_pawn_captures(
+        position,
+        &mut move_list,
+        position.mover as usize,
+        friendly.pawn_bitboard,
+    );
+
+    move_list
+}
+
+/// Generate only quiet (non-capture) moves
+#[inline(always)]
+pub fn generate_quiet_moves(position: &Position) -> MoveList {
+    let mut move_list = MoveList::new();
+
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let empty_squares = !all_pieces;
+    let friendly = position.pieces[position.mover as usize];
+
+    // Castling
+    if position.castle_flags != 0 {
+        generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize)
+    }
+
+    // King quiet moves
+    add_moves!(
+        move_list,
+        from_square_mask(friendly.king_square) | PIECE_MASK_KING,
+        KING_MOVES_BITBOARDS[friendly.king_square as usize] & empty_squares
+    );
+
+    // Rook quiet moves
+    generate_straight_slider_moves(
+        friendly.rook_bitboard,
+        all_pieces,
+        &mut move_list,
+        empty_squares,
+        PIECE_MASK_ROOK,
+    );
+
+    // Knight quiet moves
+    generate_knight_moves(&mut move_list, empty_squares, friendly.knight_bitboard);
+
+    // Bishop quiet moves
+    generate_diagonal_slider_moves(
+        friendly.bishop_bitboard,
+        all_pieces,
+        &mut move_list,
+        empty_squares,
+        PIECE_MASK_BISHOP,
+    );
+
+    // Queen quiet moves
+    generate_straight_slider_moves(
+        friendly.queen_bitboard,
+        all_pieces,
+        &mut move_list,
+        empty_squares,
+        PIECE_MASK_QUEEN,
+    );
+    generate_diagonal_slider_moves(
+        friendly.queen_bitboard,
+        all_pieces,
+        &mut move_list,
+        empty_squares,
+        PIECE_MASK_QUEEN,
+    );
+
+    // Pawn quiet moves (forward moves and non-capture promotions)
+    generate_pawn_quiet_moves(
+        position,
+        &mut move_list,
+        empty_squares,
+        position.mover as usize,
+        friendly.pawn_bitboard,
+    );
+
+    move_list
+}
+
+/// Generate only pawn captures (including en passant and capture-promotions)
+#[inline(always)]
+fn generate_pawn_captures(
+    position: &Position,
+    move_list: &mut MoveList,
+    colour_index: usize,
+    mut from_squares: Bitboard,
+) {
+    let capture_targets =
+        position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | epsbit(position.en_passant_square);
+
+    while from_squares != 0 {
+        let from_square = get_and_unset_lsb!(from_squares);
+        let mut to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & capture_targets;
+
+        let fsm = from_square_mask(from_square);
+        let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
+        while to_bitboard != 0 {
+            let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
+            if is_promotion {
+                move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
+            } else {
+                move_list.push(base_move);
+            }
+        }
+    }
+}
+
+/// Generate only pawn quiet moves (forward moves and non-capture promotions)
+#[inline(always)]
+fn generate_pawn_quiet_moves(
+    position: &Position,
+    move_list: &mut MoveList,
+    empty_squares: Bitboard,
+    colour_index: usize,
+    mut from_squares: Bitboard,
+) {
+    while from_squares != 0 {
+        let from_square = get_and_unset_lsb!(from_squares);
+        let pawn_moves = PAWN_MOVES_FORWARD[colour_index][from_square as usize] & empty_squares;
+
+        // If you can move one square, maybe you can move two
+        let shifted = if position.mover == WHITE {
+            pawn_moves << 8
+        } else {
+            pawn_moves >> 8
+        } & DOUBLE_MOVE_RANK_BITS[colour_index]
+            & empty_squares;
+
+        let mut to_bitboard = pawn_moves | shifted;
+
+        let fsm = from_square_mask(from_square);
+        let is_promotion = to_bitboard & PROMOTION_SQUARES != 0;
+        while to_bitboard != 0 {
+            let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
+            if is_promotion {
+                move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
+            } else {
+                move_list.push(base_move);
+            }
+        }
+    }
+}
+
 #[inline(always)]
 fn generate_pawn_moves(
     position: &Position,

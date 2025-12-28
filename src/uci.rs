@@ -400,7 +400,7 @@ fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchSta
     Right(None)
 }
 
-fn cmd_scan(is_white: bool) -> Either<String, Option<String>> {
+fn cmd_scan(_is_white: bool) -> Either<String, Option<String>> {
 
     // screen_scan(!is_white).expect("TODO: panic message");
     Right(None)

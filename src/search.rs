@@ -8,7 +8,7 @@ use crate::move_constants::{
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
 };
 use crate::move_scores::score_move;
-use crate::moves::{is_check, generate_moves, verify_move};
+use crate::moves::{is_check, generate_moves, generate_captures, generate_quiet_moves, verify_move};
 use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::types::BoundType::{Exact, Lower, Upper};
@@ -424,7 +424,8 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
         hash_move != 0 && verify_move(position, hash_move)
     };
 
-    let these_moves = if verified_hash_move {
+    // Try hash move first if valid
+    if verified_hash_move {
         let old_mover = position.mover;
         let hash_is_capture = captured_piece_value(position, hash_move) > 0;
         let unmake = make_move_in_place(position, hash_move);
@@ -452,26 +453,48 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
                 }
                 scout_search = true;
             }
-            {
-                let mut moves = generate_moves(position);
-                moves.retain(|m| *m != hash_move);
-                moves
-            }
         } else {
             unmake_move(position, hash_move, &unmake);
-            generate_moves(position)
         }
-    } else {
-        generate_moves(position)
+    }
+
+    // STAGED MOVE GENERATION: Start with captures, add quiets if needed
+    let mut captures = generate_captures(position);
+    if verified_hash_move {
+        captures.retain(|m| *m != hash_move);
+    }
+
+    let mut move_scores: Vec<(Move, Score)> = {
+        let enemy = &position.pieces[opponent!(position.mover) as usize];
+        captures
+            .into_iter()
+            .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
+            .collect()
     };
 
-    let enemy = &position.pieces[opponent!(position.mover) as usize];
-    let mut move_scores: Vec<(Move, Score)> = these_moves
-        .into_iter()
-        .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
-        .collect();
+    let mut quiets_added = false;
 
-    while !move_scores.is_empty() {
+    loop {
+        // If we've exhausted the current move list, add quiet moves if we haven't yet
+        if move_scores.is_empty() {
+            if quiets_added {
+                break; // All moves processed
+            }
+            // Add quiet moves
+            quiets_added = true;
+            let mut quiets = generate_quiet_moves(position);
+            if verified_hash_move {
+                quiets.retain(|m| *m != hash_move);
+            }
+            let enemy = &position.pieces[opponent!(position.mover) as usize];
+            for m in quiets {
+                move_scores.push((m, score_move(position, m, search_state, ply as usize, enemy)));
+            }
+            if move_scores.is_empty() {
+                break; // No quiet moves either
+            }
+        }
+
         let m = pick_high_score_move(&mut move_scores);
         let old_mover = position.mover;
         let is_capture = captured_piece_value(position, m) > 0;

@@ -18,7 +18,7 @@ fn it_gets_all_pieces_bitboard() {
 #[test]
 fn it_generates_bishop_moves_including_diagonal_queen_moves_from_a_given_fen_ignoring_checks() {
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/7R w - g3 5 56".to_string());
-    let mut move_list = Vec::new();
+    let mut move_list = MoveList::new();
     generate_diagonal_slider_moves(
         position.pieces[WHITE as usize].queen_bitboard | position.pieces[WHITE as usize].bishop_bitboard,
         position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard,
@@ -31,7 +31,7 @@ fn it_generates_bishop_moves_including_diagonal_queen_moves_from_a_given_fen_ign
     assert_eq!(algebraic, vec!["f3a8", "f3b7", "f3c6", "f3d5", "f3e4", "f3g2"]);
 
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b - g3 5 56".to_string());
-    let mut move_list = Vec::new();
+    let mut move_list = MoveList::new();
     generate_diagonal_slider_moves(
         position.pieces[BLACK as usize].queen_bitboard | position.pieces[BLACK as usize].bishop_bitboard,
         position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard,
@@ -50,7 +50,7 @@ fn it_generates_bishop_moves_including_diagonal_queen_moves_from_a_given_fen_ign
 #[test]
 fn it_generates_rook_moves_including_horizontal_queen_moves_from_a_given_fen_ignoring_checks() {
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQKq g3 5 56".to_string());
-    let mut move_list = Vec::new();
+    let mut move_list = MoveList::new();
     generate_straight_slider_moves(
         position.pieces[WHITE as usize].queen_bitboard | position.pieces[WHITE as usize].rook_bitboard,
         position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard,
@@ -62,7 +62,7 @@ fn it_generates_rook_moves_including_horizontal_queen_moves_from_a_given_fen_ign
     assert_eq!(algebraic, vec!["f4c4", "f4d4", "f4e4", "f4f5", "f4f6", "f4f7", "f4f8"]);
 
     let position = get_position(&"n5k1/6n1/1n2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/6r1 b kQKq g3 5 56".to_string());
-    let mut move_list = Vec::new();
+    let mut move_list = MoveList::new();
     generate_straight_slider_moves(
         position.pieces[BLACK as usize].queen_bitboard | position.pieces[BLACK as usize].rook_bitboard,
         position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard,
