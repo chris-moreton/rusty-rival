@@ -229,6 +229,8 @@ pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
         return;
     }
     let multi_pv = if show_multi_pv { search_state.multi_pv } else { 1 };
+    // Limit multi_pv to actual number of root moves to avoid index out of bounds
+    let multi_pv = multi_pv.min(search_state.root_moves.len() as u8);
     if search_state.start_time.elapsed().as_millis() > 0 {
         search_state.root_moves.sort_by(|(ma, _), (mb, _)| {
             let sa = search_state.pv.get(ma).unwrap().1;
