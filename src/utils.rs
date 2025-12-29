@@ -30,6 +30,14 @@ pub fn to_square_part(mv: Move) -> Square {
     (mv as Square) & 63
 }
 
+/// Check if a move is a capture (not including promotions without capture)
+#[inline(always)]
+pub fn is_capture(position: &Position, mv: Move) -> bool {
+    let enemy = &position.pieces[opponent!(position.mover) as usize];
+    let tsp = to_square_part(mv);
+    tsp == position.en_passant_square || (enemy.all_pieces_bitboard & bit(tsp) != 0)
+}
+
 #[inline(always)]
 pub fn captured_piece_value(position: &Position, mv: Move) -> Score {
     let enemy = &position.pieces[opponent!(position.mover) as usize];

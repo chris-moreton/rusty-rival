@@ -15,7 +15,7 @@ use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     pv_single, pv_prepend, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
-use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
+use crate::utils::{captured_piece_value, from_square_part, is_capture, send_info, to_square_part};
 use std::cmp::{max, min};
 use std::time::Instant;
 
@@ -427,7 +427,7 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
     // Try hash move first if valid
     if verified_hash_move {
         let old_mover = position.mover;
-        let hash_is_capture = captured_piece_value(position, hash_move) > 0;
+        let hash_is_capture = is_capture(position, hash_move);
         let unmake = make_move_in_place(position, hash_move);
 
         if !is_check(position, old_mover) {
@@ -515,7 +515,7 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
 
         let m = pick_high_score_move(&mut move_scores);
         let old_mover = position.mover;
-        let is_capture = captured_piece_value(position, m) > 0;
+        let move_is_capture = is_capture(position, m);
 
         let unmake = make_move_in_place(position, m);
 
@@ -523,7 +523,7 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
         if !is_check(position, old_mover) {
             legal_move_count += 1;
 
-            if legal_move_count > 1 && alpha_prune_flag && !is_capture && !is_check(position, position.mover) {
+            if legal_move_count > 1 && alpha_prune_flag && !move_is_capture && !is_check(position, position.mover) {
                 unmake_move(position, m, &unmake);
                 continue;
             }
@@ -531,7 +531,7 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
             let lmr = if these_extensions == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
                 && real_depth > LMR_MIN_DEPTH
-                && !is_capture
+                && !move_is_capture
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
                 && !is_check(position, position.mover)
@@ -565,7 +565,7 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        return cutoff_unmake(position, real_depth, ply, search_state, best_pathscore, hash_height, hash_version, m, is_capture);
+                        return cutoff_unmake(position, real_depth, ply, search_state, best_pathscore, hash_height, hash_version, m, move_is_capture);
                     }
                     hash_flag = Exact;
                 }
