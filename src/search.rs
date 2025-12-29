@@ -2,7 +2,7 @@ use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, 
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
-use crate::make_move::{make_move_in_place, unmake_move};
+use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
 use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
@@ -15,7 +15,7 @@ use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     pv_single, pv_prepend, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
-use crate::utils::{captured_piece_value, from_square_part, is_capture, send_info, to_square_part};
+use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
 use std::time::Instant;
 
@@ -427,8 +427,8 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
     // Try hash move first if valid
     if verified_hash_move {
         let old_mover = position.mover;
-        let hash_is_capture = is_capture(position, hash_move);
         let unmake = make_move_in_place(position, hash_move);
+        let hash_is_capture = unmake.captured_piece != CAPTURED_NONE;
 
         if !is_check(position, old_mover) {
             legal_move_count += 1;
@@ -515,15 +515,18 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
 
         let m = pick_high_score_move(&mut move_scores);
         let old_mover = position.mover;
-        let move_is_capture = is_capture(position, m);
+        // For alpha pruning and LMR, treat promotions like captures (don't prune/reduce them)
+        let is_tactical = captured_piece_value(position, m) > 0;
 
         let unmake = make_move_in_place(position, m);
+        // For killer moves, use actual capture detection from unmake info
+        let move_is_capture = unmake.captured_piece != CAPTURED_NONE;
 
         // Check if move is legal (king not in check after move)
         if !is_check(position, old_mover) {
             legal_move_count += 1;
 
-            if legal_move_count > 1 && alpha_prune_flag && !move_is_capture && !is_check(position, position.mover) {
+            if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !is_check(position, position.mover) {
                 unmake_move(position, m, &unmake);
                 continue;
             }
@@ -531,7 +534,7 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
             let lmr = if these_extensions == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
                 && real_depth > LMR_MIN_DEPTH
-                && !move_is_capture
+                && !is_tactical
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
                 && !is_check(position, position.mover)
