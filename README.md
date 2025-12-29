@@ -37,13 +37,80 @@ Time elapsed in perft is: 2.290587309s
 178633661 nodes 78005965.50218341 nps
 ```
 
-  1. Build the engine:
-  cargo build --release
+## Building and Storing Engine Versions
 
-  2. Store the executable in engines directory:
-  mkdir -p engines/v3-improved
-  cp target/release/rusty-rival engines/v3-improved/
+1. Build the engine:
+```bash
+cargo build --release
+```
 
-  3. Run the competition:
-  source .venv/bin/activate
-  ./scripts/compete.py v1-baseline v3-improved --games 100 --time 0.5
+2. Store the executable in engines directory:
+```bash
+mkdir -p engines/v020-my-feature
+cp target/release/rusty-rival engines/v020-my-feature/
+git tag v020-my-feature
+```
+
+## Engine Competition (compete.py)
+
+The `scripts/compete.py` script runs engine vs engine matches with Elo tracking.
+
+### Head-to-Head Match (2 engines)
+
+Run a match between two specific engines:
+
+```bash
+# 100 games, 1 second per move (uses opening book)
+./scripts/compete.py v1 v6 --games 100 --time 1.0
+
+# Quick test with shorter time
+./scripts/compete.py v1 v6 --games 20 --time 0.25
+
+# Without opening book (all games from starting position)
+./scripts/compete.py v1 v6 --games 50 --no-book
+```
+
+Engine names can be shorthand (`v1`, `v6`) or full (`v001-baseline`, `v006-arrayvec`).
+
+### Round-Robin League (3+ engines)
+
+Run a round-robin tournament between multiple engines:
+
+```bash
+# League between 4 engines, 100 games per pairing
+./scripts/compete.py v1 v6 v11 v17 --games 100 --time 0.5
+```
+
+Shows a league table after each round with current standings.
+
+### Gauntlet Mode (test new engine)
+
+Test a single "challenger" engine against all other engines in the `engines/` directory:
+
+```bash
+# Test v20 against all engines: 50 rounds (2 games per opponent per round)
+./scripts/compete.py v20 --gauntlet --games 50 --time 0.5
+```
+
+Features:
+- Plays in rounds: each round = 1 game as white + 1 game as black against each opponent
+- Interleaved play across all opponents (cycles through all before repeating)
+- Each game uses a randomly selected opening
+- Shows standings after each round
+- Shows per-opponent results and overall summary at the end
+- Updates Elo ratings after each game
+
+### Common Options
+
+| Option | Description |
+|--------|-------------|
+| `--games N` or `-g N` | Number of games per pairing (league), or number of rounds (gauntlet) |
+| `--time T` or `-t T` | Time per move in seconds |
+| `--no-book` | Disable opening book |
+| `--gauntlet` | Enable gauntlet mode |
+
+### Output
+
+- **PGN files**: Saved to `results/competitions/`
+- **Elo ratings**: Stored in `results/elo_ratings.json` (persistent across runs)
+

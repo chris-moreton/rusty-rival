@@ -13,6 +13,10 @@ Usage:
 
     # Disable opening book (start from initial position)
     ./scripts/compete.py v1 v2 --games 10 --no-book
+
+    # Gauntlet mode: test one engine against all others in engines directory
+    # Plays N games as white and N games as black against each opponent (random openings)
+    ./scripts/compete.py v20 --gauntlet --games 50 --time 0.5
 """
 
 import argparse
@@ -963,6 +967,193 @@ def run_league(engine_names: list[str], engine_dir: Path,
     print(f"Elo ratings saved to: {get_elo_file_path()}\n")
 
 
+def run_gauntlet(challenger_name: str, engine_dir: Path,
+                 num_rounds: int, time_per_move: float, results_dir: Path):
+    """
+    Test a challenger engine against all other engines in the engines directory.
+    Plays in rounds: each round consists of 2 games (1 as white, 1 as black) against each opponent.
+    Each game uses a random opening.
+    """
+    # Find all engines except the challenger
+    all_engines = sorted([d.name for d in engine_dir.iterdir() if d.is_dir() and (d / "rusty-rival").exists()])
+    opponents = [e for e in all_engines if e != challenger_name]
+
+    if not opponents:
+        print(f"Error: No opponent engines found in {engine_dir}")
+        sys.exit(1)
+
+    games_per_opponent = num_rounds * 2  # 2 games per round (1 white, 1 black)
+    total_games = len(opponents) * games_per_opponent
+
+    # Load persistent Elo ratings
+    elo_ratings = load_elo_ratings()
+
+    # Initialize challenger if needed
+    if challenger_name not in elo_ratings:
+        if elo_ratings:
+            avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
+        else:
+            avg_elo = DEFAULT_ELO
+        elo_ratings[challenger_name] = {"elo": avg_elo, "games": 0}
+        save_elo_ratings(elo_ratings)
+
+    # Initialize opponents if needed
+    for opponent in opponents:
+        if opponent not in elo_ratings:
+            if elo_ratings:
+                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
+            else:
+                avg_elo = DEFAULT_ELO
+            elo_ratings[opponent] = {"elo": avg_elo, "games": 0}
+            save_elo_ratings(elo_ratings)
+
+    # Store starting Elo
+    start_elo = elo_ratings[challenger_name]["elo"]
+
+    print(f"\n{'='*70}")
+    print("GAUNTLET TEST")
+    print(f"{'='*70}")
+    print(f"Challenger: {challenger_name}")
+    print(f"Opponents: {len(opponents)}")
+    print(f"Rounds: {num_rounds} (2 games per opponent per round)")
+    print(f"Games per opponent: {games_per_opponent}")
+    print(f"Total games: {total_games}")
+    print(f"Time: {time_per_move}s/move")
+    print(f"Opening book: {len(OPENING_BOOK)} positions (random selection)")
+    print(f"Elo ratings: {get_elo_file_path()}")
+    print(f"{'='*70}")
+
+    # Show starting Elo
+    print(f"\nChallenger starting Elo: {start_elo:.0f} ({elo_ratings[challenger_name]['games']} games)")
+    print(f"\nOpponents:")
+    for opp in sorted(opponents, key=lambda n: -elo_ratings.get(n, {}).get("elo", DEFAULT_ELO)):
+        data = elo_ratings.get(opp, {"elo": DEFAULT_ELO, "games": 0})
+        prov = "?" if data["games"] < PROVISIONAL_GAMES else ""
+        print(f"  {opp}: {data['elo']:.0f} ({data['games']} games){prov}")
+    print()
+
+    # Get engine paths
+    challenger_path = get_engine_path(challenger_name, engine_dir)
+    opponent_paths = {opp: get_engine_path(opp, engine_dir) for opp in opponents}
+
+    # Create PGN file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    pgn_file = results_dir / f"gauntlet_{challenger_name}_{timestamp}.pgn"
+    with open(pgn_file, "w") as f:
+        f.write(f"; Gauntlet Test\n")
+        f.write(f"; Challenger: {challenger_name}\n")
+        f.write(f"; Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
+
+    # Track results per opponent
+    results_per_opponent = {opp: {"wins": 0, "losses": 0, "draws": 0} for opp in opponents}
+    game_num = 0
+
+    # Play in rounds
+    for round_idx in range(num_rounds):
+        print(f"\n--- Round {round_idx + 1}/{num_rounds} ---\n")
+
+        for opponent in opponents:
+            opponent_path = opponent_paths[opponent]
+
+            # Game 1: Challenger as white
+            game_num += 1
+            opening_fen, opening_name = random.choice(OPENING_BOOK)
+
+            result, game = play_game(challenger_path, opponent_path,
+                                      challenger_name, opponent,
+                                      time_per_move, opening_fen, opening_name)
+
+            with open(pgn_file, "a") as f:
+                print(game, file=f)
+                print(file=f)
+
+            update_elo_after_game(elo_ratings, challenger_name, opponent, result)
+
+            if result == "1-0":
+                results_per_opponent[opponent]["wins"] += 1
+            elif result == "0-1":
+                results_per_opponent[opponent]["losses"] += 1
+            elif result == "1/2-1/2":
+                results_per_opponent[opponent]["draws"] += 1
+
+            print(f"Game {game_num:3d}/{total_games}: {challenger_name} (W) vs {opponent} -> {result}  [{opening_name}]")
+
+            # Game 2: Challenger as black
+            game_num += 1
+            opening_fen, opening_name = random.choice(OPENING_BOOK)
+
+            result, game = play_game(opponent_path, challenger_path,
+                                      opponent, challenger_name,
+                                      time_per_move, opening_fen, opening_name)
+
+            with open(pgn_file, "a") as f:
+                print(game, file=f)
+                print(file=f)
+
+            update_elo_after_game(elo_ratings, opponent, challenger_name, result)
+
+            if result == "0-1":
+                results_per_opponent[opponent]["wins"] += 1
+            elif result == "1-0":
+                results_per_opponent[opponent]["losses"] += 1
+            elif result == "1/2-1/2":
+                results_per_opponent[opponent]["draws"] += 1
+
+            print(f"Game {game_num:3d}/{total_games}: {opponent} vs {challenger_name} (B) -> {result}  [{opening_name}]")
+
+        # Show standings after each round
+        print(f"\n--- Standings after round {round_idx + 1} ---")
+        total_w = sum(r["wins"] for r in results_per_opponent.values())
+        total_l = sum(r["losses"] for r in results_per_opponent.values())
+        total_d = sum(r["draws"] for r in results_per_opponent.values())
+        total_score = total_w + total_d * 0.5
+        total_played = total_w + total_l + total_d
+        current_elo = elo_ratings[challenger_name]["elo"]
+        elo_change = current_elo - start_elo
+        print(f"Overall: +{total_w} -{total_l} ={total_d}  Score: {total_score}/{total_played} ({total_score/total_played*100:.1f}%)  Elo: {current_elo:.0f} ({elo_change:+.0f})")
+
+    # Print final summary
+    print(f"\n{'='*70}")
+    print("GAUNTLET RESULTS")
+    print(f"{'='*70}")
+
+    total_wins = sum(r["wins"] for r in results_per_opponent.values())
+    total_losses = sum(r["losses"] for r in results_per_opponent.values())
+    total_draws = sum(r["draws"] for r in results_per_opponent.values())
+    total_score = total_wins + total_draws * 0.5
+    total_played = total_wins + total_losses + total_draws
+
+    print(f"\nChallenger: {challenger_name}")
+    print(f"Overall: +{total_wins} -{total_losses} ={total_draws}  Score: {total_score}/{total_played} ({total_score/total_played*100:.1f}%)")
+
+    overall_elo_diff, overall_elo_err = calculate_elo_difference(total_wins, total_losses, total_draws)
+    print(f"Overall Elo performance: {overall_elo_diff:+.0f} ±{overall_elo_err:.0f}")
+
+    print(f"\nResults per opponent:")
+    print(f"{'Opponent':<30} {'W':>4} {'L':>4} {'D':>4} {'Score':>8} {'%':>7} {'Elo diff':>10}")
+    print("-" * 70)
+
+    for opponent in sorted(results_per_opponent.keys(), key=lambda o: elo_ratings.get(o, {}).get("elo", 0), reverse=True):
+        r = results_per_opponent[opponent]
+        w, l, d = r["wins"], r["losses"], r["draws"]
+        score = w + d * 0.5
+        total = w + l + d
+        pct = score / total * 100 if total > 0 else 0
+        elo_diff, _ = calculate_elo_difference(w, l, d)
+        print(f"{opponent:<30} {w:>4} {l:>4} {d:>4} {score:>5.1f}/{total:<2} {pct:>6.1f}% {elo_diff:>+9.0f}")
+
+    # Show Elo change
+    final_elo = elo_ratings[challenger_name]["elo"]
+    elo_change = final_elo - start_elo
+    final_games = elo_ratings[challenger_name]["games"]
+    prov = "?" if final_games < PROVISIONAL_GAMES else ""
+
+    print(f"\nChallenger Elo: {start_elo:.0f} -> {final_elo:.0f} ({elo_change:+.0f}) - {final_games} games{prov}")
+    print(f"\nPGN saved to: {pgn_file}")
+    print(f"Elo ratings saved to: {get_elo_file_path()}")
+    print(f"{'='*70}\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Chess engine competition harness",
@@ -976,6 +1167,8 @@ def main():
                         help="Time per move in seconds (default: 1.0)")
     parser.add_argument("--no-book", action="store_true",
                         help="Disable opening book (start all games from initial position)")
+    parser.add_argument("--gauntlet", action="store_true",
+                        help="Gauntlet mode: test one engine against all others in engines directory")
 
     args = parser.parse_args()
 
@@ -994,7 +1187,13 @@ def main():
         if orig != resolved:
             print(f"Resolved '{orig}' -> '{resolved}'")
 
-    if len(resolved_engines) >= 3:
+    if args.gauntlet:
+        # Gauntlet mode: test one engine against all others
+        if len(resolved_engines) != 1:
+            print("Error: Gauntlet mode requires exactly one engine (the challenger)")
+            sys.exit(1)
+        run_gauntlet(resolved_engines[0], engine_dir, args.games, args.time, results_dir)
+    elif len(resolved_engines) >= 3:
         # Round-robin league for 3+ engines
         run_league(resolved_engines, engine_dir, args.games, args.time, results_dir, use_opening_book)
     elif len(resolved_engines) == 2:

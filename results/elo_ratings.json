@@ -1,18 +1,78 @@
 {
+  "v001-baseline": {
+    "elo": 1430.1876103819477,
+    "games": 357
+  },
+  "v002-weak-queen": {
+    "elo": 1499.445401776759,
+    "games": 0
+  },
+  "v003-improved": {
+    "elo": 1499.445401776759,
+    "games": 0
+  },
+  "v004-performance": {
+    "elo": 1499.445401776759,
+    "games": 0
+  },
+  "v005-retain-opt": {
+    "elo": 1499.4454017767587,
+    "games": 0
+  },
   "v006-arrayvec": {
     "elo": 1526,
     "games": 300
+  },
+  "v008-make-unmake-fixed": {
+    "elo": 1503.094367760519,
+    "games": 30
+  },
+  "v008.1-history-bug-fix": {
+    "elo": 1499.445401776759,
+    "games": 0
+  },
+  "v009-unmake-opt": {
+    "elo": 1491.6734081821835,
+    "games": 30
+  },
+  "v010-arrayvec-movelist": {
+    "elo": 1512.7060322302011,
+    "games": 30
   },
   "v011-check-evasion": {
     "elo": 1512,
     "games": 300
   },
+  "v012-bishop-pair": {
+    "elo": 1499.445401776759,
+    "games": 0
+  },
+  "v013-knight-fork": {
+    "elo": 1499.445401776759,
+    "games": 0
+  },
+  "v014-rook-open-file": {
+    "elo": 1499.445401776759,
+    "games": 0
+  },
+  "v015-rook-mobility": {
+    "elo": 1458.6868682550942,
+    "games": 29
+  },
+  "v016-queen-mobility": {
+    "elo": 1499.4454017767587,
+    "games": 0
+  },
   "v017-connected-rooks": {
     "elo": 1493,
     "games": 300
   },
-  "v001-baseline": {
-    "elo": 1468,
-    "games": 300
+  "v018-killer-fix": {
+    "elo": 1499.445401776759,
+    "games": 0
+  },
+  "v019-capture-fix": {
+    "elo": 1567.6603291808842,
+    "games": 56
   }
 }
