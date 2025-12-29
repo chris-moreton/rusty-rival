@@ -1,0 +1,17 @@
+info score cp 578 depth 5 time 1 nodes 3500 nps 3500000 multipv 1 pv b4b3 a2b3 c4b3 a5b6 a7a6 
+info score cp 591 depth 6 time 3 nodes 8973 nps 2991000 multipv 1 pv b4b3 a2b3 c4b3 a5c3 h8f8 e1c1 
+info score cp 606 depth 7 time 7 nodes 16889 nps 2412714 multipv 1 pv a8b8 a5c7 b8b7 g1g7 e8f8 g7d7 c4c3 
+info score cp 586 depth 8 time 12 nodes 29121 nps 2426750 multipv 1 pv b4b3 a2b3 c4b3 a5c3 h8f8 c3g7 f8f3 e1c1 
+info score cp 597 depth 9 time 19 nodes 44241 nps 2328473 multipv 1 pv b4b3 a2b3 c4b3 e1c1 a8c8 c1b2 d3c2 d1e1 c8c5 e1e4 
+info score cp 602 depth 10 time 38 nodes 90947 nps 2393342 multipv 1 pv b4b3 a2b3 c4b3 e1c1 a8c8 c1b2 
+info score cp 606 depth 11 time 100 nodes 260710 nps 2607100 multipv 1 pv a8b8 a5c7 b8b7 g1g7 b4b3 a2b3 c4b3 a1a5 b3b2 a5e5 e8f8 e5e7 
+info score cp 619 depth 12 time 181 nodes 511750 nps 2827348 multipv 1 pv a8b8 a5c7 b8b7 c7e5 h8f8 e5d6 f8f7 d6c5 e8d7 a2a3 
+info score cp 621 depth 13 time 245 nodes 678511 nps 2780782 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 e1c1 b4b3 a2b3 b7b3 d6b4 b3b4 
+info score cp 624 depth 14 time 346 nodes 970104 nps 2803768 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 624 depth 15 time 356 nodes 1000000 nps 2808988 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 624 depth 15 time 356 nodes 1000000 nps 2808988 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 624 depth 15 time 696 nodes 2000000 nps 2873563 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 624 depth 15 time 696 nodes 2000000 nps 2873563 multipv 1 pv a8b8 a5c7 b8b7 c7d6 c4c3 d6c5 e8d8 g1g5 c3c2 g5d5 b7d7 d5g5 h7h6 g5e5 c2c1q 
+info score cp 641 depth 15 time 935 nodes 2644727 nps 2828585 multipv 1 pv a8b8 e1c1 b8b5 a5c7 b5f5 c7g3 c4c3 g1e1 e8f7 g3d6 a7a5 a2a3 b4b3 e1g1 f5f2 
+info score cp 641 depth 15 time 935 nodes 2644727 nps 2828585 multipv 1 pv a8b8 e1c1 b8b5 a5c7 b5f5 c7g3 c4c3 g1e1 e8f7 g3d6 a7a5 a2a3 b4b3 e1g1 f5f2 
+bestmove a8b8
