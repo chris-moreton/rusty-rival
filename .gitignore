@@ -5,6 +5,7 @@ perf.data*
 .DS_Store
 /engines/*
 /.venv/
+history.txt
 
 
 
