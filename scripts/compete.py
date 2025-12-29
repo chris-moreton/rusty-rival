@@ -16,6 +16,7 @@ Usage:
 """
 
 import argparse
+import json
 import math
 import random
 import sys
@@ -25,6 +26,101 @@ import chess.pgn
 from datetime import datetime
 from pathlib import Path
 from itertools import combinations
+
+
+# Default K-factor for Elo updates (higher = faster adjustment)
+# Use higher K for provisional ratings (< 30 games)
+K_FACTOR_PROVISIONAL = 40
+K_FACTOR_ESTABLISHED = 20
+PROVISIONAL_GAMES = 30
+DEFAULT_ELO = 1500
+
+
+def get_elo_file_path() -> Path:
+    """Get the path to the Elo ratings file."""
+    script_dir = Path(__file__).parent
+    return script_dir.parent / "results" / "elo_ratings.json"
+
+
+def load_elo_ratings() -> dict:
+    """
+    Load Elo ratings from JSON file.
+    Returns dict: {engine_name: {"elo": float, "games": int}}
+    """
+    elo_file = get_elo_file_path()
+    if elo_file.exists():
+        with open(elo_file, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def save_elo_ratings(ratings: dict):
+    """Save Elo ratings to JSON file."""
+    elo_file = get_elo_file_path()
+    elo_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(elo_file, "w") as f:
+        json.dump(ratings, f, indent=2, sort_keys=True)
+
+
+def get_k_factor(games_played: int) -> float:
+    """Get K-factor based on number of games played."""
+    if games_played < PROVISIONAL_GAMES:
+        return K_FACTOR_PROVISIONAL
+    return K_FACTOR_ESTABLISHED
+
+
+def update_elo_after_game(ratings: dict, white: str, black: str, result: str):
+    """
+    Update Elo ratings after a single game using the standard Elo formula.
+
+    Formula:
+        Expected = 1 / (1 + 10^((opponent_elo - self_elo) / 400))
+        New_elo = old_elo + K * (actual_score - expected)
+
+    Modifies ratings dict in place and saves to file.
+    """
+    # Ensure both players exist in ratings
+    for player in [white, black]:
+        if player not in ratings:
+            # New player gets average of existing ratings or default
+            if ratings:
+                avg_elo = sum(r["elo"] for r in ratings.values()) / len(ratings)
+            else:
+                avg_elo = DEFAULT_ELO
+            ratings[player] = {"elo": avg_elo, "games": 0}
+
+    white_elo = ratings[white]["elo"]
+    black_elo = ratings[black]["elo"]
+    white_games = ratings[white]["games"]
+    black_games = ratings[black]["games"]
+
+    # Calculate expected scores
+    white_expected = 1 / (1 + 10 ** ((black_elo - white_elo) / 400))
+    black_expected = 1 - white_expected
+
+    # Actual scores
+    if result == "1-0":
+        white_actual, black_actual = 1.0, 0.0
+    elif result == "0-1":
+        white_actual, black_actual = 0.0, 1.0
+    elif result == "1/2-1/2":
+        white_actual, black_actual = 0.5, 0.5
+    else:
+        # Unknown result, don't update
+        return
+
+    # Get K-factors
+    white_k = get_k_factor(white_games)
+    black_k = get_k_factor(black_games)
+
+    # Update ratings
+    ratings[white]["elo"] += white_k * (white_actual - white_expected)
+    ratings[black]["elo"] += black_k * (black_actual - black_expected)
+    ratings[white]["games"] += 1
+    ratings[black]["games"] += 1
+
+    # Save immediately (crash-safe)
+    save_elo_ratings(ratings)
 
 
 # Opening positions (FEN) - balanced positions after 4-8 moves from various openings
@@ -464,6 +560,25 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
     engine1_path = get_engine_path(engine1_name, engine_dir)
     engine2_path = get_engine_path(engine2_name, engine_dir)
 
+    # Load persistent Elo ratings
+    elo_ratings = load_elo_ratings()
+
+    # Initialize engines if needed
+    for name in [engine1_name, engine2_name]:
+        if name not in elo_ratings:
+            if elo_ratings:
+                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
+            else:
+                avg_elo = DEFAULT_ELO
+            elo_ratings[name] = {"elo": avg_elo, "games": 0}
+            save_elo_ratings(elo_ratings)
+
+    # Store starting Elo for display
+    start_elo = {
+        engine1_name: elo_ratings[engine1_name]["elo"],
+        engine2_name: elo_ratings[engine2_name]["elo"]
+    }
+
     results = {"1-0": 0, "0-1": 0, "1/2-1/2": 0, "*": 0}
     engine1_points = 0.0
     engine2_points = 0.0
@@ -487,7 +602,7 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
     else:
         openings = None
 
-    print(f"\n{'='*60}")
+    print(f"\n{'='*70}")
     print(f"Match: {engine1_name} vs {engine2_name}")
     print(f"Games: {num_games}, Time: {time_per_move}s/move")
     if use_opening_book:
@@ -495,7 +610,16 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
     else:
         print("Opening book: disabled")
     print(f"PGN output: {pgn_file}")
-    print(f"{'='*60}\n", flush=True)
+    print(f"Elo ratings: {get_elo_file_path()}")
+    print(f"{'='*70}")
+
+    # Show starting Elo
+    print(f"\nStarting Elo:")
+    for name in [engine1_name, engine2_name]:
+        data = elo_ratings[name]
+        prov = "?" if data["games"] < PROVISIONAL_GAMES else ""
+        print(f"  {name}: {data['elo']:.0f} ({data['games']} games){prov}")
+    print(flush=True)
 
     # Clear/create the PGN file at the start
     with open(pgn_file, "w") as f:
@@ -528,6 +652,9 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
             print(game, file=f)
             print(file=f)
 
+        # Update persistent Elo ratings
+        update_elo_after_game(elo_ratings, white, black, result)
+
         # Calculate points
         if result == "1-0":
             if is_engine1_white:
@@ -550,7 +677,7 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
               f"| Score: {engine1_name} {engine1_points:.1f} - {engine2_points:.1f} {engine2_name}",
               flush=True)
 
-    # Calculate Elo difference
+    # Calculate Elo difference for this match
     # From engine1's perspective: wins are when engine1 won
     engine1_wins = int(engine1_points - (results["1/2-1/2"] * 0.5))
     engine1_losses = int(engine2_points - (results["1/2-1/2"] * 0.5))
@@ -559,9 +686,9 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
     )
 
     # Print summary
-    print(f"\n{'='*60}")
+    print(f"\n{'='*70}")
     print("FINAL RESULTS")
-    print(f"{'='*60}")
+    print(f"{'='*70}")
     print(f"{engine1_name}: {engine1_points:.1f} points")
     print(f"{engine2_name}: {engine2_points:.1f} points")
     print(f"\nResults: +{engine1_wins} -{engine1_losses} ={results['1/2-1/2']}")
@@ -569,12 +696,21 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
     print(f"Win rate: {win_rate:.1f}%")
 
     if elo_diff > 0:
-        print(f"\nElo difference: {engine1_name} is +{elo_diff:.0f} (±{elo_error:.0f}) stronger")
+        print(f"\nMatch Elo difference: {engine1_name} is +{elo_diff:.0f} (±{elo_error:.0f}) stronger")
     else:
-        print(f"\nElo difference: {engine2_name} is +{-elo_diff:.0f} (±{elo_error:.0f}) stronger")
+        print(f"\nMatch Elo difference: {engine2_name} is +{-elo_diff:.0f} (±{elo_error:.0f}) stronger")
+
+    # Show updated Elo ratings
+    print(f"\nUpdated Elo ratings:")
+    for name in [engine1_name, engine2_name]:
+        data = elo_ratings[name]
+        delta = data["elo"] - start_elo[name]
+        prov = "?" if data["games"] < PROVISIONAL_GAMES else ""
+        print(f"  {name}: {data['elo']:.0f} ({delta:+.0f}) - {data['games']} games{prov}")
 
     print(f"\nPGN saved to: {pgn_file}")
-    print(f"{'='*60}\n")
+    print(f"Elo ratings saved to: {get_elo_file_path()}")
+    print(f"{'='*70}\n")
 
     return {
         engine1_name: engine1_points,
@@ -585,75 +721,71 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
     }
 
 
-def calculate_league_elo(engine_names: list[str], head_to_head: dict) -> dict[str, float]:
+def print_league_table(ratings: dict, competitors: set[str], games_this_comp: dict[str, int],
+                       points_this_comp: dict[str, float], round_num: int, is_final: bool = False):
     """
-    Calculate estimated Elo ratings for all engines based on head-to-head results.
-    Uses a simple iterative approach: set first engine to 1500, calculate others relative to it.
+    Print the league standings showing ALL engines with Elo ratings.
+    Competitors in the current tournament are highlighted with *.
+
+    Args:
+        ratings: Global Elo ratings dict {engine: {"elo": float, "games": int}}
+        competitors: Set of engine names in the current competition
+        games_this_comp: Dict of games played this competition per engine
+        points_this_comp: Dict of points scored this competition per engine
+        round_num: Current round number
+        is_final: Whether this is the final standings
     """
-    if len(engine_names) < 2:
-        return {name: 1500.0 for name in engine_names}
-
-    # Start with all engines at 1500
-    elo = {name: 1500.0 for name in engine_names}
-
-    # Iteratively adjust ratings based on results (simple approach)
-    for _ in range(10):  # Converge over iterations
-        new_elo = {name: 0.0 for name in engine_names}
-        counts = {name: 0 for name in engine_names}
-
-        for (e1, e2), (wins1, wins2, draws) in head_to_head.items():
-            total = wins1 + wins2 + draws
-            if total == 0:
-                continue
-
-            # Calculate performance rating for e1 vs e2
-            score1 = (wins1 + draws * 0.5) / total
-            if 0.001 < score1 < 0.999:
-                diff = -400 * math.log10(1 / score1 - 1)
-            elif score1 >= 0.999:
-                diff = 400
-            else:
-                diff = -400
-
-            # e1's rating implied by this matchup
-            new_elo[e1] += elo[e2] + diff
-            counts[e1] += 1
-
-            # e2's rating implied by this matchup
-            new_elo[e2] += elo[e1] - diff
-            counts[e2] += 1
-
-        # Average the ratings
-        for name in engine_names:
-            if counts[name] > 0:
-                elo[name] = new_elo[name] / counts[name]
-
-    # Normalize so average is 1500
-    avg = sum(elo.values()) / len(elo)
-    for name in elo:
-        elo[name] += 1500 - avg
-
-    return elo
-
-
-def print_league_table(engine_names: list[str], standings: dict[str, float],
-                       head_to_head: dict, round_num: int, is_final: bool = False):
-    """Print the current league standings with Elo estimates."""
-    elo_ratings = calculate_league_elo(engine_names, head_to_head)
-
     header = "FINAL LEAGUE STANDINGS" if is_final else f"STANDINGS AFTER ROUND {round_num}"
-    print(f"\n{'='*70}")
+    print(f"\n{'='*95}")
     print(header)
-    print(f"{'='*70}")
-    print(f"{'Rank':<6}{'Engine':<30}{'Points':<12}{'Elo':<10}")
-    print(f"{'-'*70}")
+    print(f"{'='*95}")
+    print(f"{'Elo#':<6}{'Engine':<28}{'Elo':<10}{'Comp#':<7}{'Points':<10}{'Games':<8}{'Total':<8}{'Status':<10}")
+    print(f"{'-'*95}")
 
-    sorted_standings = sorted(standings.items(), key=lambda x: (-x[1], -elo_ratings[x[0]]))
-    for i, (name, points) in enumerate(sorted_standings, 1):
-        elo = elo_ratings[name]
-        print(f"{i:<6}{name:<30}{points:<12.1f}{elo:<10.0f}")
+    # Sort all engines by Elo (descending)
+    sorted_engines = sorted(ratings.items(), key=lambda x: -x[1]["elo"])
 
-    print(f"{'='*70}\n")
+    # Calculate competition rankings (by points)
+    comp_rankings = {}
+    if competitors:
+        sorted_by_points = sorted(
+            [(name, points_this_comp.get(name, 0)) for name in competitors],
+            key=lambda x: -x[1]
+        )
+        for rank, (name, _) in enumerate(sorted_by_points, 1):
+            comp_rankings[name] = rank
+
+    for elo_rank, (name, data) in enumerate(sorted_engines, 1):
+        elo = data["elo"]
+        total_games = data["games"]
+        comp_games = games_this_comp.get(name, 0)
+        points = points_this_comp.get(name, 0)
+
+        # Highlight current competitors
+        if name in competitors:
+            marker = "*"
+            comp_rank = str(comp_rankings[name])
+            status = "playing" if not is_final else "done"
+        else:
+            marker = " "
+            comp_rank = "-"
+            status = ""
+            points = "-"
+
+        # Mark provisional ratings
+        if total_games < PROVISIONAL_GAMES:
+            prov = "?"
+        else:
+            prov = ""
+
+        display_name = f"{marker}{name}"
+        points_str = f"{points:.1f}" if isinstance(points, float) else points
+        print(f"{elo_rank:<6}{display_name:<28}{elo:<10.0f}{comp_rank:<7}{points_str:<10}{comp_games:<8}{total_games:<8}{status}{prov}")
+
+    print(f"{'='*95}")
+    print(f"  Elo# = overall ranking, Comp# = current competition ranking")
+    print(f"  * = in current competition, ? = provisional rating (<{PROVISIONAL_GAMES} games)")
+    print()
 
 
 def run_league(engine_names: list[str], engine_dir: Path,
@@ -673,9 +805,27 @@ def run_league(engine_names: list[str], engine_dir: Path,
     num_rounds = games_per_pairing // 2
     total_games = num_rounds * num_pairings * 2
 
-    print(f"\n{'='*70}")
+    # Load persistent Elo ratings
+    elo_ratings = load_elo_ratings()
+
+    # Initialize new engines with average Elo
+    competitors = set(engine_names)
+    for name in engine_names:
+        if name not in elo_ratings:
+            if elo_ratings:
+                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
+            else:
+                avg_elo = DEFAULT_ELO
+            elo_ratings[name] = {"elo": avg_elo, "games": 0}
+            save_elo_ratings(elo_ratings)
+
+    # Track games and points in this competition
+    games_this_comp = {name: 0 for name in engine_names}
+    points_this_comp = {name: 0.0 for name in engine_names}
+
+    print(f"\n{'='*95}")
     print("ROUND ROBIN TOURNAMENT")
-    print(f"{'='*70}")
+    print(f"{'='*95}")
     print(f"Engines: {', '.join(engine_names)}")
     print(f"Pairings: {num_pairings}")
     print(f"Games per pairing: {games_per_pairing}")
@@ -684,11 +834,18 @@ def run_league(engine_names: list[str], engine_dir: Path,
     print(f"Time: {time_per_move}s/move")
     if use_opening_book:
         print(f"Opening book: {len(OPENING_BOOK)} positions")
-    print(f"{'='*70}\n")
+    print(f"Elo ratings: {get_elo_file_path()}")
+    print(f"{'='*95}")
 
-    # Initialize tracking
-    standings = {name: 0.0 for name in engine_names}
-    # head_to_head[(e1, e2)] = (e1_wins, e2_wins, draws) where e1 < e2 alphabetically
+    # Show starting Elo ratings
+    print("\nStarting Elo ratings for competitors:")
+    for name in sorted(engine_names, key=lambda n: -elo_ratings[n]["elo"]):
+        data = elo_ratings[name]
+        prov = "?" if data["games"] < PROVISIONAL_GAMES else ""
+        print(f"  {name}: {data['elo']:.0f} ({data['games']} games){prov}")
+    print()
+
+    # Initialize head-to-head tracking (for summary at end)
     head_to_head = {}
     for e1, e2 in pairings:
         key = (e1, e2) if e1 < e2 else (e2, e1)
@@ -747,25 +904,36 @@ def run_league(engine_names: list[str], engine_dir: Path,
                     print(game, file=f)
                     print(file=f)
 
-                # Update standings
+                # Update persistent Elo ratings
+                update_elo_after_game(elo_ratings, white, black, result)
+
+                # Update games and points for this competition
+                games_this_comp[white] += 1
+                games_this_comp[black] += 1
+
+                if result == "1-0":
+                    points_this_comp[white] += 1.0
+                elif result == "0-1":
+                    points_this_comp[black] += 1.0
+                elif result == "1/2-1/2":
+                    points_this_comp[white] += 0.5
+                    points_this_comp[black] += 0.5
+
+                # Update head-to-head tracking
                 key = (engine1, engine2) if engine1 < engine2 else (engine2, engine1)
                 e1_wins, e2_wins, draws = head_to_head[key]
 
                 if result == "1-0":
-                    standings[white] += 1
                     if white == key[0]:
                         e1_wins += 1
                     else:
                         e2_wins += 1
                 elif result == "0-1":
-                    standings[black] += 1
                     if black == key[0]:
                         e1_wins += 1
                     else:
                         e2_wins += 1
                 elif result == "1/2-1/2":
-                    standings[white] += 0.5
-                    standings[black] += 0.5
                     draws += 1
 
                 head_to_head[key] = (e1_wins, e2_wins, draws)
@@ -775,23 +943,24 @@ def run_league(engine_names: list[str], engine_dir: Path,
                 print(f"Game {game_num:3d}/{total_games} {match_label}: {white} vs {black} -> {result} {color_label}")
 
         # Print standings after each complete round
-        print_league_table(engine_names, standings, head_to_head, round_idx + 1)
+        print_league_table(elo_ratings, competitors, games_this_comp, points_this_comp, round_idx + 1)
 
     # Print final standings
-    print_league_table(engine_names, standings, head_to_head, num_rounds, is_final=True)
+    print_league_table(elo_ratings, competitors, games_this_comp, points_this_comp, num_rounds, is_final=True)
 
     # Print head-to-head results
-    print(f"{'='*70}")
-    print("HEAD-TO-HEAD RESULTS")
-    print(f"{'='*70}")
+    print(f"{'='*95}")
+    print("HEAD-TO-HEAD RESULTS (this competition)")
+    print(f"{'='*95}")
     for (e1, e2), (w1, w2, d) in sorted(head_to_head.items()):
         total = w1 + w2 + d
         if total > 0:
             elo_diff, elo_err = calculate_elo_difference(w1, w2, d)
             print(f"{e1} vs {e2}: +{w1} -{w2} ={d}  (Elo diff: {elo_diff:+.0f} ±{elo_err:.0f})")
-    print(f"{'='*70}")
+    print(f"{'='*95}")
 
-    print(f"\nPGN saved to: {pgn_file}\n")
+    print(f"\nPGN saved to: {pgn_file}")
+    print(f"Elo ratings saved to: {get_elo_file_path()}\n")
 
 
 def main():
