@@ -60,6 +60,14 @@ pub fn captured_piece_value(position: &Position, mv: Move) -> Score {
         })
 }
 
+/// Check if a move is a capture (not including promotions without capture)
+#[inline(always)]
+pub fn is_capture(position: &Position, mv: Move) -> bool {
+    let enemy = &position.pieces[opponent!(position.mover) as usize];
+    let tsp = to_square_part(mv);
+    tsp == position.en_passant_square || (enemy.all_pieces_bitboard & bit(tsp) != 0)
+}
+
 #[inline(always)]
 pub fn moving_piece_mask(position: &Position, mv: Move) -> Move {
     let friendly = &position.pieces[position.mover as usize];

@@ -1,0 +1,50 @@
+{
+  "v001-baseline": {
+    "elo": 1388.0122706917716,
+    "games": 316
+  },
+  "v006-arrayvec": {
+    "elo": 1526.0,
+    "games": 300
+  },
+  "v008-make-unmake-fixed": {
+    "elo": 1503.2089489277168,
+    "games": 16
+  },
+  "v009-unmake-opt": {
+    "elo": 1523.662003935668,
+    "games": 16
+  },
+  "v010-arrayvec-movelist": {
+    "elo": 1484.6159805326663,
+    "games": 8
+  },
+  "v011-check-evasion": {
+    "elo": 1512.0,
+    "games": 300
+  },
+  "v012-bishop-pair": {
+    "elo": 1627.8173503025444,
+    "games": 8
+  },
+  "v013-knight-fork": {
+    "elo": 1465.9973186619463,
+    "games": 6
+  },
+  "v014-rook-open-file": {
+    "elo": 1512.2475489021358,
+    "games": 6
+  },
+  "v015-rook-mobility": {
+    "elo": 1577.841174764582,
+    "games": 6
+  },
+  "v016-queen-mobility": {
+    "elo": 1462.5851325891974,
+    "games": 6
+  },
+  "v017-connected-rooks": {
+    "elo": 1493.0,
+    "games": 300
+  }
+}
