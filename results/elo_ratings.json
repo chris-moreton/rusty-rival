@@ -1,0 +1,18 @@
+{
+  "v006-arrayvec": {
+    "elo": 1526,
+    "games": 300
+  },
+  "v011-check-evasion": {
+    "elo": 1512,
+    "games": 300
+  },
+  "v017-connected-rooks": {
+    "elo": 1493,
+    "games": 300
+  },
+  "v001-baseline": {
+    "elo": 1468,
+    "games": 300
+  }
+}

@@ -1,0 +1,407 @@
+; Round Robin Tournament
+; Engines: v001-baseline, v008-make-unmake-fixed, v009-unmake-opt, v010-arrayvec-movelist, v015-rook-mobility, v019-capture-fix
+; Date: 2025-12-29 15:46
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v001-baseline"]
+[Black "v008-make-unmake-fixed"]
+[Result "1/2-1/2"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 h6 9. h4 Qa5 10. Bd2 Qxc5 11. hxg5 Rg8 12. Nf3 hxg5 13. O-O-O Qa5 14. Nxg5 d4 15. Nb5 Qxa2 16. c3 Qa1+ 17. Kc2 Qa4+ 18. Kc1 Qa1+ 19. Kc2 Qa4+ 20. Kc1 Qa1+ 21. Kc2 Qa4+ 22. Kc1 Qa1+ 23. Kc2 Qa4+ 24. Kc1 Qa1+ 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v008-make-unmake-fixed"]
+[Black "v001-baseline"]
+[Result "1/2-1/2"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 Nxc5 9. Nf3 h6 10. Bb5+ Nbd7 11. O-O a6 12. Bxd7+ Nxd7 13. Ne2 f6 14. Ned4 Nxe5 15. Nxe5 fxe5 16. Qxe5 Bf6 17. Qe3 e5 18. Ne2 Qe7 19. Qb3 Be6 20. Bd2 d4 21. Qf3 Rf8 22. Ng3 Rc8 23. Nf5 Bxf5 24. Qxf5 Rc6 25. Qe4 Bh8 26. a3 Rf7 27. Rad1 Qd7 28. Bb4 Qc7 29. Rc1 Qb6 30. Qd5 Qd8 31. Qb3 a5 32. Bd2 Qb6 33. a4 g4 34. Qg3 h5 35. Qh4 Rf5 36. h3 Rg6 37. hxg4 Rxg4 38. Qh3 Bf6 39. Rce1 Qe6 40. Qd3 Kf7 41. f3 Rg3 42. Bxa5 Rfg5 43. Rf2 Qh3 44. Ree2 e4 45. Qb3+ Kg6 46. Qg8+ Kh6 47. Qf7 Be5 48. f4 Rg7 49. Qe8 e3 50. Qh8+ Rh7 51. Qf8+ Rhg7 52. Qh8+ Rh7 53. Qf8+ Rhg7 54. Qh8+ Rh7 55. Qf8+ Rhg7 56. Qh8+ Rh7 57. Qf8+ Rhg7 58. Qh8+ 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v001-baseline"]
+[Black "v009-unmake-opt"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 h6 9. h4 Qa5 10. Bd2 Qxc5 11. hxg5 Rg8 12. Nf3 hxg5 13. O-O-O g4 14. Nb5 Qb6 15. Nd6+ Bxd6 16. exd6 Nc5 17. Be3 Nbd7 18. Ng5 Qa5 19. Rh7 Rf8 20. Qh4 Qd8 21. b4 d4 22. Bxd4 Na4 23. Bb5 a6 24. Qh6 axb5 25. Nxe6 Rg8 26. Nxd8 Ne5 27. Qf6 Ng6 28. Qxf7+ Kxd8 29. Qxg8+ Nf8 30. Qxf8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v009-unmake-opt"]
+[Black "v001-baseline"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 Nxc5 9. Nf3 h6 10. Bb5+ Nbd7 11. O-O a6 12. Bxd7+ Nxd7 13. Be3 Qc7 14. a3 Rf8 15. Kh1 f6 16. Bd4 fxe5 17. Bxe5 Nxe5 18. Qxe5 Qxe5 19. Nxe5 Rf5 20. Nd3 Bd8 21. Rae1 g4 22. Ne2 Bc7 23. Nd4 Rf6 24. Ne5 Bxe5 25. Rxe5 Bd7 26. Rfe1 O-O-O 27. Kg1 Re8 28. b3 Kb8 29. c4 dxc4 30. bxc4 Rf4 31. Rd1 Ka8 32. g3 Rf6 33. Rde1 b6 34. Rb1 Rb8 35. c5 bxc5 36. Rxb8+ Kxb8 37. Rxc5 Kb7 38. h4 gxh3 39. f4 Rf8 40. Kh2 Rb8 41. Re5 Kc8 42. Kxh3 Rb2 43. Nxe6 Ra2 44. f5 Rxa3 45. Kg4 Ra2 46. Kf4 Ra4+ 47. Kf3 Ra3+ 48. Kf2 Ra2+ 49. Ke1 Ra1+ 50. Kd2 Ra2+ 51. Kc1 Ra1+ 52. Kb2 Rg1 53. f6 Bxe6 54. Rxe6 Rf1 55. Rxa6 Kd8 56. f7 Rf2+ 57. Kc1 Ke7 58. Rxh6 Kxf7 59. Kd1 Rg2 60. Rh3 Kg8 61. Ke1 Ra2 62. Kf1 Ra3 63. Kf2 Ra2+ 64. Ke3 Ra3+ 65. Kf4 Ra4+ 66. Kf3 Ra3+ 67. Kg4 Ra4+ 68. Kh5 Ra3 69. Kh4 Ra2 70. g4 Rb2 71. Kh5 Kg7 72. Ra3 Rh2+ 73. Kg5 Rb2 74. Ra7+ Kg8 75. Rc7 Rb6 76. Kh5 Ra6 77. g5 Kf8 78. Rh7 Re6 79. Rd7 Kg8 80. Rc7 Rd6 81. Ra7 Kf8 82. Rb7 Rc6 83. Rd7 Kg8 84. Rd5 Kg7 85. Re5 Rb6 86. Re7+ Kg8 87. Ra7 Kh8 88. Rf7 Rd6 89. Rf6 Rd7 90. Ra6 Kg8 91. Rh6 Kg7 92. Rc6 Kh7 93. Rc2 Kg7 94. Rb2 Kg8 95. Rb8+ Kh7 96. Ra8 Kg7 97. Re8 Kh7 98. Re6 Kg8 99. Ra6 Rh7+ 100. Rh6 Re7 101. Rg6+ Kh7 102. Rb6 Ra7 103. Rh6+ Kg8 104. Rg6+ Kh8 105. Re6 Rd7 106. Rc6 Kh7 107. Rc8 Ra7 108. Rd8 Rb7 109. Rd6 Kg8 110. Rg6+ Kh8 111. Rc6 Re7 112. Rc8+ Kg7 113. Rc6 Kh8 114. Rc5 Kg8 115. Rc3 Rh7+ 116. Kg4 Ra7 117. Rb3 Rc7 118. Rb1 Kg7 119. Kh5 Kg8 120. Rb8+ Kg7 121. Rb6 Kg8 122. Rg6+ Kh8 123. Ra6 Rb7 124. Ra8+ Kg7 125. Ra1 Rb6 126. g6 Rb5+ 127. Kg4 Kxg6 128. Kf4 Rb7 129. Ke5 Kh7 130. Rh1+ Kg8 131. Rh2 Ra7 132. Rf2 Rf7 133. Ra2 Rg7 134. Rd2 Re7+ 135. Kd6 Rg7 136. Re2 Ra7 137. Rc2 Rg7 138. Rf2 Rg5 139. Ke6 Rg3 140. Kf5 Rg7 141. Rd2 Ra7 142. Rg2+ Rg7 143. Ra2 Rh7 144. Ke6 Rh6+ 145. Ke5 Rh7 146. Rg2+ Rg7 147. Rc2 Ra7 148. Kf6 Rf7+ 149. Kg6 Rf8 150. Rc1 Rf7 151. Rc4 Rg7+ 152. Kf5 Re7 153. Rc8+ Kh7 154. Kf6 Re2 155. Rc1 Rf2+ 156. Ke6 Kh6 157. Rc7 Kg5 158. Ke5 Kg4 159. Rc3 Rf3 160. Rc2 Kg3 161. Rc7 Kh2 162. Ke4 Rg3 163. Rh7+ Kg1 164. Re7 Kh2 165. Kf4 Rg2 166. Rh7+ Kg1 167. Ra7 Kh2 168. Ra3 Rg7 169. Ra2+ Kh1 170. Ra5 Kg1 171. Ra4 Kf1 172. Ra1+ Ke2 173. Ra2+ Kd1 174. Ra6 Rf7+ 175. Kg4 Kc1 176. Ra1+ Kb2 177. Rd1 Kc2 178. Kh3 Kxd1 179. Kg4 Ke1 180. Kg5 Rf8 181. Kg6 Kd2 182. Kh7 Rf2 183. Kg6 Ke3 184. Kg5 Ke4 185. Kg6 Ke5 186. Kg5 Rg2+ 187. Kh4 Kf4 188. Kh5 Rg3 189. Kh6 Kf5 190. Kh7 Kf6 191. Kh8 Kf7 192. Kh7 Rh3# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v001-baseline"]
+[Black "v010-arrayvec-movelist"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 h6 9. h4 Qa5 10. Bd2 Qxc5 11. hxg5 Rg8 12. Nf3 hxg5 13. O-O-O g4 14. Nb5 Qb6 15. Nd6+ Bxd6 16. exd6 Nc6 17. Rh6 Nc5 18. Ng5 f5 19. Rh7 Bd7 20. c3 Qa5 21. Kb1 Qa4 22. Re1 O-O-O 23. b3 Qa3 24. Nf7 Rde8 25. Nh6 Rgf8 26. f3 gxf3 27. gxf3 e5 28. Bc1 Qa5 29. b4 Qb6 30. Ka1 Ne6 31. Qh2 f4 32. Nf7 a6 33. Qd2 d4 34. Qf2 Rg8 35. Bb2 Ng5 36. Nxg5 Rxg5 37. cxd4 Rg6 38. Qc2 Rxd6 39. dxe5 Qxb4 40. Qc1 Rd2 41. a3 Qxb2+ 42. Qxb2 Rxb2 43. Kxb2 Nxe5 44. Re4 Bf5 45. Bh3 Bxh3 46. Rxh3 Nd3+ 47. Kc3 Rxe4 48. fxe4 Nf2 49. Rh8+ Kd7 50. Kd4 Ng4 51. Rh3 b5 52. Rh4 Ne3 53. Rxf4 Nc2+ 54. Kd5 Nxa3 55. Rf7+ Kc8 56. Ra7 Nc4 57. Rxa6 Kb7 58. Re6 Kc7 59. Rg6 Kd7 60. Rg7+ Ke8 61. Rb7 Na3 62. e5 Kf8 63. e6 Ke8 64. Ke5 Nc4+ 65. Kf6 Kd8 66. e7+ Kc8 67. Ra7 Nd6 68. Ke6 Ne8 69. Ra8+ Kc7 70. Rxe8 Kb6 71. Rc8 Ka5 72. e8=Q Kb6 73. Qd8+ Kb7 74. Rb8+ Ka7 75. Qb6# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v010-arrayvec-movelist"]
+[Black "v001-baseline"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 Nxc5 9. Nf3 h6 10. Bb5+ Kf8 11. Nd4 a6 12. Be2 Qc7 13. O-O Ncd7 14. f4 Bc5 15. Be3 Bxd4 16. Bxd4 Nc6 17. Bf2 gxf4 18. Qxf4 f5 19. Nxd5 Qa5 20. c4 exd5 21. Qxf5+ Ke8 22. Qg6+ Kd8 23. Bh4+ Ne7 24. Bxe7+ Kxe7 25. Qg7+ Kd8 26. Qxh8+ Kc7 27. cxd5 Nb6 28. Rac1+ Kb8 29. Bg4 Ka7 30. Bxc8 Qxd5 31. e6 Qxe6 32. Bxe6 Rxh8 33. Rc5 h5 34. h4 Na4 35. Rg5 Nxb2 36. Bf7 Kb8 37. Rxh5 Rd8 38. Rh7 b5 39. Be6 Na4 40. g4 b4 41. g5 Nc3 42. Rff7 Nb5 43. g6 b3 44. g7 b2 45. Rf1 Nc7 46. Rh8 Nxe6 47. Rxd8+ Nxd8 48. g8=Q Kc7 49. a4 Nc6 50. Qg7+ Kc8 51. Rf8+ Nd8 52. Qxb2 Kc7 53. Qe5+ Kd7 54. Qd5+ Ke7 55. Rxd8 Kf6 56. Rf8+ Kg6 57. Qf7+ Kh6 58. Rh8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v001-baseline"]
+[Black "v015-rook-mobility"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g6 7. Nf3 Nc6 8. Bb5 h5 9. Qf4 g5 10. Nxg5 Bxg5 11. Qxg5 Qxg5 12. Bxg5 Nxd4 13. O-O-O Nf5 14. Bd3 c6 15. Rhe1 Nc5 16. h4 Nxd3+ 17. Rxd3 Bd7 18. Ne2 c5 19. Nf4 Bb5 20. Rf3 Nd4 21. Rc3 Rc8 22. Bf6 Rh6 23. Rg3 Bc4 24. b3 Ba6 25. Rg8+ Kd7 26. Rg5 c4 27. b4 c3 28. a4 Rc4 29. Bg7 Rh7 30. Nd3 b6 31. Bf6 Bc8 32. Rg8 Nc6 33. Re3 d4 34. Re4 Kc7 35. b5 Rxa4 36. Kd1 Na5 37. Be7 Nc4 38. Nb4 a6 39. bxa6 Bxa6 40. Nxa6+ Rxa6 41. Rxd4 b5 42. Bb4 Ra1+ 43. Ke2 Rc1 44. Kd3 Nxe5+ 45. Kxc3 Nc6 46. Bd6+ Kb6 47. Rd2 Rb1 48. g3 b4+ 49. Kc4 Kb7 50. Bf4 f6 51. Rf8 Ne5+ 52. Bxe5 fxe5 53. Re2 Rc7+ 54. Kb5 b3 55. cxb3 Rxb3+ 56. Ka4 Rb1 57. Rxe5 Kc6 58. Rxe6+ Kd5 59. Rff6 Rcb7 60. Rd6+ Kc4 61. Rc6+ Kd3 62. Rcd6+ Ke2 63. Rde6+ Kf1 64. Rb6 R1xb6 65. Rxb6 Rxb6 66. f3 Ke2 67. g4 Kxf3 68. gxh5 Ke4 69. h6 Ra6+ 70. Kb4 Rb6+ 71. Kc5 Rxh6 72. h5 Rxh5+ 73. Kd6 Rh4 74. Kc6 Ke5 75. Kc5 Ke6 76. Kc6 Rh5 77. Kc7 Rc5+ 78. Kb8 Kd7 79. Kb7 Rc6 80. Kb8 Rb6+ 81. Ka8 Kc6 82. Ka7 Kc7 83. Ka8 Ra6# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v015-rook-mobility"]
+[Black "v001-baseline"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 h6 8. Nf3 Nc6 9. a3 a6 10. Bd3 Na7 11. Nxd5 exd5 12. e6 Ne5 13. Nxe5 Bxe6 14. f4 gxf4 15. O-O Nc6 16. Bxf4 Bf6 17. Rae1 Nxe5 18. Bxe5 Bxe5 19. Rxe5 Kd7 20. Bf5 Kd6 21. Rfe1 Bxf5 22. Rxf5 Kc6 23. Qxf7 b5 24. Rxd5 Qxd5 25. Re6+ Kb7 26. Rb6+ Kxb6 27. Qxd5 Rad8 28. Qc5+ Kb7 29. a4 bxa4 30. Qb4+ Ka7 31. Qxa4 Rh7 32. Qa5 Rd6 33. d5 Rf7 34. c4 Rdf6 35. Qc5+ Kb7 36. g3 Rf1+ 37. Kg2 R7f6 38. Qd4 Kc8 39. c5 Kd8 40. c6 R1f2+ 41. Kh3 R2f5 42. Qa7 Rh5+ 43. Kg2 Rxd5 44. Qb8+ Ke7 45. Qxc7+ Kf8 46. Qb8+ Kg7 47. c7 Rd2+ 48. Kh3 Rc2 49. c8=Q Rxc8 50. Qxc8 Kf7 51. Qd8 Rg6 52. b4 Rf6 53. Qd7+ Kg6 54. g4 h5 55. Qe8+ Kg7 56. gxh5 Rf3+ 57. Kh4 Rf1 58. Qe7+ Rf7 59. h6+ Kg6 60. Qe6+ Rf6 61. Qg4+ Kf7 62. Qd7+ Kg6 63. Qg7+ Kf5 64. h7 Rg6 65. Qf7+ Ke4 66. Qxg6+ Kf4 67. h8=Q Kf3 68. Qe5 Kf2 69. Qg4 Kf1 70. Kg5 Kf2 71. Qgg3+ Kf1 72. Qf3+ Kg1 73. Qee3+ Kxh2 74. Qg1+ Kxg1 75. Qd1+ Kg2 76. Qd2+ Kf3 77. Qd3+ Kf2 78. Kf4 a5 79. b5 a4 80. Qg3+ Ke2 81. b6 Kd2 82. Qf2+ Kd3 83. Qf3+ Kd2 84. b7 Kc1 85. Qc3+ Kd1 86. Qd4+ Kc2 87. Qc5+ Kb1 88. b8=Q+ Ka2 89. Qc2+ Ka3 90. Qbb3+ axb3 91. Qd3 Kb4 92. Qd4+ Kb5 93. Ke4 b2 94. Qxb2+ Kc5 95. Qf6 Kb4 96. Qd4+ Ka5 97. Kd5 Ka6 98. Qb4 Ka7 99. Kc6 Ka8 100. Qb7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v001-baseline"]
+[Black "v019-capture-fix"]
+[Result "1/2-1/2"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 Nc6 8. Nf3 h5 9. Bxg5 Nxd4 10. Bxe7 Nxf3+ 11. Qxf3 Qxe7 12. Qe3 Rg8 13. O-O-O c6 14. Ne2 Qb4 15. Kb1 Qb6 16. Nd4 a6 17. a3 c5 18. Nf3 c4 19. Qxb6 Nxb6 20. Rd4 Na4 21. Rh4 Nc5 22. Nd2 Na4 23. Rxh5 c3 24. bxc3 Nxc3+ 25. Kc1 Bd7 26. h4 Ba4 27. g3 Rc8 28. Bd3 Bb5 29. Bxb5+ Nxb5 30. Kb2 Ke7 31. a4 Nc3 32. Ra1 Rg4 33. a5 Rb4+ 34. Kc1 Ne2+ 35. Kd1 Nc3+ 36. Kc1 Ne2+ 37. Kd1 Nc3+ 38. Kc1 Ne2+ 39. Kd1 Nc3+ 40. Kc1 Ne2+ 41. Kd1 Nc3+ 42. Kc1 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v019-capture-fix"]
+[Black "v001-baseline"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 h6 8. Nf3 Nc6 9. a3 a6 10. Bd3 Ra7 11. O-O Na5 12. Nxd5 exd5 13. e6 Ne5 14. Nxe5 Bxe6 15. f4 Bf6 16. f5 Bxe5 17. fxe6 Bxd4+ 18. Kh1 Ke7 19. Rxf7+ Kd6 20. Rd7+ Qxd7 21. exd7 Raa8 22. d8=R+ Raxd8 23. Qg6+ Kd7 24. c3 Rde8 25. Bf5+ Kd8 26. Bxg5+ hxg5 27. Qf7 Re7 28. Qxd5+ Ke8 29. Bg6+ Kf8 30. Rf1+ Bf6 31. Qxg5 Re6 32. Rxf6+ Ke7 33. Rf7+ Kd6 34. Qf4+ Re5 35. Qf6+ Kd5 36. Rd7+ Kc5 37. b4+ Kc4 38. Bf7+ Rd5 39. Bxd5+ Kb5 40. Qf1+ Ka4 41. Qd1+ Kb5 42. a4+ Kb6 43. Qd4+ c5 44. Qxc5# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v008-make-unmake-fixed"]
+[Black "v009-unmake-opt"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 h6 9. Nf3 Nc6 10. h4 Nb4 11. Kd1 Nxc5 12. Be3 Rg8 13. hxg5 hxg5 14. Rh7 Nc6 15. Nd4 a6 16. Nxc6 bxc6 17. Qg4 Nd7 18. Qh5 Rf8 19. Na4 d4 20. Bd2 Nxe5 21. Rh8 Ng6 22. Rxf8+ Nxf8 23. Qf3 Ng6 24. b4 Nf4 25. Bc4 Nd5 26. a3 Qd6 27. Nc5 a5 28. Ne4 Qh2 29. Rc1 axb4 30. axb4 Qh6 31. g4 Ra4 32. Rb1 Qh2 33. Kc1 Qe5 34. Bb3 Ra3 35. Nc5 Bxc5 36. bxc5 Nc3 37. Qxc6+ Bd7 38. Qd6 Qxd6 39. cxd6 Nxb1 40. Kxb1 Ra6 41. Bxg5 Rxd6 42. Bf4 Rb6 43. Be5 Ba4 44. Kb2 Bxb3 45. cxb3 d3 46. Kc3 Rb5 47. f4 Rd5 48. Kd2 Kd7 49. Kd1 Kc6 50. b4 Kb5 51. Bc3 Kc4 52. Bd2 Rd8 53. Ke1 Rh8 54. Kd1 Rh1+ 55. Be1 Kb3 56. Kd2 Rxe1 57. f5 exf5 58. gxf5 Re8 59. Kxd3 Kxb4 60. Kd4 Re7 61. Kd5 Kc3 62. Kd6 Re1 63. Kd5 Kd3 64. Kc6 Re5 65. Kd6 f6 66. Kd7 Kc4 67. Kc7 Kc5 68. Kd7 Re4 69. Kc7 Re7+ 70. Kd8 Kd6 71. Kc8 Kc6 72. Kb8 Re1 73. Ka7 Re8 74. Ka6 Ra8# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v009-unmake-opt"]
+[Black "v008-make-unmake-fixed"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 h6 9. Nf3 Nc6 10. h4 Nb4 11. Kd1 Nxc5 12. Be3 Rg8 13. hxg5 hxg5 14. Rh7 Nc6 15. Nd4 Nxd4 16. Bxd4 Rf8 17. Bxc5 Bxc5 18. Nb5 Bd7 19. a4 a6 20. Nd6+ Bxd6 21. exd6 Qf6 22. Kc1 e5 23. Rh5 Rg8 24. a5 Rc8 25. Ra3 Kd8 26. Bd3 Qxd6 27. Rxg5 Qh6 28. f4 Rxg5 29. Qxg5+ Qxg5 30. fxg5 e4 31. Be2 d4 32. Bh5 Rc5 33. Rg3 d3 34. c3 Be6 35. g6 Rxh5 36. g7 f6 37. g8=Q+ Bxg8 38. Rxg8+ Kc7 39. Re8 f5 40. b3 Rg5 41. Kd1 Rxg2 42. Re6 Kd7 43. Re5 Kd6 44. Re8 f4 45. Rxe4 f3 46. Rf4 f2 47. Rf3 Ke5 48. Rf8 Rh2 49. Re8+ Kd5 50. Rd8+ Kc5 51. Rf8 Rh1+ 52. Kd2 f1=Q 53. Rxf1 Rxf1 54. Kxd3 Rf2 55. b4+ Kb5 56. Ke3 Rb2 57. Kd3 Rh2 58. Kd4 Rh3 59. c4+ Kxb4 60. c5 Rc3 61. Ke4 Kxa5 62. Ke5 Kb5 63. c6 Rxc6 64. Kf5 a5 65. Ke4 Rc5 66. Kf3 a4 67. Kg3 a3 68. Kf4 a2 69. Ke4 a1=Q 70. Kf3 Qf6+ 71. Ke2 Re5+ 72. Kd2 Qf2+ 73. Kc3 Re3+ 74. Kd4 Qd2# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v008-make-unmake-fixed"]
+[Black "v010-arrayvec-movelist"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 h6 9. Nf3 Nc6 10. h4 Nb4 11. Kd1 Nxc5 12. Be3 Rg8 13. hxg5 hxg5 14. Rh7 Nc6 15. Bb5 a6 16. Bxc6+ bxc6 17. Qg4 Nd7 18. Qh5 Rf8 19. Bxg5 Qb6 20. Bxe7 Kxe7 21. Qh4+ Ke8 22. Rb1 a5 23. Ne2 Ba6 24. a3 Nc5 25. Nfd4 Bc4 26. Rh8 Kd7 27. Rxf8 Rxf8 28. b3 a4 29. b4 Ke8 30. Nxc6 Qxc6 31. bxc5 Qxc5 32. Nd4 Kd7 33. Rb4 Rc8 34. Rxa4 Rh8 35. Qf4 Rh1+ 36. Kd2 Kc8 37. g3 Rb1 38. c3 Rb2+ 39. Kc1 Rb7 40. Qf6 Rc7 41. Ra8+ Kb7 42. Qh8 Kb6 43. Qb8+ Rb7 44. Qe8 Bf1 45. Kc2 Qc4 46. Qd8+ Qc7 47. Qf8 Qc5 48. a4 Qxf8 49. a5+ Kc5 50. Rxf8 Rc7 51. Rb8 Bc4 52. Kd2 Bf1 53. Rb6 Bc4 54. Kc2 Rc8 55. Rb7 Ba6 56. Nb3+ Kc6 57. Rb6+ Kc7 58. Rxa6 Rb8 59. Nd4 Kc8 60. Ra7 Rb7 61. Ra8+ Rb8 62. Rxb8+ Kxb8 63. g4 Kb7 64. Nxe6 Ka6 65. Ng5 Kxa5 66. Nxf7 Kb5 67. g5 d4 68. cxd4 Kc6 69. e6 Kd5 70. e7 Ke4 71. e8=Q+ Kf3 72. Qe3+ Kg2 73. Ne5 Kh1 74. Ng4 Kg1 75. Qg3+ Kf1 76. f4 Ke2 77. Qf2# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v010-arrayvec-movelist"]
+[Black "v008-make-unmake-fixed"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 h6 9. Nf3 Nc6 10. Bb5 Bxc5 11. O-O a6 12. Bxc6 bxc6 13. h4 Be7 14. hxg5 Rg8 15. g6 Rxg6 16. Qh2 Bf8 17. Rb1 Rb8 18. a3 Qc7 19. Re1 c5 20. Qh5 Bb7 21. g4 Kd8 22. Bd2 Bc6 23. Re2 Nb6 24. Nh4 Rg8 25. Bc1 Be8 26. Ng2 f5 27. Qh4+ Qe7 28. Qxe7+ Bxe7 29. gxf5 exf5 30. f3 d4 31. Nd1 Bb5 32. Re1 Bh4 33. Nf2 Ke7 34. Bf4 Nd5 35. Bd2 Rxg2+ 36. Kxg2 Rg8+ 37. Ng4 Bxe1 38. Rxe1 fxg4 39. Bxh6 Bc6 40. fxg4 Ne3+ 41. Kh3 Nxc2 42. Rc1 d3 43. Kg3 Bd7 44. Kf2 Rxg4 45. b3 Bf5 46. Rd1 Be4 47. Rg1 Rxg1 48. Kxg1 Nd4 49. Bg5+ Kd7 50. Kf2 Nxb3 51. Ke1 c4 52. Bd2 Nxd2 53. Kxd2 Ke6 54. a4 Bg6 55. Kc3 Kxe5 56. Kb4 d2 57. Ka5 d1=Q 58. Kb6 Qxa4 59. Kb7 Kd6 60. Kb6 Qd7 61. Kxa6 Kc5 62. Ka5 Qb5# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v008-make-unmake-fixed"]
+[Black "v015-rook-mobility"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g6 7. Nf3 Nc6 8. Bb5 a6 9. Bxc6 bxc6 10. Bh6 c5 11. dxc5 Nxc5 12. O-O a5 13. Nd4 Ba6 14. Rfd1 Qd7 15. b3 Kd8 16. Qf3 Ke8 17. a3 Rg8 18. b4 Na4 19. bxa5 g5 20. Nxa4 Qxa4 21. Qh5 Rg6 22. Bg7 c5 23. Qxh7 Rxg7 24. Qxg7 cxd4 25. Qg8+ Bf8 26. Qxg5 Rc8 27. Rab1 Rxc2 28. Rdc1 Qc4 29. Rb8+ Bc8 30. Rd1 Bxa3 31. h3 Qe2 32. Rd2 Rc1+ 33. Kh2 Qe1 34. Rd3 Be7 35. Qf4 Kd7 36. Ra8 Qh1+ 37. Kg3 Rg1 38. Qf3 Kd8 39. Rxd4 Rc1 40. Rg4 Qe1 41. Qf4 Qc3+ 42. Kh2 Qa1 43. Rg8+ Kd7 44. Ra7+ Rc7 45. Qxf7 Qxe5+ 46. f4 Qf6 47. Qe8+ Kd6 48. Rxc7 Qxf4+ 49. Rg3 Kxc7 50. Qxe7+ Kb8 51. Qd8 Qb4 52. Rg4 Qc5 53. Qb6+ Qxb6 54. axb6 e5 55. Rg8 e4 56. g4 Kb7 57. h4 e3 58. Kg3 d4 59. Re8 e2 60. Rxe2 Kxb6 61. h5 Ba6 62. Rd2 Bc4 63. Rxd4 Bg8 64. g5 Kc5 65. Rd8 Be6 66. g6 Kb4 67. h6 Bc4 68. h7 Bb5 69. h8=Q Ka5 70. Qc3+ Ka6 71. Rb8 Bd7 72. Qa1+ Ba4 73. Qxa4# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v015-rook-mobility"]
+[Black "v008-make-unmake-fixed"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 h6 8. Nf3 b6 9. Be2 c5 10. Nb5 Rg8 11. Nd6+ Bxd6 12. exd6 Qf6 13. h4 gxh4 14. Qxh4 Qxh4 15. Rxh4 cxd4 16. Rxh6 e5 17. Ng5 Nc6 18. Bh5 Nd8 19. Ne6 Nxe6 20. Rxe6+ Kd8 21. Bxf7 Nc5 22. Rxe5 Rh8 23. Bxd5 Bb7 24. Bg5+ Kd7 25. Bxb7 Nxb7 26. O-O-O Nxd6 27. Rxd4 Rag8 28. Bf4 Rh4 29. g3 Rxf4 30. Rxf4 a5 31. Rd4 Rh8 32. Red5 Rh6 33. f4 Ke7 34. g4 Nf7 35. g5 Re6 36. b4 axb4 37. Rd7+ Kf8 38. Rb7 Re1+ 39. Rd1 Re7 40. Rxb6 Ra7 41. g6 Nh6 42. Rh1 Kg7 43. f5 Rc7 44. Rxb4 Ra7 45. a4 Rd7 46. Rbh4 Rd5 47. Rxh6 Rxf5 48. Rg1 Rf8 49. Rh7+ Kf6 50. Rf1+ Kxg6 51. Rxf8 Kxh7 52. c4 Kg7 53. Rf1 Kg6 54. a5 Kg5 55. a6 Kg4 56. a7 Kh3 57. a8=Q Kh2 58. Qg8 Kh3 59. Rh1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v008-make-unmake-fixed"]
+[Black "v019-capture-fix"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 h5 8. Nge2 c5 9. h4 Nc6 10. Bxg5 cxd4 11. Bxe7 Qxe7 12. Qg7 Rf8 13. Nd1 Qb4+ 14. c3 dxc3 15. bxc3 Qg4 16. Qh6 Ncxe5 17. Ng3 Qg6 18. Qxh5 Qf6 19. Qg5 Qxg5 20. hxg5 Nc5 21. Nh5 b6 22. Nf6+ Kd8 23. Rh3 a6 24. Ne3 Bd7 25. Nxd7 Nexd7 26. f4 b5 27. Nc2 Rg8 28. Nd4 Ke8 29. Rh6 Ne4 30. a4 bxa4 31. Rxa4 Ndc5 32. Ra3 Rb8 33. Bxa6 Nxa6 34. Rxa6 Nxc3 35. g6 Rb1+ 36. Kd2 Ne4+ 37. Kc2 Rb8 38. gxf7+ Kxf7 39. Ra7+ Ke8 40. g4 Rc8+ 41. Kb3 e5 42. fxe5 Rb8+ 43. Ka2 Nc3+ 44. Ka3 Rf8 45. Rhh7 Rf7 46. Rhxf7 Nb1+ 47. Ka4 Nc3+ 48. Ka5 Rb5+ 49. Nxb5 Nxb5 50. Kxb5 d4 51. Rh7 d3 52. Rh8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v019-capture-fix"]
+[Black "v008-make-unmake-fixed"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 h6 8. Nf3 a6 9. h4 gxh4 10. Qg4 c5 11. Qg7 Rf8 12. Bxh6 cxd4 13. Nxd4 Bc5 14. Nb3 Qb6 15. Qh7 Bxf2+ 16. Kd1 Nc6 17. Bxf8 Nxf8 18. Qg7 Qe3 19. Ne2 Qxe5 20. Qxe5 Nxe5 21. Nbc1 Nfg6 22. Nd3 Nxd3 23. cxd3 e5 24. Rc1 Bf5 25. Rc7 Rc8 26. Rxb7 Bxd3 27. Nc3 Nf4 28. Bxd3 Nxd3 29. Ke2 Nxb2 30. Kxf2 Nd3+ 31. Ke2 Rxc3 32. Kd2 Ra3 33. Rxh4 Kf8 34. Rh7 Kg8 35. Rbxf7 e4 36. Rfg7+ Kf8 37. Rb7 Kg8 38. Rhd7 Rxa2+ 39. Ke3 Rf2 40. Rxd5 Rf8 41. Rg5+ Kh8 42. Rb6 Kh7 43. Kxe4 Nf2+ 44. Kd4 Ra8 45. Ra5 Rd8+ 46. Rd5 Rxd5+ 47. Kxd5 a5 48. Ra6 Ng4 49. Rxa5 Ne3+ 50. Ke4 Nc4 51. Ra6 Nd2+ 52. Ke3 Nf1+ 53. Kf4 Nd2 54. Rc6 Nb1 55. Ke3 Kg8 56. Kd3 Kg7 57. Rb6 Na3 58. Rb3 Nc2 59. Kxc2 Kg6 60. g4 Kg5 61. Rg3 Kh4 62. Rg1 Kg5 63. Kd2 Kf4 64. g5 Ke5 65. g6 Ke6 66. g7 Kf7 67. g8=Q+ Ke7 68. Rg6 Kd7 69. Qe6+ Kd8 70. Rg5 Kc7 71. Rg7+ Kb8 72. Qb6+ Ka8 73. Qc6+ Kb8 74. Qb5+ Ka8 75. Qd5+ Kb8 76. Rb7+ Ka8 77. Re7+ Kb8 78. Qb5+ Ka8 79. Qa6+ Kb8 80. Qb6+ Ka8 81. Qc6+ Kb8 82. Rb7+ Ka8 83. Rf7+ Kb8 84. Qb6+ Ka8 85. Qa6+ Kb8 86. Qa7+ Kc8 87. Qb7+ Kd8 88. Qc7+ Ke8 89. Re7+ Kf8 90. Qd6 Kg8 91. Qg6+ Kh8 92. Qh5+ Kg8 93. Qg5+ Kh8 94. Qh4+ Kg8 95. Qh7+ Kf8 96. Rc7 Ke8 97. Qf7+ Kd8 98. Rd7+ Kc8 99. Qd5 Kb8 100. Qd6+ Ka8 101. Qa3+ Kb8 102. Qa7+ Kc8 103. Rg7 Kd8 104. Qb6+ Ke8 105. Qe6+ Kd8 106. Qd6+ Ke8 107. Re7+ Kf8 108. Qf6+ Kg8 109. Qf7+ Kh8 110. Qf4 Kg8 111. Qg4+ Kh8 112. Qh3+ Kg8 113. Qe6+ Kf8 114. Rf7+ Kg8 115. Qg6+ Kh8 116. Rh7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v009-unmake-opt"]
+[Black "v010-arrayvec-movelist"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 c5 8. dxc5 h6 9. Nf3 Nc6 10. h4 Nb4 11. Kd1 Nxc5 12. Be3 Rg8 13. hxg5 hxg5 14. Rh7 Nc6 15. Nd4 Nd7 16. f4 Nf8 17. Rh5 Ng6 18. Nxc6 bxc6 19. Ne2 Ba6 20. fxg5 Qb8 21. b3 Ba3 22. Rb1 Qxe5 23. Qf2 Qe4 24. Rh3 Ne5 25. Nc3 Qg4+ 26. Be2 Bxe2+ 27. Nxe2 Qe4 28. Bxa7 Rxg5 29. Rh8+ Bf8 30. Bc5 Kd7 31. Rxf8 Rxg2 32. Rxf7+ Nxf7 33. Qxf7+ Kc8 34. Nd4 Qg6 35. Qxg6 Rxg6 36. Nxc6 Kb7 37. Nb4 Rc8 38. Nd3 Ka8 39. Rb2 Rg4 40. b4 Rh8 41. c3 Rh1+ 42. Kc2 Rh5 43. Kb3 e5 44. Rd2 e4 45. Nb2 Rg6 46. Nd1 Kb7 47. Ne3 Rgg5 48. Rd4 Re5 49. c4 dxc4+ 50. Nxc4 Rh3+ 51. Ka4 Re6 52. Rxe4 Rxe4 53. Nd6+ Ka8 54. Nxe4 Rf3 55. Nd6 Rc3 56. a3 Kb8 57. Ba7+ Ka8 58. Bc5 Kb8 59. Bb6 Ka8 60. b5 Rc1 61. Kb4 Rb1+ 62. Kc4 Rb2 63. a4 Rd2 64. Kc5 Rc2+ 65. Nc4 Rh2 66. a5 Rh5+ 67. Kc6 Rh6+ 68. Nd6 Rh7 69. Bc7 Rh1 70. Ne4 Rh6+ 71. Bd6 Rh7 72. b6 Rb7 73. Bc7 Ra7 74. bxa7 Kxa7 75. Bf4 Ka6 76. Bc7 Ka7 77. Bb6+ Kb8 78. a6 Kc8 79. Nc5 Kb8 80. Ne6 Kc8 81. Be3 Kb8 82. a7+ Ka8 83. Nc7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v010-arrayvec-movelist"]
+[Black "v009-unmake-opt"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 h6 8. Nf3 b6 9. Nb5 Na6 10. a3 Ndb8 11. Bd3 Nc6 12. O-O Na5 13. Rb1 Nc6 14. Be3 Na5 15. b3 Nc6 16. Nd2 Nab8 17. f4 Rf8 18. Qxh6 gxf4 19. Qxf4 a6 20. Nc3 Bxa3 21. Qh6 Qd7 22. h3 Nb4 23. Rxf7 Qxf7 24. Bg6 Nxc2 25. Bxf7+ Rxf7 26. Nxd5 Nxe3 27. Nxe3 Nc6 28. Nf3 Be7 29. Nd5 Ra7 30. Qg6 exd5 31. Qxc6+ Kf8 32. Rf1 a5 33. Nh2 Rxf1+ 34. Nxf1 Bg5 35. Qg6 Bd8 36. e6 c5 37. dxc5 bxc5 38. Qf5+ Kg8 39. e7 Bxe7 40. Qxc8+ Kg7 41. Qg4+ Kf7 42. Qf5+ Ke8 43. Qxd5 Ra6 44. Ng3 Rg6 45. Ne4 Rh6 46. Nxc5 Rg6 47. Ne6 Rh6 48. g4 a4 49. g5 Rxe6 50. Qxe6 a3 51. b4 a2 52. Qxa2 Bxb4 53. g6 Bc3 54. Qe6+ Kd8 55. Qd6+ Ke8 56. Qc6+ Ke7 57. Qxc3 Ke6 58. Qd4 Ke7 59. Qb6 Kf8 60. Qc7 Kg8 61. Kf2 Kh8 62. Qh7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v009-unmake-opt"]
+[Black "v015-rook-mobility"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g6 7. Nf3 Nc6 8. Bb5 a6 9. Bxc6 bxc6 10. Bh6 c5 11. dxc5 Nxc5 12. O-O a5 13. Nd4 Ba6 14. Rfd1 Qb8 15. b3 Qb7 16. Qh3 Rg8 17. Kh1 g5 18. f4 gxf4 19. Bxf4 Rg7 20. Qh6 Bf8 21. Qh5 Be7 22. a4 O-O-O 23. Qf3 Rg6 24. Ncb5 Kd7 25. Bd2 f6 26. Qe3 Rdg8 27. Rg1 Qb6 28. Nc3 Nb7 29. Ncb5 fxe5 30. Nf3 Qxe3 31. Bxe3 Bf6 32. Rad1 Bxb5 33. axb5 Nd6 34. Nd2 Nxb5 35. Ne4 Bh8 36. Nc5+ Kc6 37. Nd3 d4 38. Bd2 e4 39. Nf4 Rf6 40. g3 e5 41. Nh3 Na3 42. Rg2 Rgf8 43. Bxa5 Rf1+ 44. Rxf1 Rxf1+ 45. Ng1 d3 46. cxd3 exd3 47. Ra2 Nb1 48. Kg2 Rc1 49. Ra4 d2 50. Bxd2 Nxd2 51. Ra6+ Kd5 52. Rh6 Nxb3 53. Rxh7 Bf6 54. Nh3 Rc2+ 55. Kg1 Nd2 56. Nf2 e4 57. Kh1 c5 58. Ng4 Bd4 59. Re7 Nf3 60. h4 Rb2 61. h5 e3 62. Rxe3 Bxe3 63. Nxe3+ Ke6 64. Ng4 c4 65. h6 c3 66. h7 c2 67. Kg2 c1=Q+ 68. Nf2 Ne1+ 69. Kg1 Qc6 70. Ne4 Qxe4 71. h8=Q Qg2# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v015-rook-mobility"]
+[Black "v009-unmake-opt"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 h6 8. Nf3 b6 9. Be2 c5 10. Nb5 Rg8 11. Nd6+ Bxd6 12. exd6 Qf6 13. h4 gxh4 14. Qxh4 Qxh4 15. Rxh4 cxd4 16. Rxh6 e5 17. Ng5 Nf8 18. Bh5 Ng6 19. Rh7 Be6 20. Nxe6 fxe6 21. Bg5 Kf8 22. Re7 Nxe7 23. Bh6+ Rg7 24. Bxg7+ Kxg7 25. dxe7 Na6 26. e8=Q Rxe8 27. Bxe8 Kf8 28. Bb5 Nc5 29. g4 Ne4 30. Rd1 Ng5 31. Ke2 Nh3 32. f3 a5 33. Rh1 Nf4+ 34. Kf2 Kg7 35. Kg3 Ng6 36. Bd3 Nf8 37. g5 Kf7 38. Re1 Nd7 39. Bb5 Nc5 40. Rxe5 Ke7 41. Re2 Kd6 42. b3 e5 43. g6 Ne6 44. Kg4 Ng7 45. Kg5 Ke6 46. Re1 Kd6 47. a4 Ke6 48. Rh1 e4 49. Rh7 d3 50. cxd3 exd3 51. Bxd3 Ne8 52. Bf5+ Kd6 53. Bd7 d4 54. Bxe8 b5 55. g7 Kc5 56. g8=Q Kb4 57. axb5 Ka3 58. Rh2 d3 59. Qc4 d2 60. Rxd2 a4 61. Qxa4# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v009-unmake-opt"]
+[Black "v019-capture-fix"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 Nc6 8. Nf3 h5 9. h3 Rg8 10. Be3 Nb4 11. Rc1 g4 12. hxg4 hxg4 13. a3 Nc6 14. Bd3 f5 15. Kf1 Nb6 16. Rh7 Na5 17. Nd2 Nbc4 18. Nxc4 Nxc4 19. Bxc4 dxc4 20. Qh2 g3 21. Qh5+ Kd7 22. d5 c5 23. dxe6+ Kc6 24. Rd1 Qf8 25. Rf7 Bxe6 26. Rd6+ Kc7 27. Nb5+ Kb8 28. Rxf8+ Rxf8 29. Rxe6 Bd8 30. Re8 b6 31. Nd6 a6 32. Rxf8 Kc7 33. Rf7+ Be7 34. Rxe7+ Kb8 35. Qe8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v019-capture-fix"]
+[Black "v009-unmake-opt"]
+[Result "1/2-1/2"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 h6 8. Nf3 b6 9. Bd2 a6 10. h4 gxh4 11. Nxd5 exd5 12. e6 Rh7 13. Qxd5 Ra7 14. Bd3 Bb7 15. exd7+ Nxd7 16. Qf5 Rg7 17. O-O Rg6 18. Rae1 Rf6 19. Qh5 Bxf3 20. gxf3 Nf8 21. d5 Qd6 22. Qxh4 Kd8 23. Qh5 Ng6 24. Qxh6 Nh4 25. Qh8+ Kd7 26. Be4 Rxf3 27. Qg7 f5 28. Bd3 Rxd3 29. Qxe7+ Qxe7 30. Rxe7+ Kxe7 31. Bb4+ Kf6 32. cxd3 Ke5 33. f4+ Kxd5 34. Be1 Ng6 35. Rf3 c5 36. b4 cxb4 37. Bxb4 Rc7 38. a3 Rc2 39. Kf1 a5 40. Be1 Ra2 41. Rg3 Nxf4 42. Rf3 Ne6 43. Rxf5+ Kc6 44. Bf2 Rxa3 45. Ke2 Ra2+ 46. Kd1 Nc5 47. Rf6+ Kb5 48. Rf5 Kb4 49. Be1+ Kb3 50. d4 Nd3 51. d5 Ra1+ 52. Kd2 Nc5 53. Re5 Ra4 54. Ke2 Ra2+ 55. Kd1 Kc4 56. d6 Ra3 57. Kc2 Rd3 58. Bxa5 bxa5 59. Rxc5+ Kxc5 60. Kxd3 Kxd6 61. Kd2 Kc5 62. Kc3 Kb5 63. Kb3 a4+ 64. Kb2 Kb6 65. Kc2 Kc6 66. Kb1 Kc5 67. Kb2 Kb4 68. Ka2 a3 69. Kb1 Kb3 70. Ka1 Kc3 71. Ka2 Kb4 72. Kb1 Kc3 73. Ka2 Kb4 74. Kb1 Ka4 75. Ka2 Kb4 76. Kb1 Ka5 77. Ka2 Ka4 78. Ka1 Kb3 79. Kb1 a2+ 80. Ka1 Ka3 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v010-arrayvec-movelist"]
+[Black "v015-rook-mobility"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g6 7. Nf3 Nc6 8. Bb5 a6 9. Bxc6 bxc6 10. O-O c5 11. dxc5 Nxc5 12. Bh6 a5 13. Qh3 Rg8 14. Rfe1 c6 15. b3 Nd7 16. Nd4 Qb6 17. Be3 h5 18. Nf5 Qd8 19. Nxe7 Qxe7 20. Qg3 h4 21. Qg5 Rh8 22. Qxe7+ Kxe7 23. Bg5+ Ke8 24. h3 Rh5 25. f4 Nf8 26. Rad1 Ba6 27. Bf6 Nd7 28. Bg5 Nf8 29. Na4 Nh7 30. Rd4 Nxg5 31. fxg5 Rb8 32. Nc5 Ra8 33. Ra4 Bb5 34. Rg4 Kf8 35. Rf4 Kg8 36. Nd7 Rxg5 37. Rxh4 Kg7 38. Nf6 Rxe5 39. Rxe5 Kxf6 40. Re3 c5 41. Rc3 Rc8 42. Rh7 Ke7 43. a3 d4 44. Rf3 Rf8 45. h4 Bc6 46. Rf2 a4 47. bxa4 Bxa4 48. g4 e5 49. Re2 Ke6 50. h5 gxh5 51. gxh5 Rg8+ 52. Kh2 c4 53. h6 Rd8 54. Kg1 c3 55. Rf2 Bxc2 56. Rhxf7 d3 57. R2f6+ Kd5 58. Rf1 d2 59. Rc7 Kd4 60. Rg7 Bg6 61. Rd1 Ke3 62. Rc7 c2 63. Rxd2 Kxd2 64. Rc5 Rd3 65. Rxc2+ Kxc2 66. a4 e4 67. Kg2 e3 68. Kf3 Kd2 69. Kf4 e2 70. Kg4 e1=Q 71. Kg5 Qe6 72. a5 Rh3 73. a6 Qf5# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v015-rook-mobility"]
+[Black "v010-arrayvec-movelist"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 h6 8. Nf3 a5 9. Be3 Na6 10. Bb5 c6 11. Be2 c5 12. Nb5 Rg8 13. Qxh6 g4 14. Ng5 Nf8 15. h4 Nb4 16. O-O-O Rg6 17. Qh5 cxd4 18. Nxd4 Nxa2+ 19. Kb1 Nb4 20. c3 Nc6 21. Nxc6 bxc6 22. Nxf7 Kxf7 23. Bd3 Qc7 24. Rd2 a4 25. Bxg6+ Nxg6 26. Qh7+ Ke8 27. Qxg6+ Kd8 28. Qg8+ Kd7 29. Qg7 c5 30. Bg5 Qd8 31. h5 Bb7 32. h6 Qf8 33. Bf6 Ba6 34. h7 Qxg7 35. Bxg7 Bg5 36. Rc2 Bd3 37. h8=Q Rxh8 38. Rxh8 a3 39. bxa3 Bd2 40. Kb2 Bxc2 41. Kxc2 Be1 42. Bf6 Bxf2 43. Rh7+ Kc8 44. Re7 d4 45. Rxe6 dxc3 46. Kxc3 Bd4+ 47. Kc4 Kb7 48. Be7 Be3 49. Bxc5 Bf4 50. Re8 Kc6 51. e6 Bg5 52. e7 Bxe7 53. Rxe7 g3 54. Re6+ Kb7 55. Kd5 Kc7 56. Re7+ Kc8 57. Bb6 Kb8 58. Kc6 Kc8 59. Re8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v010-arrayvec-movelist"]
+[Black "v019-capture-fix"]
+[Result "1/2-1/2"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qg3 Nc6 8. Be3 h5 9. O-O-O Na5 10. Nf3 g4 11. Nd2 c5 12. Nb5 cxd4 13. Nxd4 Nc6 14. Nxc6 bxc6 15. h3 Rg8 16. Kb1 c5 17. Qh2 Bg5 18. Bxg5 Qxg5 19. f4 gxf3 20. Nxf3 Qg3 21. Qxg3 Rxg3 22. b3 d4 23. Bb5 Bb7 24. Rhf1 Ke7 25. Bxd7 Kxd7 26. Ne1 Ke7 27. Rf2 Rag8 28. Nd3 Rxg2 29. Rxg2 Bxg2 30. Rg1 Kf8 31. Nf4 Bf3 32. Rxg8+ Kxg8 33. h4 Kg7 34. Kc1 Kh6 35. a4 Be4 36. Kd2 Bh1 37. Kd3 Bf3 38. a5 Bd1 39. Kd2 Bf3 40. Kd3 Bd1 41. a6 Kh7 42. Kd2 Bf3 43. c3 dxc3+ 44. Kxc3 Kh6 45. Kc4 Bd1 46. Kc3 Bf3 47. Kc4 Bd1 48. Kc3 Bf3 49. Nd3 Be2 50. Nxc5 Kg6 51. b4 Bb5 52. Kd4 Kg7 53. Ke4 Kg6 54. Kf4 Be2 55. Ke3 Bb5 56. Kf4 Be2 57. Ke3 Bb5 58. Ke4 Bc4 59. Kf4 Bb5 60. Ke4 Bc4 61. Kd4 Bb5 62. Ke4 Bc4 63. Kf4 Be2 64. Ke4 Bc4 65. Kf4 Be2 66. Ke3 Bb5 67. Kf4 Be2 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v019-capture-fix"]
+[Black "v010-arrayvec-movelist"]
+[Result "1-0"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 h6 8. Nf3 a5 9. Nb5 Na6 10. c3 Nb6 11. Bd3 Na4 12. O-O Nb6 13. a4 Nd7 14. Be3 b6 15. Nd2 c6 16. Nd6+ Bxd6 17. exd6 Nf6 18. Qf3 Kd7 19. h4 Rg8 20. hxg5 hxg5 21. Be2 Rg6 22. Rad1 Qh8 23. b3 Rh6 24. g4 Rh3 25. Qg2 Ne8 26. c4 Nxd6 27. Bxg5 Rc3 28. Bf4 Nb4 29. c5 bxc5 30. dxc5 e5 31. Be3 Nb7 32. Qh1 Qxh1+ 33. Kxh1 Kc7 34. Rc1 Rxc1 35. Rxc1 Na2 36. Rc2 Nb4 37. Rc1 f5 38. f3 Na2 39. Re1 fxg4 40. fxg4 Nc3 41. g5 d4 42. Bg1 Nxc5 43. Bc4 Bb7 44. Bh2 Nd7 45. Kg1 Nd5 46. Bxe5+ Nxe5 47. Rxe5 Kd6 48. Re2 Nf4 49. Rh2 c5 50. g6 Bd5 51. Rh4 Nxg6 52. Rh6 Rg8 53. Ne4+ Bxe4 54. Bxg8 Ke5 55. Kf2 Bd3 56. Rh7 Kd6 57. Ke1 Ne5 58. Ra7 Nc6 59. Rb7 Nb4 60. Kd2 Ba6 61. Rg7 Bd3 62. Ra7 Kc6 63. Ra8 Bf1 64. Bh7 Kb6 65. Be4 Ba6 66. Bg2 c4 67. bxc4 Bxc4 68. Rd8 Bb3 69. Rxd4 Bxa4 70. Bf3 Bb5 71. Kc3 Kc5 72. Rg4 Nc6 73. Rg5+ Kb6 74. Rg6 Kc5 75. Bd1 Nb4 76. Kb2 Nc6 77. Ka3 Bc4 78. Rg5+ Kb6 79. Bb3 Bd3 80. Rd5 Be4 81. Rd7 Kc5 82. Rg7 Nd4 83. Rg5+ Kb6 84. Ba4 Bd3 85. Bd7 Be2 86. Rg6+ Kc7 87. Ba4 Bd3 88. Rg4 Ne6 89. Rh4 Nc5 90. Be8 Be4 91. Rh5 Kb6 92. Rh6+ Kb7 93. Rf6 Kc7 94. Ba4 Kb7 95. Bb5 Bg2 96. Rg6 Bf3 97. Be8 Ka7 98. Rg5 Kb6 99. Rf5 Bb7 100. Rf2 Kc7 101. Rf7+ Kb6 102. Rg7 Be4 103. Rg1 Nb7 104. Rd1 Kc5 105. Ba4 Kb6 106. Bd7 Bf3 107. Rf1 Be4 108. Rf6+ Kc7 109. Rf7 Bc2 110. Ba4+ Kb6 111. Rf6+ Kc7 112. Bxc2 Nc5 113. Bb3 Kd7 114. Bd5 Ke7 115. Rb6 Kd7 116. Rb5 Kd6 117. Bg2 a4 118. Ra5 Nd7 119. Kxa4 Ne5 120. Kb3 Ke6 121. Kc3 Kf6 122. Ra6+ Kg5 123. Ra7 Kg4 124. Rg7+ Kf4 125. Bd5 Ng4 126. Rf7+ Ke5 127. Bc4 Ne3 128. Re7+ Kf4 129. Be6 Ke5 130. Bc8+ Kf4 131. Kd3 Nd5 132. Rf7+ Ke5 133. Bg4 Nf6 134. Bh3 Nd5 135. Rf5+ Kd6 136. Kd4 Nb4 137. Kc4 Nc6 138. Rd5+ Ke7 139. Kc5 Nd8 140. Rd7+ Ke8 141. Kd5 Nf7 142. Bf5 Kf8 143. Ke6 Nh6 144. Rb7 Ng8 145. Rc7 Nh6 146. Bh7 Ng4 147. Rc8+ Kg7 148. Rg8+ Kxh7 149. Rxg4 Kh6 150. Kf6 Kh7 151. Rg3 Kh8 152. Kf7 Kh7 153. Rh3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v015-rook-mobility"]
+[Black "v019-capture-fix"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g5 7. Qh5 c5 8. Nf3 cxd4 9. Nb5 Nc6 10. Bxg5 Qa5+ 11. Bd2 Qb6 12. O-O-O Nc5 13. Ng5 Nxe5 14. Nxe6 Ned3+ 15. cxd3 Bxe6 16. Nxd4 Na4 17. Nb3 Bf6 18. Kb1 Qxf2 19. Re1 O-O-O 20. Re2 Qh4 21. Qxh4 Bxh4 22. Bf4 Kd7 23. Nd4 Rhe8 24. Nxe6 fxe6 25. g4 Bf6 26. Bg2 Nc5 27. Rd1 Bd4 28. Bg3 Kc6 29. Be5 Bxe5 30. Rxe5 Re7 31. d4 Na6 32. Rc1+ Kd7 33. g5 Nb8 34. Re2 Nc6 35. Rd2 Rf8 36. Rf1 Ref7 37. Rxf7+ Rxf7 38. Kc2 Rf5 39. a4 Rxg5 40. Kc3 Rg4 41. b4 a6 42. Bf3 Rf4 43. Be2 e5 44. dxe5 Ke6 45. b5 axb5 46. axb5 d4+ 47. Kc2 Nxe5 48. h3 b6 49. Kb3 Kd5 50. Rd1 Rf2 51. Bf1 h5 52. Kb4 Ke4 53. Rc1 Nf3 54. Rd1 Rb2+ 55. Ka4 Rh2 56. Kb4 Nd2 57. Bc4 Nxc4 58. Kxc4 Rc2+ 59. Kb4 d3 60. Kb3 Rc5 61. h4 Kd4 62. Kb2 Rxb5+ 63. Ka2 Ke3 64. Re1+ Kd2 65. Rg1 Kc2 66. Ka3 d2 67. Rg2 Rb1 68. Ka2 Rb4 69. Ka3 Rc4 70. Rf2 Rd4 71. Rg2 Re4 72. Rg6 Rc4 73. Rd6 b5 74. Rc6 Rxc6 75. Kb4 d1=Q 76. Kxb5 Qd5+ 77. Ka4 Rc4+ 78. Ka3 Qa5# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v019-capture-fix"]
+[Black "v015-rook-mobility"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "French Steinitz Main"]
+
+5... Nfd7 6. Qg4 g6 7. Nf3 Nc6 8. Bb5 h5 9. Qf4 g5 10. Nxg5 Bxg5 11. Qxg5 Qxg5 12. Bxg5 Nxd4 13. O-O-O Nf5 14. Rhe1 a6 15. Bd3 Ne7 16. Be2 b5 17. f4 b4 18. Na4 a5 19. Rd3 Bb7 20. Rh3 Bc6 21. b3 Bxa4 22. bxa4 c6 23. a3 bxa3 24. Rxa3 Nc5 25. Bf6 Rh6 26. Bf3 Rb8 27. Kd2 Rb4 28. Bg5 Rd4+ 29. Ke2 Rh7 30. Rb1 Rc4 31. Rb8+ Kd7 32. Ra8 Nf5 33. Kd2 Nd4 34. Ra2 h4 35. h3 Rxa4 36. Rxa4 Nxf3+ 37. gxf3 Nxa4 38. Rxa5 Nb6 39. Ra1 Nc4+ 40. Ke2 c5 41. Kd3 Nb2+ 42. Ke2 Nc4 43. c3 Kc6 44. Ra6+ Kb5 45. Ra8 Na5 46. Be7 Nc6 47. Bd6 Rg7 48. Rh8 Rg2+ 49. Kf1 Rc2 50. Rxh4 Rxc3 51. Kg2 Rc2+ 52. Kf1 d4 53. Rh7 d3 54. Ke1 Nd4 55. Rxf7 Nxf3+ 56. Kf1 Rc1+ 57. Kf2 d2 58. Rb7+ Ka6 59. Rc7 d1=Q 60. Rc6+ Kb7 61. Rc7+ Kb6 62. Bxc5+ Kxc7 63. Be3 Qg1+ 64. Kxf3 Rc3 65. Ke2 Rxe3+ 66. Kd2 Qf2+ 67. Kd1 Re1# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.29"]
+[Round "?"]
+[White "v001-baseline"]
+[Black "v008-make-unmake-fixed"]
+[Result "1/2-1/2"]
+[FEN "rnbqkb1r/ppp1pppp/5n2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq - 2 3"]
+[SetUp "1"]
+[Opening "QGD Nc3"]
+
+3... Nc6 4. cxd5 Nxd5 5. e4 Nxc3 6. bxc3 Qd6 7. Nf3 e5 8. d5 Ne7 9. Qa4+ Bd7 10. Qb4 Qxb4 11. cxb4 Ng6 12. Rb1 a6 13. h4 f6 14. h5 Ne7 15. Bc4 Ba4 16. Rb2 b5 17. Bb3 Bxb3 18. Rxb3 c6 19. dxc6 Nxc6 20. a3 a5 21. bxa5 Rxa5 22. O-O g6 23. hxg6 hxg6 24. Bb2 b4 25. axb4 Nxb4 26. g4 g5 27. Rc1 Ra8 28. Ba3 Rh7 29. Bxb4 Rb7 30. Bxf8 Rxb3 31. Nd2 Rd3 32. Bb4 Ra4 33. Bc3 Ra6 34. Kg2 Rc6 35. Nb1 Rc8 36. Rc2 Kf7 37. f3 Kg7 38. Kg3 Rc7 39. Kf2 Kh8 40. Ke2 Rd8 41. Rb2 Rh7 42. Ke3 Rd1 43. Na3 Rhd7 44. Bd2 Kg7 45. Nb1 Ra7 46. Bb4 Rf7 47. Nc3 Re1+ 48. Re2 Rh1 49. Nd5 Rd1 50. Re1 Rd4 51. Rb1 Rd7 52. Ke2 Rc4 53. Rb2 Ra7 54. Ke3 Rc6 55. Ne7 Rcc7 56. Nf5+ Kg8 57. Bd6 Rc3+ 58. Kf2 Rc1 59. Be7 Kf7 60. Bb4 Rac7 61. Rd2 Rb1 62. Bd6 Rcc1 63. Ra2 Rf1+ 64. Kg3 Rg1+ 65. Rg2 Rxg2+ 66. Kxg2 Rb2+ 67. Kg3 Rd2 68. Bc5 Rc2 69. Bf2 Rc6 70. Ne3 Rc1 71. Nd5 Rc2 72. Be1 Ra2 73. Bb4 Rb2 74. Bc5 Ra2 75. Be7 Rd2 76. Bd8 Kg6 77. Ba5 Rb2 78. Bb6 Ra2 79. Bc7 Rc2 80. Bd6 Kf7 81. Bb8 Kg7 82. Ba7 Ra2 83. Bf2 Kg6 84. Be3 Kg7 85. Bg1 Rc2 86. Bb6 Kg6 87. Kh3 Re2 88. Ba7 Rc2 89. Bg1 Kf7 90. Bb6 Kg6 91. Nb4 Re2 92. Ba7 Kg7 93. Bg1 Kf7 94. Kg3 Kg7 95. Bb6 Kg6 96. Bf2 Rb2 97. Bc5 Kf7 98. Kh3 Kg6 99. Nd5 Kf7 100. Bb6 Rc2 101. Bd8 Rd2 102. Bc7 Rc2 103. Bb8 Rb2 104. Ba7 Rc2 105. Kg3 Kg7 106. Ne3 Rb2 107. Nf5+ Kf7 108. Be3 Rc2 109. Bb6 Re2 110. Bd8 Re1 111. Bc7 Rg1+ 112. Kf2 Rb1 113. f4 Rb2+ 114. Kf3 Rb3+ 115. Ke2 Rb2+ 116. Kf1 Rb1+ 117. Kf2 Rb2+ 118. Ke1 Rc2 119. Bd8 exf4 120. Bb6 Ra2 121. Bd4 f3 122. Kf1 Re2 123. Ng3 Rg2 124. Bf2 Ke6 125. Be1 Rc2 126. Bb4 Rg2 127. Be1 Rc2 128. Bb4 Rg2 129. Be1 Rc2 130. Ba5 Rg2 131. Bc7 Kd7 132. Bb8 Ke6 133. Bc7 Kd7 134. Bb8 Ke6 135. Ke1 Kd7 136. Kf1 Kd8 137. Nh5 Ke7 138. Ng3 Ke6 139. Ke1 Kd7 140. Kf1 Ke6 141. Ke1 Kd7 142. Kf1 1/2-1/2
+
