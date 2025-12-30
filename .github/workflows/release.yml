@@ -23,9 +23,9 @@ jobs:
             os: windows-latest
             name: rusty-rival-windows-x86_64.exe
 
-          # macOS Intel
+          # macOS Intel (cross-compiled from ARM)
           - target: x86_64-apple-darwin
-            os: macos-13
+            os: macos-latest
             name: rusty-rival-macos-x86_64
 
           # macOS Apple Silicon
