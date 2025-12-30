@@ -289,11 +289,10 @@ fn cmd_go(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&
 
 fn calc_from_colour_times(uci_state: &mut UciState, millis: u64, inc_millis: u64) {
     if millis > 0 {
-        uci_state.move_time = if uci_state.moves_to_go == 0 {
-            millis
-        } else {
-            min(uci_state.move_time, (millis as f64 / (uci_state.moves_to_go as f64 + 1.0)) as u64)
-        };
+        // When movestogo is not specified (0), assume 30 moves remaining
+        // Previously this used ALL remaining time on the first move!
+        let moves_remaining = if uci_state.moves_to_go == 0 { 30 } else { uci_state.moves_to_go };
+        uci_state.move_time = min(uci_state.move_time, (millis as f64 / (moves_remaining as f64 + 1.0)) as u64);
         uci_state.move_time = (uci_state.move_time as f64 * 0.95) as u64 + inc_millis;
     }
 }
