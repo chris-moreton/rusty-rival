@@ -70,6 +70,71 @@ def save_elo_ratings(ratings: dict):
         json.dump(ratings, f, indent=2, sort_keys=True)
 
 
+def get_engines_config_path() -> Path:
+    """Get the path to the engines config file."""
+    script_dir = Path(__file__).parent
+    return script_dir.parent / "engines" / "engines.json"
+
+
+def load_engines_config() -> dict:
+    """
+    Load engine configuration from JSON file.
+    Returns dict: {engine_name: {"binary": str, "uci_options": dict (optional)}}
+    """
+    config_file = get_engines_config_path()
+    if config_file.exists():
+        with open(config_file, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def save_engines_config(config: dict):
+    """Save engine configuration to JSON file."""
+    config_file = get_engines_config_path()
+    config_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(config_file, "w") as f:
+        json.dump(config, f, indent=2, sort_keys=True)
+
+
+def get_all_engines(engine_dir: Path) -> list[str]:
+    """
+    Get list of all available engines from the config file.
+    Returns sorted list of engine names.
+    """
+    config = load_engines_config()
+    return sorted(config.keys())
+
+
+def get_engine_info(name: str, engine_dir: Path) -> tuple[Path, dict]:
+    """
+    Get engine binary path and UCI options from config.
+    Returns (binary_path, uci_options_dict).
+    """
+    config = load_engines_config()
+
+    if name not in config:
+        print(f"Error: Engine '{name}' not found in {get_engines_config_path()}")
+        print(f"Available engines: {', '.join(get_all_engines(engine_dir))}")
+        sys.exit(1)
+
+    engine_config = config[name]
+    binary = engine_config.get("binary", "")
+
+    # Handle relative vs absolute paths
+    if binary.startswith("/"):
+        binary_path = Path(binary)
+    else:
+        binary_path = engine_dir / binary
+
+    uci_options = engine_config.get("uci_options", {})
+
+    if not binary_path.exists():
+        print(f"Error: Engine binary not found: {binary_path}")
+        sys.exit(1)
+
+    return binary_path, uci_options
+
+
 def get_k_factor(games_played: int) -> float:
     """Get K-factor based on number of games played."""
     if games_played < PROVISIONAL_GAMES:
@@ -502,19 +567,13 @@ def resolve_engine_name(shorthand: str, engine_dir: Path) -> str:
         sys.exit(1)
 
 
-def get_engine_path(name: str, engine_dir: Path) -> Path:
-    path = engine_dir / name / "rusty-rival"
-    if not path.exists():
-        print(f"Error: Engine not found: {path}")
-        sys.exit(1)
-    return path
-
-
 def play_game(engine1_path: Path, engine2_path: Path,
               engine1_name: str, engine2_name: str,
               time_per_move: float,
               start_fen: str = None,
-              opening_name: str = None) -> tuple[str, chess.pgn.Game]:
+              opening_name: str = None,
+              engine1_uci_options: dict = None,
+              engine2_uci_options: dict = None) -> tuple[str, chess.pgn.Game]:
     """Play a single game and return (result, pgn_game)."""
     if start_fen:
         board = chess.Board(start_fen)
@@ -523,6 +582,12 @@ def play_game(engine1_path: Path, engine2_path: Path,
 
     engine1 = chess.engine.SimpleEngine.popen_uci(str(engine1_path))
     engine2 = chess.engine.SimpleEngine.popen_uci(str(engine2_path))
+
+    # Configure UCI options if provided
+    if engine1_uci_options:
+        engine1.configure(engine1_uci_options)
+    if engine2_uci_options:
+        engine2.configure(engine2_uci_options)
 
     engines = [engine1, engine2]
 
@@ -565,8 +630,8 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
               use_opening_book: bool = True) -> dict:
     """Run a match between two engines, alternating colors."""
 
-    engine1_path = get_engine_path(engine1_name, engine_dir)
-    engine2_path = get_engine_path(engine2_name, engine_dir)
+    engine1_path, engine1_uci_options = get_engine_info(engine1_name, engine_dir)
+    engine2_path, engine2_uci_options = get_engine_info(engine2_name, engine_dir)
 
     # Load persistent Elo ratings
     elo_ratings = load_elo_ratings()
@@ -645,14 +710,17 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
         if i % 2 == 0:
             white, black = engine1_name, engine2_name
             white_path, black_path = engine1_path, engine2_path
+            white_uci, black_uci = engine1_uci_options, engine2_uci_options
             is_engine1_white = True
         else:
             white, black = engine2_name, engine1_name
             white_path, black_path = engine2_path, engine1_path
+            white_uci, black_uci = engine2_uci_options, engine1_uci_options
             is_engine1_white = False
 
         result, game = play_game(white_path, black_path, white, black,
-                                  time_per_move, opening_fen, opening_name)
+                                  time_per_move, opening_fen, opening_name,
+                                  white_uci, black_uci)
         results[result] += 1
 
         # Append game to PGN file immediately (crash-safe)
@@ -871,8 +939,8 @@ def run_league(engine_names: list[str], engine_dir: Path,
     else:
         openings = [(None, None)] * num_rounds
 
-    # Get engine paths
-    engine_paths = {name: get_engine_path(name, engine_dir) for name in engine_names}
+    # Get engine paths and UCI options
+    engine_info = {name: get_engine_info(name, engine_dir) for name in engine_names}
 
     # Create PGN file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -901,11 +969,12 @@ def run_league(engine_names: list[str], engine_dir: Path,
                 else:
                     white, black = engine1, engine2
 
-                white_path = engine_paths[white]
-                black_path = engine_paths[black]
+                white_path, white_uci = engine_info[white]
+                black_path, black_uci = engine_info[black]
 
                 result, game = play_game(white_path, black_path, white, black,
-                                         time_per_move, opening_fen, opening_name)
+                                         time_per_move, opening_fen, opening_name,
+                                         white_uci, black_uci)
 
                 # Append to PGN
                 with open(pgn_file, "a") as f:
@@ -978,8 +1047,8 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
     Plays in rounds: each round consists of 2 games (1 as white, 1 as black) against each opponent.
     Each game uses a random opening.
     """
-    # Find all engines except the challenger
-    all_engines = sorted([d.name for d in engine_dir.iterdir() if d.is_dir() and (d / "rusty-rival").exists()])
+    # Find all engines except the challenger (from config + auto-discovered)
+    all_engines = get_all_engines(engine_dir)
     opponents = [e for e in all_engines if e != challenger_name]
 
     if not opponents:
@@ -1036,9 +1105,9 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
         print(f"  {opp}: {data['elo']:.0f} ({data['games']} games){prov}")
     print()
 
-    # Get engine paths
-    challenger_path = get_engine_path(challenger_name, engine_dir)
-    opponent_paths = {opp: get_engine_path(opp, engine_dir) for opp in opponents}
+    # Get engine paths and UCI options
+    challenger_path, challenger_uci = get_engine_info(challenger_name, engine_dir)
+    opponent_info = {opp: get_engine_info(opp, engine_dir) for opp in opponents}
 
     # Create PGN file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1057,7 +1126,7 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
         print(f"\n--- Round {round_idx + 1}/{num_rounds} ---\n")
 
         for opponent in opponents:
-            opponent_path = opponent_paths[opponent]
+            opponent_path, opponent_uci = opponent_info[opponent]
 
             # Game 1: Challenger as white
             game_num += 1
@@ -1065,7 +1134,8 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
 
             result, game = play_game(challenger_path, opponent_path,
                                       challenger_name, opponent,
-                                      time_per_move, opening_fen, opening_name)
+                                      time_per_move, opening_fen, opening_name,
+                                      challenger_uci, opponent_uci)
 
             with open(pgn_file, "a") as f:
                 print(game, file=f)
@@ -1088,7 +1158,8 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
 
             result, game = play_game(opponent_path, challenger_path,
                                       opponent, challenger_name,
-                                      time_per_move, opening_fen, opening_name)
+                                      time_per_move, opening_fen, opening_name,
+                                      opponent_uci, challenger_uci)
 
             with open(pgn_file, "a") as f:
                 print(game, file=f)
@@ -1158,13 +1229,17 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
     print(f"{'='*70}\n")
 
 
-def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results_dir: Path):
+def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results_dir: Path, weighted: bool = False):
     """
     Randomly select pairs of engines and play 2-game matches (1 white, 1 black).
     Each game uses a random opening.
+
+    If weighted=True, engines with fewer games are more likely to be selected.
+    Weight = 1 / (games + 1), so an engine with 0 games has weight 1.0,
+    while one with 100 games has weight ~0.01.
     """
-    # Find all engines
-    all_engines = sorted([d.name for d in engine_dir.iterdir() if d.is_dir() and (d / "rusty-rival").exists()])
+    # Find all engines (from config + auto-discovered)
+    all_engines = get_all_engines(engine_dir)
 
     if len(all_engines) < 2:
         print(f"Error: Need at least 2 engines in {engine_dir}, found {len(all_engines)}")
@@ -1186,9 +1261,11 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             save_elo_ratings(elo_ratings)
 
     print(f"\n{'='*70}")
-    print("RANDOM MODE")
+    print(f"RANDOM MODE{' (WEIGHTED)' if weighted else ''}")
     print(f"{'='*70}")
     print(f"Available engines: {len(all_engines)}")
+    if weighted:
+        print("Selection: weighted by inverse game count (fewer games = higher chance)")
     print(f"Matches: {num_matches} (2 games each = {total_games} total games)")
     print(f"Time: {time_per_move}s/move")
     print(f"Opening book: {len(OPENING_BOOK)} positions (random selection)")
@@ -1205,10 +1282,19 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     game_num = 0
 
     for match_idx in range(num_matches):
-        # Pick two random engines
-        engine1, engine2 = random.sample(all_engines, 2)
-        engine1_path = get_engine_path(engine1, engine_dir)
-        engine2_path = get_engine_path(engine2, engine_dir)
+        # Pick two engines (weighted or uniform random)
+        if weighted:
+            # Weight = 1 / (games + 1) - fewer games means higher weight
+            weights = [1.0 / (elo_ratings[e]["games"] + 1) for e in all_engines]
+            engine1 = random.choices(all_engines, weights=weights, k=1)[0]
+            # Remove engine1 and recalculate weights for engine2
+            remaining = [e for e in all_engines if e != engine1]
+            weights2 = [1.0 / (elo_ratings[e]["games"] + 1) for e in remaining]
+            engine2 = random.choices(remaining, weights=weights2, k=1)[0]
+        else:
+            engine1, engine2 = random.sample(all_engines, 2)
+        engine1_path, engine1_uci = get_engine_info(engine1, engine_dir)
+        engine2_path, engine2_uci = get_engine_info(engine2, engine_dir)
 
         print(f"\n--- Match {match_idx + 1}/{num_matches}: {engine1} vs {engine2} ---\n")
 
@@ -1218,7 +1304,8 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
 
         result, game = play_game(engine1_path, engine2_path,
                                   engine1, engine2,
-                                  time_per_move, opening_fen, opening_name)
+                                  time_per_move, opening_fen, opening_name,
+                                  engine1_uci, engine2_uci)
 
         with open(pgn_file, "a") as f:
             print(game, file=f)
@@ -1233,7 +1320,8 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
 
         result, game = play_game(engine2_path, engine1_path,
                                   engine2, engine1,
-                                  time_per_move, opening_fen, opening_name)
+                                  time_per_move, opening_fen, opening_name,
+                                  engine2_uci, engine1_uci)
 
         with open(pgn_file, "a") as f:
             print(game, file=f)
@@ -1276,6 +1364,8 @@ def main():
                         help="Gauntlet mode: test one engine against all others in engines directory")
     parser.add_argument("--random", action="store_true",
                         help="Random mode: randomly pair engines for 2-game matches")
+    parser.add_argument("--weighted", action="store_true",
+                        help="With --random: weight selection by inverse game count (fewer games = higher chance)")
 
     args = parser.parse_args()
 
@@ -1298,7 +1388,7 @@ def main():
         # Random mode: randomly pair engines for matches
         if args.engines:
             print("Warning: Engine arguments ignored in random mode")
-        run_random(engine_dir, args.games, args.time, results_dir)
+        run_random(engine_dir, args.games, args.time, results_dir, args.weighted)
     elif args.gauntlet:
         # Gauntlet mode: test one engine against all others
         if len(resolved_engines) != 1:

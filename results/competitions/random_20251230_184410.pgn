@@ -1,0 +1,29 @@
+; Random Mode
+; Date: 2025-12-30 18:44
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.30"]
+[Round "?"]
+[White "v015-rook-mobility"]
+[Black "v005-retain-opt"]
+[Result "1/2-1/2"]
+[FEN "rnbqkb1r/pp2pppp/3p1n2/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4"]
+[SetUp "1"]
+[Opening "Sicilian c5"]
+
+4. Nc3 cxd4 5. Bb5+ Nbd7 6. Qxd4 a6 7. Be2 b5 8. e5 dxe5 9. Nxe5 Bb7 10. O-O e6 11. Rd1 Bc5 12. Qf4 Qc7 13. Nxd7 Qxf4 14. Bxf4 Nxd7 15. Rac1 e5 16. Bg5 h6 17. Bh4 Bd4 18. Kh1 b4 19. Na4 Bc6 20. b3 g5 21. Bg3 Bxa4 22. bxa4 f5 23. f3 a5 24. Bb5 Rh7 25. Rd3 f4 26. Be1 Kf8 27. Rdd1 Be3 28. Bd2 Bd4 29. c3 bxc3 30. Bxc3 Re7 31. Bxd4 exd4 32. Rxd4 Ne5 33. Rd5 Kg7 34. h3 Kh8 35. Rcc5 Nf7 36. Bd3 Rea7 37. Be4 Kg8 38. h4 Kh8 39. hxg5 hxg5 40. Rf5 Rd8 41. Rxa5 Rd1+ 42. Kh2 Rxa5 43. Rxa5 Re1 44. Rf5 Nh6 45. Rxg5 Ng4+ 46. fxg4 Rxe4 47. Ra5 Kg7 48. a3 Rc4 49. Ra8 Rc3 50. a5 Rxa3 51. a6 Ra1 52. g5 Ra5 53. a7 Ra3 54. Kg1 Ra2 55. g6 Ra6 56. Kf2 Ra1 57. Kf3 Ra4 58. Kg4 f3+ 59. Kxf3 Ra3+ 60. Ke2 Ra6 61. Ke3 Ra5 62. Kd4 Ra6 63. Kc5 Ra2 64. g3 Ra1 65. Kb6 Rb1+ 66. Ka6 Ra1+ 67. Kb7 Rb1+ 68. Kc6 Ra1 69. Kb5 Ra2 70. Kb6 Rb2+ 71. Ka6 Ra2+ 72. Kb5 Ra1 73. Kc6 Rc1+ 74. Kd5 Rd1+ 75. Kc4 Ra1 76. Kb3 Ra6 77. Kb4 Ra2 78. Kc4 Ra1 79. Kc5 Ra2 80. Kb4 Ra1 81. Kc3 Ra6 82. Kb2 Rb6+ 83. Kc2 Ra6 84. Kb3 Ra1 85. Kc4 Ra5 86. Kd3 Ra3+ 87. Ke2 Ra2+ 88. Ke3 Ra3+ 89. Kd2 Ra1 90. g4 Ra3 91. Kc2 Ra4 92. Kc1 Ra5 93. Kb2 Ra6 94. Kc3 Ra2 95. Kb4 Ra6 96. g5 Ra1 97. Kb5 Ra2 98. Kb6 Rb2+ 99. Kc6 Rc2+ 100. Kb7 Rb2+ 101. Ka6 Ra2+ 102. Kb5 Ra1 103. Kb6 Rb1+ 104. Kc5 Rc1+ 105. Kd4 Ra1 106. Ke3 Ra2 107. Kf4 Ra5 108. Ke4 Ra6 109. Kd5 Ra2 110. Kd6 Ra6+ 111. Kc5 Ra2 112. Kd5 Ra3 113. Kc4 Ra6 114. Kc3 Ra4 115. Kb3 Ra5 116. Kc2 Ra3 117. Kb1 Ra5 118. Kb2 Ra6 119. Kc1 Ra2 120. Kd1 Ra5 121. Ke2 Ra3 122. Kf2 Ra2+ 123. Ke3 Ra1 124. Kd2 Ra2+ 125. Kd3 Ra1 126. Kd4 Ra5 127. Rc8 Rxa7 128. Rc5 Kxg6 129. Ke3 Ra1 130. Kf2 Rh1 131. Kf3 Rg1 132. Kf4 Kh5 133. Rc8 Rg4+ 134. Kf5 Rxg5+ 135. Kf4 Rg4+ 136. Kf5 Rg5+ 137. Ke6 Rg2 138. Rh8+ Kg4 139. Kd5 Kf3 140. Rh3+ Rg3 141. Rh7 Kg2 142. Ke4 Kg1 143. Rd7 Rg6 144. Kf3 Rf6+ 145. Ke3 Re6+ 146. Kd4 Rg6 147. Re7 Rg3 148. Ke4 Rg6 149. Kf3 Rb6 150. Re1+ Kh2 151. Re2+ Kg1 152. Re3 Rf6+ 153. Ke2 Rf7 154. Re8 Ra7 155. Kf3 Ra3+ 156. Ke4 Ra4+ 157. Ke5 Ra5+ 158. Kf4 Ra4+ 159. Ke3 Ra3+ 160. Kd4 Ra4+ 161. Kd5 Ra7 162. Rg8+ Kh2 163. Rf8 Ra5+ 164. Kd4 Ra4+ 165. Ke5 Ra5+ 166. Ke4 Ra4+ 167. Ke3 Ra3+ 168. Ke2 Ra2+ 169. Kd3 Ra3+ 170. Kc4 Ra4+ 171. Kd3 Ra3+ 172. Kd2 Ra2+ 173. Kc3 Ra3+ 174. Kb4 Ra7 175. Rh8+ Kg2 176. Rg8+ Kh1 177. Kc5 Ra5+ 178. Kc4 Ra4+ 179. Kb3 Ra1 180. Rd8 Rc1 181. Kb2 Rc7 182. Ka3 Rb7 183. Rd1+ Kh2 184. Ka4 Kg2 185. Ka3 Kh2 186. Ka2 Kg2 187. Ka1 Kh2 188. Ka2 Kg2 189. Ka1 Kh2 190. Ka2 Kg2 191. Ka1 Kh2 192. Ka2 Kg2 193. Ka1 Kh2 194. Ka2 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.30"]
+[Round "?"]
+[White "v005-retain-opt"]
+[Black "v015-rook-mobility"]
+[Result "1-0"]
+[FEN "r1bqkbnr/pppp1ppp/2n5/8/3NP3/2N5/PPP2PPP/R1BQKB1R b KQkq - 2 4"]
+[SetUp "1"]
+[Opening "Scotch Nc3"]
+
+4... Nf6 5. Nxc6 bxc6 6. Bd3 d6 7. O-O Ng4 8. h3 Ne5 9. Be2 Qh4 10. f4 Ng6 11. Bg4 Bxg4 12. Qxg4 Qxg4 13. hxg4 Be7 14. g5 Nf8 15. Be3 h6 16. gxh6 Rxh6 17. a4 Rh4 18. a5 Rg4 19. f5 Bg5 20. Bxg5 Rxg5 21. Ne2 Nd7 22. Nd4 c5 23. Nf3 Rg4 24. Rfe1 O-O-O 25. Ra3 g6 26. Nh2 Rg5 27. Nf3 Rg4 28. fxg6 Rxg6 29. Rae3 Re8 30. R1e2 Kb7 31. Rb3+ Ka6 32. Ra3 Nb8 33. Kf1 Rf6 34. c3 Rf4 35. Ra4 Nc6 36. Kg1 Rg8 37. Nd2 Kb5 38. Ra3 Nxa5 39. Rf2 Rxf2 40. Kxf2 Nc6 41. Rb3+ Ka6 42. Nc4 Rg6 43. Kf3 Ne5+ 44. Nxe5 dxe5 45. c4 Rf6+ 46. Kg3 Rf4 47. Ra3+ Kb7 48. Rb3+ Kc8 49. Re3 a5 50. b3 f6 51. Kh3 Rf1 52. Rf3 Rc1 53. Rxf6 a4 54. bxa4 Rxc4 55. g4 Rxe4 56. g5 Rxa4 57. g6 Ra3+ 58. Kg4 Ra1 59. Rf3 Ra6 60. Rf8+ Kd7 61. Kf5 Rxg6 62. Kxg6 Ke6 63. Rc8 Kd7 64. Rf8 Ke6 65. Kh5 c6 66. Kg4 c4 67. Kf3 Ke7 68. Rg8 Kd6 69. Ke2 Kc5 70. Kd2 Kd4 71. Rd8+ Kc5 72. Kc3 e4 73. Rd2 Kb5 74. Rd4 e3 75. Re4 Kc5 76. Rxe3 Kd5 77. Re2 Kc5 78. Rd2 Kb5 79. Rd6 Kc5 80. Rd4 Kb5 81. Rxc4 c5 82. Re4 Kb6 83. Kc4 Kc6 84. Re5 Kd6 85. Re1 Kc6 86. Rd1 Kb6 87. Rd6+ Kb7 88. Kxc5 Kc7 89. Rd2 Kb7 90. Rd7+ Kc8 91. Kc6 Kb8 92. Rg7 Ka8 93. Kb6 Kb8 94. Rg8# 1-0
+
