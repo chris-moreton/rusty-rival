@@ -15,8 +15,12 @@ Usage:
     ./scripts/compete.py v1 v2 --games 10 --no-book
 
     # Gauntlet mode: test one engine against all others in engines directory
-    # Plays N games as white and N games as black against each opponent (random openings)
+    # Plays N rounds (2 games per opponent per round) with random openings
     ./scripts/compete.py v20 --gauntlet --games 50 --time 0.5
+
+    # Random mode: randomly pair engines for 2-game matches
+    # Each match plays 1 game as white, 1 as black with random openings
+    ./scripts/compete.py --random --games 100 --time 0.5
 """
 
 import argparse
@@ -1154,12 +1158,113 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
     print(f"{'='*70}\n")
 
 
+def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results_dir: Path):
+    """
+    Randomly select pairs of engines and play 2-game matches (1 white, 1 black).
+    Each game uses a random opening.
+    """
+    # Find all engines
+    all_engines = sorted([d.name for d in engine_dir.iterdir() if d.is_dir() and (d / "rusty-rival").exists()])
+
+    if len(all_engines) < 2:
+        print(f"Error: Need at least 2 engines in {engine_dir}, found {len(all_engines)}")
+        sys.exit(1)
+
+    total_games = num_matches * 2
+
+    # Load persistent Elo ratings
+    elo_ratings = load_elo_ratings()
+
+    # Initialize any missing engines
+    for engine in all_engines:
+        if engine not in elo_ratings:
+            if elo_ratings:
+                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
+            else:
+                avg_elo = DEFAULT_ELO
+            elo_ratings[engine] = {"elo": avg_elo, "games": 0}
+            save_elo_ratings(elo_ratings)
+
+    print(f"\n{'='*70}")
+    print("RANDOM MODE")
+    print(f"{'='*70}")
+    print(f"Available engines: {len(all_engines)}")
+    print(f"Matches: {num_matches} (2 games each = {total_games} total games)")
+    print(f"Time: {time_per_move}s/move")
+    print(f"Opening book: {len(OPENING_BOOK)} positions (random selection)")
+    print(f"Elo ratings: {get_elo_file_path()}")
+    print(f"{'='*70}")
+
+    # Create PGN file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    pgn_file = results_dir / f"random_{timestamp}.pgn"
+    with open(pgn_file, "w") as f:
+        f.write(f"; Random Mode\n")
+        f.write(f"; Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
+
+    game_num = 0
+
+    for match_idx in range(num_matches):
+        # Pick two random engines
+        engine1, engine2 = random.sample(all_engines, 2)
+        engine1_path = get_engine_path(engine1, engine_dir)
+        engine2_path = get_engine_path(engine2, engine_dir)
+
+        print(f"\n--- Match {match_idx + 1}/{num_matches}: {engine1} vs {engine2} ---\n")
+
+        # Game 1: engine1 as white
+        game_num += 1
+        opening_fen, opening_name = random.choice(OPENING_BOOK)
+
+        result, game = play_game(engine1_path, engine2_path,
+                                  engine1, engine2,
+                                  time_per_move, opening_fen, opening_name)
+
+        with open(pgn_file, "a") as f:
+            print(game, file=f)
+            print(file=f)
+
+        update_elo_after_game(elo_ratings, engine1, engine2, result)
+        print(f"Game {game_num:3d}/{total_games}: {engine1} (W) vs {engine2} -> {result}  [{opening_name}]")
+
+        # Game 2: engine2 as white
+        game_num += 1
+        opening_fen, opening_name = random.choice(OPENING_BOOK)
+
+        result, game = play_game(engine2_path, engine1_path,
+                                  engine2, engine1,
+                                  time_per_move, opening_fen, opening_name)
+
+        with open(pgn_file, "a") as f:
+            print(game, file=f)
+            print(file=f)
+
+        update_elo_after_game(elo_ratings, engine2, engine1, result)
+        print(f"Game {game_num:3d}/{total_games}: {engine2} (W) vs {engine1} -> {result}  [{opening_name}]")
+
+    # Print final standings
+    print(f"\n{'='*70}")
+    print("CURRENT ELO STANDINGS")
+    print(f"{'='*70}")
+    print(f"{'Rank':<6}{'Engine':<30}{'Elo':>8}{'Games':>8}")
+    print("-" * 52)
+
+    sorted_engines = sorted(elo_ratings.items(), key=lambda x: -x[1]["elo"])
+    for rank, (name, data) in enumerate(sorted_engines, 1):
+        prov = "?" if data["games"] < PROVISIONAL_GAMES else ""
+        print(f"{rank:<6}{name:<30}{data['elo']:>8.0f}{data['games']:>7}{prov}")
+
+    print(f"\nPGN saved to: {pgn_file}")
+    print(f"Elo ratings saved to: {get_elo_file_path()}")
+    print(f"{'='*70}\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Chess engine competition harness",
         epilog="Engine names can be shorthand (v1, v10) or full (v1-baseline, v10-arrayvec-movelist)"
     )
-    parser.add_argument("engines", nargs="+",
+    parser.add_argument("engines", nargs="*",
                         help="Engine version names (e.g., v1, v10, or v1-baseline)")
     parser.add_argument("--games", "-g", type=int, default=100,
                         help="Number of games per pairing (default: 100)")
@@ -1169,6 +1274,8 @@ def main():
                         help="Disable opening book (start all games from initial position)")
     parser.add_argument("--gauntlet", action="store_true",
                         help="Gauntlet mode: test one engine against all others in engines directory")
+    parser.add_argument("--random", action="store_true",
+                        help="Random mode: randomly pair engines for 2-game matches")
 
     args = parser.parse_args()
 
@@ -1187,7 +1294,12 @@ def main():
         if orig != resolved:
             print(f"Resolved '{orig}' -> '{resolved}'")
 
-    if args.gauntlet:
+    if args.random:
+        # Random mode: randomly pair engines for matches
+        if args.engines:
+            print("Warning: Engine arguments ignored in random mode")
+        run_random(engine_dir, args.games, args.time, results_dir)
+    elif args.gauntlet:
         # Gauntlet mode: test one engine against all others
         if len(resolved_engines) != 1:
             print("Error: Gauntlet mode requires exactly one engine (the challenger)")
@@ -1203,7 +1315,7 @@ def main():
         run_match(resolved_engines[0], resolved_engines[1], engine_dir,
                   args.games, args.time, pgn_file, use_opening_book)
     else:
-        print("Error: At least 2 engines are required")
+        print("Error: At least 2 engines are required (or use --random or --gauntlet mode)")
         sys.exit(1)
 
 

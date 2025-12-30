@@ -100,14 +100,31 @@ Features:
 - Shows per-opponent results and overall summary at the end
 - Updates Elo ratings after each game
 
+### Random Mode (continuous random pairings)
+
+Randomly select pairs of engines and play 2-game matches:
+
+```bash
+# Run 100 random matches (200 games total), 0.5s per move
+./scripts/compete.py --random --games 100 --time 0.5
+```
+
+Features:
+- Randomly pairs two engines from the `engines/` directory for each match
+- Each match = 2 games (1 as white, 1 as black)
+- Each game uses a randomly selected opening
+- Updates Elo ratings after each game
+- Shows current Elo standings at the end
+
 ### Common Options
 
 | Option | Description |
 |--------|-------------|
-| `--games N` or `-g N` | Number of games per pairing (league), or number of rounds (gauntlet) |
+| `--games N` or `-g N` | Number of games/rounds/matches depending on mode |
 | `--time T` or `-t T` | Time per move in seconds |
 | `--no-book` | Disable opening book |
 | `--gauntlet` | Enable gauntlet mode |
+| `--random` | Enable random mode |
 
 ### Output
 
