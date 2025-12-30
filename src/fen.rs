@@ -30,7 +30,7 @@ pub fn board_bits(fen_ranks: &[String], piece_char: char) -> Vec<u8> {
 }
 
 pub fn is_file_number(c: char) -> bool {
-    ('0'..='9').contains(&c)
+    c.is_ascii_digit()
 }
 
 pub fn char_as_num(c: char) -> u8 {

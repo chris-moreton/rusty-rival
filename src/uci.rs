@@ -236,7 +236,7 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
     Right(Some("Done".parse().unwrap()))
 }
 
-fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_go(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
     search_state.nodes = 0;
 
@@ -287,7 +287,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
     }
 }
 
-fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis: u64) {
+fn calc_from_colour_times(uci_state: &mut UciState, millis: u64, inc_millis: u64) {
     if millis > 0 {
         uci_state.move_time = if uci_state.moves_to_go == 0 {
             millis
@@ -315,7 +315,7 @@ fn cmd_isready() -> Either<String, Option<String>> {
     Right(Some("readyok".parse().unwrap()))
 }
 
-fn cmd_debug(mut uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
+fn cmd_debug(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Option<String>> {
     if parts.len() != 2 || !["on", "off"].contains(&parts[1]) {
         return Left::<String, Option<String>>("usage: debug [on|off]".parse().unwrap());
     }
@@ -378,7 +378,7 @@ fn cmd_register() -> Either<String, Option<String>> {
     Right(None)
 }
 
-fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchState) -> Either<String, Option<String>> {
+fn cmd_ucinewgame(uci_state: &mut UciState, search_state: &mut SearchState) -> Either<String, Option<String>> {
     search_state.nodes = 0;
     for i in 0..NUM_HASH_ENTRIES {
         search_state.hash_table_height[i as usize] = HashEntry {

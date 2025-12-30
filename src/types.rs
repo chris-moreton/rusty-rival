@@ -246,7 +246,7 @@ pub enum BoundType {
 
 impl Clone for BoundType {
     fn clone(&self) -> Self {
-        todo!()
+        *self
     }
 }
 
