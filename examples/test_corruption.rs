@@ -1,4 +1,4 @@
-use rusty_rival::fen::{get_position, get_fen};
+use rusty_rival::fen::{get_fen, get_position};
 use rusty_rival::search::iterative_deepening;
 use rusty_rival::types::default_search_state;
 use std::ops::Add;
@@ -7,14 +7,14 @@ use std::time::{Duration, Instant};
 fn main() {
     let fen = "rnb1kbnr/pppppppp/8/2q4R/8/8/PPPPPPPP/RNBQKBN1 w Qkq - 0 1";
 
-    let original = get_position(&fen.to_string());
+    let original = get_position(fen);
 
     // First search
     println!("Test (100ms, depth 20):");
     {
         let mut search_state = default_search_state();
         search_state.show_info = false;
-        let mut position = get_position(&fen.to_string());
+        let mut position = get_position(fen);
 
         println!("  Before: {}", get_fen(&position));
 

@@ -3,11 +3,14 @@ use crate::bitboards::{
     NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, ROOK_RAYS,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
-use crate::move_constants::{CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX};
+use crate::move_constants::{
+    CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN,
+    PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
+    PROMOTION_SQUARES, QUEEN_INDEX,
+};
 use crate::types::{Bitboard, Move, MoveList, Mover, Position, Square, BLACK, WHITE};
 use crate::utils::{from_square_mask, from_square_part, to_square_part};
 use crate::{get_and_unset_lsb, opponent, unset_lsb};
-
 
 #[macro_export]
 macro_rules! add_moves {
@@ -33,7 +36,6 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
 
     match m & PIECE_MASK_FULL {
         PIECE_MASK_KING => {
-
             let from_square = from_square_part(m);
             return if from_square == friendly.king_square {
                 let landing_squares = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
@@ -81,7 +83,6 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
             return bit(from_square) & friendly.knight_bitboard != 0 && bit(to_square_part(m)) & landing_squares != 0;
         }
         _ => {
-
             generate_pawn_moves(
                 position,
                 &mut move_list,
@@ -170,13 +171,7 @@ pub fn generate_captures(position: &Position) -> MoveList {
     );
 
     // Rook captures
-    generate_straight_slider_moves(
-        friendly.rook_bitboard,
-        all_pieces,
-        &mut move_list,
-        capture_targets,
-        PIECE_MASK_ROOK,
-    );
+    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, capture_targets, PIECE_MASK_ROOK);
 
     // Knight captures
     generate_knight_moves(&mut move_list, capture_targets, friendly.knight_bitboard);
@@ -207,12 +202,7 @@ pub fn generate_captures(position: &Position) -> MoveList {
     );
 
     // Pawn captures (including en passant and capture-promotions)
-    generate_pawn_captures(
-        position,
-        &mut move_list,
-        position.mover as usize,
-        friendly.pawn_bitboard,
-    );
+    generate_pawn_captures(position, &mut move_list, position.mover as usize, friendly.pawn_bitboard);
 
     move_list
 }
@@ -239,13 +229,7 @@ pub fn generate_quiet_moves(position: &Position) -> MoveList {
     );
 
     // Rook quiet moves
-    generate_straight_slider_moves(
-        friendly.rook_bitboard,
-        all_pieces,
-        &mut move_list,
-        empty_squares,
-        PIECE_MASK_ROOK,
-    );
+    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, empty_squares, PIECE_MASK_ROOK);
 
     // Knight quiet moves
     generate_knight_moves(&mut move_list, empty_squares, friendly.knight_bitboard);
@@ -260,20 +244,8 @@ pub fn generate_quiet_moves(position: &Position) -> MoveList {
     );
 
     // Queen quiet moves
-    generate_straight_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        empty_squares,
-        PIECE_MASK_QUEEN,
-    );
-    generate_diagonal_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        empty_squares,
-        PIECE_MASK_QUEEN,
-    );
+    generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, empty_squares, PIECE_MASK_QUEEN);
+    generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, empty_squares, PIECE_MASK_QUEEN);
 
     // Pawn quiet moves (forward moves and non-capture promotions)
     generate_pawn_quiet_moves(
@@ -289,14 +261,8 @@ pub fn generate_quiet_moves(position: &Position) -> MoveList {
 
 /// Generate only pawn captures (including en passant and capture-promotions)
 #[inline(always)]
-fn generate_pawn_captures(
-    position: &Position,
-    move_list: &mut MoveList,
-    colour_index: usize,
-    mut from_squares: Bitboard,
-) {
-    let capture_targets =
-        position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | epsbit(position.en_passant_square);
+fn generate_pawn_captures(position: &Position, move_list: &mut MoveList, colour_index: usize, mut from_squares: Bitboard) {
+    let capture_targets = position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | epsbit(position.en_passant_square);
 
     while from_squares != 0 {
         let from_square = get_and_unset_lsb!(from_squares);
@@ -596,11 +562,7 @@ pub fn generate_check_evasions(position: &Position) -> MoveList {
 
     // Generate king moves to safe squares (always valid in check)
     let king_moves = KING_MOVES_BITBOARDS[king_square as usize] & !friendly.all_pieces_bitboard;
-    add_moves!(
-        move_list,
-        from_square_mask(king_square) | PIECE_MASK_KING,
-        king_moves
-    );
+    add_moves!(move_list, from_square_mask(king_square) | PIECE_MASK_KING, king_moves);
 
     // If double check, only king moves are legal
     if num_checkers > 1 {
@@ -667,7 +629,14 @@ pub fn generate_check_evasions(position: &Position) -> MoveList {
 
     // Pawns - blocks (forward moves to block squares)
     if block_squares != 0 {
-        generate_pawn_evasion_blocks(position, &mut move_list, !all_pieces, mover as usize, friendly.pawn_bitboard, block_squares);
+        generate_pawn_evasion_blocks(
+            position,
+            &mut move_list,
+            !all_pieces,
+            mover as usize,
+            friendly.pawn_bitboard,
+            block_squares,
+        );
     }
 
     move_list

@@ -75,26 +75,78 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
                     total_expected += 1;
                 }
                 tick = "\u{2705}";
-                show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis, expected_millis, true);
-                break
+                show_result(
+                    &mut total_correct,
+                    &mut total_tested,
+                    fen,
+                    expected_move,
+                    best_score,
+                    main_search_nodes,
+                    second_best_move,
+                    second_best_score,
+                    alg_move,
+                    &mut tick,
+                    score_diff,
+                    score_is_good,
+                    these_millis,
+                    expected_millis,
+                    true,
+                );
+                break;
             } else {
                 these_millis *= 2;
 
                 if these_millis > millis {
                     total_tested += 1;
                     tick = "\u{274C}";
-                    show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis / 2, expected_millis, true);
-                    break
+                    show_result(
+                        &mut total_correct,
+                        &mut total_tested,
+                        fen,
+                        expected_move,
+                        best_score,
+                        main_search_nodes,
+                        second_best_move,
+                        second_best_score,
+                        alg_move,
+                        &mut tick,
+                        score_diff,
+                        score_is_good,
+                        these_millis / 2,
+                        expected_millis,
+                        true,
+                    );
+                    break;
                 }
 
                 tick = " ";
-                show_result(&mut total_correct, &mut total_tested, fen, expected_move, best_score, main_search_nodes, second_best_move, second_best_score, alg_move, &mut tick, score_diff, score_is_good, these_millis / 2, expected_millis, false);
+                show_result(
+                    &mut total_correct,
+                    &mut total_tested,
+                    fen,
+                    expected_move,
+                    best_score,
+                    main_search_nodes,
+                    second_best_move,
+                    second_best_score,
+                    alg_move,
+                    &mut tick,
+                    score_diff,
+                    score_is_good,
+                    these_millis / 2,
+                    expected_millis,
+                    false,
+                );
             }
         }
     }
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
-    println!("Correct: {}/{}", Yellow.paint(total_correct.to_string()), Yellow.paint(total.to_string()));
+    println!(
+        "Correct: {}/{}",
+        Yellow.paint(total_correct.to_string()),
+        Yellow.paint(total.to_string())
+    );
     println!("Within Expected Time: {:?}/{}", total_expected, total);
     let nps = (total_nodes as f64 / start.elapsed().as_millis() as f64) * 1000.0;
 
@@ -110,8 +162,23 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
 }
 
 #[allow(clippy::too_many_arguments)]
-fn show_result(total_correct: &mut i32, total_tested: &mut i32, _fen: &str, expected_move: &str, best_score: Score, main_search_nodes: u64, second_best_move: Move, second_best_score: Score, alg_move: String, tick: &mut &str, score_diff: Score, score_is_good: bool, millis_taken: u32, expected_millis: u32, show_fen: bool) {
-
+fn show_result(
+    total_correct: &mut i32,
+    total_tested: &mut i32,
+    _fen: &str,
+    expected_move: &str,
+    best_score: Score,
+    main_search_nodes: u64,
+    second_best_move: Move,
+    second_best_score: Score,
+    alg_move: String,
+    tick: &mut &str,
+    score_diff: Score,
+    score_is_good: bool,
+    millis_taken: u32,
+    expected_millis: u32,
+    show_fen: bool,
+) {
     if show_fen {
         println!(
             "{} Nodes {} {}/{}",
@@ -131,7 +198,7 @@ fn show_result(total_correct: &mut i32, total_tested: &mut i32, _fen: &str, expe
         },
         best_score,
         algebraic_move_from_move(second_best_move),
-        second_best_score.to_string(),
+        second_best_score,
         if score_is_good {
             Green.paint(score_diff.to_string())
         } else {

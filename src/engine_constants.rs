@@ -35,7 +35,7 @@ pub const MAX_QUIESCE_DEPTH: u8 = 100;
 
 pub const HASH_ENTRY_BYTES: u64 = 22;
 pub const HASH_SIZE_MB: u64 = 128;
-pub const NUM_HASH_ENTRIES: u64 = ((1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTES) as u64;
+pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTES;
 pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [128, 192, 256, 320, 384, 448, 512, 576];
 
 pub const TICKER_MILLIS: u16 = 500;
@@ -82,8 +82,7 @@ pub const VALUE_ROOK_MOBILITY: [Score; 15] = [-10, -6, -3, 0, 2, 4, 5, 6, 7, 8, 
 
 // Queen mobility bonus based on number of squares available (0-27)
 pub const VALUE_QUEEN_MOBILITY: [Score; 28] = [
-    -12, -8, -5, -2, 0, 1, 2, 3, 4, 5, 6, 6, 7, 7,
-    8, 8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12, 12
+    -12, -8, -5, -2, 0, 1, 2, 3, 4, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12, 12,
 ];
 
 // Bonus for connected rooks (rooks that can see each other on rank or file)

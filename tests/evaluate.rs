@@ -1,5 +1,10 @@
 use rusty_rival::bitboards::south_fill;
-use rusty_rival::engine_constants::{BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS};
+use rusty_rival::engine_constants::{
+    BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
+    KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE,
+    QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
+};
 use rusty_rival::evaluate::{
     black_king_early_safety, count_knight_fork_threats, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count,
     king_threat_score, knight_fork_threat_score, knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score,
@@ -22,14 +27,28 @@ fn test_insufficient_material(fen: &str, result: bool, include_helpmates: bool) 
 
     let position = get_position(fen);
 
-    assert_eq!(insufficient_material(&position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, include_helpmates), result);
+    assert_eq!(
+        insufficient_material(
+            &position,
+            (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+                + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8,
+            include_helpmates
+        ),
+        result
+    );
 
     let position = get_position(&invert_fen(fen));
     cache.piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
         + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
-    assert_eq!(insufficient_material(&position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, include_helpmates), result);
+    assert_eq!(
+        insufficient_material(
+            &position,
+            (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+                + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8,
+            include_helpmates
+        ),
+        result
+    );
 }
 
 #[test]
@@ -328,7 +347,9 @@ fn it_evaluates_king_threats() {
     );
     test_king_threats(
         "rkb4r/1ppppppp/1p1n1N2/3b1q2/7n/R3BNP1/PPPPPP1P/2BQ1RK1 w - - 0 1",
-        (-KING_THREAT_BONUS_KNIGHT * 2 - KING_THREAT_BONUS_BISHOP - KING_THREAT_BONUS_QUEEN * 2) + KING_THREAT_BONUS_BISHOP + KING_THREAT_BONUS_ROOK * 3,
+        (-KING_THREAT_BONUS_KNIGHT * 2 - KING_THREAT_BONUS_BISHOP - KING_THREAT_BONUS_QUEEN * 2)
+            + KING_THREAT_BONUS_BISHOP
+            + KING_THREAT_BONUS_ROOK * 3,
     );
 }
 

@@ -16,7 +16,7 @@ pub const CAPTURED_KNIGHT: u8 = 2;
 pub const CAPTURED_BISHOP: u8 = 3;
 pub const CAPTURED_ROOK: u8 = 4;
 pub const CAPTURED_QUEEN: u8 = 5;
-pub const CAPTURED_EP_PAWN: u8 = 6;  // En passant capture (pawn on different square)
+pub const CAPTURED_EP_PAWN: u8 = 6; // En passant capture (pawn on different square)
 
 #[inline(always)]
 pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
@@ -622,4 +622,3 @@ fn restore_captured_piece(position: &mut Position, to: Square, captured: u8, opp
         _ => {}
     }
 }
-

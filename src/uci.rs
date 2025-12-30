@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
 use crate::move_constants::START_POS;
-use crate::moves::{is_check, generate_moves};
+use crate::moves::{generate_moves, is_check};
 
 use crate::perft::perft;
 use crate::search::iterative_deepening;
@@ -76,11 +76,11 @@ pub fn run_command_test(uci_state: &mut UciState, search_state: &mut SearchState
 pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
     let mut trimmed_line = replace_shortcuts(l).trim().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
-        trimmed_line = trimmed_line.replace("startpos", &*("fen ".to_string() + START_POS));
+        trimmed_line = trimmed_line.replace("startpos", &("fen ".to_string() + START_POS));
     }
     let parts = trimmed_line.split(' ').collect::<Vec<&str>>();
 
-    match *parts.get(0).unwrap() {
+    match *parts.first().unwrap() {
         "bench" => cmd_benchmark(uci_state, search_state, parts),
         "uci" => cmd_uci(),
         "isready" => cmd_isready(),
@@ -134,7 +134,7 @@ pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
 }
 
 fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
-//    cmd_ucinewgame(uci_state, search_state);
+    //    cmd_ucinewgame(uci_state, search_state);
     let t = parts.get(1).unwrap();
     match *t {
         "fen" => {
@@ -148,7 +148,7 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
 
             uci_state.fen = fen.parse().unwrap();
 
-            if re.is_match(&*fen) {
+            if re.is_match(&fen) {
                 uci_state.fen = fen;
                 let mut position = get_position(&uci_state.fen);
                 let mut new_position = position;
@@ -176,8 +176,8 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
 
 pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
     let re = r"".to_string() + &*needle.to_string() + &*" ([0-9]*)".to_string();
-    let regex = Regex::new(&*re).unwrap();
-    let caps = regex.captures(&*haystack);
+    let regex = Regex::new(&re).unwrap();
+    let caps = regex.captures(haystack);
     match caps {
         Some(x) => {
             let s = x.get(1).unwrap().as_str();
@@ -277,10 +277,7 @@ fn cmd_go(mut uci_state: &mut UciState, search_state: &mut SearchState, parts: V
                 calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
             }
 
-            uci_state.move_time = max(
-                10,
-                uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64) as u64,
-            ) as u64;
+            uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
 
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
             let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state);
@@ -295,10 +292,7 @@ fn calc_from_colour_times(mut uci_state: &mut UciState, millis: u64, inc_millis:
         uci_state.move_time = if uci_state.moves_to_go == 0 {
             millis
         } else {
-            min(
-                uci_state.move_time,
-                (millis as f64 / (uci_state.moves_to_go as f64 + 1.0) as f64) as u64,
-            )
+            min(uci_state.move_time, (millis as f64 / (uci_state.moves_to_go as f64 + 1.0)) as u64)
         };
         uci_state.move_time = (uci_state.move_time as f64 * 0.95) as u64 + inc_millis;
     }
@@ -401,7 +395,6 @@ fn cmd_ucinewgame(mut uci_state: &mut UciState, mut search_state: &mut SearchSta
 }
 
 fn cmd_scan(_is_white: bool) -> Either<String, Option<String>> {
-
     // screen_scan(!is_white).expect("TODO: panic message");
     Right(None)
 }

@@ -1,5 +1,9 @@
 use rusty_rival::bitboards::{B2_BIT, C8_BIT, D8_BIT, E1_BIT, E2_BIT, F3_BIT, F4_BIT};
-use rusty_rival::fen::{algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits, char_as_num, fen_board_part, simple_algebraic_to_pretty_algebraic, get_fen, get_fen_ranks, get_piece_on_square, get_position, move_from_algebraic_move, piece_bitboard, rank_bits};
+use rusty_rival::fen::{
+    algebraic_move_from_move, algebraic_squareref_from_bitref, bit_array_to_decimal, bitref_from_algebraic_squareref, board_bits,
+    char_as_num, fen_board_part, get_fen, get_fen_ranks, get_piece_on_square, get_position, move_from_algebraic_move, piece_bitboard,
+    rank_bits, simple_algebraic_to_pretty_algebraic,
+};
 use rusty_rival::move_constants::{EN_PASSANT_NOT_AVAILABLE, START_POS};
 use rusty_rival::types::{is_bk_castle_available, is_bq_castle_available, is_wk_castle_available, is_wq_castle_available, BLACK, WHITE};
 
@@ -7,7 +11,7 @@ use rusty_rival::types::{is_bk_castle_available, is_bq_castle_available, is_wk_c
 fn it_gets_the_board_part_from_the_fen() {
     assert_eq!(
         "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8",
-        fen_board_part(&"6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b - g3 5 56".to_string())
+        fen_board_part("6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b - g3 5 56")
     );
 }
 
@@ -120,7 +124,7 @@ fn it_converts_a_compact_move_to_an_algebraic_move() {
 #[test]
 fn it_returns_a_char_representing_the_piece_on_a_square() {
     let fen = "2nb2k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/5Q2 b - - 1 56";
-    let position = get_position(&fen.to_string());
+    let position = get_position(fen);
     assert_eq!(get_piece_on_square(&position, B2_BIT), 'r');
     assert_eq!(get_piece_on_square(&position, F4_BIT), 'R');
     assert_eq!(get_piece_on_square(&position, E2_BIT), 'N');
@@ -133,11 +137,11 @@ fn it_returns_a_char_representing_the_piece_on_a_square() {
 #[test]
 fn it_creates_a_fen_from_a_position() {
     let fen = "2nb2k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/5Q2 b - - 1 56";
-    let position = get_position(&fen.to_string());
+    let position = get_position(fen);
     assert_eq!(get_fen(&position), fen);
 
     let fen = START_POS;
-    let position = get_position(&fen.to_string());
+    let position = get_position(fen);
     assert_eq!(get_fen(&position), fen);
 }
 
@@ -154,7 +158,7 @@ fn it_converts_an_algebraic_move_to_a_move() {
 #[test]
 fn it_creates_a_position_from_a_fen() {
     let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 b q g3 5 56";
-    let position = get_position(&fen.to_string());
+    let position = get_position(fen);
     assert_eq!(position.mover, BLACK);
     assert_eq!(position.pieces[WHITE as usize].pawn_bitboard, 5404360704);
     assert_eq!(position.pieces[WHITE as usize].knight_bitboard, 2048);
@@ -174,7 +178,7 @@ fn it_creates_a_position_from_a_fen() {
 #[test]
 fn it_creates_a_position_from_a_fen_2() {
     let fen = "6k1/6p1/1p2q2p/1p5P/1P3RP1/2PK1B2/1r2N3/8 w kQ - 5 56";
-    let position = get_position(&fen.to_string());
+    let position = get_position(fen);
     assert_eq!(position.en_passant_square, EN_PASSANT_NOT_AVAILABLE);
     assert_eq!(position.mover, WHITE);
     assert_eq!(is_wk_castle_available(&position), false);
@@ -186,12 +190,36 @@ fn it_creates_a_position_from_a_fen_2() {
 #[test]
 fn it_converts_a_simple_move_to_an_algebraic_move() {
     let fen = "6k1/P5p1/1pq1N2p/2p4P/1P1p1RP1/2PKPB2/1r2N3/7N w - - 0 1";
-    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "f3a8".to_string()), Some(String::from("Ba8")));
-    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "c3c4".to_string()), Some(String::from("c4")));
-    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "a7a8q".to_string()), Some(String::from("a8=q")));
-    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "e2d4".to_string()), Some(String::from("N2xd4")));
-    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "h1g3".to_string()), Some(String::from("Nhg3")));
-    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "e6c5".to_string()), Some(String::from("Nxc5")));
-    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "b4c5".to_string()), Some(String::from("bxc5")));
-    assert_eq!(simple_algebraic_to_pretty_algebraic(fen, "e3d4".to_string()), Some(String::from("exd4")));
+    assert_eq!(
+        simple_algebraic_to_pretty_algebraic(fen, "f3a8".to_string()),
+        Some(String::from("Ba8"))
+    );
+    assert_eq!(
+        simple_algebraic_to_pretty_algebraic(fen, "c3c4".to_string()),
+        Some(String::from("c4"))
+    );
+    assert_eq!(
+        simple_algebraic_to_pretty_algebraic(fen, "a7a8q".to_string()),
+        Some(String::from("a8=q"))
+    );
+    assert_eq!(
+        simple_algebraic_to_pretty_algebraic(fen, "e2d4".to_string()),
+        Some(String::from("N2xd4"))
+    );
+    assert_eq!(
+        simple_algebraic_to_pretty_algebraic(fen, "h1g3".to_string()),
+        Some(String::from("Nhg3"))
+    );
+    assert_eq!(
+        simple_algebraic_to_pretty_algebraic(fen, "e6c5".to_string()),
+        Some(String::from("Nxc5"))
+    );
+    assert_eq!(
+        simple_algebraic_to_pretty_algebraic(fen, "b4c5".to_string()),
+        Some(String::from("bxc5"))
+    );
+    assert_eq!(
+        simple_algebraic_to_pretty_algebraic(fen, "e3d4".to_string()),
+        Some(String::from("exd4"))
+    );
 }

@@ -2,7 +2,16 @@ use crate::bitboards::{
     bit, north_fill, south_fill, BISHOP_RAYS, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
-use crate::engine_constants::{BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_ROOKS_ON_SAME_FILE, KING_THREAT_BONUS_ROOK, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, VALUE_ROOK_MOBILITY, VALUE_QUEEN_MOBILITY, VALUE_CONNECTED_ROOKS};
+use crate::engine_constants::{
+    BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP,
+    KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE,
+    KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR,
+    ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL,
+    VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_ROOKS,
+    VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY,
+    VALUE_ROOKS_ON_SAME_FILE, VALUE_ROOK_MOBILITY,
+};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
 use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, Position, Score, Square, BLACK, WHITE};
@@ -30,8 +39,14 @@ pub fn evaluate(position: &Position) -> Score {
         + doubled_and_isolated_pawn_score(position, &mut cache)
         + bishop_mobility_score(position)
         + backward_pawn_score(position)
-        + bishop_pair_bonus(position.pieces[WHITE as usize].bishop_bitboard, position.pieces[WHITE as usize].pawn_bitboard)
-        - bishop_pair_bonus(position.pieces[BLACK as usize].bishop_bitboard, position.pieces[BLACK as usize].pawn_bitboard)
+        + bishop_pair_bonus(
+            position.pieces[WHITE as usize].bishop_bitboard,
+            position.pieces[WHITE as usize].pawn_bitboard,
+        )
+        - bishop_pair_bonus(
+            position.pieces[BLACK as usize].bishop_bitboard,
+            position.pieces[BLACK as usize].pawn_bitboard,
+        )
         + knight_fork_threat_score(position)
         + rook_file_score(position)
         + rook_mobility_score(position)
@@ -43,7 +58,6 @@ pub fn evaluate(position: &Position) -> Score {
 
 #[inline(always)]
 pub fn insufficient_material(position: &Position, piece_count: u8, include_helpmates: bool) -> bool {
-
     if piece_count > 4 {
         return false;
     }
@@ -432,8 +446,8 @@ pub fn on_same_file_count(pawn_bitboard: Bitboard, pawn_files: u8) -> Score {
 
 #[inline(always)]
 pub fn isolated_pawn_count(pawn_files: u8) -> Score {
-    let left: u8 = (pawn_files & (pawn_files << 1)) as u8;
-    let right: u8 = (pawn_files & (pawn_files >> 1)) as u8;
+    let left: u8 = pawn_files & (pawn_files << 1);
+    let right: u8 = pawn_files & (pawn_files >> 1);
 
     let not_isolated: u8 = (left | right).count_ones() as u8;
     (pawn_files.count_ones() - not_isolated as u32) as Score
@@ -444,10 +458,10 @@ pub fn doubled_and_isolated_pawn_score(position: &Position, cache: &mut Evaluate
     let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
     let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
 
-    if cache.white_pawn_files == None {
+    if cache.white_pawn_files.is_none() {
         cache.white_pawn_files = Option::from((south_fill(white_pawns) & RANK_1_BITS) as u8)
     }
-    if cache.black_pawn_files == None {
+    if cache.black_pawn_files.is_none() {
         cache.black_pawn_files = Option::from((south_fill(black_pawns) & RANK_1_BITS) as u8)
     }
 
@@ -471,10 +485,10 @@ pub fn knight_outpost_scores(position: &Position, cache: &mut EvaluateCache) -> 
     let white_knights = position.pieces[WHITE as usize].knight_bitboard;
     let black_knights = position.pieces[BLACK as usize].knight_bitboard;
 
-    if cache.white_pawn_attacks == None {
+    if cache.white_pawn_attacks.is_none() {
         cache.white_pawn_attacks = Option::from(((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7))
     }
-    if cache.black_pawn_attacks == None {
+    if cache.black_pawn_attacks.is_none() {
         cache.black_pawn_attacks = Option::from(((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9))
     }
 
@@ -495,10 +509,10 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
     let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
     let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
 
-    if cache.white_pawn_attacks == None {
+    if cache.white_pawn_attacks.is_none() {
         cache.white_pawn_attacks = Option::from(((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7))
     }
-    if cache.black_pawn_attacks == None {
+    if cache.black_pawn_attacks.is_none() {
         cache.black_pawn_attacks = Option::from(((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9))
     }
 
@@ -622,8 +636,7 @@ pub fn rook_eval(position: &Position) -> Score {
 
 #[inline(always)]
 pub fn bishop_mobility_score(position: &Position) -> Score {
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard
-        | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
 
     let mut white_score: Score = 0;
     let mut black_score: Score = 0;
@@ -647,8 +660,7 @@ pub fn bishop_mobility_score(position: &Position) -> Score {
 
 #[inline(always)]
 pub fn rook_mobility_score(position: &Position) -> Score {
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard
-        | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
 
     let mut white_score: Score = 0;
     let mut black_score: Score = 0;
@@ -672,8 +684,7 @@ pub fn rook_mobility_score(position: &Position) -> Score {
 
 #[inline(always)]
 pub fn queen_mobility_score(position: &Position) -> Score {
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard
-        | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
 
     let mut white_score: Score = 0;
     let mut black_score: Score = 0;
@@ -697,8 +708,7 @@ pub fn queen_mobility_score(position: &Position) -> Score {
 
 #[inline(always)]
 pub fn connected_rooks_score(position: &Position) -> Score {
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard
-        | position.pieces[BLACK as usize].all_pieces_bitboard;
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
 
     let mut score: Score = 0;
 

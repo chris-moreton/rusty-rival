@@ -51,7 +51,7 @@ pub struct UnmakeInfo {
     pub en_passant_square: Square,
     pub half_moves: u16,
     pub zobrist_lock: HashLock,
-    pub captured_piece: u8,  // 0 = none, 1-5 = pawn/knight/bishop/rook/queen
+    pub captured_piece: u8, // 0 = none, 1-5 = pawn/knight/bishop/rook/queen
 }
 
 #[derive(Debug, Clone)]

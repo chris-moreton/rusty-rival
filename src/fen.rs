@@ -329,7 +329,7 @@ pub fn simple_algebraic_to_pretty_algebraic(fen: &str, move_str: String) -> Opti
 
     let mut board_str = String::new();
     for ch in board.chars() {
-        if ch.is_digit(10) {
+        if ch.is_ascii_digit() {
             let empty_squares = ch.to_digit(10).unwrap() as usize;
             board_str.push_str(&".".repeat(empty_squares));
         } else if ch == '/' {
@@ -358,15 +358,12 @@ pub fn simple_algebraic_to_pretty_algebraic(fen: &str, move_str: String) -> Opti
     let disambiguation_rank = find_disambiguation_rank(&board_str, moving_piece, from_sq_idx, to_sq_idx);
     if let Some(rank) = disambiguation_rank {
         alg_notation.push(rank);
-    } else {
-        if (moving_piece == 'P' || moving_piece == 'p') && captured_piece != '.' {
-            alg_notation.push_str(&from[0..1]);
-        }
-
+    } else if (moving_piece == 'P' || moving_piece == 'p') && captured_piece != '.' {
+        alg_notation.push_str(&from[0..1]);
     }
 
     if captured_piece != '.' {
-        alg_notation.push_str("x");
+        alg_notation.push('x');
     }
 
     if move_str.len() == 5 {
@@ -380,15 +377,15 @@ pub fn simple_algebraic_to_pretty_algebraic(fen: &str, move_str: String) -> Opti
 }
 
 fn square_to_index(square: &str) -> Option<usize> {
-    let file = square.chars().nth(0)?;
+    let file = square.chars().next()?;
     let rank = square.chars().nth(1)?;
 
-    if file < 'a' || file > 'h' || rank < '1' || rank > '8' {
+    if !('a'..='h').contains(&file) || !('1'..='8').contains(&rank) {
         return None;
     }
 
-    let file_idx = (file as u8 - 'a' as u8) as usize;
-    let rank_idx = (rank as u8 - '1' as u8) as usize;
+    let file_idx = (file as u8 - b'a') as usize;
+    let rank_idx = (rank as u8 - b'1') as usize;
 
     Some((7 - rank_idx) * 8 + file_idx)
 }
@@ -416,11 +413,11 @@ fn find_disambiguation_rank(board: &str, piece: char, from_idx: usize, to_idx: u
     }
 
     if disambiguate_on_file && disambiguate_on_rank {
-        return Some((from_rank as u8 + '1' as u8) as char);
+        return Some((from_rank as u8 + b'1') as char);
     } else if disambiguate_on_file {
-        return Some((from_file as u8 + 'a' as u8) as char);
+        return Some((from_file as u8 + b'a') as char);
     } else if disambiguate_on_rank {
-        return Some((from_rank as u8 + '1' as u8) as char);
+        return Some((from_rank as u8 + b'1') as char);
     }
 
     None
@@ -454,9 +451,7 @@ fn can_knight_move(from_idx: usize, to_idx: usize) -> bool {
     let file_diff = (from_file as isize - to_file as isize).abs();
     let rank_diff = (from_rank as isize - to_rank as isize).abs();
 
-    let response = (file_diff == 2 && rank_diff == 1) || (file_diff == 1 && rank_diff == 2);
-    response
-
+    (file_diff == 2 && rank_diff == 1) || (file_diff == 1 && rank_diff == 2)
 }
 
 fn can_bishop_move(from_idx: usize, to_idx: usize) -> bool {
@@ -502,5 +497,5 @@ fn can_pawn_move(board: &str, from_idx: usize, to_idx: usize, piece: char) -> bo
 fn index_to_file_rank(idx: usize) -> (usize, usize) {
     let file = idx % 8;
     let rank = idx / 8;
-    (file, 7-rank)
+    (file, 7 - rank)
 }

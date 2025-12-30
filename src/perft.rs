@@ -1,6 +1,6 @@
 use crate::fen::algebraic_move_from_move;
 use crate::make_move::{make_move_in_place, unmake_move};
-use crate::moves::{is_check, generate_moves};
+use crate::moves::{generate_moves, is_check};
 use crate::types::{Move, Position};
 use num_format::{Locale, ToFormattedString};
 use std::time::Instant;

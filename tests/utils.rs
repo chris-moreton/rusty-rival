@@ -28,7 +28,7 @@ fn it_gets_the_to_part_of_a_move() {
 
 #[test]
 pub fn it_can_figure_out_the_moving_piece() {
-    let position = &get_position(&START_POS.to_string());
+    let position = &get_position(START_POS);
     assert_eq!(
         moving_piece_mask(position, move_from_algebraic_move("e2e3".to_string(), 0)),
         PIECE_MASK_PAWN
@@ -41,7 +41,7 @@ pub fn it_can_figure_out_the_moving_piece() {
 
 #[test]
 pub fn it_can_figure_out_the_captured_piece() {
-    let position = &get_position(&"r3k3/pppp1ppp/1bnb1n2/4p1q1/3PP3/1BNB1Nr1/PPP1QPPP/R3K2R w KQq - 0 1".to_string());
+    let position = &get_position("r3k3/pppp1ppp/1bnb1n2/4p1q1/3PP3/1BNB1Nr1/PPP1QPPP/R3K2R w KQq - 0 1");
     assert_eq!(
         captured_piece_value(position, hydrate_move_from_algebraic_move(position, "f3g5".to_string())),
         QUEEN_VALUE_AVERAGE
@@ -59,13 +59,13 @@ pub fn it_can_figure_out_the_captured_piece() {
         0
     );
 
-    let position = &get_position(&"r3k2r/pppp1p1p/1bnb1n2/4p1q1/3PP1pP/1BNB1N2/PPP1QPP1/R3K2R b KQq h3 0 1".to_string());
+    let position = &get_position("r3k2r/pppp1p1p/1bnb1n2/4p1q1/3PP1pP/1BNB1N2/PPP1QPP1/R3K2R b KQq h3 0 1");
     assert_eq!(
         captured_piece_value(position, hydrate_move_from_algebraic_move(position, "g4h3".to_string())),
         PAWN_VALUE_AVERAGE
     );
 
-    let position = &get_position(&"r3k2r/p1pp1p1p/1bnb1n2/4p1q1/3PP1pP/1BNB1N2/PpP1QPP1/R3K2R b KQq - 0 1".to_string());
+    let position = &get_position("r3k2r/p1pp1p1p/1bnb1n2/4p1q1/3PP1pP/1BNB1N2/PpP1QPP1/R3K2R b KQq - 0 1");
     assert_eq!(
         captured_piece_value(position, hydrate_move_from_algebraic_move(position, "b2a1n".to_string())),
         KNIGHT_VALUE_AVERAGE - PAWN_VALUE_AVERAGE + ROOK_VALUE_AVERAGE
@@ -74,7 +74,7 @@ pub fn it_can_figure_out_the_captured_piece() {
 
 #[test]
 pub fn it_can_figure_out_the_castle_mask() {
-    let position = &get_position(&"r3k2r/pppp1ppp/1bnb1n2/4p1q1/3PP3/1BNB1N2/PPP1QPPP/R3K2R w KQkq - 0 1".to_string());
+    let position = &get_position("r3k2r/pppp1ppp/1bnb1n2/4p1q1/3PP3/1BNB1N2/PPP1QPPP/R3K2R w KQkq - 0 1");
     assert_eq!(
         castle_mask(position, move_from_algebraic_move("e1g1".to_string(), 0)),
         WHITE_KING_CASTLE_MOVE_MASK
@@ -96,7 +96,7 @@ pub fn it_can_figure_out_the_castle_mask() {
 
 #[test]
 pub fn it_can_hydrate_a_move() {
-    let position = &get_position(&"r3k2r/pppp1ppp/1bnb1n2/4p1q1/3PP3/1BNB1N2/PPP1QPPP/R3K2R w KQkq - 0 1".to_string());
+    let position = &get_position("r3k2r/pppp1ppp/1bnb1n2/4p1q1/3PP3/1BNB1N2/PPP1QPPP/R3K2R w KQkq - 0 1");
     assert_eq!(
         hydrate_move_from_algebraic_move(position, "e1g1".to_string()),
         WHITE_KING_CASTLE_MOVE
@@ -106,13 +106,13 @@ pub fn it_can_hydrate_a_move() {
         from_square_mask(H2_BIT) | H4_BIT as Move | PIECE_MASK_PAWN
     );
 
-    let position = &get_position(&"5rk1/5p1p/6p1/8/4Q3/2q5/4RPPP/6K1 b - - 0 1".to_string());
+    let position = &get_position("5rk1/5p1p/6p1/8/4Q3/2q5/4RPPP/6K1 b - - 0 1");
     assert_eq!(
         hydrate_move_from_algebraic_move(position, "f8c8".to_string()),
         from_square_mask(F8_BIT) | C8_BIT as Move | PIECE_MASK_ROOK
     );
 
-    let position = &get_position(&"7k/pB3p1p/2p4b/3p2p1/3P3P/P1PNB3/1P3PP1/6K1 b - - 0 1".to_string());
+    let position = &get_position("7k/pB3p1p/2p4b/3p2p1/3P3P/P1PNB3/1P3PP1/6K1 b - - 0 1");
     assert_eq!(
         hydrate_move_from_algebraic_move(position, "h8g8".to_string()),
         from_square_mask(H8_BIT) | G8_BIT as Move | PIECE_MASK_KING

@@ -1,4 +1,8 @@
-use crate::engine_constants::{ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE};
+use crate::engine_constants::{
+    ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
+    LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, LMR_REDUCTION, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH,
+    NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE,
+};
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
@@ -8,12 +12,13 @@ use crate::move_constants::{
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
 };
 use crate::move_scores::score_move;
-use crate::moves::{is_check, generate_moves, generate_captures, generate_quiet_moves, generate_check_evasions, verify_move};
+use crate::moves::{generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move};
 use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    pv_single, pv_prepend, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Square, Window, BLACK, WHITE,
+    pv_prepend, pv_single, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Square,
+    Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
@@ -163,12 +168,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     legal_moves[0].0
 }
 
-pub fn start_search(
-    position: &mut Position,
-    legal_moves: &mut MoveScoreList,
-    search_state: &mut SearchState,
-    window: Window,
-) -> PathScore {
+pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, window: Window) -> PathScore {
     let mut current_best: PathScore = (pv_single(legal_moves[0].0), window.0);
 
     for mv in legal_moves {
@@ -289,7 +289,14 @@ pub fn null_move_reduced_depth(depth: u8) -> u8 {
 }
 
 #[inline(always)]
-pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState, on_null_move: bool) -> PathScore {
+pub fn search(
+    position: &mut Position,
+    depth: u8,
+    ply: u8,
+    window: Window,
+    search_state: &mut SearchState,
+    on_null_move: bool,
+) -> PathScore {
     // Check stop flag at TOP before any moves are made - safe to return here
     if search_state.stop {
         return (pv_single(0), 0);
@@ -398,7 +405,8 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
             (-beta, (-beta) + 1),
             search_state,
             true,
-        ).1;
+        )
+        .1;
 
         unmake_null_move(position, old_ep);
 
@@ -418,7 +426,7 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
     let real_depth = depth + these_extensions;
 
     let verified_hash_move = if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
-        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha-1, -alpha), position, 0).0[0];
+        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0).0[0];
         hash_move != 0
     } else {
         hash_move != 0 && verify_move(position, hash_move)
@@ -447,7 +455,17 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        return cutoff_unmake(position, singular_depth, ply, search_state, best_pathscore, hash_height, hash_version, hash_move, hash_is_capture);
+                        return cutoff_unmake(
+                            position,
+                            singular_depth,
+                            ply,
+                            search_state,
+                            best_pathscore,
+                            hash_height,
+                            hash_version,
+                            hash_move,
+                            hash_is_capture,
+                        );
                     }
                     hash_flag = Exact;
                 }
@@ -568,7 +586,17 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        return cutoff_unmake(position, real_depth, ply, search_state, best_pathscore, hash_height, hash_version, m, move_is_capture);
+                        return cutoff_unmake(
+                            position,
+                            real_depth,
+                            ply,
+                            search_state,
+                            best_pathscore,
+                            hash_height,
+                            hash_version,
+                            m,
+                            move_is_capture,
+                        );
                     }
                     hash_flag = Exact;
                 }
@@ -604,8 +632,13 @@ pub fn search(position: &mut Position, depth: u8, ply: u8, window: Window, searc
 #[inline(always)]
 pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> bool {
     is_repeat_position(position, search_state) || position.half_moves >= 100 || {
-        ply > 6 && insufficient_material(position, (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
-            + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8, true)
+        ply > 6
+            && insufficient_material(
+                position,
+                (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+                    + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8,
+                true,
+            )
     }
 }
 
@@ -777,11 +810,9 @@ fn update_killers(ply: u8, search_state: &mut SearchState, m: Move, score: Score
     if score > MATE_START {
         search_state.mate_killer[ply as usize] = m;
     }
-    if search_state.killer_moves[ply as usize][0] != m {
-        if (m & PROMOTION_FULL_MOVE_MASK == 0) && !is_capture {
-            search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
-            search_state.killer_moves[ply as usize][0] = m;
-        }
+    if search_state.killer_moves[ply as usize][0] != m && (m & PROMOTION_FULL_MOVE_MASK == 0) && !is_capture {
+        search_state.killer_moves[ply as usize][1] = search_state.killer_moves[ply as usize][0];
+        search_state.killer_moves[ply as usize][0] = m;
     }
 }
 

@@ -1,16 +1,17 @@
-use crate::bitboards::{BISHOP_RAYS, bit, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, ROOK_RAYS};
+use crate::bitboards::{bit, BISHOP_RAYS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, ROOK_RAYS};
 
-use crate::moves::{is_check};
-use crate::types::{Bitboard, BLACK, Move, MoveList, Position, Score, Square, WHITE};
+use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
+use crate::moves::is_check;
+use crate::types::{Bitboard, Move, MoveList, Position, Score, Square, BLACK, WHITE};
 use crate::utils::{from_square_mask, from_square_part, to_square_part};
 use std::cmp::min;
-use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
 
-
-use crate::move_constants::{EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_FULL, PIECE_MASK_PAWN, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_BISHOP, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, EN_PASSANT_CAPTURE_MASK, PROMOTION_SQUARES};
-use crate::{get_and_unset_lsb, get_lsb, opponent};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
-
+use crate::move_constants::{
+    EN_PASSANT_CAPTURE_MASK, EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT,
+    PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
+};
+use crate::{get_and_unset_lsb, get_lsb, opponent};
 
 #[inline(always)]
 pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
@@ -25,7 +26,10 @@ pub fn see(score: Score, capture_square: Bitboard, position: &Position) -> Score
         let mut new_position = *position;
         make_see_move(m, &mut new_position);
         if !is_check(&new_position, position.mover) {
-            return min(score, score - see(captured_piece_value_see(position, m), capture_square, &new_position));
+            return min(
+                score,
+                score - see(captured_piece_value_see(position, m), capture_square, &new_position),
+            );
         }
     }
 
@@ -75,7 +79,6 @@ pub fn make_see_move(mv: Move, new_position: &mut Position) {
 
     new_position.pieces[new_position.mover as usize].all_pieces_bitboard ^= switch;
     new_position.mover ^= 1;
-
 }
 
 #[inline(always)]
@@ -90,19 +93,20 @@ pub fn captured_piece_value_see(position: &Position, mv: Move) -> Score {
         0
     };
 
-    promote_value + (if tsp == position.en_passant_square || enemy.pawn_bitboard & to_bb != 0 {
-        PAWN_VALUE_AVERAGE
-    } else if enemy.knight_bitboard & to_bb != 0 {
-        KNIGHT_VALUE_AVERAGE
-    } else if enemy.bishop_bitboard & to_bb != 0 {
-        BISHOP_VALUE_AVERAGE
-    } else if enemy.rook_bitboard & to_bb != 0 {
-        ROOK_VALUE_AVERAGE
-    } else if enemy.queen_bitboard & to_bb != 0 {
-        QUEEN_VALUE_AVERAGE
-    } else {
-        0
-    })
+    promote_value
+        + (if tsp == position.en_passant_square || enemy.pawn_bitboard & to_bb != 0 {
+            PAWN_VALUE_AVERAGE
+        } else if enemy.knight_bitboard & to_bb != 0 {
+            KNIGHT_VALUE_AVERAGE
+        } else if enemy.bishop_bitboard & to_bb != 0 {
+            BISHOP_VALUE_AVERAGE
+        } else if enemy.rook_bitboard & to_bb != 0 {
+            ROOK_VALUE_AVERAGE
+        } else if enemy.queen_bitboard & to_bb != 0 {
+            QUEEN_VALUE_AVERAGE
+        } else {
+            0
+        })
 }
 
 #[inline(always)]
@@ -126,7 +130,7 @@ pub fn generate_capture_pawn_moves_with_destinations_see(
             } else {
                 move_list.push(base_move);
             }
-            break
+            break;
         }
     }
 }

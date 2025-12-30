@@ -94,13 +94,13 @@ fn it_knows_when_exactly_one_bit_is_set() {
 
 #[test]
 fn it_gets_the_rank_bits_for_a_piece() {
-    assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], rank_bits(&"8".to_string(), 'Q'));
-    assert_eq!(vec![0, 0, 0, 0, 0, 0, 1, 0], rank_bits(&"6k1".to_string(), 'k'));
-    assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], rank_bits(&"6k1".to_string(), 'q'));
-    assert_eq!(vec![0, 0, 0, 0, 0, 0, 1, 0], rank_bits(&"6p1".to_string(), 'p'));
-    assert_eq!(vec![0, 0, 0, 0, 0, 0, 1, 1], rank_bits(&"6pp".to_string(), 'p'));
-    assert_eq!(vec![1, 0, 0, 0, 0, 0, 0, 0], rank_bits(&"P7".to_string(), 'P'));
-    assert_eq!(vec![0, 1, 0, 0, 0, 0, 0, 1], rank_bits(&"1p2q2p".to_string(), 'p'));
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], rank_bits("8", 'Q'));
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 1, 0], rank_bits("6k1", 'k'));
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], rank_bits("6k1", 'q'));
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 1, 0], rank_bits("6p1", 'p'));
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 1, 1], rank_bits("6pp", 'p'));
+    assert_eq!(vec![1, 0, 0, 0, 0, 0, 0, 0], rank_bits("P7", 'P'));
+    assert_eq!(vec![0, 1, 0, 0, 0, 0, 0, 1], rank_bits("1p2q2p", 'p'));
 }
 
 #[test]

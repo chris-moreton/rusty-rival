@@ -9,7 +9,6 @@ fn main() {
 }
 
 fn repl() -> Result<()> {
-
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
 
@@ -22,16 +21,12 @@ fn repl() -> Result<()> {
             Ok(line) => {
                 rl.add_history_entry(line.as_str()).or(Err(ReadlineError::Eof))?;
                 handle_cmd_line(&mut uci_state, &mut search_state, line)
-            },
-            Err(ReadlineError::Interrupted) => {
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                break
-            },
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
             Err(err) => {
                 println!("Error: {:?}", err);
-                break
+                break;
             }
         }
         rl.save_history("history.txt").expect("TODO: panic message");
@@ -39,8 +34,8 @@ fn repl() -> Result<()> {
     Ok(())
 }
 
-fn handle_cmd_line(mut uci_state: &mut UciState, mut search_state: &mut SearchState, l: String) {
-    let result = run_command(&mut uci_state, &mut search_state, l.as_str());
+fn handle_cmd_line(uci_state: &mut UciState, search_state: &mut SearchState, l: String) {
+    let result = run_command(uci_state, search_state, l.as_str());
     match result {
         Right(message) => {
             if let Some(m) = message {

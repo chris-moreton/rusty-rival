@@ -15,7 +15,7 @@ fn test_zobrist_consistency_between_make_and_make_in_place() {
     ];
 
     for fen in fens {
-        let original = get_position(&fen.to_string());
+        let original = get_position(fen);
         let moves = generate_moves(&original);
 
         for m in moves {
@@ -66,7 +66,7 @@ fn test_zobrist_consistency_between_make_and_make_in_place() {
 #[test]
 fn test_zobrist_consistency_through_game_sequence() {
     let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    let mut position = get_position(&fen.to_string());
+    let mut position = get_position(fen);
     let original_zobrist = position.zobrist_lock;
 
     // Make a few moves and unmake them
@@ -84,12 +84,7 @@ fn test_zobrist_consistency_through_game_sequence() {
         let unmake = make_move_in_place(&mut position, m);
 
         // Verify zobrist is correct
-        assert_eq!(
-            position.zobrist_lock,
-            zobrist_lock(&position),
-            "After move {}: zobrist mismatch",
-            i
-        );
+        assert_eq!(position.zobrist_lock, zobrist_lock(&position), "After move {}: zobrist mismatch", i);
 
         unmakes.push(unmake);
         made_moves.push(m);

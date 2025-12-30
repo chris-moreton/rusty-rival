@@ -3,19 +3,18 @@ use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
 use crate::evaluate::evaluate;
 use crate::make_move::{make_move_in_place, unmake_move};
 use crate::move_constants::{
-    PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
-    PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
+    PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
+    PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
+use crate::see::{captured_piece_value_see, see};
 use crate::types::{
     pv_single, Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
 use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
 use std::time::Instant;
-use crate::see::{captured_piece_value_see, see};
-
 
 #[inline(always)]
 pub fn quiesce_moves(position: &Position) -> MoveList {
@@ -110,6 +109,7 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
 }
 
 #[inline(always)]
+#[allow(clippy::only_used_in_recursion)]
 pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
     // Check stop flag at TOP before any moves are made - safe to return here
     if search_state.stop {
