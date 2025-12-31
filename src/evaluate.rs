@@ -3,13 +3,14 @@ use crate::bitboards::{
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
-    BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP,
-    KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE,
-    KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR,
-    ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL,
-    VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_GUARDED_PASSED_PAWN,
-    VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
-    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD, ISOLATED_PAWN_PENALTY,
+    KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE,
+    KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE,
+    QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
+    STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
+    VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
+    VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
@@ -52,7 +53,8 @@ pub fn evaluate(position: &Position) -> Score {
         )
         + knight_fork_threat_score(position)
         + rook_file_score(position)
-        + queen_mobility_score(position);
+        + queen_mobility_score(position)
+        + endgame_king_centralization_bonus(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -831,4 +833,33 @@ pub fn rook_file_score(position: &Position) -> Score {
     }
 
     score
+}
+
+/// Extra king centralization bonus for endgames.
+/// This bonus kicks in when both sides have low material (no queens, limited pieces).
+/// It encourages the king to become an active piece in the endgame.
+#[inline(always)]
+pub fn endgame_king_centralization_bonus(position: &Position) -> Score {
+    let white_piece_value = piece_material(position, WHITE);
+    let black_piece_value = piece_material(position, BLACK);
+
+    // Only apply when both sides have low material
+    if white_piece_value > ENDGAME_MATERIAL_THRESHOLD || black_piece_value > ENDGAME_MATERIAL_THRESHOLD {
+        return 0;
+    }
+
+    let white_king_sq = position.pieces[WHITE as usize].king_square as usize;
+    let black_king_sq = position.pieces[BLACK as usize].king_square as usize;
+
+    let white_bonus = VALUE_KING_ENDGAME_CENTRALIZATION[white_king_sq];
+    let black_bonus = VALUE_KING_ENDGAME_CENTRALIZATION[black_king_sq];
+
+    // Scale bonus: more bonus when material is lower
+    let total_piece_value = white_piece_value + black_piece_value;
+    let max_material = ENDGAME_MATERIAL_THRESHOLD * 2;
+
+    let raw_bonus = white_bonus - black_bonus;
+
+    // Scale from 100% at 0 material to 0% at max_material
+    linear_scale(total_piece_value as i64, 0, max_material as i64, raw_bonus as i64, 0) as Score
 }

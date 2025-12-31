@@ -81,3 +81,21 @@ pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 12;
 pub const VALUE_QUEEN_MOBILITY: [Score; 28] = [
     -12, -8, -5, -2, 0, 1, 2, 3, 4, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12, 12,
 ];
+
+// King centralization bonus for endgames - extra bonus beyond PST when material is low
+// This encourages the king to actively participate in the endgame
+// Indexed by king square (same layout as PST: h1=0, a8=63)
+pub const VALUE_KING_ENDGAME_CENTRALIZATION: [Score; 64] = [
+    0, 2, 4, 6, 6, 4, 2, 0, // rank 1
+    2, 4, 8, 12, 12, 8, 4, 2, // rank 2
+    4, 8, 16, 20, 20, 16, 8, 4, // rank 3
+    6, 12, 20, 24, 24, 20, 12, 6, // rank 4
+    6, 12, 20, 24, 24, 20, 12, 6, // rank 5
+    4, 8, 16, 20, 20, 16, 8, 4, // rank 6
+    2, 4, 8, 12, 12, 8, 4, 2, // rank 7
+    0, 2, 4, 6, 6, 4, 2, 0, // rank 8
+];
+
+// Material threshold below which we apply extra king centralization bonus
+// This is roughly when no queens and at most one rook per side
+pub const ENDGAME_MATERIAL_THRESHOLD: Score = ROOK_VALUE_AVERAGE * 2;

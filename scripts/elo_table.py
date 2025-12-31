@@ -2,10 +2,15 @@
 """Display ELO ratings in a live-updating table."""
 
 import json
-import os
+import re
 import sys
 import time
 from pathlib import Path
+
+# ANSI color codes
+ORANGE = "\033[38;5;208m"
+GREEN = "\033[32m"
+RESET = "\033[0m"
 
 RESULTS_FILE = Path(__file__).parent.parent / "results" / "elo_ratings.json"
 
@@ -19,6 +24,19 @@ def load_ratings():
         return {}
     with open(RESULTS_FILE) as f:
         return json.load(f)
+
+def find_latest_version(ratings):
+    """Find the latest version of our engine (highest v### number)."""
+    latest = None
+    latest_num = -1
+    for name in ratings.keys():
+        match = re.match(r'^v(\d+)', name)
+        if match:
+            num = int(match.group(1))
+            if num > latest_num:
+                latest_num = num
+                latest = name
+    return latest
 
 def display_table(ratings):
     """Display ratings as a formatted table."""
@@ -36,6 +54,9 @@ def display_table(ratings):
         reverse=True
     )
 
+    # Find latest version to highlight
+    latest_version = find_latest_version(ratings)
+
     # Calculate column widths
     name_width = max(len(name) for name in ratings.keys())
     name_width = max(name_width, 6)  # minimum "Engine"
@@ -48,7 +69,13 @@ def display_table(ratings):
     for i, (name, data) in enumerate(sorted_ratings, 1):
         elo = data["elo"]
         games = data["games"]
-        print(f"{i:<5} {name:<{name_width}}  {elo:>8.1f}  {games:>6}")
+        row = f"{i:<5} {name:<{name_width}}  {elo:>8.1f}  {games:>6}"
+        if name == latest_version:
+            print(f"{ORANGE}{row}{RESET}")
+        elif name == "v001-baseline":
+            print(f"{GREEN}{row}{RESET}")
+        else:
+            print(row)
 
     print()
     print(f"Watching: {RESULTS_FILE}")

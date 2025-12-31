@@ -1,0 +1,16 @@
+; Random Mode
+; Date: 2025-12-31 16:17
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2025.12.31"]
+[Round "?"]
+[White "maia-1700"]
+[Black "maia-1600"]
+[Result "0-1"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/6P1/PP2PPBP/RNBQK1NR w KQkq - 2 5"]
+[SetUp "1"]
+[Opening "Catalan Be7"]
+
+5. Nc3 O-O 6. Nf3 c5 7. O-O Nc6 8. cxd5 exd5 9. dxc5 Bxc5 10. Bg5 Be6 11. Rc1 Be7 12. Nd4 Nxd4 13. Qxd4 h6 14. Bf4 b6 15. Rfd1 Bc5 16. Qd2 d4 17. Bxa8 Qxa8 18. Nb5 Bh3 19. f3 d3+ 20. e3 Qxf3 21. Qf2 Qg4 22. Rxd3 Ne4 23. Qe1 Qf3 24. Rc2 g5 25. Be5 Re8 26. Bd4 Bxd4 27. Nxd4 Qg4 28. Qe2 Qd7 29. Qh5 Kg7 30. Qf3 Bg4 31. Qg2 h5 32. Rcd2 Nxd2 33. Qxd2 Qd5 34. b3 Bh3 35. Qf2 h4 36. gxh4 gxh4 37. Nf5+ Qxf5 38. Qxf5 Bxf5 39. Rd4 Rxe3 40. Rxh4 Re2 41. a4 Rb2 42. b4 Ra2 43. a5 bxa5 44. bxa5 Rxa5 45. Kf2 Ra2+ 46. Ke3 a5 47. Kd4 a4 48. Kc3 a3 49. Kb3 Ra1 50. Ra4 Be6+ 51. Kc2 a2 52. Kb2 Rb1+ 53. Kc2 a1=Q 54. Rxa1 Rxa1 55. Kb2 Rh1 56. Kc3 Rxh2 57. Kd4 Rh5 58. Ke4 Kf6 59. Kf4 Rh4+ 60. Kg3 Ra4 61. Kf3 Kf5 62. Ke3 Ke5 63. Kd3 Kd5 64. Kc3 Kc5 65. Kd3 f5 66. Ke3 Kd5 67. Kf3 Ke5 68. Ke3 Ra3+ 69. Kf2 Ke4 70. Kg2 f4 71. Kf2 Ra2+ 72. Kf1 Ke3 73. Kg1 Kf3 74. Kh1 Kg3 75. Kg1 Ra1# 0-1
+

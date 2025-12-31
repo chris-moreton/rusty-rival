@@ -469,3 +469,34 @@ fn it_evaluates_wrong_colored_bishop_as_draw() {
     let position = get_position("5b1k/7p/8/8/K7/8/8/8 w - - 0 1");
     assert_eq!(evaluate(&position), 0);
 }
+
+#[test]
+fn it_gives_king_centralization_bonus_in_endgames() {
+    use rusty_rival::evaluate::endgame_king_centralization_bonus;
+
+    // King and pawn endgame - white king on d4 (center) vs black king on h8 (corner)
+    // White should get a positive bonus
+    let position = get_position("7k/8/8/8/3K4/8/8/8 w - - 0 1");
+    let bonus = endgame_king_centralization_bonus(&position);
+    assert!(bonus > 0, "Central king should get positive bonus, got {}", bonus);
+
+    // Same but flipped - black king central
+    let position = get_position("8/8/8/8/3k4/8/8/7K w - - 0 1");
+    let bonus = endgame_king_centralization_bonus(&position);
+    assert!(bonus < 0, "Central black king should give negative score, got {}", bonus);
+
+    // Both kings central - should be roughly even
+    let position = get_position("8/8/8/3k4/3K4/8/8/8 w - - 0 1");
+    let bonus = endgame_king_centralization_bonus(&position);
+    assert!(bonus.abs() <= 4, "Both central kings should be roughly even, got {}", bonus);
+
+    // With too much material, bonus should be 0
+    let position = get_position("r2k3r/8/8/8/3K4/8/8/R6R w - - 0 1");
+    let bonus = endgame_king_centralization_bonus(&position);
+    assert_eq!(bonus, 0, "With rooks on board, bonus should be 0");
+
+    // With minor piece endgame, should still apply (material below threshold)
+    let position = get_position("7k/8/8/8/3K4/5N2/8/8 w - - 0 1");
+    let bonus = endgame_king_centralization_bonus(&position);
+    assert!(bonus > 0, "Knight endgame should still give bonus, got {}", bonus);
+}
