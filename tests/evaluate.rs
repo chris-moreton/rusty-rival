@@ -6,9 +6,9 @@ use rusty_rival::engine_constants::{
     VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
 };
 use rusty_rival::evaluate::{
-    black_king_early_safety, count_knight_fork_threats, doubled_and_isolated_pawn_score, insufficient_material, isolated_pawn_count,
-    king_threat_score, knight_fork_threat_score, knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score,
-    white_king_early_safety,
+    black_king_early_safety, count_knight_fork_threats, doubled_and_isolated_pawn_score, evaluate, insufficient_material,
+    is_wrong_colored_bishop_draw, isolated_pawn_count, king_threat_score, knight_fork_threat_score, knight_outpost_scores, material_score,
+    on_same_file_count, passed_pawn_score, white_king_early_safety,
 };
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
@@ -403,4 +403,69 @@ fn it_gets_knight_fork_threats() {
     test_knight_fork_threats("8/2q3NR/1p1r1k2/pn1pp3/P1Q1P3/5P2/2P5/1KB5 w - - 0 1", 1, 1);
     test_knight_fork_threats("8/2q3NR/1p2r3/pn1ppk2/P1Q1P3/5P2/2P5/1KB5 w - - 0 1", 1, 1);
     test_knight_fork_threats("8/2q3NR/1p1Nrk2/pn1pp3/P1Q1P3/5P2/2P5/1KB5 w - - 0 1", 2, 1);
+}
+
+fn test_wrong_colored_bishop(fen: &str, expected: bool) {
+    let position = get_position(fen);
+    let piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
+    assert_eq!(
+        is_wrong_colored_bishop_draw(&position, piece_count),
+        expected,
+        "Wrong result for FEN: {}",
+        fen
+    );
+}
+
+#[test]
+fn it_detects_wrong_colored_bishop_draws() {
+    // White a-pawn with dark-squared bishop (a8 is light, bishop is dark) = DRAW
+    test_wrong_colored_bishop("8/8/8/8/8/k7/P7/K1B5 w - - 0 1", true);
+
+    // White a-pawn with light-squared bishop (a8 is light, bishop is light) = NOT draw
+    test_wrong_colored_bishop("8/8/8/8/8/k7/P7/KB6 w - - 0 1", false);
+
+    // White h-pawn with light-squared bishop (h8 is dark, bishop is light) = DRAW
+    test_wrong_colored_bishop("8/8/8/8/k7/8/7P/5B1K w - - 0 1", true);
+
+    // White h-pawn with dark-squared bishop (h8 is dark, bishop is dark) = NOT draw
+    test_wrong_colored_bishop("8/8/8/8/k7/8/7P/4B2K w - - 0 1", false);
+
+    // Black a-pawn with light-squared bishop (a1 is dark, bishop is light) = DRAW
+    // Bishop on a6 is light-squared, a1 is dark, so bishop CANNOT control a1
+    test_wrong_colored_bishop("k7/p7/b7/8/8/K7/8/8 w - - 0 1", true);
+
+    // Black a-pawn with dark-squared bishop (a1 is dark, bishop is dark) = NOT draw
+    // Bishop on b6 is dark-squared, a1 is dark, so bishop CAN control a1
+    test_wrong_colored_bishop("k7/p7/1b6/8/8/K7/8/8 w - - 0 1", false);
+
+    // Black h-pawn with dark-squared bishop (h1 is light, bishop is dark) = DRAW
+    // Bishop on f8 is dark-squared, h1 is light, so bishop CANNOT control h1
+    test_wrong_colored_bishop("5b1k/7p/8/8/K7/8/8/8 w - - 0 1", true);
+
+    // Black h-pawn with light-squared bishop (h1 is light, bishop is light) = NOT draw
+    // Bishop on g8 is light-squared, h1 is light, so bishop CAN control h1
+    test_wrong_colored_bishop("6bk/7p/8/8/K7/8/8/8 w - - 0 1", false);
+
+    // Not a rook pawn (e-pawn) - not a draw even with "wrong" bishop
+    test_wrong_colored_bishop("8/8/8/8/8/k7/4P3/K1B5 w - - 0 1", false);
+
+    // Too many pieces - not applicable
+    test_wrong_colored_bishop("8/8/8/8/8/k7/P7/KNB5 w - - 0 1", false);
+}
+
+#[test]
+fn it_evaluates_wrong_colored_bishop_as_draw() {
+    // These positions should evaluate to 0 (draw)
+    let position = get_position("8/8/8/8/8/k7/P7/K1B5 w - - 0 1");
+    assert_eq!(evaluate(&position), 0);
+
+    let position = get_position("8/8/8/8/k7/8/7P/5B1K w - - 0 1");
+    assert_eq!(evaluate(&position), 0);
+
+    let position = get_position("k7/p7/b7/8/8/K7/8/8 w - - 0 1");
+    assert_eq!(evaluate(&position), 0);
+
+    let position = get_position("5b1k/7p/8/8/K7/8/8/8 w - - 0 1");
+    assert_eq!(evaluate(&position), 0);
 }

@@ -28,6 +28,10 @@ pub fn evaluate(position: &Position) -> Score {
         return 0;
     }
 
+    if is_wrong_colored_bishop_draw(position, cache.piece_count) {
+        return 0;
+    }
+
     let score = material_score(position)
         + piece_square_values(position)
         + king_score(position, &cache)
@@ -88,6 +92,90 @@ pub fn insufficient_material(position: &Position, piece_count: u8, include_helpm
         && w.bishop_bitboard.count_ones() == 1
         && b.bishop_bitboard.count_ones() == 1
         && single_bishop_square_colour(w.bishop_bitboard) == single_bishop_square_colour(b.bishop_bitboard)
+}
+
+/// Detects drawn positions where one side has a bishop and rook pawn (a or h file)
+/// but the bishop cannot control the promotion square.
+/// For example: White Ka1, Bc1 (light-squared), Pa2 vs Black Ka3
+/// The a-pawn promotes on a8 (light square), but if the bishop is dark-squared,
+/// it can never control the promotion square, making it a draw.
+#[inline(always)]
+pub fn is_wrong_colored_bishop_draw(position: &Position, piece_count: u8) -> bool {
+    // Must be exactly 4 pieces: K + K + B + P
+    if piece_count != 4 {
+        return false;
+    }
+
+    let w = position.pieces[WHITE as usize];
+    let b = position.pieces[BLACK as usize];
+
+    // Check for White having K + B + P vs Black having only K
+    if w.bishop_bitboard.count_ones() == 1
+        && w.pawn_bitboard.count_ones() == 1
+        && w.knight_bitboard == 0
+        && w.rook_bitboard == 0
+        && w.queen_bitboard == 0
+        && b.pawn_bitboard == 0
+        && b.knight_bitboard == 0
+        && b.bishop_bitboard == 0
+        && b.rook_bitboard == 0
+        && b.queen_bitboard == 0
+    {
+        return is_wrong_color_for_pawn(w.bishop_bitboard, w.pawn_bitboard, true);
+    }
+
+    // Check for Black having K + B + P vs White having only K
+    if b.bishop_bitboard.count_ones() == 1
+        && b.pawn_bitboard.count_ones() == 1
+        && b.knight_bitboard == 0
+        && b.rook_bitboard == 0
+        && b.queen_bitboard == 0
+        && w.pawn_bitboard == 0
+        && w.knight_bitboard == 0
+        && w.bishop_bitboard == 0
+        && w.rook_bitboard == 0
+        && w.queen_bitboard == 0
+    {
+        return is_wrong_color_for_pawn(b.bishop_bitboard, b.pawn_bitboard, false);
+    }
+
+    false
+}
+
+/// Checks if a bishop is the wrong color to help promote a rook pawn.
+/// - White's a-pawn promotes on a8 (light square) - needs light-squared bishop
+/// - White's h-pawn promotes on h8 (dark square) - needs dark-squared bishop
+/// - Black's a-pawn promotes on a1 (dark square) - needs dark-squared bishop
+/// - Black's h-pawn promotes on h1 (light square) - needs light-squared bishop
+#[inline(always)]
+fn is_wrong_color_for_pawn(bishop_bb: Bitboard, pawn_bb: Bitboard, is_white: bool) -> bool {
+    let is_a_pawn = pawn_bb & FILE_A_BITS != 0;
+    let is_h_pawn = pawn_bb & FILE_H_BITS != 0;
+
+    // Only applies to rook pawns (a-file or h-file)
+    if !is_a_pawn && !is_h_pawn {
+        return false;
+    }
+
+    let bishop_is_light = bishop_bb & LIGHT_SQUARES_BITS != 0;
+
+    if is_white {
+        // White's a-pawn promotes on a8 (light) - needs light bishop
+        // White's h-pawn promotes on h8 (dark) - needs dark bishop
+        if is_a_pawn {
+            !bishop_is_light // wrong if bishop is dark
+        } else {
+            bishop_is_light // wrong if bishop is light
+        }
+    } else {
+        // Black's a-pawn promotes on a1 (dark) - needs dark bishop
+        // Black's h-pawn promotes on h1 (light) - needs light bishop
+        if is_a_pawn {
+            bishop_is_light // wrong if bishop is light
+        } else {
+            !bishop_is_light // wrong if bishop is dark
+        }
+    }
 }
 
 fn cache_piece_count(position: &Position, cache: &mut EvaluateCache) {
