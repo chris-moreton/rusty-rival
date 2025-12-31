@@ -17,7 +17,7 @@ RAINBOW = [
     "\033[38;5;93m",   # Indigo
     "\033[38;5;129m",  # Violet (7th most recent)
 ]
-BASELINE_COLOR = "\033[38;5;250m"  # Light gray for baseline
+BASELINE_COLOR = "\033[38;5;51m"  # Cyan for baseline (stands out from rainbow)
 RESET = "\033[0m"
 
 RESULTS_FILE = Path(__file__).parent.parent / "results" / "elo_ratings.json"
