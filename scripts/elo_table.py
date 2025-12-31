@@ -7,9 +7,17 @@ import sys
 import time
 from pathlib import Path
 
-# ANSI color codes
-ORANGE = "\033[38;5;208m"
-GREEN = "\033[32m"
+# ANSI color codes - rainbow colors (ROYGBIV)
+RAINBOW = [
+    "\033[38;5;196m",  # Red (most recent)
+    "\033[38;5;208m",  # Orange
+    "\033[38;5;226m",  # Yellow
+    "\033[38;5;46m",   # Green
+    "\033[38;5;21m",   # Blue
+    "\033[38;5;93m",   # Indigo
+    "\033[38;5;129m",  # Violet (7th most recent)
+]
+BASELINE_COLOR = "\033[38;5;250m"  # Light gray for baseline
 RESET = "\033[0m"
 
 RESULTS_FILE = Path(__file__).parent.parent / "results" / "elo_ratings.json"
@@ -25,18 +33,24 @@ def load_ratings():
     with open(RESULTS_FILE) as f:
         return json.load(f)
 
-def find_latest_version(ratings):
-    """Find the latest version of our engine (highest v### number)."""
-    latest = None
-    latest_num = -1
+def find_recent_versions(ratings, count=7):
+    """Find the N most recent versions of our engine (highest v### numbers).
+
+    Returns a dict mapping version name to its recency rank (0 = most recent).
+    """
+    versions = []
     for name in ratings.keys():
         match = re.match(r'^v(\d+)', name)
         if match:
             num = int(match.group(1))
-            if num > latest_num:
-                latest_num = num
-                latest = name
-    return latest
+            versions.append((num, name))
+
+    # Sort by version number descending, take top N
+    versions.sort(reverse=True)
+    recent = versions[:count]
+
+    # Return dict mapping name -> rank (0 = most recent)
+    return {name: rank for rank, (_, name) in enumerate(recent)}
 
 def display_table(ratings):
     """Display ratings as a formatted table."""
@@ -54,8 +68,8 @@ def display_table(ratings):
         reverse=True
     )
 
-    # Find latest version to highlight
-    latest_version = find_latest_version(ratings)
+    # Find recent versions to highlight with rainbow colors
+    recent_versions = find_recent_versions(ratings, count=7)
 
     # Calculate column widths
     name_width = max(len(name) for name in ratings.keys())
@@ -70,10 +84,11 @@ def display_table(ratings):
         elo = data["elo"]
         games = data["games"]
         row = f"{i:<5} {name:<{name_width}}  {elo:>8.1f}  {games:>6}"
-        if name == latest_version:
-            print(f"{ORANGE}{row}{RESET}")
+        if name in recent_versions:
+            rank = recent_versions[name]
+            print(f"{RAINBOW[rank]}{row}{RESET}")
         elif name == "v001-baseline":
-            print(f"{GREEN}{row}{RESET}")
+            print(f"{BASELINE_COLOR}{row}{RESET}")
         else:
             print(row)
 
