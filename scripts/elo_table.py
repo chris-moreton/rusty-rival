@@ -7,15 +7,12 @@ import sys
 import time
 from pathlib import Path
 
-# ANSI color codes - rainbow colors (ROYGBIV)
+# ANSI color codes - rainbow colors for recent engines
 RAINBOW = [
     "\033[38;5;196m",  # Red (most recent)
     "\033[38;5;208m",  # Orange
     "\033[38;5;226m",  # Yellow
-    "\033[38;5;46m",   # Green
-    "\033[38;5;21m",   # Blue
-    "\033[38;5;93m",   # Indigo
-    "\033[38;5;129m",  # Violet (7th most recent)
+    "\033[38;5;46m",   # Green (4th most recent)
 ]
 BASELINE_COLOR = "\033[38;5;51m"  # Cyan for baseline (stands out from rainbow)
 OUTPERFORM_COLOR = "\033[38;5;213m"  # Pink for outperforming external engines
@@ -34,7 +31,7 @@ def load_ratings():
     with open(RESULTS_FILE) as f:
         return json.load(f)
 
-def find_recent_versions(ratings, count=7):
+def find_recent_versions(ratings, count=4):
     """Find the N most recent versions of our engine (highest v### numbers).
 
     Returns a dict mapping version name to its recency rank (0 = most recent).
@@ -64,8 +61,8 @@ def find_outperforming_engines(ratings):
     """
     outperforming = set()
 
-    # Group engines by family (sf, maia)
-    families = {"sf": [], "maia": []}
+    # Group engines by family (sf, maia, velvet)
+    families = {"sf": [], "maia": [], "velvet": []}
 
     for name, data in ratings.items():
         # Match sf-XXXX or maia-XXXX (but not sf-full)
@@ -105,7 +102,7 @@ def display_table(ratings):
     )
 
     # Find recent versions to highlight with rainbow colors
-    recent_versions = find_recent_versions(ratings, count=7)
+    recent_versions = find_recent_versions(ratings, count=4)
 
     # Find outperforming external engines (sf/maia beating higher-rated siblings)
     outperforming = find_outperforming_engines(ratings)

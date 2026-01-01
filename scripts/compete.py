@@ -21,6 +21,9 @@ Usage:
     # Random mode: randomly pair engines for 2-game matches
     # Each match plays 1 game as white, 1 as black with random openings
     ./scripts/compete.py --random --games 100 --time 0.5
+
+    # Random mode with time range: time randomly selected per match
+    ./scripts/compete.py --random --games 100 --timelow 0.1 --timehigh 1.0
 """
 
 import argparse
@@ -596,6 +599,7 @@ def play_game(engine1_path: Path, engine2_path: Path,
     game.headers["Date"] = datetime.now().strftime("%Y.%m.%d")
     game.headers["White"] = engine1_name
     game.headers["Black"] = engine2_name
+    game.headers["TimeControl"] = f"{time_per_move:.2f}s/move"
     if start_fen:
         game.headers["FEN"] = start_fen
         game.headers["SetUp"] = "1"
@@ -1229,7 +1233,8 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
     print(f"{'='*70}\n")
 
 
-def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results_dir: Path, weighted: bool = False):
+def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results_dir: Path, weighted: bool = False,
+               time_low: float = None, time_high: float = None):
     """
     Randomly select pairs of engines and play 2-game matches (1 white, 1 black).
     Each game uses a random opening.
@@ -1237,7 +1242,11 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     If weighted=True, engines with fewer games are more likely to be selected.
     Weight = 1 / (games + 1), so an engine with 0 games has weight 1.0,
     while one with 100 games has weight ~0.01.
+
+    If time_low and time_high are provided, randomly select a time for each match
+    from that range. Otherwise use time_per_move.
     """
+    use_time_range = time_low is not None and time_high is not None
     # Find all engines (from config + auto-discovered)
     all_engines = get_all_engines(engine_dir)
 
@@ -1267,7 +1276,10 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     if weighted:
         print("Selection: weighted by inverse game count (fewer games = higher chance)")
     print(f"Matches: {num_matches} (2 games each = {total_games} total games)")
-    print(f"Time: {time_per_move}s/move")
+    if use_time_range:
+        print(f"Time: {time_low}-{time_high}s/move (random per match)")
+    else:
+        print(f"Time: {time_per_move}s/move")
     print(f"Opening book: {len(OPENING_BOOK)} positions (random selection)")
     print(f"Elo ratings: {get_elo_file_path()}")
     print(f"{'='*70}")
@@ -1296,7 +1308,13 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
         engine1_path, engine1_uci = get_engine_info(engine1, engine_dir)
         engine2_path, engine2_uci = get_engine_info(engine2, engine_dir)
 
-        print(f"\n--- Match {match_idx + 1}/{num_matches}: {engine1} vs {engine2} ---\n")
+        # Select time for this match (random from range, or fixed)
+        if use_time_range:
+            match_time = random.uniform(time_low, time_high)
+        else:
+            match_time = time_per_move
+
+        print(f"\n--- Match {match_idx + 1}/{num_matches}: {engine1} vs {engine2} ({match_time:.2f}s/move) ---\n")
 
         # Game 1: engine1 as white
         game_num += 1
@@ -1304,7 +1322,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
 
         result, game = play_game(engine1_path, engine2_path,
                                   engine1, engine2,
-                                  time_per_move, opening_fen, opening_name,
+                                  match_time, opening_fen, opening_name,
                                   engine1_uci, engine2_uci)
 
         with open(pgn_file, "a") as f:
@@ -1314,13 +1332,13 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
         update_elo_after_game(elo_ratings, engine1, engine2, result)
         print(f"Game {game_num:3d}/{total_games}: {engine1} (W) vs {engine2} -> {result}  [{opening_name}]")
 
-        # Game 2: engine2 as white
+        # Game 2: engine2 as white (same time control as game 1)
         game_num += 1
         opening_fen, opening_name = random.choice(OPENING_BOOK)
 
         result, game = play_game(engine2_path, engine1_path,
                                   engine2, engine1,
-                                  time_per_move, opening_fen, opening_name,
+                                  match_time, opening_fen, opening_name,
                                   engine2_uci, engine1_uci)
 
         with open(pgn_file, "a") as f:
@@ -1356,8 +1374,12 @@ def main():
                         help="Engine version names (e.g., v1, v10, or v1-baseline)")
     parser.add_argument("--games", "-g", type=int, default=100,
                         help="Number of games per pairing (default: 100)")
-    parser.add_argument("--time", "-t", type=float, default=1.0,
+    parser.add_argument("--time", "-t", type=float, default=None,
                         help="Time per move in seconds (default: 1.0)")
+    parser.add_argument("--timelow", type=float, default=None,
+                        help="Minimum time per move (use with --timehigh for random range)")
+    parser.add_argument("--timehigh", type=float, default=None,
+                        help="Maximum time per move (use with --timelow for random range)")
     parser.add_argument("--no-book", action="store_true",
                         help="Disable opening book (start all games from initial position)")
     parser.add_argument("--gauntlet", action="store_true",
@@ -1368,6 +1390,25 @@ def main():
                         help="With --random: weight selection by inverse game count (fewer games = higher chance)")
 
     args = parser.parse_args()
+
+    # Validate time arguments
+    if args.timelow is not None or args.timehigh is not None:
+        if args.timelow is None or args.timehigh is None:
+            print("Error: --timelow and --timehigh must be used together")
+            sys.exit(1)
+        if args.timelow > args.timehigh:
+            print("Error: --timelow must be less than or equal to --timehigh")
+            sys.exit(1)
+        if args.time is not None:
+            print("Error: Cannot use --time with --timelow/--timehigh")
+            sys.exit(1)
+        time_per_move = None  # Will use range
+        time_low = args.timelow
+        time_high = args.timehigh
+    else:
+        time_per_move = args.time if args.time is not None else 1.0
+        time_low = None
+        time_high = None
 
     script_dir = Path(__file__).parent
     engine_dir = script_dir.parent / "engines"
@@ -1388,22 +1429,31 @@ def main():
         # Random mode: randomly pair engines for matches
         if args.engines:
             print("Warning: Engine arguments ignored in random mode")
-        run_random(engine_dir, args.games, args.time, results_dir, args.weighted)
+        run_random(engine_dir, args.games, time_per_move, results_dir, args.weighted, time_low, time_high)
     elif args.gauntlet:
         # Gauntlet mode: test one engine against all others
         if len(resolved_engines) != 1:
             print("Error: Gauntlet mode requires exactly one engine (the challenger)")
             sys.exit(1)
-        run_gauntlet(resolved_engines[0], engine_dir, args.games, args.time, results_dir)
+        if time_per_move is None:
+            print("Error: --timelow/--timehigh not supported in gauntlet mode, use --time")
+            sys.exit(1)
+        run_gauntlet(resolved_engines[0], engine_dir, args.games, time_per_move, results_dir)
     elif len(resolved_engines) >= 3:
         # Round-robin league for 3+ engines
-        run_league(resolved_engines, engine_dir, args.games, args.time, results_dir, use_opening_book)
+        if time_per_move is None:
+            print("Error: --timelow/--timehigh not supported in league mode, use --time")
+            sys.exit(1)
+        run_league(resolved_engines, engine_dir, args.games, time_per_move, results_dir, use_opening_book)
     elif len(resolved_engines) == 2:
         # Head-to-head match for exactly 2 engines
+        if time_per_move is None:
+            print("Error: --timelow/--timehigh not supported in head-to-head mode, use --time")
+            sys.exit(1)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         pgn_file = results_dir / f"{resolved_engines[0]}_vs_{resolved_engines[1]}_{timestamp}.pgn"
         run_match(resolved_engines[0], resolved_engines[1], engine_dir,
-                  args.games, args.time, pgn_file, use_opening_book)
+                  args.games, time_per_move, pgn_file, use_opening_book)
     else:
         print("Error: At least 2 engines are required (or use --random or --gauntlet mode)")
         sys.exit(1)
