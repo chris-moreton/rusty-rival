@@ -33,6 +33,10 @@ pub fn evaluate(position: &Position) -> Score {
         return 0;
     }
 
+    if is_kpk_draw(position, cache.piece_count) {
+        return 0;
+    }
+
     let score = material_score(position)
         + piece_square_values(position)
         + king_score(position, &cache)
@@ -178,6 +182,218 @@ fn is_wrong_color_for_pawn(bishop_bb: Bitboard, pawn_bb: Bitboard, is_white: boo
             !bishop_is_light // wrong if bishop is dark
         }
     }
+}
+
+/// Detects drawn KP vs K positions where the defending king has opposition
+/// or can block the pawn's promotion.
+///
+/// Key concepts:
+/// - Rook pawns (a/h file): drawn if defending king can reach the corner
+/// - Other pawns: drawn if defending king has opposition and is in front of the pawn
+#[inline(always)]
+pub fn is_kpk_draw(position: &Position, piece_count: u8) -> bool {
+    // Must be exactly 3 pieces: K + K + P
+    if piece_count != 3 {
+        return false;
+    }
+
+    let w = position.pieces[WHITE as usize];
+    let b = position.pieces[BLACK as usize];
+
+    // Determine which side has the pawn
+    let (pawn_bb, attacking_king_sq, defending_king_sq, pawn_is_white) = if w.pawn_bitboard.count_ones() == 1 && b.pawn_bitboard == 0 {
+        // White has K+P, Black has K
+        (w.pawn_bitboard, w.king_square, b.king_square, true)
+    } else if b.pawn_bitboard.count_ones() == 1 && w.pawn_bitboard == 0 {
+        // Black has K+P, White has K
+        (b.pawn_bitboard, b.king_square, w.king_square, false)
+    } else {
+        return false;
+    };
+
+    // Ensure no other pieces
+    if pawn_is_white {
+        if w.knight_bitboard != 0
+            || w.bishop_bitboard != 0
+            || w.rook_bitboard != 0
+            || w.queen_bitboard != 0
+            || b.knight_bitboard != 0
+            || b.bishop_bitboard != 0
+            || b.rook_bitboard != 0
+            || b.queen_bitboard != 0
+        {
+            return false;
+        }
+    } else if b.knight_bitboard != 0
+        || b.bishop_bitboard != 0
+        || b.rook_bitboard != 0
+        || b.queen_bitboard != 0
+        || w.knight_bitboard != 0
+        || w.bishop_bitboard != 0
+        || w.rook_bitboard != 0
+        || w.queen_bitboard != 0
+    {
+        return false;
+    }
+
+    let pawn_sq = pawn_bb.trailing_zeros() as Square;
+    let pawn_file = 7 - (pawn_sq % 8); // 0=a, 7=h
+    let pawn_rank = pawn_sq / 8; // 0=rank1, 7=rank8
+
+    let def_file = 7 - (defending_king_sq % 8);
+    let def_rank = defending_king_sq / 8;
+
+    let atk_file = 7 - (attacking_king_sq % 8);
+    let atk_rank = attacking_king_sq / 8;
+
+    // Handle rook pawns (a-file or h-file) specially
+    if pawn_file == 0 || pawn_file == 7 {
+        return is_rook_pawn_draw(pawn_file, pawn_rank, def_file, def_rank, atk_rank, pawn_is_white, position.mover);
+    }
+
+    // For non-rook pawns, check if defending king has opposition and is blocking
+    is_opposition_draw(
+        pawn_file,
+        pawn_rank,
+        def_file,
+        def_rank,
+        atk_file,
+        atk_rank,
+        pawn_is_white,
+        position.mover,
+    )
+}
+
+/// Check if a rook pawn position is drawn.
+/// Rook pawns are drawn if the defending king can reach the corner.
+#[inline(always)]
+fn is_rook_pawn_draw(
+    pawn_file: Square,
+    pawn_rank: Square,
+    def_file: Square,
+    def_rank: Square,
+    atk_rank: Square,
+    pawn_is_white: bool,
+    mover: Mover,
+) -> bool {
+    // Promotion square corner: a8 for a-pawn (white) or a1 for a-pawn (black)
+    // h8 for h-pawn (white) or h1 for h-pawn (black)
+    let promo_rank = if pawn_is_white { 7 } else { 0 };
+
+    // If defending king is on the promotion file (same as pawn) and ahead of/at promotion rank
+    // or can reach the corner, it's drawn
+    if def_file == pawn_file {
+        if pawn_is_white {
+            // Defending king on promotion file and at or ahead of pawn
+            if def_rank >= pawn_rank {
+                return true;
+            }
+        } else {
+            // Black pawn: defending king on file and at or below pawn
+            if def_rank <= pawn_rank {
+                return true;
+            }
+        }
+    }
+
+    // If defending king is in the corner or can reach it before pawn promotes
+    // Simple heuristic: if defending king is within reach of corner
+    let corner_rank = promo_rank;
+    let corner_file = pawn_file;
+
+    let def_dist_to_corner = max((def_file - corner_file).abs(), (def_rank - corner_rank).abs());
+
+    // Distance for pawn to promote
+    let pawn_dist_to_promo = if pawn_is_white { 7 - pawn_rank } else { pawn_rank };
+
+    // Account for who moves - defender gets -1 if they move first
+    let def_moves = if (pawn_is_white && mover == BLACK) || (!pawn_is_white && mover == WHITE) {
+        def_dist_to_corner.saturating_sub(1)
+    } else {
+        def_dist_to_corner
+    };
+
+    // If defender can reach corner in time, it's drawn
+    if def_moves <= pawn_dist_to_promo {
+        // Also check that attacking king isn't cutting off the path
+        // Simple: if attacking king is not between defender and corner, likely draw
+        if pawn_is_white {
+            if atk_rank <= def_rank || atk_rank < pawn_rank {
+                return true;
+            }
+        } else if atk_rank >= def_rank || atk_rank > pawn_rank {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Check if a non-rook pawn position is drawn due to opposition.
+/// The defending king has opposition if it's on the same file as the pawn,
+/// in front of the pawn, and the attacker cannot outflank.
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+fn is_opposition_draw(
+    pawn_file: Square,
+    pawn_rank: Square,
+    def_file: Square,
+    def_rank: Square,
+    atk_file: Square,
+    atk_rank: Square,
+    pawn_is_white: bool,
+    mover: Mover,
+) -> bool {
+    // Defending king must be on the pawn's file or adjacent files
+    let file_diff = (def_file - pawn_file).abs();
+    if file_diff > 1 {
+        return false;
+    }
+
+    // Defending king must be in front of the pawn
+    if pawn_is_white {
+        if def_rank <= pawn_rank {
+            return false;
+        }
+    } else if def_rank >= pawn_rank {
+        return false;
+    }
+
+    // Check for direct opposition: kings on same file, odd number of ranks apart
+    if def_file == atk_file {
+        let rank_diff = (def_rank - atk_rank).abs();
+        if rank_diff % 2 == 0 {
+            // Even distance - side to move has opposition
+            // If it's the attacker's move and they have opposition, not drawn
+            // If it's the defender's move and they have opposition, drawn
+            let attacker_to_move = (pawn_is_white && mover == WHITE) || (!pawn_is_white && mover == BLACK);
+            if !attacker_to_move {
+                // Defender to move with even distance = defender has opposition = NOT drawn
+                // (defender loses opposition by moving)
+                return false;
+            }
+            // Attacker to move with even distance = drawn (defender will get opposition)
+            return def_file == pawn_file && rank_diff == 2;
+        } else {
+            // Odd distance - side NOT to move has opposition
+            let attacker_to_move = (pawn_is_white && mover == WHITE) || (!pawn_is_white && mover == BLACK);
+            if attacker_to_move {
+                // Attacker to move, defender has opposition
+                // If defending king is directly in front of pawn, likely drawn
+                if def_file == pawn_file {
+                    // Check if attacking king is far enough that it can't outflank
+                    let atk_file_diff = (atk_file - pawn_file).abs();
+                    if atk_file_diff <= 1 {
+                        // Attacking king is close but defender has opposition
+                        // This is the classic drawn position
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    false
 }
 
 fn cache_piece_count(position: &Position, cache: &mut EvaluateCache) {

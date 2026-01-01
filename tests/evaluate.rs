@@ -500,3 +500,53 @@ fn it_gives_king_centralization_bonus_in_endgames() {
     let bonus = endgame_king_centralization_bonus(&position);
     assert!(bonus > 0, "Knight endgame should still give bonus, got {}", bonus);
 }
+
+fn test_kpk_draw(fen: &str, expected_draw: bool) {
+    use rusty_rival::evaluate::is_kpk_draw;
+
+    let position = get_position(fen);
+    let piece_count = (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+        + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8;
+
+    assert_eq!(
+        is_kpk_draw(&position, piece_count),
+        expected_draw,
+        "KP vs K draw detection failed for FEN: {} (expected {})",
+        fen,
+        if expected_draw { "draw" } else { "not draw" }
+    );
+
+    // If it's a draw, evaluate should return 0
+    if expected_draw {
+        assert_eq!(evaluate(&position), 0, "Drawn KP vs K position should evaluate to 0: {}", fen);
+    }
+}
+
+#[test]
+fn it_detects_kpk_draws() {
+    // Classic opposition draw - White to move, Black has opposition
+    // 8/8/8/4k3/8/4K3/4P3/8 w - Ke3, Pe2 vs Ke5
+    // Kings on same file (e), 2 ranks apart, White to move = Black has opposition
+    test_kpk_draw("8/8/8/4k3/8/4K3/4P3/8 w - - 0 1", true);
+
+    // Same position but Black to move - White has opposition, NOT drawn
+    test_kpk_draw("8/8/8/4k3/8/4K3/4P3/8 b - - 0 1", false);
+
+    // White king on key square (d4) - winning, not drawn
+    test_kpk_draw("8/8/8/4k3/3K4/8/4P3/8 w - - 0 1", false);
+
+    // Rook pawn - defending king in front on same file = draw
+    test_kpk_draw("k7/8/K7/P7/8/8/8/8 w - - 0 1", true);
+
+    // Rook pawn - defending king can reach corner = draw
+    test_kpk_draw("8/8/8/8/8/k7/P7/K7 w - - 0 1", true);
+
+    // Rook pawn - defending king too far = not draw
+    test_kpk_draw("8/8/8/8/8/8/P6k/K7 w - - 0 1", false);
+
+    // Black pawn version - opposition draw
+    test_kpk_draw("8/4p3/8/4k3/8/4K3/8/8 b - - 0 1", true);
+
+    // Not KP vs K (extra piece) - should not be detected as draw
+    test_kpk_draw("8/8/8/4k3/8/4K3/4P3/4N3 w - - 0 1", false);
+}
