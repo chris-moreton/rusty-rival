@@ -18,6 +18,7 @@ RAINBOW = [
     "\033[38;5;129m",  # Violet (7th most recent)
 ]
 BASELINE_COLOR = "\033[38;5;51m"  # Cyan for baseline (stands out from rainbow)
+OUTPERFORM_COLOR = "\033[38;5;213m"  # Pink for outperforming external engines
 RESET = "\033[0m"
 
 RESULTS_FILE = Path(__file__).parent.parent / "results" / "elo_ratings.json"
@@ -52,6 +53,41 @@ def find_recent_versions(ratings, count=7):
     # Return dict mapping name -> rank (0 = most recent)
     return {name: rank for rank, (_, name) in enumerate(recent)}
 
+
+def find_outperforming_engines(ratings):
+    """Find external engines (sf/maia) that outperform higher-rated versions of themselves.
+
+    An engine is "outperforming" if it has a lower nominal rating but higher actual Elo
+    than another engine in the same family.
+
+    Returns a set of engine names that are outperforming.
+    """
+    outperforming = set()
+
+    # Group engines by family (sf, maia)
+    families = {"sf": [], "maia": []}
+
+    for name, data in ratings.items():
+        # Match sf-XXXX or maia-XXXX (but not sf-full)
+        for prefix in families:
+            match = re.match(rf'^{prefix}-(\d+)$', name)
+            if match:
+                nominal_rating = int(match.group(1))
+                actual_elo = data["elo"]
+                families[prefix].append((nominal_rating, actual_elo, name))
+                break
+
+    # For each family, find outperformers
+    for family_engines in families.values():
+        for i, (nominal_i, elo_i, name_i) in enumerate(family_engines):
+            for nominal_j, elo_j, name_j in family_engines:
+                # If engine i has lower nominal rating but higher actual Elo
+                if nominal_i < nominal_j and elo_i > elo_j:
+                    outperforming.add(name_i)
+                    break  # Only need to find one case
+
+    return outperforming
+
 def display_table(ratings):
     """Display ratings as a formatted table."""
     clear_screen()
@@ -71,6 +107,9 @@ def display_table(ratings):
     # Find recent versions to highlight with rainbow colors
     recent_versions = find_recent_versions(ratings, count=7)
 
+    # Find outperforming external engines (sf/maia beating higher-rated siblings)
+    outperforming = find_outperforming_engines(ratings)
+
     # Calculate column widths
     name_width = max(len(name) for name in ratings.keys())
     name_width = max(name_width, 6)  # minimum "Engine"
@@ -89,6 +128,8 @@ def display_table(ratings):
             print(f"{RAINBOW[rank]}{row}{RESET}")
         elif name == "v001-baseline":
             print(f"{BASELINE_COLOR}{row}{RESET}")
+        elif name in outperforming:
+            print(f"{OUTPERFORM_COLOR}{row}{RESET}")
         else:
             print(row)
 
