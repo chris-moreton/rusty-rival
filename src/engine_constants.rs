@@ -56,6 +56,9 @@ pub const VALUE_BISHOP_PAIR: Score = 10;
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 30;
 pub const VALUE_KNIGHT_OUTPOST: Score = 7;
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24, 26, 30, 36, 44, 56];
+// Bonus for connected passed pawns (two passed pawns on adjacent files)
+// They're very dangerous as they support each other toward promotion
+pub const VALUE_CONNECTED_PASSED_PAWNS: [Score; 6] = [12, 18, 28, 42, 60, 80];
 pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 15;
 pub const DOUBLED_PAWN_PENALTY: Score = 15;
 pub const ISOLATED_PAWN_PENALTY: Score = 10;

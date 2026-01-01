@@ -8,7 +8,7 @@ use crate::engine_constants::{
     KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE,
     QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
     STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
-    VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
+    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
     VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
     VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
@@ -826,6 +826,7 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
     let black_passed_pawns: Bitboard = black_pawns & !north_fill(white_pawns | white_pawn_attacks | (black_pawns << 8));
 
     let guarded_score = guarded_passed_pawn_score(white_pawns, black_pawns, white_passed_pawns, black_passed_pawns);
+    let connected_score = connected_passed_pawn_score(white_passed_pawns, black_passed_pawns);
 
     let mut passed_score = 0;
 
@@ -894,7 +895,7 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
         0
     };
 
-    guarded_score + passed_score + passed_pawn_bonus
+    guarded_score + connected_score + passed_score + passed_pawn_bonus
 }
 
 #[inline(always)]
@@ -908,6 +909,46 @@ pub fn guarded_passed_pawn_score(
     let black_guarded_passed_pawns = black_passed_pawns & (((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9));
 
     (white_guarded_passed_pawns.count_ones() as Score - black_guarded_passed_pawns.count_ones() as Score) * VALUE_GUARDED_PASSED_PAWN
+}
+
+/// Score for connected passed pawns (passed pawns on adjacent files).
+/// Connected passed pawns are extremely dangerous as they support each other toward promotion.
+/// The bonus is based on the rank of the more advanced pawn in each connected pair.
+#[inline(always)]
+pub fn connected_passed_pawn_score(white_passed_pawns: Bitboard, black_passed_pawns: Bitboard) -> Score {
+    let mut score: Score = 0;
+
+    // Check each pair of adjacent files for connected white passed pawns
+    for file in 0..7 {
+        let this_file = FILE_MASKS[file];
+        let next_file = FILE_MASKS[file + 1];
+
+        // White connected passed pawns
+        let white_this = white_passed_pawns & this_file;
+        let white_next = white_passed_pawns & next_file;
+        if white_this != 0 && white_next != 0 {
+            // Find the most advanced pawn in this connected pair
+            // Higher bit position = more advanced for white
+            let most_advanced_rank = max((63 - white_this.leading_zeros()) / 8, (63 - white_next.leading_zeros()) / 8) as usize;
+            // Rank 2 = index 0, rank 7 = index 5
+            let rank_index = most_advanced_rank.saturating_sub(1).min(5);
+            score += VALUE_CONNECTED_PASSED_PAWNS[rank_index];
+        }
+
+        // Black connected passed pawns
+        let black_this = black_passed_pawns & this_file;
+        let black_next = black_passed_pawns & next_file;
+        if black_this != 0 && black_next != 0 {
+            // Find the most advanced pawn in this connected pair
+            // Lower bit position = more advanced for black
+            let most_advanced_rank = min(black_this.trailing_zeros() / 8, black_next.trailing_zeros() / 8) as usize;
+            // Rank 7 = index 0, rank 2 = index 5
+            let rank_index = (6 - most_advanced_rank).min(5);
+            score -= VALUE_CONNECTED_PASSED_PAWNS[rank_index];
+        }
+    }
+
+    score
 }
 
 #[inline(always)]

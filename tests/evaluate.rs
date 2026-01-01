@@ -2,13 +2,13 @@ use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{
     BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
     KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE,
-    QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
+    QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
     VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
 };
 use rusty_rival::evaluate::{
-    black_king_early_safety, count_knight_fork_threats, doubled_and_isolated_pawn_score, evaluate, insufficient_material,
-    is_wrong_colored_bishop_draw, isolated_pawn_count, king_threat_score, knight_fork_threat_score, knight_outpost_scores, material_score,
-    on_same_file_count, passed_pawn_score, white_king_early_safety,
+    black_king_early_safety, connected_passed_pawn_score, count_knight_fork_threats, doubled_and_isolated_pawn_score, evaluate,
+    insufficient_material, is_wrong_colored_bishop_draw, isolated_pawn_count, king_threat_score, knight_fork_threat_score,
+    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety,
 };
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
@@ -161,7 +161,8 @@ fn it_gets_the_passed_pawn_score() {
                           VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
                (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
                 VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
+                VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
                    (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
     );
     test_passed_pawns(
@@ -171,7 +172,8 @@ fn it_gets_the_passed_pawn_score() {
                           VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
                       (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
                           VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                          VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                          VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
+                          VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
                           (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
     );
     test_passed_pawns(
@@ -181,7 +183,8 @@ fn it_gets_the_passed_pawn_score() {
                           VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
                           (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
                               VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                              VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                              VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
+                              VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
                           (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
     );
     test_passed_pawns(
@@ -190,7 +193,8 @@ fn it_gets_the_passed_pawn_score() {
                           VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
                           (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
                               VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                              VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                              VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
+                              VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
                           (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
     );
     test_passed_pawns(
@@ -200,7 +204,8 @@ fn it_gets_the_passed_pawn_score() {
                           (4 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) +
                           (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
                               VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                              VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                              VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
+                              VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
                           (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
     );
     test_passed_pawns(
@@ -211,7 +216,8 @@ fn it_gets_the_passed_pawn_score() {
                           (4 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) +
                           (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
                               VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                              VALUE_PASSED_PAWN_BONUS[2]) - // white pawn on 4th
+                              VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
+                              VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
                           (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
     );
 }
@@ -549,4 +555,71 @@ fn it_detects_kpk_draws() {
 
     // Not KP vs K (extra piece) - should not be detected as draw
     test_kpk_draw("8/8/8/4k3/8/4K3/4P3/4N3 w - - 0 1", false);
+}
+
+fn test_connected_passed_pawns(white_passed: u64, black_passed: u64, expected_score: Score) {
+    let score = connected_passed_pawn_score(white_passed, black_passed);
+    assert_eq!(
+        score, expected_score,
+        "Connected passed pawn score wrong: expected {}, got {}",
+        expected_score, score
+    );
+}
+
+#[test]
+fn it_scores_connected_passed_pawns() {
+    // No passed pawns
+    test_connected_passed_pawns(0, 0, 0);
+
+    // Single passed pawn (not connected)
+    // e5 = square 36 (rank 4 from h1=0)
+    test_connected_passed_pawns(1 << 36, 0, 0);
+
+    // Two white passed pawns on adjacent files (d5 and e5)
+    // d5 = square 35, e5 = square 36 (both on rank 5)
+    // Rank 5 for white = index 3 in VALUE_CONNECTED_PASSED_PAWNS
+    test_connected_passed_pawns((1 << 35) | (1 << 36), 0, VALUE_CONNECTED_PASSED_PAWNS[3]);
+
+    // Two white passed pawns on same file (not connected)
+    // e4 = square 28, e5 = square 36
+    test_connected_passed_pawns((1 << 28) | (1 << 36), 0, 0);
+
+    // Two white passed pawns far apart (b5 and g5 - not connected)
+    // b5 = square 33, g5 = square 38
+    test_connected_passed_pawns((1 << 33) | (1 << 38), 0, 0);
+
+    // Two black passed pawns on adjacent files (d4 and e4)
+    // e4 = square 27, d4 = square 28 (both on rank 4 for black)
+    // Rank 4 for black = index 3 in VALUE_CONNECTED_PASSED_PAWNS (7-4=3)
+    test_connected_passed_pawns(0, (1 << 27) | (1 << 28), -VALUE_CONNECTED_PASSED_PAWNS[3]);
+
+    // Two black passed pawns on rank 3 (more advanced for black)
+    // e3 = square 19, d3 = square 20
+    // Rank 3 for black = index 4 in VALUE_CONNECTED_PASSED_PAWNS (7-3=4)
+    test_connected_passed_pawns(0, (1 << 19) | (1 << 20), -VALUE_CONNECTED_PASSED_PAWNS[4]);
+
+    // White connected on rank 6 (very advanced)
+    // e6 = square 43, d6 = square 44
+    // Rank 6 for white = index 4
+    test_connected_passed_pawns((1 << 43) | (1 << 44), 0, VALUE_CONNECTED_PASSED_PAWNS[4]);
+
+    // White connected on rank 7 (about to promote!)
+    // e7 = square 51, d7 = square 52
+    // Rank 7 for white = index 5
+    test_connected_passed_pawns((1 << 51) | (1 << 52), 0, VALUE_CONNECTED_PASSED_PAWNS[5]);
+
+    // Both sides have connected passed pawns
+    test_connected_passed_pawns(
+        (1 << 35) | (1 << 36), // white e5, d5 (rank 5 = index 3)
+        (1 << 19) | (1 << 20), // black e3, d3 (rank 3 = index 4)
+        VALUE_CONNECTED_PASSED_PAWNS[3] - VALUE_CONNECTED_PASSED_PAWNS[4],
+    );
+
+    // Three white passed pawns on consecutive files (e5, d5, c5) = two connected pairs
+    // e5 = square 35, d5 = square 36, c5 = square 37
+    test_connected_passed_pawns(
+        (1 << 35) | (1 << 36) | (1 << 37),
+        0,
+        VALUE_CONNECTED_PASSED_PAWNS[3] * 2, // e-d pair and d-c pair
+    );
 }
