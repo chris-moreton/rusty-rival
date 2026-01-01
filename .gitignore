@@ -6,6 +6,7 @@ perf.data*
 /engines/*
 /.venv/
 history.txt
+scripts/__pycache__/*
 
 
 
