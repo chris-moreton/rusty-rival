@@ -1,60 +1,70 @@
 {
   "maia-1100": {
     "binary": "/opt/homebrew/bin/lc0",
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1100.pb.gz"
     }
   },
   "maia-1200": {
     "binary": "/opt/homebrew/bin/lc0",
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1200.pb.gz"
     }
   },
   "maia-1300": {
     "binary": "/opt/homebrew/bin/lc0",
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1300.pb.gz"
     }
   },
   "maia-1400": {
     "binary": "/opt/homebrew/bin/lc0",
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1400.pb.gz"
     }
   },
   "maia-1500": {
     "binary": "/opt/homebrew/bin/lc0",
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1500.pb.gz"
     }
   },
   "maia-1600": {
     "binary": "/opt/homebrew/bin/lc0",
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1600.pb.gz"
     }
   },
   "maia-1700": {
     "binary": "/opt/homebrew/bin/lc0",
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1700.pb.gz"
     }
   },
   "maia-1800": {
     "binary": "/opt/homebrew/bin/lc0",
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1800.pb.gz"
     }
   },
   "maia-1900": {
     "binary": "/opt/homebrew/bin/lc0",
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1900.pb.gz"
     }
   },
   "sf-1400": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1400"
@@ -62,6 +72,7 @@
   },
   "sf-1600": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1600"
@@ -69,6 +80,7 @@
   },
   "sf-1800": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1800"
@@ -76,6 +88,7 @@
   },
   "sf-2000": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2000"
@@ -83,6 +96,7 @@
   },
   "sf-2200": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2200"
@@ -90,6 +104,7 @@
   },
   "sf-2400": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2400"
@@ -97,6 +112,7 @@
   },
   "sf-2600": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2600"
@@ -104,6 +120,7 @@
   },
   "sf-2800": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2800"
@@ -111,16 +128,19 @@
   },
   "sf-3000": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "3000"
     }
   },
   "sf-full": {
-    "binary": "stockfish/stockfish-macos-m1-apple-silicon"
+    "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true
   },
   "velvet-1400": {
     "binary": "velvet/velvet",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1400"
@@ -128,6 +148,7 @@
   },
   "velvet-1800": {
     "binary": "velvet/velvet",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1800"
@@ -135,6 +156,7 @@
   },
   "velvet-2200": {
     "binary": "velvet/velvet",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2200"
@@ -142,81 +164,106 @@
   },
   "velvet-2600": {
     "binary": "velvet/velvet",
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2600"
     }
   },
   "velvet-full": {
-    "binary": "velvet/velvet"
+    "binary": "velvet/velvet",
+    "active": true
   },
   "v001-baseline": {
-    "binary": "v001-baseline/rusty-rival"
+    "binary": "v001-baseline/rusty-rival",
+    "active": false
   },
   "v003-improved": {
-    "binary": "v003-improved/rusty-rival"
+    "binary": "v003-improved/rusty-rival",
+    "active": false
   },
   "v004-performance": {
-    "binary": "v004-performance/rusty-rival"
+    "binary": "v004-performance/rusty-rival",
+    "active": false
   },
   "v005-retain-opt": {
-    "binary": "v005-retain-opt/rusty-rival"
+    "binary": "v005-retain-opt/rusty-rival",
+    "active": false
   },
   "v006-arrayvec": {
-    "binary": "v006-arrayvec/rusty-rival"
+    "binary": "v006-arrayvec/rusty-rival",
+    "active": false
   },
   "v008-make-unmake-fixed": {
-    "binary": "v008-make-unmake-fixed/rusty-rival"
+    "binary": "v008-make-unmake-fixed/rusty-rival",
+    "active": false
   },
   "v008.1-history-bug-fix": {
-    "binary": "v008.1-history-bug-fix/rusty-rival"
+    "binary": "v008.1-history-bug-fix/rusty-rival",
+    "active": false
   },
   "v009-unmake-opt": {
-    "binary": "v009-unmake-opt/rusty-rival"
+    "binary": "v009-unmake-opt/rusty-rival",
+    "active": false
   },
   "v010-arrayvec-movelist": {
-    "binary": "v010-arrayvec-movelist/rusty-rival"
+    "binary": "v010-arrayvec-movelist/rusty-rival",
+    "active": false
   },
   "v011-check-evasion": {
-    "binary": "v011-check-evasion/rusty-rival"
+    "binary": "v011-check-evasion/rusty-rival",
+    "active": false
   },
   "v012-bishop-pair": {
-    "binary": "v012-bishop-pair/rusty-rival"
+    "binary": "v012-bishop-pair/rusty-rival",
+    "active": false
   },
   "v013-knight-fork": {
-    "binary": "v013-knight-fork/rusty-rival"
+    "binary": "v013-knight-fork/rusty-rival",
+    "active": false
   },
   "v014-rook-open-file": {
-    "binary": "v014-rook-open-file/rusty-rival"
+    "binary": "v014-rook-open-file/rusty-rival",
+    "active": false
   },
   "v015-rook-mobility": {
-    "binary": "v015-rook-mobility/rusty-rival"
+    "binary": "v015-rook-mobility/rusty-rival",
+    "active": false
   },
   "v016-queen-mobility": {
-    "binary": "v016-queen-mobility/rusty-rival"
+    "binary": "v016-queen-mobility/rusty-rival",
+    "active": false
   },
   "v017-connected-rooks": {
-    "binary": "v017-connected-rooks/rusty-rival"
+    "binary": "v017-connected-rooks/rusty-rival",
+    "active": false
   },
   "v018-killer-fix": {
-    "binary": "v018-killer-fix/rusty-rival"
+    "binary": "v018-killer-fix/rusty-rival",
+    "active": false
   },
   "v019-capture-fix": {
-    "binary": "v019-capture-fix/rusty-rival"
+    "binary": "v019-capture-fix/rusty-rival",
+    "active": true
   },
   "v020-remove-harmful-eval": {
-    "binary": "v020-remove-harmful-eval/rusty-rival"
+    "binary": "v020-remove-harmful-eval/rusty-rival",
+    "active": true
   },
   "v021-wrong-color-bishop": {
-    "binary": "v021-wrong-color-bishop/rusty-rival"
+    "binary": "v021-wrong-color-bishop/rusty-rival",
+    "active": true
   },
   "v022-king-activity": {
-    "binary": "v022-king-activity/rusty-rival"
+    "binary": "v022-king-activity/rusty-rival",
+    "active": true
   },
   "v023-kpk-draw": {
-    "binary": "v023-kpk-draw/rusty-rival"
+    "binary": "v023-kpk-draw/rusty-rival",
+    "active": true
   },
   "v024-connected-passed-pawns": {
-    "binary": "v024-connected-passed-pawns/rusty-rival"
+    "binary": "v024-connected-passed-pawns/rusty-rival",
+    "active": true
   }
 }

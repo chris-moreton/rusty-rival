@@ -108,6 +108,16 @@ def get_all_engines(engine_dir: Path) -> list[str]:
     return sorted(config.keys())
 
 
+def get_active_engines(engine_dir: Path) -> list[str]:
+    """
+    Get list of active engines from the config file.
+    Only returns engines where 'active' is True or not specified.
+    Returns sorted list of engine names.
+    """
+    config = load_engines_config()
+    return sorted([name for name, cfg in config.items() if cfg.get("active", True)])
+
+
 def get_engine_info(name: str, engine_dir: Path) -> tuple[Path, dict]:
     """
     Get engine binary path and UCI options from config.
@@ -1051,8 +1061,8 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
     Plays in rounds: each round consists of 2 games (1 as white, 1 as black) against each opponent.
     Each game uses a random opening.
     """
-    # Find all engines except the challenger (from config + auto-discovered)
-    all_engines = get_all_engines(engine_dir)
+    # Find all active engines except the challenger
+    all_engines = get_active_engines(engine_dir)
     opponents = [e for e in all_engines if e != challenger_name]
 
     if not opponents:
@@ -1247,8 +1257,8 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     from that range. Otherwise use time_per_move.
     """
     use_time_range = time_low is not None and time_high is not None
-    # Find all engines (from config + auto-discovered)
-    all_engines = get_all_engines(engine_dir)
+    # Find all active engines
+    all_engines = get_active_engines(engine_dir)
 
     if len(all_engines) < 2:
         print(f"Error: Need at least 2 engines in {engine_dir}, found {len(all_engines)}")
@@ -1272,7 +1282,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     print(f"\n{'='*70}")
     print(f"RANDOM MODE{' (WEIGHTED)' if weighted else ''}")
     print(f"{'='*70}")
-    print(f"Available engines: {len(all_engines)}")
+    print(f"Active engines: {len(all_engines)}")
     if weighted:
         print("Selection: weighted by inverse game count (fewer games = higher chance)")
     print(f"Matches: {num_matches} (2 games each = {total_games} total games)")
