@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Display ELO ratings in a live-updating table."""
 
+import argparse
 import json
 import re
 import sys
@@ -19,6 +20,7 @@ OUTPERFORM_COLOR = "\033[38;5;213m"  # Pink for outperforming external engines
 RESET = "\033[0m"
 
 RESULTS_FILE = Path(__file__).parent.parent / "results" / "elo_ratings.json"
+ENGINES_FILE = Path(__file__).parent.parent / "engines" / "engines.json"
 
 def clear_screen():
     """Clear screen and move cursor to top."""
@@ -30,6 +32,15 @@ def load_ratings():
         return {}
     with open(RESULTS_FILE) as f:
         return json.load(f)
+
+
+def load_active_engines():
+    """Load set of active engine names from engines.json."""
+    if not ENGINES_FILE.exists():
+        return None  # If no config, treat all as active
+    with open(ENGINES_FILE) as f:
+        config = json.load(f)
+    return {name for name, cfg in config.items() if cfg.get("active", True)}
 
 def find_recent_versions(ratings, count=4):
     """Find the N most recent versions of our engine (highest v### numbers).
@@ -136,6 +147,15 @@ def display_table(ratings):
 
 def main():
     """Main loop - watch file and update display."""
+    parser = argparse.ArgumentParser(description="Display ELO ratings in a live-updating table.")
+    parser.add_argument(
+        "-a", "--active-only",
+        action="store_true",
+        help="Only show engines marked as active in engines.json"
+    )
+    args = parser.parse_args()
+
+    active_engines = load_active_engines() if args.active_only else None
     last_mtime = 0
 
     try:
@@ -147,6 +167,8 @@ def main():
 
             if current_mtime != last_mtime:
                 ratings = load_ratings()
+                if active_engines is not None:
+                    ratings = {k: v for k, v in ratings.items() if k in active_engines}
                 display_table(ratings)
                 last_mtime = current_mtime
 

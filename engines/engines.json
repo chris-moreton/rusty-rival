@@ -176,23 +176,23 @@
   },
   "v001-baseline": {
     "binary": "v001-baseline/rusty-rival",
-    "active": false
+    "active": true
   },
   "v003-improved": {
     "binary": "v003-improved/rusty-rival",
-    "active": false
+    "active": true
   },
   "v004-performance": {
     "binary": "v004-performance/rusty-rival",
-    "active": false
+    "active": true
   },
   "v005-retain-opt": {
     "binary": "v005-retain-opt/rusty-rival",
-    "active": false
+    "active": true
   },
   "v006-arrayvec": {
     "binary": "v006-arrayvec/rusty-rival",
-    "active": false
+    "active": true
   },
   "v008-make-unmake-fixed": {
     "binary": "v008-make-unmake-fixed/rusty-rival",
