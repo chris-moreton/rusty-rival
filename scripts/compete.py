@@ -1249,9 +1249,10 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     Randomly select pairs of engines and play 2-game matches (1 white, 1 black).
     Each game uses a random opening.
 
-    If weighted=True, engines with fewer games are more likely to be selected.
-    Weight = 1 / (games + 1), so an engine with 0 games has weight 1.0,
-    while one with 100 games has weight ~0.01.
+    If weighted=True, the first engine is selected with bias toward fewer games
+    (weight = 1 / (games + 1)), while the second engine is chosen purely at random.
+    This ensures under-tested engines get priority but play diverse opponents
+    for better Elo calibration.
 
     If time_low and time_high are provided, randomly select a time for each match
     from that range. Otherwise use time_per_move.
@@ -1284,7 +1285,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     print(f"{'='*70}")
     print(f"Active engines: {len(all_engines)}")
     if weighted:
-        print("Selection: weighted by inverse game count (fewer games = higher chance)")
+        print("Selection: first engine weighted (fewer games = higher chance), second random")
     print(f"Matches: {num_matches} (2 games each = {total_games} total games)")
     if use_time_range:
         print(f"Time: {time_low}-{time_high}s/move (random per match)")
@@ -1309,10 +1310,9 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             # Weight = 1 / (games + 1) - fewer games means higher weight
             weights = [1.0 / (elo_ratings[e]["games"] + 1) for e in all_engines]
             engine1 = random.choices(all_engines, weights=weights, k=1)[0]
-            # Remove engine1 and recalculate weights for engine2
+            # Pick engine2 purely at random (not weighted) for better Elo calibration
             remaining = [e for e in all_engines if e != engine1]
-            weights2 = [1.0 / (elo_ratings[e]["games"] + 1) for e in remaining]
-            engine2 = random.choices(remaining, weights=weights2, k=1)[0]
+            engine2 = random.choice(remaining)
         else:
             engine1, engine2 = random.sample(all_engines, 2)
         engine1_path, engine1_uci = get_engine_info(engine1, engine_dir)

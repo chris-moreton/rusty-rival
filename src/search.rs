@@ -4,6 +4,7 @@ use crate::engine_constants::{
     NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE,
 };
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
+use crate::tablebase::{probe_wdl, tablebase_available};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
@@ -310,6 +311,14 @@ pub fn search(
     if is_draw(position, search_state, ply) {
         search_state.nodes += 1;
         return (pv_single(0), draw_value(position, search_state));
+    }
+
+    // Tablebase probe - only at root or shallow depths to avoid slowdown
+    if tablebase_available() && ply > 0 {
+        if let Some(tb_score) = probe_wdl(position) {
+            search_state.nodes += 1;
+            return (pv_single(0), tb_score);
+        }
     }
 
     let scouting = window.1 - window.0 == 1;

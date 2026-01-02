@@ -17,6 +17,7 @@ pub mod quiesce;
 mod scan;
 pub mod search;
 pub mod see;
+pub mod tablebase;
 pub mod types;
 pub mod uci;
 pub mod uci_bench;

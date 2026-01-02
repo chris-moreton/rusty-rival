@@ -1,4 +1,5 @@
 use crate::engine_constants::{NUM_HASH_ENTRIES, UCI_MILLIS_REDUCTION};
+use crate::tablebase::init_tablebase;
 
 use either::{Either, Left, Right};
 
@@ -304,6 +305,7 @@ id author Chris Moreton
 option name Clear Hash type button
 option name MultiPV type spin default 1 min 1 max 20
 option name Contempt type spin default 0 min -1000 max 1000
+option name SyzygyPath type string default <empty>
 uciok"#
             .parse()
             .unwrap(),
@@ -366,6 +368,21 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<Str
                     Right(None)
                 } else {
                     Left("Invalid option command".parse().unwrap())
+                }
+            }
+            "syzygypath" => {
+                // Handle path with spaces by joining everything after "value"
+                if parts.len() >= 5 && parts[3] == "value" {
+                    let path = parts[4..].join(" ");
+                    match init_tablebase(&path) {
+                        Ok(count) => {
+                            eprintln!("info string Loaded {} tablebase files from {}", count, path);
+                            Right(None)
+                        }
+                        Err(e) => Left(format!("Failed to load tablebases: {}", e)),
+                    }
+                } else {
+                    Left("usage: setoption name SyzygyPath value <path>".parse().unwrap())
                 }
             }
             _ => Left("Unknown option".parse().unwrap()),

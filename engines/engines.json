@@ -1,42 +1,42 @@
 {
   "maia-1100": {
     "binary": "/opt/homebrew/bin/lc0",
-    "active": true,
+    "active": false,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1100.pb.gz"
     }
   },
   "maia-1200": {
     "binary": "/opt/homebrew/bin/lc0",
-    "active": true,
+    "active": false,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1200.pb.gz"
     }
   },
   "maia-1300": {
     "binary": "/opt/homebrew/bin/lc0",
-    "active": true,
+    "active": false,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1300.pb.gz"
     }
   },
   "maia-1400": {
     "binary": "/opt/homebrew/bin/lc0",
-    "active": true,
+    "active": false,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1400.pb.gz"
     }
   },
   "maia-1500": {
     "binary": "/opt/homebrew/bin/lc0",
-    "active": true,
+    "active": false,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1500.pb.gz"
     }
   },
   "maia-1600": {
     "binary": "/opt/homebrew/bin/lc0",
-    "active": true,
+    "active": false,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1600.pb.gz"
     }
@@ -64,7 +64,7 @@
   },
   "sf-1400": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1400"
@@ -72,7 +72,7 @@
   },
   "sf-1600": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1600"
@@ -80,7 +80,7 @@
   },
   "sf-1800": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1800"
@@ -88,7 +88,7 @@
   },
   "sf-2000": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2000"
@@ -96,7 +96,7 @@
   },
   "sf-2200": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2200"
@@ -116,6 +116,14 @@
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2600"
+    }
+  },
+  "sf-2700": {
+    "binary": "stockfish/stockfish-macos-m1-apple-silicon",
+    "active": true,
+    "uci_options": {
+      "UCI_LimitStrength": "true",
+      "UCI_Elo": "2700"
     }
   },
   "sf-2800": {
@@ -140,7 +148,7 @@
   },
   "velvet-1400": {
     "binary": "velvet/velvet",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1400"
@@ -148,13 +156,21 @@
   },
   "velvet-1800": {
     "binary": "velvet/velvet",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "1800"
     }
   },
   "velvet-2200": {
+    "binary": "velvet/velvet",
+    "active": true,
+    "uci_options": {
+      "UCI_LimitStrength": "true",
+      "UCI_Elo": "2200"
+    }
+  },
+  "velvet-2400": {
     "binary": "velvet/velvet",
     "active": true,
     "uci_options": {
@@ -265,5 +281,12 @@
   "v024-connected-passed-pawns": {
     "binary": "v024-connected-passed-pawns/rusty-rival",
     "active": true
+  },
+  "v025-tablebase": {
+    "binary": "v025-tablebase/rusty-rival",
+    "active": true,
+    "uci_options": {
+      "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
+    }
   }
 }
