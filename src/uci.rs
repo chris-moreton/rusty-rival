@@ -376,7 +376,7 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<Str
                     let path = parts[4..].join(" ");
                     match init_tablebase(&path) {
                         Ok(count) => {
-                            eprintln!("info string Loaded {} tablebase files from {}", count, path);
+                            println!("info string Loaded {} tablebase files from {}", count, path);
                             Right(None)
                         }
                         Err(e) => Left(format!("Failed to load tablebases: {}", e)),
