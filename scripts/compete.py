@@ -24,6 +24,11 @@ Usage:
 
     # Random mode with time range: time randomly selected per match
     ./scripts/compete.py --random --games 100 --timelow 0.1 --timehigh 1.0
+
+    # EPD mode: play through all positions from an EPD file
+    # Each position played twice per pairing (once per side)
+    ./scripts/compete.py v27 v24 --epd eet.epd --time 1.0
+    ./scripts/compete.py v27 v24 v1 --epd engines/epd/pet.epd --time 0.5
 """
 
 import argparse
@@ -97,6 +102,51 @@ def save_engines_config(config: dict):
     config_file.parent.mkdir(parents=True, exist_ok=True)
     with open(config_file, "w") as f:
         json.dump(config, f, indent=2, sort_keys=True)
+
+
+def load_epd_positions(epd_file: Path) -> list[tuple[str, str]]:
+    """
+    Load positions from an EPD file.
+    Returns list of (fen, position_id) tuples.
+
+    EPD format: FEN [operations]
+    Example: 8/8/p2p3p/3k2p1/PP6/3K1P1P/8/8 b - - bm Kc6; id "E_E_T 001";
+
+    We extract the FEN (first 4 fields) and the id if present.
+    If no id, we use the position number.
+    """
+    positions = []
+    with open(epd_file, "r") as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            # EPD has 4 FEN fields (board, side, castling, en passant)
+            # followed by optional operations like bm, id, etc.
+            parts = line.split()
+            if len(parts) < 4:
+                continue
+
+            # Construct FEN with default halfmove/fullmove counts
+            fen = f"{parts[0]} {parts[1]} {parts[2]} {parts[3]} 0 1"
+
+            # Try to extract id from the line
+            pos_id = None
+            if 'id "' in line:
+                try:
+                    start = line.index('id "') + 4
+                    end = line.index('"', start)
+                    pos_id = line[start:end]
+                except ValueError:
+                    pass
+
+            if pos_id is None:
+                pos_id = f"Position {line_num}"
+
+            positions.append((fen, pos_id))
+
+    return positions
 
 
 def get_all_engines(engine_dir: Path) -> list[str]:
@@ -903,6 +953,166 @@ def print_league_table(ratings: dict, competitors: set[str], games_this_comp: di
     print()
 
 
+def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
+            time_per_move: float, results_dir: Path):
+    """
+    Run a competition using positions from an EPD file.
+    Each position is played twice (once with each engine as white).
+    For 2 engines, it's head-to-head. For 3+ engines, it's round-robin per position.
+    """
+    from itertools import combinations
+
+    # Load EPD positions
+    positions = load_epd_positions(epd_file)
+    if not positions:
+        print(f"Error: No valid positions found in {epd_file}")
+        sys.exit(1)
+
+    print(f"\n{'='*70}")
+    print(f"EPD Competition: {epd_file.name}")
+    print(f"Positions: {len(positions)}")
+    print(f"Engines: {', '.join(engine_names)}")
+    print(f"Time: {time_per_move}s/move")
+    print(f"Note: Elo ratings NOT updated (EPD mode uses specialized positions)")
+    print(f"{'='*70}")
+
+    # Get engine info
+    engine_info = {}
+    for name in engine_names:
+        path, uci_options = get_engine_info(name, engine_dir)
+        engine_info[name] = {"path": path, "uci_options": uci_options}
+
+    # Load persistent Elo ratings
+    elo_ratings = load_elo_ratings()
+
+    # Initialize engines if needed
+    for name in engine_names:
+        if name not in elo_ratings:
+            if elo_ratings:
+                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
+            else:
+                avg_elo = DEFAULT_ELO
+            elo_ratings[name] = {"elo": avg_elo, "games": 0}
+            save_elo_ratings(elo_ratings)
+
+    # Show starting Elo
+    print(f"\nStarting Elo:")
+    for name in engine_names:
+        data = elo_ratings[name]
+        prov = "?" if data["games"] < PROVISIONAL_GAMES else ""
+        print(f"  {name}: {data['elo']:.0f} ({data['games']} games){prov}")
+    print(flush=True)
+
+    # Create pairings
+    pairings = list(combinations(engine_names, 2))
+
+    # Calculate total games: positions * 2 (both colors) * pairings
+    total_games = len(positions) * 2 * len(pairings)
+    print(f"Total games: {total_games} ({len(positions)} positions x 2 colors x {len(pairings)} pairings)")
+    print()
+
+    # Session tracking
+    session_points = {name: 0.0 for name in engine_names}
+    session_games = {name: 0 for name in engine_names}
+
+    # Create PGN file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    pgn_file = results_dir / f"epd_{epd_file.stem}_{timestamp}.pgn"
+    with open(pgn_file, "w") as f:
+        pass
+
+    game_num = 0
+
+    # Iterate through each position
+    for pos_idx, (fen, pos_id) in enumerate(positions):
+        print(f"\n--- Position {pos_idx + 1}/{len(positions)}: {pos_id} ---")
+
+        # For each pairing, play the position twice (swap colors)
+        for engine1_name, engine2_name in pairings:
+            engine1 = engine_info[engine1_name]
+            engine2 = engine_info[engine2_name]
+
+            # Game 1: engine1 as white
+            game_num += 1
+            result, game = play_game(
+                engine1["path"], engine2["path"],
+                engine1_name, engine2_name,
+                time_per_move, fen, pos_id,
+                engine1["uci_options"], engine2["uci_options"]
+            )
+
+            # Save to PGN
+            with open(pgn_file, "a") as f:
+                print(game, file=f)
+                print(file=f)
+
+            # Note: We don't update global Elo in EPD mode since these are
+            # specialized positions that would skew ratings
+
+            # Update session stats
+            session_games[engine1_name] += 1
+            session_games[engine2_name] += 1
+            if result == "1-0":
+                session_points[engine1_name] += 1
+            elif result == "0-1":
+                session_points[engine2_name] += 1
+            elif result == "1/2-1/2":
+                session_points[engine1_name] += 0.5
+                session_points[engine2_name] += 0.5
+
+            print(f"  Game {game_num}/{total_games}: {engine1_name} vs {engine2_name} -> {result}")
+
+            # Game 2: engine2 as white (swap colors)
+            game_num += 1
+            result, game = play_game(
+                engine2["path"], engine1["path"],
+                engine2_name, engine1_name,
+                time_per_move, fen, pos_id,
+                engine2["uci_options"], engine1["uci_options"]
+            )
+
+            # Save to PGN
+            with open(pgn_file, "a") as f:
+                print(game, file=f)
+                print(file=f)
+
+            # Update session stats
+            session_games[engine1_name] += 1
+            session_games[engine2_name] += 1
+            if result == "1-0":
+                session_points[engine2_name] += 1
+            elif result == "0-1":
+                session_points[engine1_name] += 1
+            elif result == "1/2-1/2":
+                session_points[engine1_name] += 0.5
+                session_points[engine2_name] += 0.5
+
+            print(f"  Game {game_num}/{total_games}: {engine2_name} vs {engine1_name} -> {result}")
+
+        # Show standings after each position
+        print_league_table(
+            elo_ratings, set(engine_names), session_games,
+            session_points, 0, False, True, game_num, total_games
+        )
+
+    # Final summary
+    print(f"\n{'='*70}")
+    print("EPD COMPETITION COMPLETE")
+    print(f"{'='*70}")
+    print(f"Positions: {len(positions)}")
+    print(f"Games: {total_games}")
+    print(f"PGN: {pgn_file}")
+
+    print(f"\nFinal Standings:")
+    sorted_results = sorted(session_points.items(), key=lambda x: -x[1])
+    for rank, (name, points) in enumerate(sorted_results, 1):
+        games = session_games[name]
+        prov = "?" if elo_ratings[name]["games"] < PROVISIONAL_GAMES else ""
+        print(f"  {rank}. {name}: {points:.1f}/{games} (Elo: {elo_ratings[name]['elo']:.0f}{prov})")
+
+    print(f"{'='*70}")
+
+
 def run_league(engine_names: list[str], engine_dir: Path,
                games_per_pairing: int, time_per_move: float, results_dir: Path,
                use_opening_book: bool = True):
@@ -1460,6 +1670,8 @@ def main():
                         help="Random mode: randomly pair engines for 2-game matches")
     parser.add_argument("--weighted", action="store_true",
                         help="With --random: weight selection by inverse game count (fewer games = higher chance)")
+    parser.add_argument("--epd", type=str, default=None,
+                        help="EPD file mode: play through positions from an EPD file sequentially")
 
     args = parser.parse_args()
 
@@ -1497,7 +1709,24 @@ def main():
         if orig != resolved:
             print(f"Resolved '{orig}' -> '{resolved}'")
 
-    if args.random:
+    if args.epd:
+        # EPD mode: play through positions from an EPD file
+        epd_path = Path(args.epd)
+        if not epd_path.exists():
+            # Try looking in engines/epd directory
+            epd_path = engine_dir / "epd" / args.epd
+            if not epd_path.exists():
+                print(f"Error: EPD file not found: {args.epd}")
+                print(f"Searched: {Path(args.epd).absolute()} and {epd_path}")
+                sys.exit(1)
+        if len(resolved_engines) < 2:
+            print("Error: EPD mode requires at least 2 engines")
+            sys.exit(1)
+        if time_per_move is None:
+            print("Error: --timelow/--timehigh not supported in EPD mode, use --time")
+            sys.exit(1)
+        run_epd(resolved_engines, engine_dir, epd_path, time_per_move, results_dir)
+    elif args.random:
         # Random mode: randomly pair engines for matches
         if args.engines:
             print("Warning: Engine arguments ignored in random mode")
