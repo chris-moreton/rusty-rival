@@ -7,6 +7,7 @@ use crate::types::{Bitboard, Position, Score, BLACK, WHITE};
 use shakmaty::{CastlingMode, Chess, Color, FromSetup, Piece, Role, Setup, Square};
 use shakmaty_syzygy::{AmbiguousWdl, Tablebase};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
 /// Maximum number of pieces for tablebase probe (6-man tables)
@@ -21,6 +22,9 @@ pub const TB_LOSS_SCORE: Score = -19000;
 /// Global tablebase instance (lazy loaded when path is set)
 static TABLEBASE: RwLock<Option<Tablebase<Chess>>> = RwLock::new(None);
 
+/// Fast atomic flag to avoid RwLock overhead when tablebases not loaded
+static TABLEBASE_AVAILABLE: AtomicBool = AtomicBool::new(false);
+
 /// Initialize the tablebase with the given path
 pub fn init_tablebase(path: &str) -> Result<usize, String> {
     let path = Path::new(path);
@@ -34,12 +38,16 @@ pub fn init_tablebase(path: &str) -> Result<usize, String> {
     let mut global_tb = TABLEBASE.write().unwrap();
     *global_tb = Some(tb);
 
+    // Set atomic flag for fast checking in hot path
+    TABLEBASE_AVAILABLE.store(true, Ordering::Release);
+
     Ok(count)
 }
 
-/// Check if tablebases are available
+/// Check if tablebases are available (uses atomic flag for speed)
+#[inline(always)]
 pub fn tablebase_available() -> bool {
-    TABLEBASE.read().unwrap().is_some()
+    TABLEBASE_AVAILABLE.load(Ordering::Acquire)
 }
 
 /// Convert our square representation to shakmaty's

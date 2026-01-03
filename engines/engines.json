@@ -284,6 +284,13 @@
   },
   "v025-tablebase": {
     "binary": "v025-tablebase/rusty-rival",
+    "active": false,
+    "uci_options": {
+      "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
+    }
+  },
+  "v026-tablebase-perf": {
+    "binary": "v026-tablebase-perf/rusty-rival",
     "active": true,
     "uci_options": {
       "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
