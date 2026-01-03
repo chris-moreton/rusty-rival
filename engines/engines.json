@@ -302,5 +302,12 @@
     "uci_options": {
       "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
     }
+  },
+  "v028-dtz-progress": {
+    "binary": "v028-dtz-progress/rusty-rival",
+    "active": true,
+    "uci_options": {
+      "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
+    }
   }
 }

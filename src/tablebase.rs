@@ -5,7 +5,7 @@
 
 use crate::types::{Bitboard, Position, Score, BLACK, WHITE};
 use shakmaty::{CastlingMode, Chess, Color, FromSetup, Piece, Role, Setup, Square};
-use shakmaty_syzygy::{AmbiguousWdl, Tablebase};
+use shakmaty_syzygy::{AmbiguousWdl, MaybeRounded, Tablebase};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
@@ -238,8 +238,13 @@ pub fn count_pieces(pos: &Position) -> u32 {
         + 1 // black king
 }
 
-/// Probe the tablebase for the current position
-/// Returns Some(score) if the position is in the tablebase, None otherwise
+/// Probe the tablebase for the current position using DTZ for accurate scoring.
+/// Returns Some(score) if the position is in the tablebase, None otherwise.
+///
+/// DTZ (Distance To Zeroing) is used to ensure progress toward the win:
+/// - For wins: score decreases with DTZ so faster wins are preferred
+/// - For losses: score increases with DTZ so slower losses are preferred (gives opponent chances to err)
+/// - For draws: score is 0
 pub fn probe_wdl(pos: &Position) -> Option<Score> {
     // Quick check: only probe if we have few enough pieces
     if count_pieces(pos) > TB_MAX_PIECES {
@@ -251,21 +256,53 @@ pub fn probe_wdl(pos: &Position) -> Option<Score> {
 
     let chess = position_to_chess(pos).ok()?;
 
-    match tb.probe_wdl(&chess) {
-        Ok(wdl) => {
-            // AmbiguousWdl considers the 50-move rule
-            let score = match wdl {
-                AmbiguousWdl::Win => TB_WIN_SCORE,
-                AmbiguousWdl::Loss => TB_LOSS_SCORE,
-                AmbiguousWdl::Draw
-                | AmbiguousWdl::CursedWin
-                | AmbiguousWdl::BlessedLoss
-                | AmbiguousWdl::MaybeWin
-                | AmbiguousWdl::MaybeLoss => 0,
-            };
-            Some(score)
+    // First check WDL to determine if position is won/drawn/lost
+    let wdl = match tb.probe_wdl(&chess) {
+        Ok(w) => w,
+        Err(_) => return None,
+    };
+
+    // For draws and ambiguous results, return 0
+    match wdl {
+        AmbiguousWdl::Draw | AmbiguousWdl::CursedWin | AmbiguousWdl::BlessedLoss | AmbiguousWdl::MaybeWin | AmbiguousWdl::MaybeLoss => {
+            return Some(0)
         }
-        Err(_) => None,
+        AmbiguousWdl::Win | AmbiguousWdl::Loss => {}
+    }
+
+    // For wins/losses, probe DTZ to get distance to zeroing move
+    // This ensures the engine makes progress toward the win
+    match tb.probe_dtz(&chess) {
+        Ok(dtz) => {
+            let dtz_value = match dtz {
+                MaybeRounded::Rounded(d) | MaybeRounded::Precise(d) => d.0.abs() as Score,
+            };
+
+            // Clamp DTZ to reasonable range (max 500 plies)
+            let dtz_clamped = dtz_value.min(500);
+
+            match wdl {
+                AmbiguousWdl::Win => {
+                    // Win: higher score for faster wins (lower DTZ)
+                    // Score ranges from TB_WIN_SCORE-500 to TB_WIN_SCORE
+                    Some(TB_WIN_SCORE - dtz_clamped)
+                }
+                AmbiguousWdl::Loss => {
+                    // Loss: higher (less negative) score for slower losses
+                    // Score ranges from TB_LOSS_SCORE to TB_LOSS_SCORE+500
+                    Some(TB_LOSS_SCORE + dtz_clamped)
+                }
+                _ => Some(0), // Should not reach here
+            }
+        }
+        Err(_) => {
+            // DTZ probe failed, fall back to plain WDL score
+            match wdl {
+                AmbiguousWdl::Win => Some(TB_WIN_SCORE),
+                AmbiguousWdl::Loss => Some(TB_LOSS_SCORE),
+                _ => Some(0),
+            }
+        }
     }
 }
 

@@ -1,0 +1,56 @@
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v027-tablebase-fast"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/7p/2k1Pp2/pp1p2p1/3P2P1/4P3/P3K2P/8 w - - 0 1"]
+[SetUp "1"]
+[Opening "PET001: Pawn endgame"]
+
+1. e4 dxe4 2. Ke3 Kc7 3. d5 a4 4. Kxe4 b4 5. Kd3 Kd6 6. Kc4 b3 7. axb3 axb3 8. Kxb3 Ke7 9. Kc3 Kd6 10. Kd4 Ke7 11. Ke3 f5 12. gxf5 h5 13. h3 h4 14. Kf3 Kd6 15. e7 Kxe7 16. Kg4 Kd7 17. Kxg5 Kd6 18. Kxh4 Kxd5 19. Kg3 Ke5 20. Kg4 Kf6 21. Kf4 Ke7 22. Kg3 Kd6 23. Kf3 Ke5 24. Kg2 Kxf5 25. Kh1 Kf4 26. Kg1 Kg3 27. Kh1 Kxh3 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v027-tablebase-fast"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/7p/2k1Pp2/pp1p2p1/3P2P1/4P3/P3K2P/8 w - - 0 1"]
+[SetUp "1"]
+[Opening "PET001: Pawn endgame"]
+
+1. e4 dxe4 2. Ke3 Kc7 3. Kxe4 b4 4. d5 a4 5. Kd4 Kd6 6. Kc4 b3 7. axb3 axb3 8. Kxb3 Ke7 9. Kc2 Kd6 10. Kd3 Ke7 11. Ke4 Kd6 12. Kf5 Ke7 13. d6+ Kd8 14. Kxf6 h6 15. d7 Kc7 16. Ke7 Kc6 17. d8=Q Kb5 18. Kf7 Kc4 19. e7 Kc3 20. e8=Q Kc2 21. Qa4+ Kb1 22. Qd2 h5 23. Qaa2# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v027-tablebase-fast"]
+[Black "v024-connected-passed-pawns"]
+[Result "0-1"]
+[TimeControl "0.25s/move"]
+[FEN "8/1p4kP/5pP1/3p4/8/4P3/7K/8 w - - 0 1"]
+[SetUp "1"]
+[Opening "PET002: Pawn endgame"]
+
+1. Kg1 b5 2. Kf1 b4 3. Ke2 f5 4. Kd1 b3 5. Kd2 d4 6. exd4 b2 7. Kc2 f4 8. d5 f3 9. d6 f2 10. Kc3 b1=Q 11. d7 Qc1+ 12. Kd4 Qc7 13. Ke3 f1=Q 14. d8=R Qcf4# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v027-tablebase-fast"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/1p4kP/5pP1/3p4/8/4P3/7K/8 w - - 0 1"]
+[SetUp "1"]
+[Opening "PET002: Pawn endgame"]
+
+1. Kg2 b6 2. Kf1 f5 3. Ke1 b5 4. Kd2 b4 5. Kd3 b3 6. Kc3 d4+ 7. exd4 f4 8. d5 f3 9. d6 f2 10. d7 f1=Q 11. d8=Q Qe1+ 12. Kb2 Qf2+ 13. Kxb3 Qe3+ 14. Kb4 Qf4+ 15. Kc5 Qf5+ 16. Qd5 Qf8+ 17. Qd6 Qf5+ 18. Kb6 Qf2+ 19. Kc6 Qg2+ 20. Kc7 Qc2+ 21. Kd8 Kh8 22. Qf8# 1-0
+

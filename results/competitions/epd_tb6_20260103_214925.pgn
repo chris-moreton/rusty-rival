@@ -1,0 +1,14 @@
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.30s/move"]
+[FEN "8/8/8/8/8/4k3/4P3/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-01: Lucena-like, white wins"]
+
+1. Kf1 Kf4 2. Kg1 Kg3 3. Kh1 Kh3 4. Kg1 Kg3 5. Kh1 Kh3 6. Kg1 Kg3 7. Kh1 Kh3 8. Kg1 Kg3 9. Kh1 Kh3 10. Kg1 Kg3 1/2-1/2
+

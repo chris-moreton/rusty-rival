@@ -1,0 +1,1120 @@
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/4k3/4P3/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-01: Lucena-like, white wins"]
+
+1. Kf1 Kf4 2. Kg1 Kg3 3. Kh1 Kh3 4. Kg1 Kg3 5. Kh1 Kh3 6. Kg1 Kg3 7. Kh1 Kh3 8. Kg1 Kg3 9. Kh1 Kh3 10. Kg1 Kg3 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/4k3/4P3/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-01: Lucena-like, white wins"]
+
+1. Kf1 Kf4 2. Kf2 Ke4 3. e3 Kf5 4. Kf3 Ke5 5. e4 Kf6 6. Kf4 Ke6 7. Kg4 Ke5 8. Kf3 Kf6 9. Kf2 Kg5 10. Ke3 Kf6 11. Kd4 Ke6 12. Kc3 Ke5 13. Kd3 Kf6 14. Kc4 Ke5 15. Kd3 Kf6 16. Kc2 Kg5 17. Kc3 Kf6 18. Kd3 Ke5 19. Ke2 Kf4 20. Kd3 Ke5 21. Ke3 Kf6 22. Ke2 Kg5 23. e5 Kh5 24. Kf3 Kg6 25. Ke4 Kf7 26. Kf5 Ke7 27. e6 Ke8 28. Ke5 Ke7 29. Kd5 Ke8 30. Kd6 Kd8 31. e7+ Ke8 32. Kc6 Kxe7 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/4k3/8/4P3/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-02: Key square battle"]
+
+1. Kf1 Ke3 2. Kg1 Kxe2 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/4k3/8/4P3/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-02: Key square battle"]
+
+1. Kd2 Kd4 2. e3+ Ke4 3. Ke2 Kf5 4. Kf3 Ke5 5. Kg3 Ke4 6. Kf2 Kf5 7. Ke2 Ke4 8. Kd2 Kf5 9. Kd3 Ke5 10. e4 Kf6 11. Kc4 Ke5 12. Kd3 Kf6 13. Kd4 Ke6 14. e5 Kf7 15. Kd5 Ke7 16. e6 Ke8 17. Ke5 Ke7 18. Kf5 Ke8 19. Ke4 Ke7 20. Ke5 Ke8 21. Kd6 Kd8 22. e7+ Ke8 23. Kd5 Kf7 24. Kc5 Kxe7 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/4k3/8/8/8/8/4P3/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-03: Opposition test"]
+
+1. Kf1 Kf6 2. Kg1 Kf5 3. Kh1 Kf4 4. Kg1 Kf5 5. Kh1 Kf4 6. Kg1 Kf5 7. Kh1 Kf4 8. Kg1 Kf5 9. Kh1 Kf4 10. Kg1 Kf5 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/4k3/8/8/8/8/4P3/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-03: Opposition test"]
+
+1. e4 Kf6 2. Kd2 Kg5 3. Kd3 Kf6 4. Kd4 Ke6 5. e5 Kf7 6. Kd5 Ke7 7. Kc4 Ke6 8. Kd4 Kf7 9. Ke3 Kg6 10. Ke4 Kf7 11. Kf5 Ke7 12. Ke4 Ke6 13. Kd4 Kf7 14. Kd3 Kg6 15. Kc4 Kf7 16. Kd4 Ke6 17. Ke4 Kf7 18. Kf4 Kg6 19. Kg4 Kg7 20. Kf5 Kf7 21. e6+ Ke7 22. Ke5 Ke8 23. Kd4 Ke7 24. Kd5 Ke8 25. Ke5 Ke7 26. Kd5 Ke8 27. Kc4 Ke7 28. Kd5 Ke8 29. Kc6 Ke7 30. Kc7 Kxe6 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/3PK3/8 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-04: Pawn advance"]
+
+1. Kd3 Ke5 2. Kc4 Kd6 3. Kd4 Kd7 4. Ke5 Kc6 5. Kd4 Kd7 6. Kd5 Ke7 7. Ke5 Kd7 8. Kd4 Kc6 9. Ke5 Kd7 10. d3 Kc6 11. Ke6 Kc5 12. Ke5 Kc6 13. d4 Kd7 14. Kd5 Ke7 15. Kc6 Ke8 16. Kd6 Kd8 17. Ke6 Ke8 18. d5 Kd8 19. Kd6 Kc8 20. Ke7 Kb7 21. Ke6 Kb6 22. Ke7 Kb7 23. Kd7 Kb6 24. Ke6 Kb5 25. Ke5 Kc5 26. Ke6 Kb5 27. Ke7 Kc5 28. d6 Kb5 29. Ke6 Kc4 30. Kf5 Kd4 31. Kg4 Kd5 32. d7 Kd6 33. d8=Q+ Kc5 34. Kf3 Kc6 35. Ke3 Kc5 36. Kd3 Kc6 37. Kc4 Kb7 38. Kc5 Ka7 39. Kc6 Ka6 40. Qa8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/3PK3/8 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-04: Pawn advance"]
+
+1. Kd3 Ke5 2. Kc4 Kd6 3. Kd4 Ke6 4. Kc5 Kf5 5. Kd5 Kg4 6. Kc6 Kh3 7. d4 Kh2 8. Kb5 Kh1 9. d5 Kg1 10. Ka5 Kh1 11. d6 Kg1 12. d7 Kh1 13. Kb5 Kg1 14. d8=Q Kg2 15. Qh4 Kg1 16. Kc4 Kg2 17. Kd3 Kg1 18. Ke2 Kg2 19. Qg4+ Kh1 20. Kf1 Kh2 21. Qg2# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/2k5/3P4/3K4 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-05: Defending king position"]
+
+1. Ke1+ Kd3 2. Kf1 Kxd2 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/2k5/3P4/3K4 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPK-05: Defending king position"]
+
+1. Ke2+ Kd4 2. d3 Ke5 3. Ke3 Kd5 4. Kf3 Kd4 5. Ke2 Ke5 6. Kd2 Kd4 7. Kc2 Ke5 8. Kc3 Kd5 9. d4 Ke6 10. Kc4 Kd6 11. d5 Ke7 12. Kc5 Kd7 13. d6 Kd8 14. Kc6 Kc8 15. Kd5 Kd7 16. Kc5 Kd8 17. Kd5 Kd7 18. Ke5 Kd8 19. Kf5 Kd7 20. Ke5 Kd8 21. Kf5 Kd7 22. Ke5 Kd8 23. Ke4 Kd7 24. Ke5 Kd8 25. Ke6 Ke8 26. d7+ Kd8 27. Kd6 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/R3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRK-01: Rook endgame basics"]
+
+1. Ke2 Kd4 2. Ra5 Ke4 3. Rh5 Kd4 4. Kf3 Kd3 5. Rh4 Kd2 6. Ke4 Kc2 7. Ke3 Kc3 8. Ke2 Kb2 9. Kd2 Kb3 10. Rg4 Kb2 11. Rg3 Ka1 12. Kc1 Ka2 13. Kc2 Ka1 14. Ra3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/R3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRK-01: Rook endgame basics"]
+
+1. Ke2 Ke4 2. Rd1 Kf4 3. Kd3 Kf5 4. Kd4 Ke6 5. Ke4 Kf6 6. Rd6+ Ke7 7. Ke5 Kf7 8. Rd5 Ke7 9. Kf5 Kf7 10. Re5 Kg7 11. Re7+ Kf8 12. Kf6 Kg8 13. Re8+ Kh7 14. Ra8 Kh6 15. Rh8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/8/3k4/R6K w - - 0 1"]
+[SetUp "1"]
+[Opening "KRK-02: Rook cutting off king"]
+
+1. Ra3 Kc2 2. Kg1 Kd2 3. Kf1 Kc1 4. Ra2 Kb1 5. Rh2 Ka1 6. Ke1 Kb1 7. Kd1 Ka1 8. Kc2 Ka2 9. Rh3 Ka1 10. Ra3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/8/3k4/R6K w - - 0 1"]
+[SetUp "1"]
+[Opening "KRK-02: Rook cutting off king"]
+
+1. Kg2 Kd3 2. Ra4 Ke3 3. Rb4 Kd3 4. Kf3 Kc3 5. Re4 Kd3 6. Rg4 Kd2 7. Ke4 Kc2 8. Kd4 Kd2 9. Re4 Kc2 10. Kc4 Kd2 11. Re8 Kc2 12. Rd8 Kb2 13. Rd2+ Kc1 14. Kc3 Kb1 15. Rd8 Kc1 16. Kb3 Kb1 17. Rd1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "1k6/8/8/8/8/8/8/R3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRK-03: King in corner"]
+
+1. Rc1 Kb7 2. Kd2 Kb6 3. Rc4 Kb7 4. Kc3 Ka7 5. Kb4 Kb6 6. Ka4 Ka6 7. Rb4 Ka7 8. Ka5 Ka8 9. Kb6 Kb8 10. Rc4 Ka8 11. Rc8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "1k6/8/8/8/8/8/8/R3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRK-03: King in corner"]
+
+1. Rc1 Kb7 2. Rc3 Kb6 3. Ke2 Kb5 4. Kd3 Kb4 5. Kd4 Kb5 6. Rc5+ Kb4 7. Rg5 Kb3 8. Kd3 Kb4 9. Rf5 Kb3 10. Rb5+ Ka4 11. Kc4 Ka3 12. Kc3 Ka2 13. Ra5+ Kb1 14. Ra7 Kc1 15. Ra1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/4k3/8/8/R7/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRK-04: Coordinated attack"]
+
+1. Ke2 Ke4 2. Ra5 Kd4 3. Kd2 Ke4 4. Kc3 Ke3 5. Ra4 Ke2 6. Kd4 Kf2 7. Kd3 Kf3 8. Kd2 Kg2 9. Ke2 Kg3 10. Re4 Kg2 11. Re3 Kh1 12. Kf1 Kh2 13. Kf2 Kh1 14. Rh3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/4k3/8/8/R7/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRK-04: Coordinated attack"]
+
+1. Rc2 Ke4 2. Kd2 Kd4 3. Rc3 Ke4 4. Rd3 Kf4 5. Rd4+ Kf5 6. Kd3 Kg5 7. Ke4 Kf6 8. Rd2 Kg6 9. Ke5 Kf7 10. Kf5 Ke7 11. Rd4 Kf7 12. Re4 Kg7 13. Re7+ Kf8 14. Kf6 Kg8 15. Re8+ Kh7 16. Ra8 Kh6 17. Rh8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-01: Queen endgame"]
+
+1. Qa6 Kd4 2. Qd6+ Ke4 3. Kf2 Kf5 4. Kf3 Kg5 5. Qe6 Kh5 6. Kf4 Kh4 7. Qh6# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-01: Queen endgame"]
+
+1. Kf2 Kc5 2. Qc1+ Kd6 3. Ke3 Kd5 4. Qc7 Ke6 5. Ke4 Kf6 6. Qd7 Kg6 7. Qe7 Kh5 8. Kf5 Kh6 9. Qa7 Kh5 10. Qh7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "k7/8/8/8/8/8/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-02: King in corner"]
+
+1. Qb1 Ka7 2. Kf2 Ka6 3. Kf3 Ka7 4. Ke4 Ka8 5. Kd5 Ka7 6. Kc6 Ka8 7. Qb7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "k7/8/8/8/8/8/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-02: King in corner"]
+
+1. Qb2 Ka7 2. Kd2 Ka8 3. Kd3 Ka7 4. Kd4 Ka6 5. Kc5 Ka7 6. Kc6 Ka6 7. Qb6# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/3k4/8/8/4K2Q w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-03: Central defense"]
+
+1. Qh5 Ke4 2. Kf2 Kf4 3. Qd5 Kg4 4. Qe5 Kh4 5. Kf3 Kh3 6. Qh5# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/3k4/8/8/4K2Q w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-03: Central defense"]
+
+1. Kd2 Kc5 2. Qh6 Kd5 3. Qf6 Ke4 4. Qe6+ Kf3 5. Qf5+ Kg2 6. Ke3 Kg1 7. Qg6+ Kh1 8. Kf3 Kh2 9. Qg2# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/B3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBBvK-01: Two bishops mate"]
+
+1. Kf2 Ke4 2. Bc4 Kf5 3. Kf3 Kg5 4. Ke4 Kg4 5. Be5 Kg5 6. Bf7 Kg4 7. Bf4 Kh3 8. Kf3 Kh4 9. Bc1 Kh3 10. Bg5 Kh2 11. Kf2 Kh1 12. Bh4 Kh2 13. Bg3+ Kh1 14. Bd5# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/B3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBBvK-01: Two bishops mate"]
+
+1. Kf2 Kc5 2. Kg1 Kd5 3. Kh2 Ke4 4. Bd4 Kxd4 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "k7/8/8/8/8/8/8/B3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBBvK-02: Corner drive"]
+
+1. Bb5 Ka7 2. Bd4+ Kb8 3. Kd2 Kc7 4. Bc5 Kb7 5. Kc3 Kc7 6. Kb4 Kb7 7. Ka5 Kc7 8. Ka6 Kd8 9. Kb6 Kc8 10. Be7 Kb8 11. Ba6 Ka8 12. Bb7+ Kb8 13. Bd6# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "k7/8/8/8/8/8/8/B3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBBvK-02: Corner drive"]
+
+1. Kd2 Kb7 2. Bc4 Kc6 3. Bg7 Kc5 4. Ke1 Kxc4 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/3k4/8/2B1KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBBvK-03: Bishop coordination"]
+
+1. Kf2+ Kc2 2. Be3 Kc3 3. Ke1 Kb3 4. Kd2 Kb4 5. Kc2 Ka3 6. Bd2 Ka4 7. Be2 Ka3 8. Bb5 Ka2 9. Bc1 Ka1 10. Bb2+ Ka2 11. Bc4# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/3k4/8/2B1KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBBvK-03: Bishop coordination"]
+
+1. Bxd3 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/N3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBNvK-01: B+N endgame"]
+
+1. Kf2 Ke4 2. Nc2 Kf4 3. Bd3 Ke5 4. Kg3 Kd5 5. Kh4 Ke5 6. Kg5 Ke6 7. Kg6 Ke5 8. Bc4 Kf4 9. Kf6 Kg3 10. Kg5 Kf2 11. Kg4 Kg2 12. Be2 Kf2 13. Bf3 Kf1 14. Kg3 Kg1 15. Ne1 Kf1 16. Ng2 Kg1 17. Be2 Kh1 18. Nf4 Kg1 19. Nh3+ Kh1 20. Bf3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/N3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBNvK-01: B+N endgame"]
+
+1. Kf2 Kd4 2. Kf3 Kc3 3. Kf2 Kb2 4. Kg2 Kxa1 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "k7/8/8/8/8/8/8/N3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBNvK-02: Wrong corner test"]
+
+1. Kf2 Kb7 2. Ke3 Kb6 3. Kd4 Ka5 4. Nc2 Kb6 5. Kd5 Kc7 6. Bb5 Kb6 7. Bc6 Kc7 8. Kc5 Kd8 9. Kd6 Kc8 10. Nd4 Kb8 11. Kc5 Kc7 12. Ne6+ Kb8 13. Kb6 Kc8 14. Ba4 Kb8 15. Bd7 Ka8 16. Nc5 Kb8 17. Na6+ Ka8 18. Bc6# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "k7/8/8/8/8/8/8/N3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBNvK-02: Wrong corner test"]
+
+1. Ba6 Kb8 2. Kf2 Kc7 3. Ke1 Kb8 4. Kf1 Kc7 5. Ke1 Kb8 6. Kf1 Kc7 7. Ke1 Kb8 8. Kf1 Kc7 9. Ke1 Kb8 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "7k/8/8/8/8/8/8/N3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBNvK-03: Right corner test"]
+
+1. Kf2 Kg7 2. Kg3 Kf6 3. Kg4 Ke6 4. Kg5 Kd7 5. Kf6 Kd6 6. Nc2 Kd7 7. Bh3+ Kd6 8. Be6 Kc5 9. Ke7 Kc6 10. Bb3 Kc7 11. Ba4 Kb6 12. Kd6 Ka5 13. Bc6 Kb6 14. Na3 Ka5 15. Kc5 Ka6 16. Nb5 Ka5 17. Nd6 Ka6 18. Bb5+ Ka7 19. Kc6 Kb8 20. Kb6 Ka8 21. Kc7 Ka7 22. Nc8+ Ka8 23. Bc6# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "7k/8/8/8/8/8/8/N3KB2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBNvK-03: Right corner test"]
+
+1. Bd3 Kg7 2. Kf1 Kf6 3. Kg1 Ke5 4. Kh1 Kf4 5. Bh7 Kg3 6. Kg1 Kf3 7. Kh1 Kg3 8. Kg1 Kf3 9. Kh1 Kg3 10. Kg1 Kf3 11. Kh1 Kg3 12. Kg1 Kf3 13. Kh1 Kg3 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/3k4/3PP3/3K4 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvK-01: Connected pawns"]
+
+1. Ke1+ Ke4 2. Kf1 Kd5 3. Kg1 Ke5 4. Kh1 Kf4 5. Kg1 Ke5 6. Kf1 Kd5 7. Ke1 Ke4 8. Kd1 Kd4 9. Ke1 Ke4 10. Kf2 Kf5 11. Kg1 Ke5 12. Kh2 Kf4 13. Kh1 Ke5 14. Kg1 Kd5 15. Kh1 Ke5 16. Kg2 Kf4 17. Kf1 Ke5 18. Ke1 Ke4 19. e3 Kd5 20. Kf1 Ke5 21. Kg1 Kd6 22. Kh1 Kd5 23. Kg1 Kd6 24. Kf1 Ke5 25. Ke1 Kd5 26. Kd1 Kc5 27. Ke1 Kd5 28. Kf2 Ke4 29. Ke2 Kd5 30. Ke1 Ke6 31. Kf1 Ke5 32. Kg2 Kf6 33. Kh1 Ke6 34. Kg1 Kd6 35. Kh2 Kd5 36. Kh1 Ke6 37. Kh2 Kd5 38. Kg2 Ke6 39. Kh1 Kd5 40. Kh2 Kd6 41. Kg1 Kd5 42. d3 Ke5 43. Kh1 Kf6 44. Kg1 Ke5 45. Kf1 Kd5 46. Kg1 Ke5 47. Kh2 Ke6 48. Kh1 Kf6 49. Kh2 Ke6 50. Kg1 Ke5 51. Kg2 Kd6 52. Kh1 Kc5 53. Kg1 Kc6 54. Kh1 Kc5 55. Kh2 Kb6 56. Kh1 Kc5 57. Kg2 Kd6 58. Kg1 Ke5 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/3k4/3PP3/3K4 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvK-01: Connected pawns"]
+
+1. e3 Ke4 2. Ke2 Kf5 3. Kf3 Kg5 4. Ke4 Kh4 5. Ke5 Kh3 6. d4 Kh2 7. d5 Kh1 8. d6 Kg1 9. d7 Kh1 10. Kf4 Kg1 11. d8=Q Kh1 12. Kg3 Kg1 13. Qd1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/2k5/2P1P3/3K4 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvK-02: Isolated pawns"]
+
+1. Ke1 Kd4 2. Kf1 Ke3 3. Kg1 Kf4 4. Kh1 Ke5 5. Kg1 Kf4 6. Kf1 Ke3 7. Ke1 Kd4 8. Kd1 Ke3 9. Kc1 Kd4 10. Kb1 Kc3 11. Kc1 Kd4 12. Kd2 Kc4 13. Ke1 Kd4 14. Kf2 Ke4 15. Kg1 Kf4 16. Kh2 Kg4 17. Kh1 Kf5 18. Kg1 Kf4 19. Kg2 Ke3 20. Kh1 Ke4 21. Kh2 Kf4 22. Kg1 Ke3 23. Kf1 Kd4 24. Kg1 Ke3 25. Kh2 Kf4 26. Kh3 Kf5 27. Kh2 Kg4 28. Kg1 Kf4 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/2k5/2P1P3/3K4 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvK-02: Isolated pawns"]
+
+1. e3 Kb2 2. e4 Kb1 3. e5 Ka1 4. e6 Kb1 5. e7 Ka1 6. Kc1 Ka2 7. e8=Q Ka1 8. Qa4# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/3PP3/3K4 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvK-03: Distant king"]
+
+1. Ke1 Ke5 2. Kf1 Ke4 3. Kg1 Ke5 4. Kh1 Kd5 5. Kg1 Ke5 6. Kh2 Kd6 7. Kh1 Kd5 8. Kh2 Kd6 9. Kg1 Ke5 10. Kg2 Kd6 11. Kf1 Kc5 12. Kg1 Kd5 13. Kh1 Ke5 14. Kg1 Kd5 15. Kf1 Ke4 16. Ke1 Ke5 17. Kd1 Kd5 18. Kc1 Ke5 19. Kb1 Kd4 20. Kc1 Ke5 21. Kc2 Kf6 22. Kd1 Ke5 23. Ke1 Kd5 24. Kd1 Ke5 25. Kc1 Ke4 26. Kd1 Ke5 27. e3 Kf5 28. Ke1 Ke6 29. Kf1 Ke5 30. Kg1 Ke6 31. Kh1 Ke5 32. Kh2 Kd5 33. Kh1 Ke5 34. Kg2 Kf6 35. Kh1 Ke5 36. d3 Kd6 37. Kg1 Ke6 38. Kh1 Kd6 39. Kh2 Ke5 40. Kh1 Kd6 41. Kg2 Ke6 42. Kg1 Kd6 43. Kh1 Kd7 44. Kg1 Ke6 45. Kf1 Kd5 46. Kg1 Ke6 47. Kh2 Ke5 48. Kg1 Ke6 49. Kg2 Kd7 50. Kh1 Kd6 51. e4 Ke6 52. d4 Kd6 53. Kg1 Ke7 54. Kh1 Kd6 55. Kh2 Ke7 56. Kg1 Ke6 57. Kh1 Kd6 58. Kg2 Ke7 59. Kf1 Kf7 60. Kg1 Ke6 61. Kf1 Kf7 62. Ke1 Ke7 63. Kd1 Kf7 64. Kc1 Kf6 65. Kd1 Kf7 66. Ke2 Ke7 67. Ke1 Kd8 68. Kf1 Kd7 69. Kg1 Ke6 70. Kh2 Ke7 71. Kg2 Kf7 72. Kh1 Kf6 73. Kg1 Ke6 74. Kg2 Kf7 75. Kf1 Ke6 76. Kg1 Ke7 77. Kh2 Kd6 78. Kh1 Kc6 79. Kg1 Kd6 80. Kf1 Ke6 81. Ke1 Ke7 82. Kf2 Ke8 83. Kg1 Ke7 84. e5 Kf7 85. d5 Ke8 86. Kh1 Ke7 87. Kg1 Ke8 88. Kf1 Kd7 89. Kg1 Ke8 90. Kh2 Kf8 91. Kh1 Ke7 92. Kh2 Kf8 93. Kg1 Ke8 94. Kg2 Kf7 95. Kh1 Ke7 96. Kg2 Kf7 97. Kg1 Ke8 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/3PP3/3K4 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvK-03: Distant king"]
+
+1. e3 Ke4 2. Ke2 Kf5 3. Kf3 Kg5 4. Ke4 Kh4 5. Kf5 Kh3 6. d4 Kh2 7. d5 Kh1 8. Kf4 Kg1 9. d6 Kh1 10. Kf3 Kg1 11. d7 Kh1 12. Kg3 Kg1 13. d8=Q Kh1 14. Qd1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/R7/5k2/5P2/5K2/8/r7 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvKR-01: Lucena position"]
+
+1. Rxa1 Ke6 2. Kg4 Kf6 3. Rh1 Kf7 4. Kh3 Ke6 5. Kg4 Kf7 6. Kg3 Kf6 7. Rh5 Ke6 8. Kh2 Kf6 9. Rg5 Ke6 10. Rb5 Kf6 11. Kh1 Ke6 12. Kg1 Kf6 13. Kf1 Ke6 14. Ke1 Kd6 15. Kf1 Ke6 16. Kg2 Kf6 17. Kg1 Ke6 18. Kh1 Kf6 19. Kh2 Ke6 20. Kh3 Kf6 21. Kg2 Ke6 22. Kf1 Kf6 23. Ke1 Ke6 24. Kd1 Kd6 25. Ke1 Ke6 26. Kf2 Kd6 27. Kg1 Ke6 28. Rh5 Kd6 29. Kh1 Ke7 30. Kg1 Kd6 31. Kf1 Kd7 32. Kg1 Kd6 33. Kh2 Kc6 34. Kh1 Kd6 35. Kg1 Ke6 36. Kh1 Kd6 37. Kg2 Ke6 38. Kf1 Kd7 39. Ke1 Kd6 40. Kd1 Ke6 41. Ke1 Kd6 42. Kf2 Kc6 43. Kg1 Kd6 44. Rh1 Ke6 45. Kf1 Kf5 46. Kg1 Ke6 47. Kh2 Kf5 48. Kg2 Kxf4 49. Re1 Kg5 50. Kg3 Kf5 51. Re2 Kg5 52. Rf2 Kh6 53. Kh4 Kg6 54. Kg4 Kh7 55. Kh5 Kg7 56. Kg5 Kh8 57. Kh6 Kg8 58. Kg6 Kh8 59. Rf8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/R7/5k2/5P2/5K2/8/r7 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvKR-01: Lucena position"]
+
+1. Rxa1 Kg6 2. Ra7 Kf5 3. Ra5+ Kg6 4. f5+ Kf6 5. Rc5 Kg5 6. Re5 Kf6 7. Kf4 Kg7 8. Kg5 Kh7 9. f6 Kh8 10. Kg6 Kg8 11. Re8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/5k2/R4P2/5K2/r7 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvKR-02: Philidor position"]
+
+1. Rxa1 Ke5 2. Kg3 Ke6 3. Kh2 Kf7 4. Kh1 Ke6 5. Kg1 Ke5 6. Ra4 Ke6 7. Kh1 Ke5 8. Kh2 Kd5 9. Kh1 Ke5 10. Kg2 Kd5 11. Kg1 Ke6 12. Kf1 Kd5 13. Ke1 Kc6 14. Kf1 Kd5 15. Kg2 Kc5 16. Kh1 Kc6 17. Kg1 Kd6 18. Kh1 Ke5 19. Rh4 Kf5 20. Kg2 Ke6 21. Kh1 Kf5 22. Rg4 Ke6 23. Rg1 Kf7 24. Kh2 Ke6 25. Kg2 Kf5 26. Kg3 Kf6 27. Kh2 Ke6 28. Kh3 Ke7 29. Kh2 Ke6 30. Kg3 Kf6 31. Kg2 Kf5 32. f4 Kxf4 33. Re1 Kg5 34. Kg3 Kf5 35. Re2 Kg5 36. Rf2 Kh5 37. Kf4 Kg6 38. Kg4 Kh7 39. Kh5 Kg7 40. Kg5 Kh8 41. Kh6 Kg8 42. Kg6 Kh8 43. Rf8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/5k2/R4P2/5K2/r7 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvKR-02: Philidor position"]
+
+1. Rxa1 Kg5 2. Ra6 Kf4 3. Ke2 Kg3 4. Ra4 Kh2 5. Kf2 Kh1 6. Rh4# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "1R6/8/5k2/5P2/5K2/8/8/1r6 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvKR-03: Rook behind pawn"]
+
+1. Rxb1 Ke7 2. Kg5 Ke8 3. Kh4 Ke7 4. Rb6 Ke8 5. Kh3 Kd8 6. Kh2 Kc7 7. Kh1 Kxb6 8. f6 Kc6 9. f7 Kd7 10. f8=Q Ke6 11. Kg1 Kd5 12. Kf2 Ke6 13. Ke3 Kd5 14. Qd8+ Ke5 15. Qd7 Kf6 16. Kf4 Kg6 17. Qe7 Kh6 18. Kf5 Kh5 19. Qh7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "1R6/8/5k2/5P2/5K2/8/8/1r6 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvKR-03: Rook behind pawn"]
+
+1. Rxb1 Kg7 2. Ke5 Kh6 3. Kf6 Kh5 4. Rb4 Kh6 5. Rh4# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/5k2/4RP2/5K2/8/4r3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvKR-04: Cutting off king"]
+
+1. Rxe1 Kf6 2. Kg4 Kg7 3. Kh3 Kf6 4. Kh4 Kf5 5. Re6 Kxe6 6. Kg5 Kf7 7. Kf5 Ke7 8. Kg6 Ke8 9. Kf6 Kf8 10. Kg6 Ke8 11. Kg7 Kd7 12. Kg6 Ke8 13. Kg5 Kf7 14. Kh4 Kf6 15. Kh3 Kf5 16. Kh2 Kxf4 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/5k2/4RP2/5K2/8/4r3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvKR-04: Cutting off king"]
+
+1. Rxe1 Kg6 2. Ke4 Kh5 3. Kf5 Kh4 4. Re3 Kh5 5. Rh3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/3P4/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQPvKQ-01: Queen pawn ending"]
+
+1. Kf1 Ke6 2. Kg1 Kd6 3. Kh1 Ke6 4. Kh2 Kd5 5. Kh1 Ke6 6. Kg2 Kf5 7. Kh1 Ke6 8. Qg1 Kd5 9. Kh2 Kc6 10. Kh1 Kd5 11. Kg2 Ke6 12. Kf1 Kd6 13. Ke1 Kc6 14. Kf1 Kd6 15. Kg2 Ke6 16. Kh2 Kf6 17. Kh1 Ke6 18. Kg2 Kd6 19. Kh1 Kd5 20. Qg4 Ke5 21. Kg1 Kd6 22. Kh1 Ke5 23. Kh2 Kf6 24. Kh1 Ke5 25. Kg2 Kd6 26. Kg1 Kc6 27. Kh1 Kc5 28. Kg1 Kd6 29. Kf1 Ke5 30. Ke1 Kd6 31. Kd1 Kd5 32. Ke1 Kd6 33. Kf2 Kc7 34. Kg1 Kd6 35. Kh2 Kc6 36. Kg1 Kd6 37. Kg2 Kc7 38. Kh1 Kb7 39. Kg1 Kc6 40. Kf1 Kc5 41. Ke1 Kd6 42. Ke2 Kc6 43. Ke1 Kd6 44. Kd2 Kc7 45. Ke1 Kd6 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/3P4/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQPvKQ-01: Queen pawn ending"]
+
+1. Qf6 Kc5 2. d4+ Kd5 3. Qd8+ Ke4 4. d5 Kf3 5. Qg8 Ke3 6. d6 Kf3 7. d7 Ke3 8. d8=Q Kf3 9. Qh4 Ke3 10. Qb3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/4k3/8/4P3/8/3QK3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQPvKQ-02: Central pawn"]
+
+1. Qb1 Kf6 2. Kf1 Ke6 3. Kg1 Kd5 4. Kh1 Ke5 5. Kg1 Kd5 6. Kf1 Ke6 7. Ke1 Kf6 8. Kd1 Ke6 9. Kc1 Ke5 10. Kd1 Ke6 11. Ke2 Kd6 12. Kf1 Ke6 13. Kg2 Kf6 14. Kh1 Ke5 15. Kh2 Kd6 16. Kh1 Ke5 17. Kg2 Kf6 18. Kg1 Ke6 19. Kh1 Ke5 20. Qb4 Kd5 21. Kg1 Kc6 22. Kh1 Kd5 23. Kh2 Ke6 24. Kh1 Kd5 25. Kg2 Ke6 26. Kg1 Ke5 27. Kf1 Kd5 28. Ke1 Ke6 29. Kf1 Kd5 30. Kf2 Kc6 31. Kg1 Kd5 32. Kh1 Ke6 33. Kh2 Kd5 34. Kh3 Ke6 35. Kg2 Kd5 36. Kf1 Kc6 37. Ke1 Kd5 38. Kd1 Kc6 39. Kc1 Kd7 40. Kd1 Kc6 41. Ke2 Kd5 42. Kd2 Ke6 43. Ke1 Kd5 44. Ke2 Ke6 45. Kd1 Kd7 46. Ke1 Ke6 47. Kf2 Kf6 48. Kg1 Ke5 49. Kh2 Kd5 50. e4+ Ke6 51. Kg3 Kd7 52. Kh2 Ke6 53. Qb2 Kd6 54. Kh1 Kc6 55. Kg1 Kc5 56. Kh1 Kc6 57. Kh2 Kd6 58. Kg1 Kc5 59. Kf1 Kc4 60. Kg1 Kc5 61. Kh2 Kd6 62. Kg2 Ke7 63. Kh1 Kd6 64. Kh2 Ke6 65. Kh1 Kd6 66. Qh2+ Kc6 67. Kg1 Kc5 68. Kh1 Kc6 69. Kg2 Kd7 70. Kh1 Kc6 71. Qg2 Kc5 72. Kg1 Kd4 73. Qh2 Kc5 74. Kf1 Kc6 75. Ke1 Kd7 76. Kf1 Kc6 77. Kf2 Kd7 78. Kg1 Kc6 79. Kh1 Kc5 80. Kg1 Kc6 81. Kf1 Kc5 82. Ke1 Kd4 83. Kf1 Kc5 84. Kg2 Kd4 85. Kh1 Kc5 86. Qg2 Kb6 87. Kg1 Kc7 88. Kh1 Kb6 89. Kh2 Kc5 90. Kh3 Kd4 91. Qh2 Kxe4 92. Qd6 Kf5 93. Kh2 Ke4 94. Kg3 Kf5 95. Kf3 Kg5 96. Qe6 Kh5 97. Kf4 Kh4 98. Qh6# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/4k3/8/4P3/8/3QK3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQPvKQ-02: Central pawn"]
+
+1. Qd7 Ke4 2. Qe8+ Kf3 3. Qe5 Kg2 4. Qe4+ Kh3 5. Kf2 Kh2 6. Qg2# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/4k3/8/3PP3/4p3/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvKP-01: Two vs one"]
+
+1. Kf2 e1=Q+ 2. Kxe1 Kd6 3. Kf1 Ke6 4. Kg1 Kd6 5. Kh1 Ke5 6. Kg1 Kd6 7. Kh2 Ke6 8. Kh1 Ke5 9. Kh2 Ke6 10. Kg2 Kf6 11. Kh1 Ke5 12. Kg2 Kf6 13. Kg1 Kf5 14. Kh1 Ke5 15. e4 Kf4 16. Kh2 Kg4 17. d4 Kg5 18. Kh1 Kf4 19. e5 Kf5 20. Kg1 Kg6 21. d5 Kf5 22. e6 Kf6 23. Kh2 Ke7 24. Kg3 Kf6 25. Kf4 Ke7 26. Ke5 Ke8 27. Kf5 Ke7 28. d6+ Kxd6 29. Kf6 Kc6 30. Kf7 Kb5 31. Kg6 Kb4 32. Kh5 Kc4 33. Kh4 Kd5 34. e7 Kd6 35. e8=Q Kc5 36. Kg3 Kb4 37. Kf3 Ka5 38. Qb8 Ka4 39. Ke2 Ka3 40. Kd3 Ka2 41. Kc2 Ka1 42. Qb1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/4k3/8/3PP3/4p3/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvKP-01: Two vs one"]
+
+1. d4+ Ke4 2. Kxe2 Kd5 3. Kf3 Kc4 4. Ke4 Kc3 5. d5 Kd2 6. d6 Ke1 7. d7 Kf1 8. Kf3 Kg1 9. d8=Q Kh1 10. Qd2 Kg1 11. Qg2# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/4pk2/8/3PP3/8/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvKP-02: Passed pawn race"]
+
+1. Kf2 Kg5 2. Kg3 Kf5 3. Kh4 Kg6 4. Kg4 Kf6 5. Kh5 e4 6. d4 Kf5 7. Kh4 Ke6 8. Kg4 Kd6 9. Kf4 Kd5 10. Kf5 Kd6 11. Kxe4 Kc6 12. Kf3 Kd6 13. Kf4 Kd5 14. Kg3 Ke4 15. d5 Kxd5 16. Kf4 Ke6 17. Ke4 Kd6 18. Kf5 Ke7 19. Ke5 Kf7 20. Kd6 Kg8 21. Kd5 Kf7 22. Ke5 Kg6 23. Kd5 Kf7 24. e4 Ke7 25. Ke5 Kd7 26. Kf6 Kd8 27. Ke6 Ke8 28. Kf6 Kd8 29. Kf7 Kc7 30. Kf6 Kd8 31. Kf5 Ke7 32. Kg4 Kf6 33. Kh3 Ke5 34. Kh2 Kxe4 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/4pk2/8/3PP3/8/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvKP-02: Passed pawn race"]
+
+1. Ke2 Kf6 2. Kf3 Kf5 3. Kg3 Kg6 4. Kg4 Kh6 5. Kf5 Kh5 6. d4 Kh4 7. dxe5 Kh3 8. e6 Kh2 9. e7 Kh1 10. Kf4 Kg1 11. Kf3 Kh1 12. e8=Q Kg1 13. Qg6+ Kh1 14. Qg2# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/4k3/8/4p3/3PP3/8/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvKP-03: Blockade"]
+
+1. d4 Ke7 2. Kd2 Ke6 3. Kc3 Kd5 4. Kb3 Kd6 5. Kc4 Kc6 6. d5+ Kb6 7. Kd4 Kc7 8. Ke5 Kd7 9. Kf4 Kd6 10. Kxe4 Ke7 11. Kf3 Kd6 12. Kg3 Kxd5 13. Kf4 Ke6 14. Ke4 Kd6 15. Kf5 Ke7 16. Ke5 Kf7 17. Kd6 Kf6 18. e4 Kf7 19. Kd7 Kf6 20. Kd6 Kf7 21. Kd5 Kf6 22. Kd4 Ke6 23. Ke3 Kf6 24. Kf2 Ke6 25. Kg1 Ke5 26. Kh1 Kxe4 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/4k3/8/4p3/3PP3/8/4K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KPPvKP-03: Blockade"]
+
+1. d4 Kd5 2. Kf2 Ke6 3. Kg3 Kf5 4. Kh4 Kf6 5. Kg4 Ke6 6. Kf4 Kd5 7. Kf5 Kc4 8. Kxe4 Kc3 9. d5 Kd2 10. d6 Ke1 11. d7 Kf1 12. Kf3 Kg1 13. d8=Q Kh1 14. Qd2 Kg1 15. Qg2# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/R3KR2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRRvKR-01: Two rooks"]
+
+1. Rf4 Kd6 2. Ra6+ Ke5 3. Rd6 Kxf4 4. Re6 Kf5 5. Re2 Kf6 6. Kf2 Kg7 7. Kg3 Kg6 8. Kg4 Kf6 9. Re1 Kg7 10. Kg5 Kf7 11. Re2 Kg7 12. Rf2 Kh8 13. Kh6 Kg8 14. Kg6 Kh8 15. Rf8# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/R3KR2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRRvKR-01: Two rooks"]
+
+1. Rf7 Kd4 2. Rd1+ Kc3 3. Rc7+ Kb2 4. Rd6 Kb1 5. Rd2 Ka1 6. Rc1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "1r6/8/8/3k4/8/8/8/R3KR2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRRvKR-02: Active defense"]
+
+1. Rf2 Rb3 2. Rd1+ Kc6 3. Rc2+ Kb7 4. Ra1 Kb8 5. Kd1 Rb4 6. Kc1 Rb7 7. Rb1 Rxb1+ 8. Kxb1 Kb7 9. Kb2 Kb6 10. Kb3 Ka5 11. Kc4 Kb6 12. Kb4 Ka7 13. Kc5 Ka6 14. Kc6 Ka7 15. Kc7 Ka6 16. Rc5 Ka7 17. Ra5# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "1r6/8/8/3k4/8/8/8/R3KR2 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRRvKR-02: Active defense"]
+
+1. Rd1+ Ke4 2. Rf2 Rh8 3. Rd7 Rh1+ 4. Ke2 Ke5 5. Kd2 Ke6 6. Rff7 Rh2+ 7. Kd3 Rh1 8. Rde7+ Kd5 9. Rh7 Rd1+ 10. Ke2 Rg1 11. Rc7 Rg2+ 12. Kf3 Rg5 13. Rhd7+ Ke6 14. Re7+ Kd5 15. Rc1 Rf5+ 16. Ke3 Kd6 17. Rcc7 Kd5 18. Red7+ Ke6 19. Rb7 Re5+ 20. Kd4 Rh5 21. Re7+ Kd6 22. Rbd7+ Kc6 23. Rc7+ Kd6 24. Rh7 Rg5 25. Rcd7+ Ke6 26. Rhe7+ Kf6 27. Rf7+ Ke6 28. Rg7 Rb5 29. Rge7+ Kf6 30. Rf7+ Ke6 31. Rb7 Rh5 32. Rbe7+ Kd6 33. Rd7+ Kc6 34. Rh7 Rg5 35. Rb7 Rg4+ 36. Ke5 Rg5+ 37. Kf4 Rg1 38. Rhg7 Rh1 39. Rgf7 Kd5 40. Rh7 Rg1 41. Rhd7+ Kc4 42. Rdc7+ Kd3 43. Rb3+ Kd4 44. Rbc3 Kd5 45. Rc1 Rg2 46. R1c5+ Ke6 47. Rc2 Rg1 48. Kf3 Kf5 49. Rg7 Rh1 50. Rcg2 Ke5 51. Kf2 Kf4 52. Ke2 Ke4 53. Kf2 Kd3 54. Kg3 Ke3 55. Kg4 Kd3 56. Kg3 Ke3 57. Kg4 Kd3 58. Kg3 Ke3 59. Kg4 Kd3 60. Kg3 Ke3 61. Kg4 Kd3 62. Kg3 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/3P4/2B1K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBPvK-01: Bishop supports pawn"]
+
+1. Ke2 Kd4 2. Bb2+ Ke4 3. Bc1 Kd4 4. Ba3 Ke4 5. Bb2 Kf5 6. Kf1 Ke4 7. Kg1 Kf3 8. Kh1 Ke4 9. Kh2 Kd3 10. Bc3 Ke4 11. Kh1 Kd3 12. Kg1 Ke4 13. Kf1 Kd5 14. Kg1 Ke4 15. Kh2 Kd5 16. Kh1 Ke4 17. Kg1 Kd3 18. Kh1 Ke4 19. Kg2 Kf4 20. Kh1 Ke4 21. Ba1 Kd3 22. Kg1 Kxd2 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/3P4/2B1K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KBPvK-01: Bishop supports pawn"]
+
+1. d3 Kd4 2. Ke2 Kc3 3. Bb2+ Kc2 4. d4 Kb1 5. Ba3 Ka1 6. d5 Kb1 7. Be7 Kc1 8. d6 Kb1 9. d7 Kc1 10. d8=Q Kb1 11. Qd2 Ka1 12. Bf6+ Kb1 13. Qb2# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/7P/4K2B w - - 0 1"]
+[SetUp "1"]
+[Opening "KBPvK-02: Wrong color bishop?"]
+
+1. h4+ Ke5 2. Kf1 Kf5 3. Kg1 Kg4 4. Kf1 Kf5 5. Kg1 Kg4 6. Kf1 Kf5 7. Kg1 Kg4 8. Kf1 Kf5 9. Kg1 Kg4 10. Kf1 Kf5 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/7P/4K2B w - - 0 1"]
+[SetUp "1"]
+[Opening "KBPvK-02: Wrong color bishop?"]
+
+1. h4+ Kd4 2. h5 Ke5 3. Be4 Kf6 4. h6 Kf7 5. Ke2 Kg8 6. Bf5 Kf7 7. Kf3 Kg8 8. Bb1 Kh8 9. Bd3 Kg8 10. Ke3 Kh8 11. Kf4 Kg8 12. Bf5 Kh8 13. Be4 Kg8 14. Ke5 Kh8 15. Bg6 Kg8 16. Bb1 Kh8 17. Bd3 Kg8 18. Bg6 Kh8 19. Bf5 Kg8 20. Bc2 Kh8 21. Be4 Kg8 22. Kf6 Kh8 23. Bd3 Kg8 24. Kg6 Kh8 25. Be2 Kg8 26. Ba6 Kh8 27. Bc8 Kg8 28. Bg4 Kh8 29. Kg5 Kh7 30. Be6 Kh8 31. Bf5 Kg8 32. Bg6 Kh8 33. Be4 Kg8 34. Bf5 Kh8 35. Kf6 Kg8 36. Ke5 Kh8 37. Kf4 Kg8 38. Kg4 Kh8 39. Bg6 Kg8 40. Kf3 Kh8 41. Ke3 Kg8 42. Kf2 Kh8 43. Kg2 Kg8 44. Kh3 Kh8 45. Kh2 Kg8 46. Bc2 Kf7 47. Bh7 Kf6 48. Bb1 Kf7 49. Kh1 Kf6 50. Kg2 Kf7 51. Be4 Kf6 52. Kh1 Kf7 53. h7 Kg7 54. Bd3 Kh8 55. Bb1 Kg7 56. Bg6 Kh8 57. Kg2 Kg7 58. Kh3 Kh8 59. Be4 Kg7 60. Bc2 Kh8 61. Bd3 Kg7 62. Kg3 Kh8 63. Bg6 Kg7 64. Bb1 Kh8 65. Kf3 Kg7 66. Bf5 Kh8 67. Kf2 Kg7 68. Be4 Kh8 69. Ke1 Kg7 70. Kf1 Kh8 71. Ke2 Kg7 72. Bg6 Kh8 73. Ke1 Kg7 74. Bc2 Kh8 75. Kd2 Kg7 76. Be4 Kh8 77. Kc2 Kg7 78. Bg6 Kh8 79. Bf5 Kg7 80. Kb1 Kh8 81. Ka1 Kg7 82. Bc2 Kh8 83. Be4 Kg7 84. Bb1 Kh8 85. Bg6 Kg7 86. Kb2 Kh8 87. Ka3 Kg7 88. Ka4 Kh8 89. Bc2 Kg7 90. Bb1 Kh8 91. Be4 Kg7 92. Bf5 Kh8 93. Bg6 Kg7 94. Be4 Kh8 95. Kb5 Kg7 96. Bb1 Kh8 97. Bc2 Kg7 98. Bd3 Kh8 99. Bf5 Kg7 100. Be4 Kh8 101. Bd3 Kg7 102. Be2 Kxh7 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/7k/8/8/8/7P/4K2B w - - 0 1"]
+[SetUp "1"]
+[Opening "KBPvK-03: Wrong corner draw"]
+
+1. Kf1 Kg5 2. Kg1 Kf4 3. Kf1 Kg5 4. Kg1 Kf4 5. Kf1 Kg5 6. Kg1 Kf4 7. Kf1 Kg5 8. Kg1 Kf4 9. Kf1 Kg5 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/7k/8/8/8/7P/4K2B w - - 0 1"]
+[SetUp "1"]
+[Opening "KBPvK-03: Wrong corner draw"]
+
+1. Kf2 Kh5 2. Kg3 Kg5 3. Be4 Kh5 4. h3 Kg5 5. Bc2 Kh5 6. Bh7 Kg5 7. Bb1 Kh5 8. h4 Kh6 9. Kg4 Kg7 10. Bc2 Kh6 11. Bd3 Kg7 12. Kg5 Kf7 13. Kh6 Kg8 14. Bh7+ Kh8 15. Bc2 Kg8 16. Bb1 Kh8 17. Kg6 Kg8 18. Kf6 Kh8 19. Bf5 Kg8 20. Bc2 Kh8 21. Be4 Kg8 22. Bh1 Kh7 23. Bf3 Kh6 24. Kf7 Kh7 25. Bd1 Kh8 26. Kf8 Kh7 27. Be2 Kh8 28. Bf3 Kh7 29. Bd1 Kh8 30. Bh5 Kh7 31. Kf7 Kh6 32. Bg4 Kh7 33. Bf3 Kh8 34. Kg6 Kg8 35. Be2 Kh8 36. Kh6 Kg8 37. Bg4 Kh8 38. Bc8 Kg8 39. Bh3 Kh8 40. Bd7 Kg8 41. Kg6 Kh8 42. Bb5 Kg8 43. Bf1 Kh8 44. Be2 Kg8 45. Bg4 Kh8 46. Bf5 Kg8 47. Bh3 Kh8 48. Bf1 Kg8 49. Ba6 Kh8 50. Bd3 Kg8 51. Bc4+ Kh8 52. Ba6 Kg8 53. Bb5 Kh8 54. Kh6 Kg8 55. Ba6 Kh8 56. Bb7 Kg8 57. Bc8 Kf7 58. h5 Kg8 59. Be6+ Kh8 60. Bf5 Kg8 61. Bd7 Kh8 62. Bg4 Kg8 63. Bh3 Kh8 64. Bf1 Kg8 65. Kg6 Kh8 66. Bb5 Kg8 67. Bc6 Kh8 68. Ba4 Kg8 69. Bd7 Kh8 70. Bg4 Kg8 71. Kh6 Kh8 72. Bf3 Kg8 73. Kg6 Kh8 74. Bc6 Kg8 75. Ba8 Kh8 76. Kf7 Kh7 77. Be4+ Kh8 78. Kg6 Kg8 79. Bb7 Kh8 80. Bf3 Kg8 81. Bg4 Kh8 82. Kf7 Kh7 83. Be2 Kh8 84. Bf3 Kh7 85. Kf8 Kh8 86. Bd5 Kh7 87. Bf7 Kh8 88. Be6 Kh7 89. Bg4 Kh8 90. Bf3 Kh7 91. Be2 Kh8 92. Ke7 Kh7 93. Kf6 Kh6 94. Kf7 Kh7 95. Bd3+ Kh8 96. Kg6 Kg8 97. Kf6 Kh8 98. Be4 Kg8 99. Bf5 Kh8 100. Kg6 Kg8 101. Bc2 Kh8 102. Kh6 Kg8 103. Bg6 Kh8 104. Bb1 Kg8 105. Be4 Kh8 106. Bg2 Kg8 107. Kg6 Kh8 108. h6 Kg8 109. Bf1 Kh8 110. Kg5 Kh7 111. Bd3+ Kh8 112. Bc2 Kg8 113. Kg6 Kh8 114. Bd1 Kg8 115. Bb3+ Kh8 116. Bc2 Kg8 117. Kg5 Kh8 118. Kf4 Kg8 119. Be4 Kh8 120. Kg4 Kg8 121. Bc2 Kh8 122. Bd3 Kg8 123. Kh4 Kh8 124. Bf5 Kg8 125. Kg3 Kh8 126. Bg6 Kg8 127. Kg4 Kh8 128. Kf3 Kg8 129. Be4 Kh8 130. Kf2 Kg8 131. Bc2 Kf7 132. Bh7 Kf6 133. Be4 Kf7 134. Kf3 Kg8 135. Bc2 Kh8 136. Bd3 Kg8 137. Ke3 Kh8 138. Bg6 Kg8 139. Kf2 Kh8 140. Kf1 Kg8 141. Kg2 Kh8 142. Bf5 Kg8 143. Bb1 Kf7 144. Kf2 Kg8 145. Kf3 Kh8 146. Bc2 Kg8 147. Kg3 Kh8 148. Kf2 Kg8 149. Ke1 Kf7 150. Ke2 Kf6 151. Ke3 Kf7 152. Bh7 Kf6 153. Kf4 Ke7 154. Kf3 Kf6 155. Kg4 Ke5 156. Bg6 Kf6 157. Bh5 Ke5 158. h7 Ke4 159. h8=Q Kd3 160. Bf7 Ke2 161. Qd4 Kf1 162. Kg3 Ke1 163. Qe3+ Kf1 164. Bc4# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/3P4/2N1K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KNPvK-01: Knight supports pawn"]
+
+1. Kf1 Kd4 2. Kg1 Kc4 3. Kh1 Kd5 4. Kg1 Kc4 5. Kf1 Kd4 6. Ke1 Kd5 7. Kd1 Ke5 8. Ke1 Kd5 9. Kf2 Ke4 10. Kg1 Ke5 11. Kh1 Kd5 12. Kh2 Kd6 13. Kh1 Kd5 14. Kg2 Ke6 15. Kh1 Kd5 16. Ne2 Kc6 17. Kg1 Kd5 18. Kf1 Ke6 19. Kg1 Kd5 20. Kh2 Kd6 21. Kh1 Kc6 22. Kh2 Kd6 23. Kg1 Kd5 24. Kg2 Kc4 25. Nc1 Kd5 26. Kh1 Kc4 27. Kg1 Kd5 28. Ne2 Ke4 29. Kf1 Kd3 30. Ke1 Ke4 31. Nc1 Kd5 32. Ke2 Ke4 33. Kf1 Kd4 34. Kg2 Kd5 35. Kh3 Ke5 36. Kh2 Kd6 37. Kg1 Ke5 38. Kf1 Kd4 39. Kf2 Ke4 40. Kg2 Kd5 41. Kg3 Ke4 42. Kh2 Ke5 43. Kg1 Kd5 44. Nb3 Kc4 45. Kf1 Kxb3 46. Kf2 Kc4 47. Ke3 Kd5 48. Kd3 Kd6 49. Ke4 Ke6 50. Kd4 Kd6 51. Kc4 Kc6 52. Kd4 Kd6 53. d3 Ke6 54. Kc5 Kd7 55. Kd5 Kc7 56. Ke6 Kd8 57. Kd6 Ke8 58. Ke6 Kd8 59. d4 Ke8 60. Kd6 Kf8 61. Ke6 Ke8 62. d5 Kd8 63. Kd6 Ke8 64. Kc7 Kf7 65. Kc6 Kg6 66. Kc5 Kf5 67. Kc6 Kg6 68. Kb5 Kf7 69. Kb6 Ke8 70. Kc6 Kd8 71. Kc5 Ke7 72. Kc6 Kd8 73. Kc5 Ke7 74. Kd4 Kd6 75. Ke3 Kxd5 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/3P4/2N1K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KNPvK-01: Knight supports pawn"]
+
+1. Ke2 Ke4 2. Nb3 Kf4 3. d4 Ke4 4. Kd2 Kf5 5. Ke3 Kf6 6. Ke4 Kg5 7. Ke5 Kh4 8. d5 Kh3 9. Kf5 Kh2 10. d6 Kh1 11. Kf4 Kg1 12. d7 Kh1 13. Kg3 Kg1 14. d8=Q Kh1 15. Qd1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1/2-1/2"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/3k4/3P4/2N1K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KNPvK-02: Pawn advance"]
+
+1. Kd1+ Kd4 2. Ke1 Ke5 3. Kf1 Kd5 4. Kg1 Kc5 5. Kh1 Kc4 6. Kg1 Kc5 7. Kf1 Kd5 8. Ke1 Ke5 9. Kd1 Kd4 10. Ke2 Ke4 11. Kf1 Kd5 12. Kg2 Kc5 13. Kg1 Kc4 14. Kh1 Kd5 15. Kh2 Kd4 16. Kh1 Kc4 17. Kh2 Kd4 18. Kg1 Kc4 19. Kf1 Kd5 20. Kf2 Kc6 21. Kg1 Kc5 22. Kh2 Kd4 23. Kg2 Kc5 24. Kf2 Kc6 25. Kf1 Kd5 1/2-1/2
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/3k4/3P4/2N1K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KNPvK-02: Pawn advance"]
+
+1. Nb3 Kc2 2. Nc1 Kxc1 3. d4 Kb1 4. d5 Kc1 5. d6 Kb1 6. d7 Kc1 7. d8=Q Kc2 8. Qd5 Kc1 9. Qd3 Kb2 10. Kd1 Ka1 11. Kc2 Ka2 12. Qa6# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/3P4/8/R3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvK-01: Easy win"]
+
+1. Ra4 Kd6 2. Kf1 Kc6 3. Kg2 Kd5 4. Kh1 Kc6 5. Kh2 Kd5 6. Kg1 Kc5 7. Kh2 Kd5 8. Kg2 Kc6 9. Kf2 Kd7 10. Kg1 Kd6 11. Kh1 Kc6 12. Ra1 Kd5 13. d4 Kxd4 14. Kh2 Kc3 15. Ra4 Kb3 16. Rh4 Kc2 17. Kg1 Kc3 18. Kf1 Kd3 19. Kf2 Kc2 20. Ke2 Kc3 21. Rg4 Kc2 22. Rg3 Kb1 23. Kd1 Kb2 24. Kd2 Ka1 25. Kc1 Ka2 26. Kc2 Ka1 27. Ra3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/3P4/8/R3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvK-01: Easy win"]
+
+1. Ke2 Kd4 2. Rd1 Kc3 3. d4 Kc2 4. d5 Kb2 5. d6 Kc2 6. d7 Kb2 7. d8=Q Kc2 8. Qb6 Kc3 9. Rc1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/3k4/3P4/R3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvK-02: King nearby"]
+
+1. Kf1 Kxd2 2. Ra3 Kc2 3. Ke1 Kb2 4. Rh3 Kc2 5. Ke2 Kc1 6. Kd3 Kb2 7. Kd2 Ka1 8. Kc1 Ka2 9. Kc2 Ka1 10. Ra3# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/8/8/3k4/3P4/R3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KRPvK-02: King nearby"]
+
+1. Ra4 Kc2 2. Rd4 Kc1 3. Rb4 Kc2 4. Ke2 Kc1 5. Kd3 Kd1 6. Rb1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v024-connected-passed-pawns"]
+[Result "0-1"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/r3K2Q w - - 0 1"]
+[SetUp "1"]
+[Opening "KQvKR-01: Queen vs rook"]
+
+1. Kf2+ Rxh1 2. Kg2 Rh5 3. Kf3 Re5 4. Kf4 Kd4 5. Kf3 Re4 6. Kf2 Re3 7. Kf1 Kd3 8. Kf2 Kd2 9. Kg1 Ke2 10. Kg2 Ra3 11. Kh1 Kf1 12. Kh2 Kf2 13. Kh1 Rh3# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v024-connected-passed-pawns"]
+[Black "v028-dtz-progress"]
+[Result "0-1"]
+[TimeControl "0.25s/move"]
+[FEN "8/8/8/3k4/8/8/8/r3K2Q w - - 0 1"]
+[SetUp "1"]
+[Opening "KQvKR-01: Queen vs rook"]
+
+1. Kf2+ Rxh1 2. Ke3 Rh4 3. Kd3 Rh3+ 4. Ke2 Kd4 5. Kf2 Kd3 6. Kg2 Re3 7. Kf2 Kd2 8. Kg1 Ke1 9. Kg2 Ke2 10. Kh1 Kf1 11. Kh2 Kf2 12. Kh1 Rh3# 0-1
+

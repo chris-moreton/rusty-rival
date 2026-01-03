@@ -1,0 +1,112 @@
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v027-tablebase-fast"]
+[Result "1-0"]
+[TimeControl "0.10s/move"]
+[FEN "8/8/8/3k4/8/8/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-01: Queen endgame central"]
+
+1. Qa6 Ke4 2. Qa5 Kf3 3. Qe5 Kg2 4. Qe3 Kh1 5. Kf2 Kh2 6. Qh6# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v027-tablebase-fast"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.10s/move"]
+[FEN "8/8/8/3k4/8/8/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-01: Queen endgame central"]
+
+1. Kf1 Ke6 2. Kg1 Kd5 3. Kh1 Kc4 4. Kg1 Kd5 5. Kh2 Kc4 6. Kh1 Kb4 7. Kg1 Kc5 8. Kh1 Kc4 9. Kh2 Kb4 10. Kh1 Kc4 11. Kg2 Kb4 12. Kf1 Kc5 13. Kg1 Kd5 14. Kg2 Kc5 15. Kf1 Kd5 16. Kg1 Kc5 17. Kh2 Kc4 18. Kh3 Kb3 19. Kh2 Kc4 20. Kg3 Kb4 21. Kh2 Kc4 22. Qh1 Kc5 23. Kg1 Kd6 24. Kf1 Kc5 25. Ke1 Kd6 26. Kd1 Ke5 27. Ke1 Kd6 28. Kf2 Kc5 29. Kf1 Kd6 30. Kg1 Kc5 31. Kh2 Kd6 32. Kg2 Ke5 33. Kg1 Kd6 34. Kh2 Kc5 35. Kg2 Kd4 36. Kg1 Kc5 37. Kf2 Kd6 38. Ke1 Kc5 39. Kd1 Kd6 40. Kc1 Kd7 41. Kd1 Kd6 42. Ke2 Kc5 43. Kf3 Kd4 44. Qh5 Kc3 45. Ke3 Kc2 46. Kd4 Kb2 47. Kd3 Kb1 48. Kc3 Ka1 49. Kc2 Ka2 50. Qa5# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v027-tablebase-fast"]
+[Result "1-0"]
+[TimeControl "0.10s/move"]
+[FEN "k7/8/8/8/8/8/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-02: King in corner"]
+
+1. Qb1 Ka7 2. Kf2 Ka6 3. Kf3 Ka5 4. Ke4 Ka4 5. Kd4 Ka3 6. Kc3 Ka4 7. Qb4# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v027-tablebase-fast"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.10s/move"]
+[FEN "k7/8/8/8/8/8/8/Q3K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-02: King in corner"]
+
+1. Kf1+ Kb7 2. Kg1 Kc6 3. Kh1 Kd5 4. Kg1 Kc6 5. Kf1 Kb7 6. Ke1 Kc6 7. Kd1 Kc5 8. Ke1 Kc6 9. Kf2 Kd5 10. Kf1 Ke6 11. Kg1 Kd5 12. Kh1 Kc4 13. Kg1 Kd5 14. Kh2 Kc4 15. Kh1 Kd5 16. Kg2 Kc5 17. Kh1 Kc4 18. Kh2 Kb4 19. Kh1 Kc4 20. Kg2 Kc5 21. Kg1 Kd5 22. Kf2 Kc5 23. Kf1 Kd5 24. Ke1 Kc6 25. Ke2 Kd5 26. Kd1 Kc5 27. Kc1 Kd5 28. Kb1 Ke6 29. Kc1 Kd5 30. Kd2 Ke6 31. Ke1 Kf5 32. Kf1 Ke6 33. Kg2 Kd5 34. Kh3 Ke4 35. Kh2 Kd5 36. Kg3 Kc5 37. Kh2 Kc4 38. Kh3 Kb3 39. Kh2 Kc4 40. Kg3 Kc5 41. Kg2 Kd5 42. Kf3 Kc4 43. Ke2 Kd5 44. Qf6 Kc4 45. Qe6+ Kc3 46. Qe4 Kb2 47. Kd3 Kb1 48. Kc3+ Ka1 49. Kc2 Ka2 50. Qa4# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v027-tablebase-fast"]
+[Result "*"]
+[TimeControl "0.10s/move"]
+[FEN "8/8/8/8/3k4/8/8/4K2Q w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-03: Central defense"]
+
+1. Qh5 Ke3 2. Qd5 Kf4 *
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v027-tablebase-fast"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.10s/move"]
+[FEN "8/8/8/8/3k4/8/8/4K2Q w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-03: Central defense"]
+
+1. Kf1 Kc5 2. Kg1 Kd6 3. Kf1 Kc5 4. Ke1 Kd6 5. Kd1 Ke5 6. Ke1 Kd6 7. Kf2 Kc5 8. Kf1 Kd6 9. Kg1 Kc5 10. Kh2 Kd6 11. Kg2 Ke5 12. Kg1 Kd6 13. Kh2 Kc5 14. Kg2 Kd4 15. Kg1 Kc5 16. Kf2 Kd6 17. Ke1 Kc5 18. Kd1 Kd6 19. Kc1 Kd7 20. Kd1 Kd6 21. Ke2 Kc5 22. Kd2 Kd6 23. Kc2 Ke5 24. Kd1 Kd6 25. Kd2 Kc5 26. Kc1 Kd6 27. Kb1 Ke5 28. Kc1 Kd6 29. Kb2 Ke5 30. Kb1 Kf5 31. Kc1 Kg5 32. Kd1 Kf5 33. Ke1 Kg6 34. Kf1 Kf5 35. Kg1 Ke5 36. Kf1 Kf5 37. Kg2 Ke5 38. Kh2 Kd6 39. Kh3 Kc5 40. Kg3 Kb5 41. Kh2 Kc5 42. Qe1 Kd4 43. Kg3 Kc4 44. Kf4 Kb3 45. Ke3 Kc4 46. Qa5 Kb3 47. Kd3 Kb2 48. Qa4 Kb1 49. Kc3 Kc1 50. Qa1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v028-dtz-progress"]
+[Black "v027-tablebase-fast"]
+[Result "1-0"]
+[TimeControl "0.10s/move"]
+[FEN "8/8/8/8/8/8/8/Qk2K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-04: Near queen"]
+
+1. Qa4 Kc1 2. Qb4 Kc2 3. Ke2 Kc1 4. Kd3 Kd1 5. Qb1# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.03"]
+[Round "?"]
+[White "v027-tablebase-fast"]
+[Black "v028-dtz-progress"]
+[Result "1-0"]
+[TimeControl "0.10s/move"]
+[FEN "8/8/8/8/8/8/8/Qk2K3 w - - 0 1"]
+[SetUp "1"]
+[Opening "KQK-04: Near queen"]
+
+1. Qa3 Kc2 2. Kf1 Kd1 3. Kg1 Kd2 4. Kh1 Kc2 5. Kg1 Kd2 6. Kf1 Kd1 7. Kg2 Ke2 8. Kh1 Kd2 9. Kg1 Kc2 10. Kh1 Kd2 11. Kh2 Kc2 12. Kg2 Kb1 13. Kh1 Kc2 14. Kh2 Kb1 15. Kg1 Kc2 16. Kf2 Kd2 17. Kg2 Ke2 18. Kg1 Kd2 19. Kf2 Kc2 20. Ke1 Kb1 21. Kf1 Kc2 22. Ke2 Kb1 23. Kf2 Kc2 24. Kg3 Kb1 25. Kh2 Kc2 26. Kh3 Kb1 27. Kg2 Kc2 28. Kf3 Kb1 29. Ke2 Kc2 30. Ke3 Kb1 31. Kf3 Kc2 32. Kg4 Kb1 33. Kh3 Kc2 34. Kh4 Kb1 35. Kg3 Kc2 36. Kf4 Kd2 37. Kg3 Kc2 38. Qa1 Kd3 39. Kh2 Kc4 40. Kh1 Kb4 41. Kg1 Kc5 42. Kf1 Kd5 43. Qf6 Ke4 44. Ke2 Kd5 45. Kd3 Kc5 46. Qe6 Kb5 47. Kd4 Kb4 48. Qb6+ Ka3 49. Kc3 Ka2 50. Qb2# 1-0
+
