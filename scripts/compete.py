@@ -812,10 +812,10 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
 
 
 def print_league_table(ratings: dict, competitors: set[str], games_this_comp: dict[str, int],
-                       points_this_comp: dict[str, float], round_num: int, is_final: bool = False):
+                       points_this_comp: dict[str, float], round_num: int, is_final: bool = False,
+                       competitors_only: bool = False, game_num: int = 0, total_games: int = 0):
     """
-    Print the league standings showing ALL engines with Elo ratings.
-    Competitors in the current tournament are highlighted with *.
+    Print the league standings.
 
     Args:
         ratings: Global Elo ratings dict {engine: {"elo": float, "games": int}}
@@ -824,7 +824,32 @@ def print_league_table(ratings: dict, competitors: set[str], games_this_comp: di
         points_this_comp: Dict of points scored this competition per engine
         round_num: Current round number
         is_final: Whether this is the final standings
+        competitors_only: If True, only show engines in current competition
+        game_num: Current game number (for per-game display)
+        total_games: Total games in competition (for per-game display)
     """
+    if competitors_only:
+        # Compact table showing only competitors, sorted by points
+        sorted_competitors = sorted(
+            [(name, points_this_comp.get(name, 0), ratings[name]["elo"]) for name in competitors],
+            key=lambda x: (-x[1], -x[2])  # Sort by points desc, then Elo desc
+        )
+
+        print(f"\n{'='*60}")
+        print(f"STANDINGS ({game_num}/{total_games} games)")
+        print(f"{'='*60}")
+        print(f"{'#':<4}{'Engine':<28}{'Points':<10}{'Elo':<10}")
+        print(f"{'-'*60}")
+
+        for rank, (name, points, elo) in enumerate(sorted_competitors, 1):
+            comp_games = games_this_comp.get(name, 0)
+            prov = "?" if ratings[name]["games"] < PROVISIONAL_GAMES else ""
+            print(f"{rank:<4}{name:<28}{points:<10.1f}{elo:<10.0f}{prov}")
+
+        print(f"{'='*60}")
+        return
+
+    # Full table (original behavior)
     header = "FINAL LEAGUE STANDINGS" if is_final else f"STANDINGS AFTER ROUND {round_num}"
     print(f"\n{'='*95}")
     print(header)
@@ -1033,10 +1058,11 @@ def run_league(engine_names: list[str], engine_dir: Path,
                 color_label = "(colors swapped)" if color_swap else ""
                 print(f"Game {game_num:3d}/{total_games} {match_label}: {white} vs {black} -> {result} {color_label}")
 
-        # Print standings after each complete round
-        print_league_table(elo_ratings, competitors, games_this_comp, points_this_comp, round_idx + 1)
+                # Print compact standings after each game
+                print_league_table(elo_ratings, competitors, games_this_comp, points_this_comp,
+                                   round_idx + 1, competitors_only=True, game_num=game_num, total_games=total_games)
 
-    # Print final standings
+    # Print final standings (full table)
     print_league_table(elo_ratings, competitors, games_this_comp, points_this_comp, num_rounds, is_final=True)
 
     # Print head-to-head results
@@ -1304,6 +1330,11 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
 
     game_num = 0
 
+    # Track session stats for standings display
+    session_engines = set()
+    session_games = {}  # engine -> games played this session
+    session_points = {}  # engine -> points this session
+
     for match_idx in range(num_matches):
         # Pick two engines (weighted or uniform random)
         if weighted:
@@ -1340,7 +1371,24 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             print(file=f)
 
         update_elo_after_game(elo_ratings, engine1, engine2, result)
+
+        # Track session stats
+        for eng in [engine1, engine2]:
+            session_engines.add(eng)
+            session_games[eng] = session_games.get(eng, 0) + 1
+            if eng not in session_points:
+                session_points[eng] = 0.0
+        if result == "1-0":
+            session_points[engine1] += 1.0
+        elif result == "0-1":
+            session_points[engine2] += 1.0
+        elif result == "1/2-1/2":
+            session_points[engine1] += 0.5
+            session_points[engine2] += 0.5
+
         print(f"Game {game_num:3d}/{total_games}: {engine1} (W) vs {engine2} -> {result}  [{opening_name}]")
+        print_league_table(elo_ratings, session_engines, session_games, session_points,
+                           0, competitors_only=True, game_num=game_num, total_games=total_games)
 
         # Game 2: engine2 as white (same time control as game 1)
         game_num += 1
@@ -1356,7 +1404,21 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             print(file=f)
 
         update_elo_after_game(elo_ratings, engine2, engine1, result)
+
+        # Track session stats
+        for eng in [engine1, engine2]:
+            session_games[eng] = session_games.get(eng, 0) + 1
+        if result == "1-0":
+            session_points[engine2] += 1.0
+        elif result == "0-1":
+            session_points[engine1] += 1.0
+        elif result == "1/2-1/2":
+            session_points[engine1] += 0.5
+            session_points[engine2] += 0.5
+
         print(f"Game {game_num:3d}/{total_games}: {engine2} (W) vs {engine1} -> {result}  [{opening_name}]")
+        print_league_table(elo_ratings, session_engines, session_games, session_points,
+                           0, competitors_only=True, game_num=game_num, total_games=total_games)
 
     # Print final standings
     print(f"\n{'='*70}")
