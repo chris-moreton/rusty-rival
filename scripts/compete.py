@@ -35,6 +35,7 @@ import argparse
 import json
 import math
 import random
+import subprocess
 import sys
 import chess
 import chess.engine
@@ -643,8 +644,8 @@ def play_game(engine1_path: Path, engine2_path: Path,
     else:
         board = chess.Board()
 
-    engine1 = chess.engine.SimpleEngine.popen_uci(str(engine1_path))
-    engine2 = chess.engine.SimpleEngine.popen_uci(str(engine2_path))
+    engine1 = chess.engine.SimpleEngine.popen_uci(str(engine1_path), stderr=subprocess.DEVNULL)
+    engine2 = chess.engine.SimpleEngine.popen_uci(str(engine2_path), stderr=subprocess.DEVNULL)
 
     # Configure UCI options if provided
     if engine1_uci_options:
