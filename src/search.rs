@@ -4,7 +4,7 @@ use crate::engine_constants::{
     NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE,
 };
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
-use crate::tablebase::{probe_wdl, tablebase_available};
+use crate::tablebase::{probe_wdl, tablebase_available, TB_MAX_PIECES};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
@@ -313,11 +313,14 @@ pub fn search(
         return (pv_single(0), draw_value(position, search_state));
     }
 
-    // Tablebase probe - only at root or shallow depths to avoid slowdown
+    // Tablebase probe - single popcount on combined occupancy
     if tablebase_available() && ply > 0 {
-        if let Some(tb_score) = probe_wdl(position) {
-            search_state.nodes += 1;
-            return (pv_single(0), tb_score);
+        let all_pieces = position.pieces[0].all_pieces_bitboard | position.pieces[1].all_pieces_bitboard;
+        if all_pieces.count_ones() <= TB_MAX_PIECES {
+            if let Some(tb_score) = probe_wdl(position) {
+                search_state.nodes += 1;
+                return (pv_single(0), tb_score);
+            }
         }
     }
 
