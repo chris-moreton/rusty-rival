@@ -64,88 +64,29 @@ All engines must be listed in the config file to be recognized.
 
 ## Engine Competition (compete.py)
 
-The `scripts/compete.py` script runs engine vs engine matches with Elo tracking.
-
-### Head-to-Head Match (2 engines)
-
-Run a match between two specific engines:
+The `scripts/compete.py` script is a comprehensive engine testing framework with Elo tracking.
 
 ```bash
-# 100 games, 1 second per move (uses opening book)
-./scripts/compete.py v1 v6 --games 100 --time 1.0
+# Head-to-head match
+./scripts/compete.py v27 v24 --games 100 --time 1.0
 
-# Quick test with shorter time
-./scripts/compete.py v1 v6 --games 20 --time 0.25
+# Round-robin league
+./scripts/compete.py v27 v24 v19 v1 --games 50 --time 0.5
 
-# Without opening book (all games from starting position)
-./scripts/compete.py v1 v6 --games 50 --no-book
-```
-
-Engine names can be shorthand (`v1`, `v6`) or full (`v001-baseline`, `v006-arrayvec`).
-
-### Round-Robin League (3+ engines)
-
-Run a round-robin tournament between multiple engines:
-
-```bash
-# League between 4 engines, 100 games per pairing
-./scripts/compete.py v1 v6 v11 v17 --games 100 --time 0.5
-```
-
-Shows a league table after each round with current standings.
-
-### Gauntlet Mode (test new engine)
-
-Test a single "challenger" engine against all other engines in the `engines/` directory:
-
-```bash
-# Test v20 against all engines: 50 rounds (2 games per opponent per round)
-./scripts/compete.py v20 --gauntlet --games 50 --time 0.5
-```
-
-Features:
-- Plays in rounds: each round = 1 game as white + 1 game as black against each opponent
-- Interleaved play across all opponents (cycles through all before repeating)
-- Each game uses a randomly selected opening
-- Shows standings after each round
-- Shows per-opponent results and overall summary at the end
-- Updates Elo ratings after each game
-
-### Random Mode (continuous random pairings)
-
-Randomly select pairs of engines and play 2-game matches:
-
-```bash
-# Run 100 random matches (200 games total), 0.5s per move
+# Random continuous competition
 ./scripts/compete.py --random --games 100 --time 0.5
 
-# Weighted selection: engines with fewer games are more likely to be picked
-./scripts/compete.py --random --weighted --games 100 --time 0.5
+# EPD endgame testing (Elo not updated)
+./scripts/compete.py v27 v24 --epd eet.epd --time 1.0
 ```
 
-Features:
-- Randomly pairs two engines from the `engines/` directory for each match
-- Each match = 2 games (1 as white, 1 as black)
-- Each game uses a randomly selected opening
-- Updates Elo ratings after each game
-- Shows current Elo standings at the end
-- `--weighted`: Selection probability is inversely proportional to games played (weight = 1/(games+1))
-
-### Common Options
-
-| Option | Description |
-|--------|-------------|
-| `--games N` or `-g N` | Number of games/rounds/matches depending on mode |
-| `--time T` or `-t T` | Time per move in seconds |
-| `--no-book` | Disable opening book |
-| `--gauntlet` | Enable gauntlet mode |
-| `--random` | Enable random mode |
-| `--weighted` | With `--random`: favor engines with fewer games |
-
-### Output
-
-- **PGN files**: Saved to `results/competitions/`
-- **Elo ratings**: Stored in `results/elo_ratings.json` (persistent across runs)
+**See [COMPETE.md](COMPETE.md) for full documentation** including:
+- All competition modes (head-to-head, round-robin, gauntlet, random, EPD)
+- Engine configuration and active/inactive status
+- Elo rating system details
+- Opening book information
+- Time control options (fixed and random ranges)
+- Troubleshooting guide
 
 ## Running Perft
 
