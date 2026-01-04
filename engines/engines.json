@@ -120,7 +120,7 @@
   },
   "sf-2700": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2700"
@@ -128,7 +128,7 @@
   },
   "sf-2800": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2800"
@@ -136,7 +136,7 @@
   },
   "sf-3000": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "3000"
@@ -144,7 +144,7 @@
   },
   "sf-full": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": true
+    "active": false
   },
   "velvet-1400": {
     "binary": "velvet/velvet",
@@ -164,7 +164,7 @@
   },
   "velvet-2200": {
     "binary": "velvet/velvet",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2200"
@@ -172,7 +172,7 @@
   },
   "velvet-2400": {
     "binary": "velvet/velvet",
-    "active": true,
+    "active": false,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2200"
@@ -188,7 +188,7 @@
   },
   "velvet-full": {
     "binary": "velvet/velvet",
-    "active": true
+    "active": false
   },
   "v001-baseline": {
     "binary": "v001-baseline/rusty-rival",
