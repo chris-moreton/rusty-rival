@@ -309,5 +309,8 @@
     "uci_options": {
       "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
     }
+  },
+  "v029-log-lmr": {
+    "binary": "v029-log-lmr/rusty-rival"
   }
 }

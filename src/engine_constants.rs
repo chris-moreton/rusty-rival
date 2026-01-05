@@ -46,7 +46,49 @@ pub const IID_REDUCE_DEPTH: u8 = 2;
 
 pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 4;
 pub const LMR_MIN_DEPTH: u8 = 3;
-pub const LMR_REDUCTION: u8 = 2;
+
+// LMR reduction table: indexed by [depth][move_count]
+// Formula: floor(0.75 + ln(depth) * ln(move_count) / 2.5)
+// More conservative than Stockfish's formula to avoid over-pruning
+// Precomputed for depths 0-63 and move counts 0-63
+pub const LMR_TABLE: [[u8; 64]; 64] = generate_lmr_table();
+
+const fn generate_lmr_table() -> [[u8; 64]; 64] {
+    // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
+    // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
+    const LN_TABLE: [u32; 64] = [
+        0, 0, 693, 1099, 1386, 1609, 1792, 1946, 2079, 2197, 2303, 2398, 2485, 2565, 2639, 2708, 2773, 2833, 2890, 2944, 2996, 3045, 3091,
+        3135, 3178, 3219, 3258, 3296, 3332, 3367, 3401, 3434, 3466, 3497, 3526, 3555, 3584, 3611, 3638, 3664, 3689, 3714, 3738, 3761, 3784,
+        3807, 3829, 3850, 3871, 3892, 3912, 3932, 3951, 3970, 3989, 4007, 4025, 4043, 4060, 4078, 4094, 4111, 4127, 4143,
+    ];
+
+    let mut table = [[0u8; 64]; 64];
+    let mut depth = 0usize;
+    while depth < 64 {
+        let mut move_count = 0usize;
+        while move_count < 64 {
+            if depth >= 3 && move_count >= 4 {
+                // reduction = 0.75 + ln(depth) * ln(move_count) / 2.5
+                // Using integer math: (750 + ln_d * ln_m / 2500) / 1000
+                let ln_d = LN_TABLE[depth];
+                let ln_m = LN_TABLE[move_count];
+                let reduction = (750 + (ln_d * ln_m) / 2500) / 1000;
+                table[depth][move_count] = reduction as u8;
+            }
+            move_count += 1;
+        }
+        depth += 1;
+    }
+    table
+}
+
+/// Get LMR reduction for given depth and move count
+#[inline(always)]
+pub fn lmr_reduction(depth: u8, move_count: u8) -> u8 {
+    let d = (depth as usize).min(63);
+    let m = (move_count as usize).min(63);
+    LMR_TABLE[d][m]
+}
 
 pub const SCOUT_MINIMUM_DISTANCE_FROM_LEAF: u8 = 2;
 

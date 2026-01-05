@@ -206,7 +206,7 @@ def get_k_factor(games_played: int) -> float:
     return K_FACTOR_ESTABLISHED
 
 
-def update_elo_after_game(ratings: dict, white: str, black: str, result: str):
+def update_elo_after_game(ratings: dict, white: str, black: str, result: str) -> tuple[float, float]:
     """
     Update Elo ratings after a single game using the standard Elo formula.
 
@@ -215,6 +215,9 @@ def update_elo_after_game(ratings: dict, white: str, black: str, result: str):
         New_elo = old_elo + K * (actual_score - expected)
 
     Modifies ratings dict in place and saves to file.
+
+    Returns:
+        Tuple of (white_change, black_change) - the Elo points gained/lost by each player.
     """
     # Ensure both players exist in ratings
     for player in [white, black]:
@@ -244,20 +247,26 @@ def update_elo_after_game(ratings: dict, white: str, black: str, result: str):
         white_actual, black_actual = 0.5, 0.5
     else:
         # Unknown result, don't update
-        return
+        return (0.0, 0.0)
 
     # Get K-factors
     white_k = get_k_factor(white_games)
     black_k = get_k_factor(black_games)
 
+    # Calculate changes
+    white_change = white_k * (white_actual - white_expected)
+    black_change = black_k * (black_actual - black_expected)
+
     # Update ratings
-    ratings[white]["elo"] += white_k * (white_actual - white_expected)
-    ratings[black]["elo"] += black_k * (black_actual - black_expected)
+    ratings[white]["elo"] += white_change
+    ratings[black]["elo"] += black_change
     ratings[white]["games"] += 1
     ratings[black]["games"] += 1
 
     # Save immediately (crash-safe)
     save_elo_ratings(ratings)
+
+    return (white_change, black_change)
 
 
 # Opening positions (FEN) - balanced positions after 4-8 moves from various openings
@@ -794,7 +803,7 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
             print(file=f)
 
         # Update persistent Elo ratings
-        update_elo_after_game(elo_ratings, white, black, result)
+        white_change, black_change = update_elo_after_game(elo_ratings, white, black, result)
 
         # Calculate points
         if result == "1-0":
@@ -815,7 +824,8 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
         game_num = i + 1
         opening_info = f" [{opening_name}]" if opening_name else ""
         print(f"Game {game_num:3d}/{num_games}: {white} vs {black} -> {result}{opening_info}  "
-              f"| Score: {engine1_name} {engine1_points:.1f} - {engine2_points:.1f} {engine2_name}",
+              f"| Score: {engine1_name} {engine1_points:.1f} - {engine2_points:.1f} {engine2_name}  "
+              f"Elo: {white} {white_change:+.1f}, {black} {black_change:+.1f}",
               flush=True)
 
     # Calculate Elo difference for this match
@@ -864,7 +874,8 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
 
 def print_league_table(ratings: dict, competitors: set[str], games_this_comp: dict[str, int],
                        points_this_comp: dict[str, float], round_num: int, is_final: bool = False,
-                       competitors_only: bool = False, game_num: int = 0, total_games: int = 0):
+                       competitors_only: bool = False, game_num: int = 0, total_games: int = 0,
+                       session_start_elo: dict[str, float] = None):
     """
     Print the league standings.
 
@@ -878,6 +889,7 @@ def print_league_table(ratings: dict, competitors: set[str], games_this_comp: di
         competitors_only: If True, only show engines in current competition
         game_num: Current game number (for per-game display)
         total_games: Total games in competition (for per-game display)
+        session_start_elo: Dict of starting Elo for each engine this session
     """
     if competitors_only:
         # Compact table showing only competitors, sorted by points
@@ -886,18 +898,22 @@ def print_league_table(ratings: dict, competitors: set[str], games_this_comp: di
             key=lambda x: (-x[1], -x[2])  # Sort by points desc, then Elo desc
         )
 
-        print(f"\n{'='*60}")
+        print(f"\n{'='*70}")
         print(f"STANDINGS ({game_num}/{total_games} games)")
-        print(f"{'='*60}")
-        print(f"{'#':<4}{'Engine':<28}{'Points':<10}{'Elo':<10}")
-        print(f"{'-'*60}")
+        print(f"{'='*70}")
+        print(f"{'#':<4}{'Engine':<28}{'Points':<10}{'Elo':<10}{'Change':<10}")
+        print(f"{'-'*70}")
 
         for rank, (name, points, elo) in enumerate(sorted_competitors, 1):
-            comp_games = games_this_comp.get(name, 0)
             prov = "?" if ratings[name]["games"] < PROVISIONAL_GAMES else ""
-            print(f"{rank:<4}{name:<28}{points:<10.1f}{elo:<10.0f}{prov}")
+            if session_start_elo and name in session_start_elo:
+                change = elo - session_start_elo[name]
+                change_str = f"{change:+.0f}"
+            else:
+                change_str = ""
+            print(f"{rank:<4}{name:<28}{points:<10.1f}{elo:<10.0f}{change_str:<10}{prov}")
 
-        print(f"{'='*60}")
+        print(f"{'='*70}")
         return
 
     # Full table (original behavior)
@@ -1232,7 +1248,7 @@ def run_league(engine_names: list[str], engine_dir: Path,
                     print(file=f)
 
                 # Update persistent Elo ratings
-                update_elo_after_game(elo_ratings, white, black, result)
+                white_change, black_change = update_elo_after_game(elo_ratings, white, black, result)
 
                 # Update games and points for this competition
                 games_this_comp[white] += 1
@@ -1267,7 +1283,8 @@ def run_league(engine_names: list[str], engine_dir: Path,
 
                 # Print game result
                 color_label = "(colors swapped)" if color_swap else ""
-                print(f"Game {game_num:3d}/{total_games} {match_label}: {white} vs {black} -> {result} {color_label}")
+                print(f"Game {game_num:3d}/{total_games} {match_label}: {white} vs {black} -> {result} {color_label}  "
+                      f"Elo: {white} {white_change:+.1f}, {black} {black_change:+.1f}")
 
                 # Print compact standings after each game
                 print_league_table(elo_ratings, competitors, games_this_comp, points_this_comp,
@@ -1392,7 +1409,7 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
                 print(game, file=f)
                 print(file=f)
 
-            update_elo_after_game(elo_ratings, challenger_name, opponent, result)
+            challenger_change, opponent_change = update_elo_after_game(elo_ratings, challenger_name, opponent, result)
 
             if result == "1-0":
                 results_per_opponent[opponent]["wins"] += 1
@@ -1401,7 +1418,8 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
             elif result == "1/2-1/2":
                 results_per_opponent[opponent]["draws"] += 1
 
-            print(f"Game {game_num:3d}/{total_games}: {challenger_name} (W) vs {opponent} -> {result}  [{opening_name}]")
+            print(f"Game {game_num:3d}/{total_games}: {challenger_name} (W) vs {opponent} -> {result}  [{opening_name}]  "
+                  f"Elo: {challenger_name} {challenger_change:+.1f}, {opponent} {opponent_change:+.1f}")
 
             # Game 2: Challenger as black
             game_num += 1
@@ -1416,7 +1434,7 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
                 print(game, file=f)
                 print(file=f)
 
-            update_elo_after_game(elo_ratings, opponent, challenger_name, result)
+            opponent_change, challenger_change = update_elo_after_game(elo_ratings, opponent, challenger_name, result)
 
             if result == "0-1":
                 results_per_opponent[opponent]["wins"] += 1
@@ -1425,7 +1443,8 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
             elif result == "1/2-1/2":
                 results_per_opponent[opponent]["draws"] += 1
 
-            print(f"Game {game_num:3d}/{total_games}: {opponent} vs {challenger_name} (B) -> {result}  [{opening_name}]")
+            print(f"Game {game_num:3d}/{total_games}: {opponent} vs {challenger_name} (B) -> {result}  [{opening_name}]  "
+                  f"Elo: {opponent} {opponent_change:+.1f}, {challenger_name} {challenger_change:+.1f}")
 
         # Show standings after each round
         print(f"\n--- Standings after round {round_idx + 1} ---")
@@ -1545,6 +1564,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     session_engines = set()
     session_games = {}  # engine -> games played this session
     session_points = {}  # engine -> points this session
+    session_start_elo = {}  # engine -> Elo at start of session
 
     for match_idx in range(num_matches):
         # Pick two engines (weighted or uniform random)
@@ -1581,14 +1601,17 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             print(game, file=f)
             print(file=f)
 
-        update_elo_after_game(elo_ratings, engine1, engine2, result)
-
-        # Track session stats
+        # Track session stats - capture starting Elo before first game
         for eng in [engine1, engine2]:
+            if eng not in session_start_elo:
+                session_start_elo[eng] = elo_ratings[eng]["elo"]
             session_engines.add(eng)
             session_games[eng] = session_games.get(eng, 0) + 1
             if eng not in session_points:
                 session_points[eng] = 0.0
+
+        e1_change, e2_change = update_elo_after_game(elo_ratings, engine1, engine2, result)
+
         if result == "1-0":
             session_points[engine1] += 1.0
         elif result == "0-1":
@@ -1597,9 +1620,11 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             session_points[engine1] += 0.5
             session_points[engine2] += 0.5
 
-        print(f"Game {game_num:3d}/{total_games}: {engine1} (W) vs {engine2} -> {result}  [{opening_name}]")
+        print(f"Game {game_num:3d}/{total_games}: {engine1} (W) vs {engine2} -> {result}  [{opening_name}]  "
+              f"Elo: {engine1} {e1_change:+.1f}, {engine2} {e2_change:+.1f}")
         print_league_table(elo_ratings, session_engines, session_games, session_points,
-                           0, competitors_only=True, game_num=game_num, total_games=total_games)
+                           0, competitors_only=True, game_num=game_num, total_games=total_games,
+                           session_start_elo=session_start_elo)
 
         # Game 2: engine2 as white (same time control as game 1)
         game_num += 1
@@ -1614,7 +1639,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             print(game, file=f)
             print(file=f)
 
-        update_elo_after_game(elo_ratings, engine2, engine1, result)
+        e2_change, e1_change = update_elo_after_game(elo_ratings, engine2, engine1, result)
 
         # Track session stats
         for eng in [engine1, engine2]:
@@ -1627,9 +1652,11 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             session_points[engine1] += 0.5
             session_points[engine2] += 0.5
 
-        print(f"Game {game_num:3d}/{total_games}: {engine2} (W) vs {engine1} -> {result}  [{opening_name}]")
+        print(f"Game {game_num:3d}/{total_games}: {engine2} (W) vs {engine1} -> {result}  [{opening_name}]  "
+              f"Elo: {engine2} {e2_change:+.1f}, {engine1} {e1_change:+.1f}")
         print_league_table(elo_ratings, session_engines, session_games, session_points,
-                           0, competitors_only=True, game_num=game_num, total_games=total_games)
+                           0, competitors_only=True, game_num=game_num, total_games=total_games,
+                           session_start_elo=session_start_elo)
 
     # Print final standings
     print(f"\n{'='*70}")
