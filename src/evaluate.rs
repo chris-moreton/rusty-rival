@@ -58,7 +58,8 @@ pub fn evaluate(position: &Position) -> Score {
         + knight_fork_threat_score(position)
         + rook_file_score(position)
         + queen_mobility_score(position)
-        + endgame_king_centralization_bonus(position);
+        + endgame_king_centralization_bonus(position)
+        + trade_bonus(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -1119,4 +1120,37 @@ pub fn endgame_king_centralization_bonus(position: &Position) -> Score {
 
     // Scale from 100% at 0 material to 0% at max_material
     linear_scale(total_piece_value as i64, 0, max_material as i64, raw_bonus as i64, 0) as Score
+}
+
+/// Trade bonus: encourages piece trades when ahead in material.
+/// When one side is significantly ahead, they get a bonus for fewer pieces remaining.
+/// This helps convert material advantages by simplifying the position.
+#[inline(always)]
+pub fn trade_bonus(position: &Position) -> Score {
+    let white_pieces = piece_material(position, WHITE);
+    let black_pieces = piece_material(position, BLACK);
+    let material_balance = white_pieces - black_pieces;
+
+    // Need to be ahead by at least ~2 pawns worth to get trade bonus
+    const TRADE_THRESHOLD: Score = 200;
+
+    if material_balance.abs() < TRADE_THRESHOLD {
+        return 0;
+    }
+
+    // Starting piece material (both sides) is roughly 13800
+    // Give bonus based on how many pieces have been traded off
+    // More trades = bigger bonus for the side that's ahead
+    const STARTING_PIECE_MATERIAL: Score = 13800;
+    const TRADE_BONUS_SCALE: Score = 3; // centipawns per 100 material traded (conservative)
+
+    let total_pieces = white_pieces + black_pieces;
+    let pieces_traded = (STARTING_PIECE_MATERIAL - total_pieces).max(0);
+    let bonus = (pieces_traded * TRADE_BONUS_SCALE) / 100;
+
+    if material_balance > 0 {
+        bonus // White is ahead, bonus for white
+    } else {
+        -bonus // Black is ahead, bonus for black
+    }
 }

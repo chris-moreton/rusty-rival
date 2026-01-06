@@ -22,7 +22,7 @@
   },
   "maia-1400": {
     "binary": "/opt/homebrew/bin/lc0",
-    "active": false,
+    "active": true,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1400.pb.gz"
     }
@@ -43,14 +43,14 @@
   },
   "maia-1700": {
     "binary": "/opt/homebrew/bin/lc0",
-    "active": true,
+    "active": false,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1700.pb.gz"
     }
   },
   "maia-1800": {
     "binary": "/opt/homebrew/bin/lc0",
-    "active": true,
+    "active": false,
     "uci_options": {
       "WeightsFile": "/Users/chris/git/chris-moreton/rusty-rival/engines/maia-weights/maia-1800.pb.gz"
     }
@@ -128,7 +128,7 @@
   },
   "sf-2800": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": false,
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "2800"
@@ -260,7 +260,7 @@
   },
   "v019-capture-fix": {
     "binary": "v019-capture-fix/rusty-rival",
-    "active": true
+    "active": false
   },
   "v020-remove-harmful-eval": {
     "binary": "v020-remove-harmful-eval/rusty-rival",
@@ -268,15 +268,15 @@
   },
   "v021-wrong-color-bishop": {
     "binary": "v021-wrong-color-bishop/rusty-rival",
-    "active": true
+    "active": false
   },
   "v022-king-activity": {
     "binary": "v022-king-activity/rusty-rival",
-    "active": true
+    "active": false
   },
   "v023-kpk-draw": {
     "binary": "v023-kpk-draw/rusty-rival",
-    "active": true
+    "active": false
   },
   "v024-connected-passed-pawns": {
     "binary": "v024-connected-passed-pawns/rusty-rival",
@@ -298,19 +298,50 @@
   },
   "v027-tablebase-fast": {
     "binary": "v027-tablebase-fast/rusty-rival",
-    "active": true,
+    "active": false,
     "uci_options": {
       "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
     }
   },
   "v028-dtz-progress": {
     "binary": "v028-dtz-progress/rusty-rival",
-    "active": true,
+    "active": false,
+    "uci_options": {
+      "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
+    }
+  },
+  "v029.tbl-log-lmr": {
+    "binary": "v029-log-lmr/rusty-rival",
+    "active": false,
     "uci_options": {
       "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
     }
   },
   "v029-log-lmr": {
-    "binary": "v029-log-lmr/rusty-rival"
+    "binary": "v029-log-lmr/rusty-rival",
+    "active": true
+  },
+  "v030-tb-root-only": {
+    "binary": "v030-tb-root-only/rusty-rival",
+    "active": false,
+    "uci_options": {
+      "SyzygyPath": "/Users/chris/git/chris-moreton/rusty-rival/engines/syzygy"
+    }
+  },
+  "java-rival-36": {
+    "binary": "java-rival-36.0.0/run.sh",
+    "active": true
+  },
+  "v031-delta-pruning": {
+    "binary": "v031-delta-pruning/rusty-rival",
+    "active": true
+  },
+  "v032-history-lmr": {
+    "binary": "v032-history-lmr/rusty-rival",
+    "active": true
+  },
+  "v033-trade-bonus": {
+    "binary": "v033-trade-bonus/rusty-rival",
+    "active": true
   }
 }
