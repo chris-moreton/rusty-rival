@@ -147,9 +147,19 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
 
     move_scores.sort_unstable_by(|a, b| b.1.cmp(&a.1));
 
+    // Delta pruning margin: skip captures that can't raise alpha
+    // even with full captured piece value plus this margin
+    const DELTA_MARGIN: Score = 200;
+
     for (m, _) in move_scores {
-        let old_mover = position.mover;
         let see_value = captured_piece_value_see(position, m);
+
+        // Delta pruning: if capturing this piece can't possibly raise alpha, skip it
+        if eval + see_value + DELTA_MARGIN < alpha {
+            continue;
+        }
+
+        let old_mover = position.mover;
         let unmake = make_move_in_place(position, m);
 
         if !is_check(position, old_mover) && see(see_value, bit(to_square_part(m)), position) > 0 {
