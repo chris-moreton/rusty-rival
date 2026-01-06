@@ -238,6 +238,31 @@ pub fn count_pieces(pos: &Position) -> u32 {
         + 1 // black king
 }
 
+/// Fast WDL-only probe for use during search (no DTZ probing).
+/// Returns a flat score: TB_WIN_SCORE for wins, TB_LOSS_SCORE for losses, 0 for draws.
+/// This is much faster than probe_dtz() since it avoids the expensive DTZ table lookup.
+#[inline]
+pub fn probe_wdl_only(pos: &Position) -> Option<Score> {
+    // Quick check: only probe if we have few enough pieces
+    if count_pieces(pos) > TB_MAX_PIECES {
+        return None;
+    }
+
+    let tb_guard = TABLEBASE.read().unwrap();
+    let tb = tb_guard.as_ref()?;
+
+    let chess = position_to_chess(pos).ok()?;
+
+    match tb.probe_wdl(&chess) {
+        Ok(wdl) => match wdl {
+            AmbiguousWdl::Win => Some(TB_WIN_SCORE),
+            AmbiguousWdl::Loss => Some(TB_LOSS_SCORE),
+            _ => Some(0), // Draw, CursedWin, BlessedLoss, MaybeWin, MaybeLoss
+        },
+        Err(_) => None,
+    }
+}
+
 /// Probe the tablebase for the current position using DTZ for accurate scoring.
 /// Returns Some(score) if the position is in the tablebase, None otherwise.
 ///
@@ -245,7 +270,10 @@ pub fn count_pieces(pos: &Position) -> u32 {
 /// - For wins: score decreases with DTZ so faster wins are preferred
 /// - For losses: score increases with DTZ so slower losses are preferred (gives opponent chances to err)
 /// - For draws: score is 0
-pub fn probe_wdl(pos: &Position) -> Option<Score> {
+///
+/// Use this at the root position for accurate move ordering. During search,
+/// prefer probe_wdl_only() which is faster.
+pub fn probe_dtz(pos: &Position) -> Option<Score> {
     // Quick check: only probe if we have few enough pieces
     if count_pieces(pos) > TB_MAX_PIECES {
         return None;
