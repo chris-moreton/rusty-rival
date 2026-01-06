@@ -1,0 +1,18 @@
+; Gauntlet Test
+; Challenger: v029-log-lmr
+; Date: 2026-01-05 13:06
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.05"]
+[Round "?"]
+[White "v029-log-lmr"]
+[Black "maia-1700"]
+[Result "0-1"]
+[TimeControl "0.50s/move"]
+[FEN "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "Italian Nc3"]
+
+5... d6 6. Na4 Bb6 7. Nxb6 axb6 8. c3 O-O 9. O-O h6 10. Bd2 Bg4 11. a3 d5 12. exd5 Nxd5 13. Qe2 Qd6 14. Rfe1 Rae8 15. Rad1 f5 16. Rf1 Kh8 17. Bc1 e4 18. dxe4 fxe4 19. Rxd5 Qf6 20. Re1 Bxf3 21. Qf1 Ne5 22. Rxe5 Rxe5 23. gxf3 exf3 24. Rxe5 Qxe5 25. Qd1 Qh5 26. Bf1 Qg4+ 27. Kh1 Rf6 28. Qd8+ Kh7 29. Qxc7 Rg6 30. Qg3 Qe4 31. Qh3 Qe1 32. Bxh6 Rxh6 33. Qf5+ Kg8 34. Qc8+ Kf7 35. Qxb7+ Kg6 36. Qxb6+ Kh7 37. Qb5 Rd6 38. Qh5+ Kg8 39. Qb5 Rd1 40. Qc4+ Kh7 41. Qh4+ Kg6 42. Qg4+ Kf7 43. Qc4+ Kg6 44. Kg1 Qe2 45. Qg4+ Kf6 46. Qh4+ Kf7 47. Qh3 Ke7 48. b3 Qe1 49. Qh4+ Kf7 50. Qf4+ Kg6 51. Qg4+ Kh7 52. Qh4+ Kg8 53. Qc4+ Kh7 54. Qh4+ Kg8 55. Qc4+ Kf8 56. Qf4+ Kg8 57. Qc4+ Kf8 58. Qc5+ Kf7 59. Qc4+ Ke7 60. a4 Qe5 61. Qb4+ Ke8 62. Qb5+ Qxb5 63. axb5 Rb1 64. b4 Kd7 65. h3 Kc7 66. c4 Kb6 67. c5+ Kb7 68. h4 Rxb4 69. Kh2 Rxh4+ 70. Kg3 Rh5 71. c6+ Kb6 72. Kxf3 Rf5+ 73. Ke3 g5 74. Bd3 Rf4 75. Be4 Rf8 76. f4 gxf4+ 77. Kf3 Kxb5 78. c7 Kb6 79. c8=Q Rxc8 80. Kxf4 Kc5 81. Kg3 Kd4 82. Kf4 Rf8+ 83. Bf5 Kd5 84. Kg4 Ke5 85. Bb1 Rg8+ 86. Kf3 Kd4 87. Kf2 Rf8+ 88. Kg1 Ke3 89. Bc2 Rg8+ 90. Kf1 Rf8+ 91. Kg1 Rg8+ 92. Kf1 Ra8 93. Bb3 Rb8 94. Ba2 Rb2 95. Bd5 Rd2 96. Bc6 Rc2 97. Bd5 Rc5 98. Bb3 Rf5+ 99. Kg1 Rg5+ 100. Kf1 Rb5 101. Bc4 Rc5 102. Bb3 Rf5+ 103. Kg1 Rg5+ 104. Kf1 Rb5 105. Bc4 Rb4 106. Ba2 Rb2 107. Bd5 Rd2 108. Bc6 Rc2 109. Bd5 Rb2 110. Kg1 Kf4 111. Kf1 Ke3 112. Kg1 Kf4 113. Kf1 Rd2 114. Bg2 Kg3 115. Be4 Rb2 116. Ke1 Kf4 117. Bd5 Ke5 118. Bf3 Kd4 119. Kf1 Ra2 120. Kg1 Ke3 121. Bg4 Kf4 122. Be6 Rd2 123. Kf1 Kf3 124. Kg1 Rc2 125. Bb3 Rb2 126. Bd1+ Ke3 127. Bg4 Kf4 128. Bh3 Kg3 129. Bf1 Rb1 130. Kh1 Rxf1# 0-1
+

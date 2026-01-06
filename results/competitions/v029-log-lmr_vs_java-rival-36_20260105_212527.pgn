@@ -1,0 +1,14 @@
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.05"]
+[Round "?"]
+[White "v029-log-lmr"]
+[Black "java-rival-36"]
+[Result "0-1"]
+[TimeControl "0.40s/move"]
+[FEN "rnbqkb1r/ppp2ppp/4pn2/3p2B1/2PP4/2N5/PP2PPPP/R2QKBNR b KQkq - 3 4"]
+[SetUp "1"]
+[Opening "QGD Bg5"]
+
+4... dxc4 5. e3 h6 6. Bxf6 Qxf6 7. Nf3 Be7 8. Rb1 O-O 9. Bxc4 Nc6 10. Qc2 Bd7 11. a3 e5 12. Nd5 Qd6 13. Nxe7+ Qxe7 14. d5 Nd8 15. Bd3 Re8 16. Nd2 c6 17. dxc6 Nxc6 18. O-O Red8 19. Ne4 Rac8 20. Qc3 Nd4 21. Qa5 Nc6 22. Qb5 Bf5 23. Rfd1 a6 24. Qb3 Qh4 25. f3 b5 26. g3 Qh3 27. Bf1 Qh5 28. g4 Qg6 29. Rxd8+ Rxd8 30. Bd3 h5 31. h3 hxg4 32. hxg4 Be6 33. Qc3 Ne7 34. Nc5 Qg5 35. Be4 Bc8 36. Nb7 Bxb7 37. Bxb7 Nd5 38. Bxd5 Rxd5 39. Qc8+ Rd8 40. Qc5 Qf6 41. Rf1 e4 42. fxe4 Qxb2 43. Qe7 Rf8 44. Re1 Qd2 45. Kf1 Rc8 46. Qb4 Qh2 47. Rd1 Rc2 48. Rd8+ Kh7 49. Qd2 Rxd2 50. Rxd2 Qxd2 51. Kg1 Qxe3+ 52. Kf1 Qxa3 53. Ke2 g5 54. Kf2 b4 55. Ke2 b3 56. Kd3 Qb4 57. Ke2 Qa3 58. Kd3 Qb4 59. Ke2 b2 60. Kf3 b1=Q 61. e5 Qf1+ 62. Ke3 Qbf4# 0-1
+

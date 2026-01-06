@@ -1,0 +1,18 @@
+; Round Robin Tournament
+; Engines: v029-log-lmr, v029.tbl-log-lmr, v001-baseline, v028-dtz-progress, v019-capture-fix, sf-2400, sf-2600
+; Date: 2026-01-05 13:25
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.05"]
+[Round "?"]
+[White "v029-log-lmr"]
+[Black "v029.tbl-log-lmr"]
+[Result "1-0"]
+[TimeControl "0.30s/move"]
+[FEN "rnb1kbnr/ppp1pppp/8/3q4/8/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 3"]
+[SetUp "1"]
+[Opening "Scandinavian Qxd5"]
+
+3... Qe6+ 4. Qe2 Qb6 5. Qb5+ c6 6. Qxb6 axb6 7. Nf3 Na6 8. Bxa6 Rxa6 9. O-O Nf6 10. d3 Nd5 11. Nxd5 cxd5 12. c4 dxc4 13. dxc4 g6 14. Be3 Bg7 15. Bd4 Bxd4 16. Nxd4 O-O 17. Nb5 e6 18. Nd6 Ra5 19. a4 Bd7 20. b3 Bc6 21. Rac1 Rg5 22. f3 Re5 23. Kf2 h6 24. h3 g5 25. Rfd1 h5 26. Nb5 Rb8 27. Rd6 Ra8 28. Nd4 Rc8 29. Nxc6 bxc6 30. Rcd1 Kf8 31. Rd8+ Rxd8 32. Rxd8+ Ke7 33. Rb8 Kd6 34. Rb7 Kc5 35. Rxf7 Kb4 36. Rb7 Kxb3 37. Rxb6+ Kxc4 38. Rxc6+ Kb4 39. Ra6 h4 40. a5 Rxa5 41. Rxa5 Kxa5 42. Ke3 Kb5 43. Ke4 Kc6 44. Ke5 Kd7 45. Kf6 Kd6 46. Kxg5 e5 47. Kxh4 Kd7 48. g4 Kd6 49. g5 Ke7 50. Kh5 Ke6 51. g6 Kd6 52. g7 Kd5 53. g8=Q+ Kd4 54. Qe6 Ke3 55. Qxe5+ Kf2 56. Kg4 Kg1 57. Qe2 Kh1 58. Kg3 Kg1 59. Qg2# 1-0
+
