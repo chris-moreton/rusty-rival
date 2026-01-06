@@ -618,25 +618,50 @@ def calculate_elo_difference(wins: int, losses: int, draws: int) -> tuple[float,
 
 def resolve_engine_name(shorthand: str, engine_dir: Path) -> str:
     """
-    Resolve a shorthand engine name to the full directory name.
+    Resolve a shorthand engine name to the full engine name.
     E.g., 'v1' -> 'v1-baseline', 'v10' -> 'v10-arrayvec-movelist'
+
+    Checks both directories and engines.json entries.
     """
-    # If exact match exists, use it
+    # Load engines config
+    engines_config = load_engines_config()
+
+    # If exact match exists in engines.json, use it
+    if shorthand in engines_config:
+        return shorthand
+
+    # If exact directory match exists, use it
     if (engine_dir / shorthand).exists():
         return shorthand
 
-    # Look for directories starting with the shorthand followed by '-'
-    pattern = f"{shorthand}-*"
-    matches = list(engine_dir.glob(pattern))
+    # Look for matches starting with the shorthand followed by '-' or '.'
+    # Only match '.' suffix if the shorthand itself contains a '.'
+    # Check both directories and engines.json entries
+    dir_matches = [d.name for d in engine_dir.glob(f"{shorthand}-*")]
+    config_matches = [name for name in engines_config.keys()
+                      if name.startswith(f"{shorthand}-")]
 
-    if len(matches) == 1:
-        return matches[0].name
-    elif len(matches) == 0:
+    # Only look for dot-suffix matches if shorthand contains a dot
+    if '.' in shorthand:
+        dir_matches += [d.name for d in engine_dir.glob(f"{shorthand}.*")]
+        config_matches += [name for name in engines_config.keys()
+                          if name.startswith(f"{shorthand}.")]
+
+    # Combine and deduplicate
+    all_matches = list(set(dir_matches + config_matches))
+
+    if len(all_matches) == 1:
+        return all_matches[0]
+    elif len(all_matches) == 0:
+        # Get all available engines (directories + config entries)
+        dir_names = {d.name for d in engine_dir.iterdir() if d.is_dir()}
+        config_names = set(engines_config.keys())
+        all_engines = sorted(dir_names | config_names)
         print(f"Error: No engine found matching '{shorthand}'")
-        print(f"Available engines: {', '.join(sorted(d.name for d in engine_dir.iterdir() if d.is_dir()))}")
+        print(f"Available engines: {', '.join(all_engines)}")
         sys.exit(1)
     else:
-        print(f"Error: Ambiguous engine name '{shorthand}' matches: {', '.join(m.name for m in matches)}")
+        print(f"Error: Ambiguous engine name '{shorthand}' matches: {', '.join(sorted(all_matches))}")
         sys.exit(1)
 
 
