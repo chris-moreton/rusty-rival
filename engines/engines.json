@@ -347,5 +347,9 @@
   "v034-threat-lmr": {
     "binary": "v034-threat-lmr/rusty-rival",
     "active": true
+  },
+  "v035-pawn-push-ext": {
+    "binary": "v035-pawn-push-ext/rusty-rival",
+    "active": true
   }
 }

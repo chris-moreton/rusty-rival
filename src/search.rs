@@ -309,6 +309,24 @@ pub fn extend(predicate: bool, these_extensions: u8, ply: u8, search_state: &Sea
     }
 }
 
+/// Check if a move is a pawn push to the 7th rank (about to promote)
+/// This is worth extending as promotions are game-changing
+#[inline(always)]
+pub fn is_pawn_push_to_7th(position: &Position, m: Move) -> bool {
+    // Square layout: h1=0, a1=7, h2=8, ..., a8=63
+    // 7th rank (white): 48-55, 2nd rank (black): 8-15
+    let piece = m & PIECE_MASK_FULL;
+    if piece != PIECE_MASK_PAWN {
+        return false;
+    }
+    let to_sq = to_square_part(m);
+    if position.mover == WHITE {
+        (48..=55).contains(&to_sq) // 7th rank for white
+    } else {
+        (8..=15).contains(&to_sq) // 2nd rank for black
+    }
+}
+
 #[inline(always)]
 pub fn null_move_reduced_depth(depth: u8) -> u8 {
     match depth {
@@ -580,6 +598,13 @@ pub fn search(
         // For alpha pruning and LMR, treat promotions like captures (don't prune/reduce them)
         let is_tactical = captured_piece_value(position, m) > 0;
 
+        // Check for pawn push extension BEFORE making move (position.mover is still correct)
+        let pawn_push_ext = if these_extensions == 0 && is_pawn_push_to_7th(position, m) && ply < search_state.iterative_depth * 2 {
+            1
+        } else {
+            0
+        };
+
         let unmake = make_move_in_place(position, m);
         // For killer moves, use actual capture detection from unmake info
         let move_is_capture = unmake.captured_piece != CAPTURED_NONE;
@@ -618,10 +643,13 @@ pub fn search(
                 0
             };
 
+            // Add pawn push extension to search depth
+            let search_depth = real_depth + pawn_push_ext;
+
             let path_score = if scout_search {
-                lmr_scout_search(lmr, ply, search_state, (alpha, beta), real_depth, position)
+                lmr_scout_search(lmr, ply, search_state, (alpha, beta), search_depth, position)
             } else {
-                search_wrapper(real_depth, ply, search_state, (-beta, -alpha), position, 0)
+                search_wrapper(search_depth, ply, search_state, (-beta, -alpha), position, 0)
             };
 
             let score = path_score.1;
