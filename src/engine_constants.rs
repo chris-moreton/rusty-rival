@@ -29,6 +29,11 @@ pub const NUM_KILLER_MOVES: usize = 2;
 pub const NULL_MOVE_MIN_DEPTH: u8 = 4;
 pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 3;
 
+// Threat extension: if null move search returns a score this much below alpha,
+// the opponent has a significant threat that warrants deeper search
+// Using 400 to be more selective - only trigger for major threats (like losing a piece)
+pub const THREAT_EXTENSION_MARGIN: Score = 400;
+
 pub const MAX_DEPTH: u8 = 250;
 
 pub const MAX_QUIESCE_DEPTH: u8 = 100;

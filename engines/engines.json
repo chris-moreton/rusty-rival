@@ -343,5 +343,9 @@
   "v033-trade-bonus": {
     "binary": "v033-trade-bonus/rusty-rival",
     "active": true
+  },
+  "v034-threat-lmr": {
+    "binary": "v034-threat-lmr/rusty-rival",
+    "active": true
   }
 }

@@ -1,10 +1,11 @@
 use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
     LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE,
+    NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
-use crate::tablebase::{probe_wdl, tablebase_available, TB_MAX_PIECES};
+use crate::fen::algebraic_move_from_move;
+use crate::tablebase::{probe_dtz, tablebase_available, TB_MAX_PIECES};
 
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
@@ -104,6 +105,33 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     // No legal moves = checkmate or stalemate, return null move
     if legal_moves.is_empty() {
         return 0;
+    }
+
+    // Tablebase probe at root: if ≤6 pieces, return best move immediately
+    // The tablebase knows the perfect result - no need to search
+    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    if tablebase_available() && all_pieces.count_ones() <= TB_MAX_PIECES {
+        let mut best_move: Move = 0;
+        let mut best_score: Score = -MATE_SCORE;
+
+        for (m, _) in &legal_moves {
+            let unmake = make_move_in_place(position, *m);
+            // Probe DTZ after the move (from opponent's perspective, so negate score)
+            if let Some(tb_score) = probe_dtz(position) {
+                let score = -tb_score;
+                if score > best_score {
+                    best_score = score;
+                    best_move = *m;
+                }
+            }
+            unmake_move(position, *m, &unmake);
+        }
+
+        // If we found a valid TB move, return it immediately
+        if best_move != 0 {
+            println!("info depth 1 score cp {} pv {}", best_score, algebraic_move_from_move(best_move));
+            return best_move;
+        }
     }
 
     clear_history_table(search_state);
@@ -313,16 +341,10 @@ pub fn search(
         return (pv_single(0), draw_value(position, search_state));
     }
 
-    // Tablebase probe - single popcount on combined occupancy
-    if tablebase_available() && ply > 0 {
-        let all_pieces = position.pieces[0].all_pieces_bitboard | position.pieces[1].all_pieces_bitboard;
-        if all_pieces.count_ones() <= TB_MAX_PIECES {
-            if let Some(tb_score) = probe_wdl(position) {
-                search_state.nodes += 1;
-                return (pv_single(0), tb_score);
-            }
-        }
-    }
+    // NOTE: Tablebase probing during search is disabled for performance.
+    // The position_to_chess() conversion is too expensive to call at every node.
+    // Instead, we probe DTZ at the root level in iterative_deepening to select
+    // the best move in TB positions.
 
     let scouting = window.1 - window.0 == 1;
 
@@ -407,6 +429,10 @@ pub fn search(
         false
     };
 
+    // Threat detection: when null move fails badly, opponent has a dangerous threat
+    // We'll use this to reduce LMR aggressiveness rather than extending
+    let mut threat_detected = false;
+
     if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let old_ep = make_null_move(position);
 
@@ -428,6 +454,12 @@ pub fn search(
 
         if score >= beta {
             return (pv_single(0), beta);
+        }
+
+        // If null move fails significantly below alpha, opponent has a threat
+        // Use higher threshold (400 = losing a piece) to be selective
+        if score < alpha - THREAT_EXTENSION_MARGIN {
+            threat_detected = true;
         }
     }
 
@@ -569,7 +601,19 @@ pub fn search(
                 && m != search_state.killer_moves[ply as usize][1]
                 && !is_check(position, position.mover)
             {
-                lmr_reduction(real_depth, legal_move_count)
+                let mut reduction = lmr_reduction(real_depth, legal_move_count);
+                // History-based LMR: reduce less for moves with good history
+                let piece_idx = piece_index_12(position, m);
+                let history = search_state.history_moves[piece_idx][from_square_part(m) as usize][to_square_part(m) as usize];
+                if history > 0 && reduction > 0 {
+                    reduction -= 1;
+                }
+                // Threat-based LMR: reduce less when opponent has a detected threat
+                // This ensures we don't miss tactical replies to threats
+                if threat_detected && reduction > 0 {
+                    reduction -= 1;
+                }
+                reduction
             } else {
                 0
             };
