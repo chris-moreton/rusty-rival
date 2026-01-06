@@ -1,7 +1,7 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
-    LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, THREAT_EXTENSION_MARGIN,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, FRAC_EXT_CHECK, FRAC_EXT_PAWN_PUSH,
+    FRAC_EXT_UNIT, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH,
+    NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -300,15 +300,6 @@ pub fn draw_value(position: &Position, search_state: &SearchState) -> Score {
     }
 }
 
-#[inline(always)]
-pub fn extend(predicate: bool, these_extensions: u8, ply: u8, search_state: &SearchState) -> u8 {
-    if these_extensions == 0 && predicate && ply < search_state.iterative_depth * 2 {
-        1
-    } else {
-        0
-    }
-}
-
 /// Check if a move is a pawn push to the 7th rank (about to promote)
 /// This is worth extending as promotions are game-changing
 #[inline(always)]
@@ -483,11 +474,16 @@ pub fn search(
 
     let mut scout_search = false;
 
-    let mut these_extensions = 0;
-    these_extensions = extend(in_check, these_extensions, ply, search_state);
-    let real_depth = depth + these_extensions;
+    // Fractional extensions: accumulate in units (4 units = 1 ply)
+    // This allows multiple factors to combine
+    let mut frac_extensions: u8 = 0;
+    if in_check && ply < search_state.iterative_depth * 2 {
+        frac_extensions += FRAC_EXT_CHECK;
+    }
+    let base_extensions = frac_extensions / FRAC_EXT_UNIT;
+    let real_depth = depth + base_extensions;
 
-    let verified_hash_move = if !scouting && hash_move == 0 && depth + these_extensions > IID_MIN_DEPTH {
+    let verified_hash_move = if !scouting && hash_move == 0 && depth + base_extensions > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0).0[0];
         hash_move != 0
     } else {
@@ -599,11 +595,15 @@ pub fn search(
         let is_tactical = captured_piece_value(position, m) > 0;
 
         // Check for pawn push extension BEFORE making move (position.mover is still correct)
-        let pawn_push_ext = if these_extensions == 0 && is_pawn_push_to_7th(position, m) && ply < search_state.iterative_depth * 2 {
-            1
+        // Using fractional extensions - pawn push adds 0.5 ply (2 units)
+        let move_frac_ext = if is_pawn_push_to_7th(position, m) && ply < search_state.iterative_depth * 2 {
+            FRAC_EXT_PAWN_PUSH
         } else {
             0
         };
+        // Combine base fractional extensions with per-move extensions
+        let total_frac_ext = frac_extensions + move_frac_ext;
+        let move_extension = total_frac_ext / FRAC_EXT_UNIT;
 
         let unmake = make_move_in_place(position, m);
         // For killer moves, use actual capture detection from unmake info
@@ -618,7 +618,7 @@ pub fn search(
                 continue;
             }
 
-            let lmr = if these_extensions == 0
+            let lmr = if move_extension == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
                 && real_depth > LMR_MIN_DEPTH
                 && !is_tactical
@@ -643,8 +643,8 @@ pub fn search(
                 0
             };
 
-            // Add pawn push extension to search depth
-            let search_depth = real_depth + pawn_push_ext;
+            // Apply fractional extensions to search depth
+            let search_depth = depth + move_extension;
 
             let path_score = if scout_search {
                 lmr_scout_search(lmr, ply, search_state, (alpha, beta), search_depth, position)

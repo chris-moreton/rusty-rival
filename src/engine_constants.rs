@@ -34,6 +34,12 @@ pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 3;
 // Using 400 to be more selective - only trigger for major threats (like losing a piece)
 pub const THREAT_EXTENSION_MARGIN: Score = 400;
 
+// Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
+// This allows multiple factors to combine (e.g., check + pawn push)
+pub const FRAC_EXT_CHECK: u8 = 4; // 1.0 ply for check
+pub const FRAC_EXT_PAWN_PUSH: u8 = 2; // 0.5 ply for pawn push to 7th
+pub const FRAC_EXT_UNIT: u8 = 4; // Units per ply
+
 pub const MAX_DEPTH: u8 = 250;
 
 pub const MAX_QUIESCE_DEPTH: u8 = 100;

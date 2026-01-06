@@ -351,5 +351,9 @@
   "v035-pawn-push-ext": {
     "binary": "v035-pawn-push-ext/rusty-rival",
     "active": true
+  },
+  "v036-frac-ext": {
+    "binary": "v036-frac-ext/rusty-rival",
+    "active": true
   }
 }
