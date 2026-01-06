@@ -315,27 +315,81 @@ Used by Stockfish for null move, futility, and LMR tuning.
 
 This avoids scoring ALL moves upfront when a cutoff happens early.
 
+### From Java Rival Analysis
+
+#### 8. Threat Extensions
+
+**What it is**: When null move search reveals the opponent has a strong threat (their best reply is much better than expected), extend the search.
+
+**Why it helps**: Java Rival uses this and performs well despite lower NPS. Helps find tactics where opponent has a hidden threat.
+
+**Implementation**: After null move search, if the returned score is very bad for us, set a threat extension flag.
+
+#### 9. Delta Pruning in Quiescence
+
+**What it is**: In quiescence search, skip captures that can't possibly raise alpha even with the maximum possible gain.
+
+**Why it helps**: Reduces quiescence nodes significantly. If `eval + max_capture_value + margin < alpha`, skip the capture.
+
+**Typical margin**: 200 centipawns (accounts for positional factors).
+
+**Implementation**: Simple - just add a check before searching each capture in quiesce().
+
+#### 10. Pawn Push Extensions
+
+**What it is**: Extend search for pawn pushes to the 7th rank (or 2nd for black) since they're about to promote.
+
+**Why it helps**: Promotions are game-changing; worth searching deeper.
+
+**Implementation**: Check if move is a pawn push to penultimate rank, add fractional or full extension.
+
+#### 11. Fractional Extensions
+
+**What it is**: Instead of extending by 0 or 1 ply, accumulate fractional extensions (e.g., 0.5 for check, 0.25 for pawn push) and extend when they sum to 1.
+
+**Why it helps**: More nuanced than binary extensions. Multiple small factors can combine to justify an extension.
+
+**Implementation**: Track fractional extension sum, extend when >= 1.0.
+
+#### 12. Trade Bonuses (Evaluation)
+
+**What it is**: Encourage piece trades when ahead in material, pawn trades when behind.
+
+**Why it helps**: Simplification when ahead makes wins easier; keeping pawns when behind gives drawing chances.
+
+**Implementation**: In evaluate(), add bonus for having fewer pieces when ahead, fewer pawns when behind.
+
+#### 13. History-Based LMR Decisions
+
+**What it is**: Use the history score to influence LMR reduction amount. Moves with good history get reduced less.
+
+**Why it helps**: History tracks long-term move quality. Good moves shouldn't be reduced as much.
+
+**Current state**: We use history for move ordering but not for LMR decisions.
+
+**Implementation**: Reduce LMR amount by 1 ply if history score is above threshold.
+
 ### Lower Priority (But Worth Considering)
 
-#### 8. Probcut
+#### 14. Probcut
 
 **What it is**: At high depth, do a shallow search with raised beta. If it fails high, the position is probably winning and can be cut.
 
 **Why it helps**: Additional forward pruning at internal nodes.
 
-#### 9. Multi-Cut
+#### 15. Multi-Cut
 
 **What it is**: At high depth, if multiple moves fail high at shallow depth, assume the position is good.
 
 **Why it helps**: Additional pruning when position has many good moves.
 
-#### 10. Razoring
+#### 16. Razoring
 
 **What it is**: At low depths, if eval is very far below alpha, drop into qsearch directly.
 
 **Current state**: We have alpha pruning which is similar but per-move. Razoring would skip the entire subtree.
 
-#### 11. SEE Pruning in Main Search
+#### 17. SEE Pruning in Main Search
 
 **Current state**: SEE only used in qsearch.
 
@@ -343,13 +397,13 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 ### Performance/Structural
 
-#### 12. Prefetch Hash Table
+#### 18. Prefetch Hash Table
 
 **What it is**: When making a move, prefetch the hash entry for the child position.
 
 **Why it helps**: Hides memory latency. Hash table is large and often cache-misses.
 
-#### 13. Tune Parameters
+#### 19. Tune Parameters
 
 Many constants could be tuned via SPSA or similar:
 - LMR thresholds and reduction amounts
@@ -372,9 +426,25 @@ Some things are already well-implemented:
 
 ## Recommended Next Steps
 
-1. **Singular Extensions** - High impact, used by all top engines
-2. **Logarithmic LMR** - Easy change, potentially large speedup
-3. **Countermove Heuristic** - Simple addition to move ordering
-4. **Late Move Pruning** - Complements LMR well
+Based on both standard chess programming techniques and analysis of Java Rival's success:
 
-These four improvements together could provide significant Elo gains while being relatively straightforward to implement and test.
+### Already Implemented
+- ~~**Logarithmic LMR**~~ - Done in v029, +108 Elo
+
+### High Priority (from Java Rival analysis)
+1. **Delta Pruning in Quiescence** - Simple to implement, reduces qsearch nodes
+2. **Threat Extensions** - Key to Java Rival's tactical strength despite lower NPS
+3. **History-Based LMR** - Use history score to reduce less for good moves
+4. **Trade Bonuses** - Simple eval improvement for better endgame conversion
+
+### High Priority (standard techniques)
+5. **Singular Extensions** - High impact, used by all top engines
+6. **Countermove Heuristic** - Simple addition to move ordering
+7. **Late Move Pruning** - Complements LMR well
+
+### Medium Priority
+8. **Pawn Push Extensions** - Extend for pawns about to promote
+9. **Fractional Extensions** - More nuanced extension system
+10. **History Pruning** - Prune moves with very bad history
+
+The Java Rival analysis suggests that **search selectivity** (knowing what to search deeply) matters more than raw NPS. Threat extensions and delta pruning in particular seem to explain why Java Rival performs well despite being 5-10x slower.
