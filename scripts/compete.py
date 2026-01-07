@@ -79,6 +79,21 @@ def save_elo_ratings(ratings: dict):
         json.dump(ratings, f, indent=2, sort_keys=True)
 
 
+def get_initial_elo(engine_name: str) -> float:
+    """
+    Get the initial Elo rating for an engine.
+
+    Checks engines.json for an 'initial_elo' field.
+    Falls back to DEFAULT_ELO if not specified.
+    """
+    engines_config = load_engines_config()
+    if engine_name in engines_config:
+        config = engines_config[engine_name]
+        if "initial_elo" in config:
+            return config["initial_elo"]
+    return DEFAULT_ELO
+
+
 def get_engines_config_path() -> Path:
     """Get the path to the engines config file."""
     script_dir = Path(__file__).parent
@@ -222,12 +237,9 @@ def update_elo_after_game(ratings: dict, white: str, black: str, result: str) ->
     # Ensure both players exist in ratings
     for player in [white, black]:
         if player not in ratings:
-            # New player gets average of existing ratings or default
-            if ratings:
-                avg_elo = sum(r["elo"] for r in ratings.values()) / len(ratings)
-            else:
-                avg_elo = DEFAULT_ELO
-            ratings[player] = {"elo": avg_elo, "games": 0}
+            # New player gets initial_elo from engines.json or DEFAULT_ELO
+            initial = get_initial_elo(player)
+            ratings[player] = {"elo": initial, "games": 0}
 
     white_elo = ratings[white]["elo"]
     black_elo = ratings[black]["elo"]
@@ -738,11 +750,8 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
     # Initialize engines if needed
     for name in [engine1_name, engine2_name]:
         if name not in elo_ratings:
-            if elo_ratings:
-                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
-            else:
-                avg_elo = DEFAULT_ELO
-            elo_ratings[name] = {"elo": avg_elo, "games": 0}
+            initial = get_initial_elo(name)
+            elo_ratings[name] = {"elo": initial, "games": 0}
             save_elo_ratings(elo_ratings)
 
     # Store starting Elo for display
@@ -1030,11 +1039,8 @@ def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
     # Initialize engines if needed
     for name in engine_names:
         if name not in elo_ratings:
-            if elo_ratings:
-                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
-            else:
-                avg_elo = DEFAULT_ELO
-            elo_ratings[name] = {"elo": avg_elo, "games": 0}
+            initial = get_initial_elo(name)
+            elo_ratings[name] = {"elo": initial, "games": 0}
             save_elo_ratings(elo_ratings)
 
     # Show starting Elo
@@ -1179,11 +1185,8 @@ def run_league(engine_names: list[str], engine_dir: Path,
     competitors = set(engine_names)
     for name in engine_names:
         if name not in elo_ratings:
-            if elo_ratings:
-                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
-            else:
-                avg_elo = DEFAULT_ELO
-            elo_ratings[name] = {"elo": avg_elo, "games": 0}
+            initial = get_initial_elo(name)
+            elo_ratings[name] = {"elo": initial, "games": 0}
             save_elo_ratings(elo_ratings)
 
     # Track games and points in this competition
@@ -1356,21 +1359,15 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
 
     # Initialize challenger if needed
     if challenger_name not in elo_ratings:
-        if elo_ratings:
-            avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
-        else:
-            avg_elo = DEFAULT_ELO
-        elo_ratings[challenger_name] = {"elo": avg_elo, "games": 0}
+        initial = get_initial_elo(challenger_name)
+        elo_ratings[challenger_name] = {"elo": initial, "games": 0}
         save_elo_ratings(elo_ratings)
 
     # Initialize opponents if needed
     for opponent in opponents:
         if opponent not in elo_ratings:
-            if elo_ratings:
-                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
-            else:
-                avg_elo = DEFAULT_ELO
-            elo_ratings[opponent] = {"elo": avg_elo, "games": 0}
+            initial = get_initial_elo(opponent)
+            elo_ratings[opponent] = {"elo": initial, "games": 0}
             save_elo_ratings(elo_ratings)
 
     # Store starting Elo
@@ -1554,11 +1551,8 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     # Initialize any missing engines
     for engine in all_engines:
         if engine not in elo_ratings:
-            if elo_ratings:
-                avg_elo = sum(r["elo"] for r in elo_ratings.values()) / len(elo_ratings)
-            else:
-                avg_elo = DEFAULT_ELO
-            elo_ratings[engine] = {"elo": avg_elo, "games": 0}
+            initial_elo = get_initial_elo(engine)
+            elo_ratings[engine] = {"elo": initial_elo, "games": 0}
             save_elo_ratings(elo_ratings)
 
     print(f"\n{'='*70}")
