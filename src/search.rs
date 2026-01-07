@@ -1,7 +1,7 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, FRAC_EXT_CHECK, FRAC_EXT_PAWN_PUSH,
-    FRAC_EXT_UNIT, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH,
-    NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, THREAT_EXTENSION_MARGIN,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
+    LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
+    NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -474,16 +474,11 @@ pub fn search(
 
     let mut scout_search = false;
 
-    // Fractional extensions: accumulate in units (4 units = 1 ply)
-    // This allows multiple factors to combine
-    let mut frac_extensions: u8 = 0;
-    if in_check && ply < search_state.iterative_depth * 2 {
-        frac_extensions += FRAC_EXT_CHECK;
-    }
-    let base_extensions = frac_extensions / FRAC_EXT_UNIT;
-    let real_depth = depth + base_extensions;
+    // Check extension: extend by 1 ply when in check
+    let check_extension: u8 = if in_check && ply < search_state.iterative_depth * 2 { 1 } else { 0 };
+    let real_depth = depth + check_extension;
 
-    let verified_hash_move = if !scouting && hash_move == 0 && depth + base_extensions > IID_MIN_DEPTH {
+    let verified_hash_move = if !scouting && hash_move == 0 && depth + check_extension > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0).0[0];
         hash_move != 0
     } else {
@@ -594,16 +589,14 @@ pub fn search(
         // For alpha pruning and LMR, treat promotions like captures (don't prune/reduce them)
         let is_tactical = captured_piece_value(position, m) > 0;
 
-        // Check for pawn push extension BEFORE making move (position.mover is still correct)
-        // Using fractional extensions - pawn push adds 0.5 ply (2 units)
-        let move_frac_ext = if is_pawn_push_to_7th(position, m) && ply < search_state.iterative_depth * 2 {
-            FRAC_EXT_PAWN_PUSH
+        // Pawn push extension: extend by 1 ply for pawn push to 7th rank
+        // Only if no check extension already applied (avoid over-extending)
+        let pawn_push_ext: u8 = if check_extension == 0 && is_pawn_push_to_7th(position, m) && ply < search_state.iterative_depth * 2 {
+            1
         } else {
             0
         };
-        // Combine base fractional extensions with per-move extensions
-        let total_frac_ext = frac_extensions + move_frac_ext;
-        let move_extension = total_frac_ext / FRAC_EXT_UNIT;
+        let move_extension = check_extension + pawn_push_ext;
 
         let unmake = make_move_in_place(position, m);
         // For killer moves, use actual capture detection from unmake info
@@ -627,12 +620,6 @@ pub fn search(
                 && !is_check(position, position.mover)
             {
                 let mut reduction = lmr_reduction(real_depth, legal_move_count);
-                // History-based LMR: reduce less for moves with good history
-                let piece_idx = piece_index_12(position, m);
-                let history = search_state.history_moves[piece_idx][from_square_part(m) as usize][to_square_part(m) as usize];
-                if history > 0 && reduction > 0 {
-                    reduction -= 1;
-                }
                 // Threat-based LMR: reduce less when opponent has a detected threat
                 // This ensures we don't miss tactical replies to threats
                 if threat_detected && reduction > 0 {
@@ -643,7 +630,7 @@ pub fn search(
                 0
             };
 
-            // Apply fractional extensions to search depth
+            // Apply extensions to search depth
             let search_depth = depth + move_extension;
 
             let path_score = if scout_search {

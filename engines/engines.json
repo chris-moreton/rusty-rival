@@ -136,7 +136,7 @@
   },
   "sf-3000": {
     "binary": "stockfish/stockfish-macos-m1-apple-silicon",
-    "active": false,
+    "active": true,
     "uci_options": {
       "UCI_LimitStrength": "true",
       "UCI_Elo": "3000"
@@ -354,6 +354,10 @@
   },
   "v036-frac-ext": {
     "binary": "v036-frac-ext/rusty-rival",
+    "active": true
+  },
+  "v037-optimized": {
+    "binary": "v037-optimized/rusty-rival",
     "active": true
   }
 }
