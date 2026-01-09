@@ -62,16 +62,50 @@ DEFAULT_ELO = 1500
 
 
 def get_elo_file_path() -> Path:
-    """Get the path to the Elo ratings file."""
+    """Get the path to the Elo ratings file (legacy, for fallback)."""
     script_dir = Path(__file__).parent
     return script_dir.parent / "results" / "elo_ratings.json"
 
 
+# Cache the app instance to avoid recreating it for every DB operation
+_app_instance = None
+
+
+def _get_app():
+    """Get or create the Flask app instance for DB operations."""
+    global _app_instance
+    if _app_instance is None and DB_ENABLED:
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from web.app import create_app
+        _app_instance = create_app()
+    return _app_instance
+
+
 def load_elo_ratings() -> dict:
     """
-    Load Elo ratings from JSON file.
+    Load Elo ratings from database (or JSON file as fallback).
     Returns dict: {engine_name: {"elo": float, "games": int}}
     """
+    if DB_ENABLED:
+        try:
+            from web.database import db
+            from web.models import Engine, EloRating
+
+            app = _get_app()
+            with app.app_context():
+                results = db.session.query(Engine.name, EloRating.elo, EloRating.games_played).join(
+                    EloRating, Engine.id == EloRating.engine_id
+                ).all()
+
+                ratings = {}
+                for name, elo, games in results:
+                    ratings[name] = {"elo": float(elo), "games": games}
+                return ratings
+        except Exception as e:
+            print(f"Warning: Failed to load ratings from database: {e}")
+            # Fall through to JSON fallback
+
+    # Fallback to JSON file
     elo_file = get_elo_file_path()
     if elo_file.exists():
         with open(elo_file, "r") as f:
@@ -80,7 +114,39 @@ def load_elo_ratings() -> dict:
 
 
 def save_elo_ratings(ratings: dict):
-    """Save Elo ratings to JSON file."""
+    """Save Elo ratings to database (and JSON file as backup)."""
+    if DB_ENABLED:
+        try:
+            from web.database import db
+            from web.models import Engine, EloRating
+
+            app = _get_app()
+            with app.app_context():
+                for engine_name, data in ratings.items():
+                    engine = Engine.query.filter_by(name=engine_name).first()
+                    if not engine:
+                        # Create engine if it doesn't exist
+                        engine = Engine(name=engine_name, active=False)
+                        db.session.add(engine)
+                        db.session.flush()
+
+                    elo_rating = EloRating.query.filter_by(engine_id=engine.id).first()
+                    if elo_rating:
+                        elo_rating.elo = data["elo"]
+                        elo_rating.games_played = data["games"]
+                    else:
+                        elo_rating = EloRating(
+                            engine_id=engine.id,
+                            elo=data["elo"],
+                            games_played=data["games"]
+                        )
+                        db.session.add(elo_rating)
+
+                db.session.commit()
+        except Exception as e:
+            print(f"Warning: Failed to save ratings to database: {e}")
+
+    # Also save to JSON as backup
     elo_file = get_elo_file_path()
     elo_file.parent.mkdir(parents=True, exist_ok=True)
     with open(elo_file, "w") as f:
@@ -100,12 +166,10 @@ def save_game_to_db(white: str, black: str, result: str, time_control: str,
         return
 
     try:
-        # Import here to avoid circular imports and allow running without DB
-        sys.path.insert(0, str(Path(__file__).parent.parent))
-        from web.app import create_app, db
+        from web.database import db
         from web.models import Engine, Game
 
-        app = create_app()
+        app = _get_app()
         with app.app_context():
             white_engine = Engine.query.filter_by(name=white).first()
             black_engine = Engine.query.filter_by(name=black).first()
@@ -146,9 +210,26 @@ def get_initial_elo(engine_name: str) -> float:
     """
     Get the initial Elo rating for an engine.
 
-    Checks engines.json for an 'initial_elo' field.
-    Falls back to DEFAULT_ELO if not specified.
+    Priority:
+    1. Database (Engine.initial_elo)
+    2. engines.json 'initial_elo' field
+    3. DEFAULT_ELO
     """
+    # Try database first
+    if DB_ENABLED:
+        try:
+            from web.database import db
+            from web.models import Engine
+
+            app = _get_app()
+            with app.app_context():
+                engine = Engine.query.filter_by(name=engine_name).first()
+                if engine and engine.initial_elo:
+                    return float(engine.initial_elo)
+        except Exception:
+            pass  # Fall through to engines.json
+
+    # Fall back to engines.json
     engines_config = load_engines_config()
     if engine_name in engines_config:
         config = engines_config[engine_name]

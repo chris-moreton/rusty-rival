@@ -3,8 +3,18 @@ Database queries for the competition dashboard.
 """
 
 from sqlalchemy import func
-from web.app import db
-from web.models import Engine, Game, EloRating
+
+
+def get_db():
+    """Get db instance (late import to avoid circular imports)."""
+    from web.database import db
+    return db
+
+
+def get_models():
+    """Get models (late import to avoid circular imports)."""
+    from web.models import Engine, Game, EloRating
+    return Engine, Game, EloRating
 
 
 def get_engines_ranked_by_elo(active_only=True):
@@ -12,6 +22,9 @@ def get_engines_ranked_by_elo(active_only=True):
     Get engines sorted by Elo rating descending.
     Returns list of (Engine, EloRating) tuples.
     """
+    db = get_db()
+    Engine, Game, EloRating = get_models()
+
     query = db.session.query(Engine, EloRating).join(
         EloRating, Engine.id == EloRating.engine_id
     )
@@ -27,6 +40,9 @@ def get_h2h_raw_data():
     Get raw head-to-head data from games table.
     Returns dict: {(white_id, black_id): {'white_points': float, 'black_points': float, 'games': int}}
     """
+    db = get_db()
+    Engine, Game, EloRating = get_models()
+
     results = db.session.query(
         Game.white_engine_id,
         Game.black_engine_id,

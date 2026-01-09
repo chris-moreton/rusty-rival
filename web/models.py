@@ -3,7 +3,7 @@ SQLAlchemy models for chess engine competition tracking.
 """
 
 from datetime import datetime
-from web.app import db
+from web.database import db
 
 
 class Engine(db.Model):
@@ -62,10 +62,3 @@ class EloRating(db.Model):
 
     def __repr__(self):
         return f'<EloRating {self.engine.name if self.engine else "?"}: {self.elo}>'
-
-
-# Create indexes for performance
-db.Index('idx_games_white', Game.white_engine_id)
-db.Index('idx_games_black', Game.black_engine_id)
-db.Index('idx_games_h2h', Game.white_engine_id, Game.black_engine_id)
-db.Index('idx_games_date', Game.date_played)

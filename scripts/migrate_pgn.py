@@ -22,7 +22,8 @@ import chess.pgn
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from web.app import create_app, db
+from web.app import create_app
+from web.database import db
 from web.models import Engine, Game, EloRating
 
 
