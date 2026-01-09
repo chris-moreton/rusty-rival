@@ -247,7 +247,7 @@ def get_initial_elo(engine_name: str) -> float:
 
     Priority:
     1. Database (Engine.initial_elo)
-    2. engines.json 'initial_elo' field
+    2. Derive from engine name (sf-2400 → 2400)
     3. DEFAULT_ELO
     """
     # Try database first
@@ -262,41 +262,72 @@ def get_initial_elo(engine_name: str) -> float:
                 if engine and engine.initial_elo:
                     return float(engine.initial_elo)
         except Exception:
-            pass  # Fall through to engines.json
+            pass
 
-    # Fall back to engines.json
-    engines_config = load_engines_config()
-    if engine_name in engines_config:
-        config = engines_config[engine_name]
-        if "initial_elo" in config:
-            return config["initial_elo"]
+    # Derive from engine name for Stockfish (sf-XXXX → XXXX)
+    if engine_name.startswith("sf-") and engine_name[3:].isdigit():
+        return float(engine_name[3:])
+
     return DEFAULT_ELO
 
 
-def get_engines_config_path() -> Path:
-    """Get the path to the engines config file."""
+def get_engines_dir() -> Path:
+    """Get the path to the engines directory."""
     script_dir = Path(__file__).parent
-    return script_dir.parent / "engines" / "engines.json"
+    return script_dir.parent / "engines"
 
 
-def load_engines_config() -> dict:
+def discover_engines(engine_dir: Path) -> dict:
     """
-    Load engine configuration from JSON file.
-    Returns dict: {engine_name: {"binary": str, "uci_options": dict (optional)}}
+    Auto-discover engines from directory structure.
+
+    Convention:
+    - v* directories: binary is {dir}/rusty-rival
+    - sf-XXXX: virtual Stockfish at Elo XXXX (uses stockfish binary with UCI_LimitStrength)
+    - java-rival-*: binary is {dir}/java-rival
+
+    Returns dict: {engine_name: {"binary": Path, "uci_options": dict}}
     """
-    config_file = get_engines_config_path()
-    if config_file.exists():
-        with open(config_file, "r") as f:
-            return json.load(f)
-    return {}
+    engines = {}
+    stockfish_binary = engine_dir / "stockfish" / "stockfish-macos-m1-apple-silicon"
 
+    for entry in engine_dir.iterdir():
+        if not entry.is_dir():
+            continue
 
-def save_engines_config(config: dict):
-    """Save engine configuration to JSON file."""
-    config_file = get_engines_config_path()
-    config_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(config_file, "w") as f:
-        json.dump(config, f, indent=2, sort_keys=True)
+        name = entry.name
+
+        # Skip non-engine directories
+        if name in ("stockfish", "syzygy", "epd", "maia-weights"):
+            continue
+
+        # v* engines (rusty-rival versions)
+        if name.startswith("v") and name[1:2].isdigit():
+            binary = entry / "rusty-rival"
+            if binary.exists():
+                engines[name] = {"binary": binary, "uci_options": {}}
+
+        # java-rival engines
+        elif name.startswith("java-rival"):
+            binary = entry / "java-rival"
+            if binary.exists():
+                engines[name] = {"binary": binary, "uci_options": {}}
+
+    # Add virtual Stockfish engines at different Elo levels
+    if stockfish_binary.exists():
+        for elo in [1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000]:
+            name = f"sf-{elo}"
+            engines[name] = {
+                "binary": stockfish_binary,
+                "uci_options": {
+                    "UCI_LimitStrength": True,
+                    "UCI_Elo": elo
+                }
+            }
+        # Full-strength Stockfish
+        engines["sf-full"] = {"binary": stockfish_binary, "uci_options": {}}
+
+    return engines
 
 
 def load_epd_positions(epd_file: Path) -> list[tuple[str, str]]:
@@ -346,44 +377,47 @@ def load_epd_positions(epd_file: Path) -> list[tuple[str, str]]:
 
 def get_all_engines(engine_dir: Path) -> list[str]:
     """
-    Get list of all available engines from the config file.
+    Get list of all available engines (auto-discovered).
     Returns sorted list of engine names.
     """
-    config = load_engines_config()
-    return sorted(config.keys())
+    engines = discover_engines(engine_dir)
+    return sorted(engines.keys())
 
 
 def get_active_engines(engine_dir: Path) -> list[str]:
     """
-    Get list of active engines from the config file.
-    Only returns engines where 'active' is True or not specified.
-    Returns sorted list of engine names.
+    Get list of active engines from database.
+    Falls back to all discovered engines if DB unavailable.
     """
-    config = load_engines_config()
-    return sorted([name for name, cfg in config.items() if cfg.get("active", True)])
+    if DB_ENABLED:
+        try:
+            from web.database import db
+            from web.models import Engine
+
+            app = _get_app()
+            with app.app_context():
+                active = Engine.query.filter_by(active=True).all()
+                return sorted([e.name for e in active])
+        except Exception:
+            pass
+    # Fallback: all discovered engines are active
+    return get_all_engines(engine_dir)
 
 
 def get_engine_info(name: str, engine_dir: Path) -> tuple[Path, dict]:
     """
-    Get engine binary path and UCI options from config.
+    Get engine binary path and UCI options.
     Returns (binary_path, uci_options_dict).
     """
-    config = load_engines_config()
+    engines = discover_engines(engine_dir)
 
-    if name not in config:
-        print(f"Error: Engine '{name}' not found in {get_engines_config_path()}")
+    if name not in engines:
+        print(f"Error: Engine '{name}' not found")
         print(f"Available engines: {', '.join(get_all_engines(engine_dir))}")
         sys.exit(1)
 
-    engine_config = config[name]
-    binary = engine_config.get("binary", "")
-
-    # Handle relative vs absolute paths
-    if binary.startswith("/"):
-        binary_path = Path(binary)
-    else:
-        binary_path = engine_dir / binary
-
+    engine_config = engines[name]
+    binary_path = engine_config["binary"]
     uci_options = engine_config.get("uci_options", {})
 
     if not binary_path.exists():
@@ -839,49 +873,42 @@ def calculate_elo_difference(wins: int, losses: int, draws: int) -> tuple[float,
 def resolve_engine_name(shorthand: str, engine_dir: Path) -> str:
     """
     Resolve a shorthand engine name to the full engine name.
-    E.g., 'v1' -> 'v1-baseline', 'v10' -> 'v10-arrayvec-movelist'
-
-    Checks both directories and engines.json entries.
+    E.g., 'v1' -> 'v001-baseline', 'v10' -> 'v010-arrayvec-movelist'
     """
-    # Load engines config
-    engines_config = load_engines_config()
+    engines = discover_engines(engine_dir)
 
-    # If exact match exists in engines.json, use it
-    if shorthand in engines_config:
+    # If exact match exists, use it
+    if shorthand in engines:
         return shorthand
 
-    # If exact directory match exists, use it
-    if (engine_dir / shorthand).exists():
-        return shorthand
+    matches = []
 
-    # Look for matches starting with the shorthand followed by '-' or '.'
-    # Only match '.' suffix if the shorthand itself contains a '.'
-    # Check both directories and engines.json entries
-    dir_matches = [d.name for d in engine_dir.glob(f"{shorthand}-*")]
-    config_matches = [name for name in engines_config.keys()
-                      if name.startswith(f"{shorthand}-")]
+    # Handle v-prefixed numeric shorthand (v1 -> v001, v10 -> v010)
+    if shorthand.startswith("v") and shorthand[1:].isdigit():
+        num = int(shorthand[1:])
+        # Try different zero-padded formats
+        for fmt in [f"v{num:03d}-", f"v{num:02d}-", f"v{num}-"]:
+            matches += [name for name in engines.keys() if name.startswith(fmt)]
+
+    # Look for matches starting with the shorthand followed by '-'
+    if not matches:
+        matches = [name for name in engines.keys() if name.startswith(f"{shorthand}-")]
 
     # Only look for dot-suffix matches if shorthand contains a dot
     if '.' in shorthand:
-        dir_matches += [d.name for d in engine_dir.glob(f"{shorthand}.*")]
-        config_matches += [name for name in engines_config.keys()
-                          if name.startswith(f"{shorthand}.")]
+        matches += [name for name in engines.keys() if name.startswith(f"{shorthand}.")]
 
-    # Combine and deduplicate
-    all_matches = list(set(dir_matches + config_matches))
+    # Deduplicate
+    matches = list(set(matches))
 
-    if len(all_matches) == 1:
-        return all_matches[0]
-    elif len(all_matches) == 0:
-        # Get all available engines (directories + config entries)
-        dir_names = {d.name for d in engine_dir.iterdir() if d.is_dir()}
-        config_names = set(engines_config.keys())
-        all_engines = sorted(dir_names | config_names)
+    if len(matches) == 1:
+        return matches[0]
+    elif len(matches) == 0:
         print(f"Error: No engine found matching '{shorthand}'")
-        print(f"Available engines: {', '.join(all_engines)}")
+        print(f"Available engines: {', '.join(sorted(engines.keys()))}")
         sys.exit(1)
     else:
-        print(f"Error: Ambiguous engine name '{shorthand}' matches: {', '.join(sorted(all_matches))}")
+        print(f"Error: Ambiguous engine name '{shorthand}' matches: {', '.join(sorted(matches))}")
         sys.exit(1)
 
 
