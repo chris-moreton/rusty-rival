@@ -2,6 +2,7 @@
 Database queries for the competition dashboard.
 """
 
+import math
 from sqlalchemy import func
 
 
@@ -66,6 +67,58 @@ def get_h2h_raw_data():
     return h2h
 
 
+def calculate_expected_score(elo_a: float, elo_b: float, num_games: int) -> float:
+    """
+    Calculate expected score for player A against player B over num_games.
+    Uses standard Elo formula: E = 1 / (1 + 10^((Rb - Ra) / 400))
+    """
+    if num_games == 0:
+        return 0
+    expected_per_game = 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
+    return expected_per_game * num_games
+
+
+def deviation_to_color(deviation: float, is_overperforming: bool, num_games: int) -> str:
+    """
+    Convert deviation from expected to a background color.
+
+    Args:
+        deviation: How many points above/below expected (absolute value)
+        is_overperforming: True for green (lower-rated winning), False for red (higher-rated losing)
+        num_games: Number of games played (affects scaling)
+
+    Returns:
+        CSS color string (rgba or hex)
+    """
+    if num_games == 0:
+        return '#f5f5f5'  # No games - neutral gray
+
+    # Normalize deviation by number of games to get a percentage
+    # A deviation of 10% of games is significant
+    deviation_pct = abs(deviation) / num_games if num_games > 0 else 0
+
+    # Scale intensity: 0% deviation = very light, 50%+ deviation = full color
+    # Using a curve to make small deviations more visible
+    intensity = min(1.0, deviation_pct * 2)  # 50% deviation = full intensity
+
+    # Apply sqrt to make small deviations more visible
+    intensity = math.sqrt(intensity)
+
+    if is_overperforming:
+        # Green: from very light (#e8f5e9) to darker (#4caf50)
+        # RGB interpolation
+        r = int(232 - (232 - 76) * intensity)   # 232 -> 76
+        g = int(245 - (245 - 175) * intensity)  # 245 -> 175
+        b = int(233 - (233 - 80) * intensity)   # 233 -> 80
+    else:
+        # Red: from very light (#ffebee) to darker (#e57373)
+        r = int(255 - (255 - 229) * intensity)  # 255 -> 229
+        g = int(235 - (235 - 115) * intensity)  # 235 -> 115
+        b = int(238 - (238 - 115) * intensity)  # 238 -> 115
+
+    return f'rgb({r}, {g}, {b})'
+
+
 def build_h2h_grid(engines, h2h_raw):
     """
     Build the H2H grid for the dashboard.
@@ -96,7 +149,7 @@ def build_h2h_grid(engines, h2h_raw):
             if row_id == col_id:
                 cells.append({
                     'score': '-',
-                    'color': 'diagonal',
+                    'bg_color': '#e0e0e0',
                     'games': 0,
                     'tooltip': ''
                 })
@@ -116,49 +169,47 @@ def build_h2h_grid(engines, h2h_raw):
             if total_games == 0:
                 cells.append({
                     'score': '-',
-                    'color': 'no-games',
+                    'bg_color': '#f5f5f5',
                     'games': 0,
                     'tooltip': 'No games played'
                 })
                 continue
 
-            # Determine color based on Elo ranking vs actual result
-            # row_rank < col_rank means row_engine is higher rated (ranked higher = lower number)
+            # Calculate expected score for row_engine against col_engine
+            expected_row = calculate_expected_score(row_elo, col_elo, total_games)
+            deviation = row_points - expected_row  # Positive = overperforming, negative = underperforming
+
+            # Determine if row_engine is higher or lower rated
             row_is_higher_rated = row_rank < col_rank
 
-            # Calculate if row_engine is winning, losing, or drawing
-            if row_points > col_points:
-                row_winning = True
-                row_drawing = False
-            elif row_points < col_points:
-                row_winning = False
-                row_drawing = False
-            else:
-                row_winning = False
-                row_drawing = True
-
             # Color logic:
-            # RED: Higher-rated engine losing OR drawing H2H
-            # GREEN: Lower-rated engine winning OR drawing H2H
-            # NEUTRAL: Expected results (higher winning, lower losing)
-            if row_is_higher_rated:
-                # Row is higher rated
-                if not row_winning:  # Losing or drawing
-                    color = 'red'
-                else:
-                    color = 'neutral'
+            # - Higher-rated engine underperforming (deviation < 0) -> RED
+            # - Lower-rated engine overperforming (deviation > 0) -> GREEN
+            # - Results match expectations -> neutral/white
+
+            if row_is_higher_rated and deviation < 0:
+                # Higher-rated losing more than expected -> RED
+                bg_color = deviation_to_color(deviation, is_overperforming=False, num_games=total_games)
+            elif not row_is_higher_rated and deviation > 0:
+                # Lower-rated winning more than expected -> GREEN
+                bg_color = deviation_to_color(deviation, is_overperforming=True, num_games=total_games)
             else:
-                # Row is lower rated
-                if row_winning or row_drawing:  # Winning or drawing
-                    color = 'green'
-                else:
-                    color = 'neutral'
+                # Results roughly as expected or better than expected for higher-rated
+                bg_color = '#f9f9f9'  # Neutral
+
+            # Build tooltip with more detail
+            expected_str = f"{expected_row:.1f}"
+            if deviation > 0:
+                dev_str = f"+{deviation:.1f}"
+            else:
+                dev_str = f"{deviation:.1f}"
+            tooltip = f"{total_games} games | Expected: {expected_str} | Actual: {row_points:.0f} ({dev_str})"
 
             cells.append({
                 'score': f"{row_points:.0f}-{col_points:.0f}",
-                'color': color,
+                'bg_color': bg_color,
                 'games': total_games,
-                'tooltip': f"{total_games} games"
+                'tooltip': tooltip
             })
 
         grid.append({

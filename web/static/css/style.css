@@ -62,12 +62,20 @@ h1 {
     border: 1px solid #ccc;
 }
 
-.color-box.green {
-    background-color: #90EE90;
+.color-box.green-light {
+    background-color: #e8f5e9;
 }
 
-.color-box.red {
-    background-color: #FFB6C1;
+.color-box.green-dark {
+    background-color: #4caf50;
+}
+
+.color-box.red-light {
+    background-color: #ffebee;
+}
+
+.color-box.red-dark {
+    background-color: #e57373;
 }
 
 /* Table styles */

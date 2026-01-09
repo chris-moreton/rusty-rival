@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="30">
     <title>Engine Competition Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -12,10 +13,10 @@
 
         <div class="controls">
             <p class="info">
-                Engines ranked by Elo rating.
+                Engines ranked by Elo rating. Color intensity shows deviation from expected results.
                 <span class="legend">
-                    <span class="legend-item"><span class="color-box green"></span> Lower-rated winning/drawing</span>
-                    <span class="legend-item"><span class="color-box red"></span> Higher-rated losing/drawing</span>
+                    <span class="legend-item"><span class="color-box green-light"></span><span class="color-box green-dark"></span> Lower-rated overperforming</span>
+                    <span class="legend-item"><span class="color-box red-light"></span><span class="color-box red-dark"></span> Higher-rated underperforming</span>
                 </span>
             </p>
             <p class="filter">
@@ -25,6 +26,7 @@
                     Showing all engines. <a href="/">Show active only</a>
                 {% endif %}
                 | {{ total_engines }} engines
+                | Auto-refresh: 30s
             </p>
         </div>
 
@@ -50,7 +52,7 @@
                         <td class="elo-col">{{ "%.0f"|format(row.elo) }}</td>
                         <td class="games-col">{{ row.games_played }}</td>
                         {% for cell in row.cells %}
-                        <td class="h2h-cell {{ cell.color }}" title="{{ cell.tooltip }}">{{ cell.score }}</td>
+                        <td class="h2h-cell" style="background-color: {{ cell.bg_color }};" title="{{ cell.tooltip }}">{{ cell.score }}</td>
                         {% endfor %}
                     </tr>
                     {% endfor %}
