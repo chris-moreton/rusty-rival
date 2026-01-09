@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engine Competition Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Engine Head-to-Head Results</h1>
+
+        <div class="controls">
+            <p class="info">
+                Engines ranked by Elo rating.
+                <span class="legend">
+                    <span class="legend-item"><span class="color-box green"></span> Lower-rated winning/drawing</span>
+                    <span class="legend-item"><span class="color-box red"></span> Higher-rated losing/drawing</span>
+                </span>
+            </p>
+            <p class="filter">
+                {% if active_only %}
+                    Showing active engines only. <a href="?all=1">Show all engines</a>
+                {% else %}
+                    Showing all engines. <a href="/">Show active only</a>
+                {% endif %}
+                | {{ total_engines }} engines
+            </p>
+        </div>
+
+        {% if grid %}
+        <div class="table-wrapper">
+            <table class="h2h-table">
+                <thead>
+                    <tr>
+                        <th class="rank-col">#</th>
+                        <th class="engine-col">Engine</th>
+                        <th class="elo-col">Elo</th>
+                        <th class="games-col">Games</th>
+                        {% for col_num, col_name in column_headers %}
+                        <th class="h2h-col" title="{{ col_name }}">{{ col_num }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in grid %}
+                    <tr>
+                        <td class="rank-col">{{ row.rank }}</td>
+                        <td class="engine-col">{{ row.engine_name }}</td>
+                        <td class="elo-col">{{ "%.0f"|format(row.elo) }}</td>
+                        <td class="games-col">{{ row.games_played }}</td>
+                        {% for cell in row.cells %}
+                        <td class="h2h-cell {{ cell.color }}" title="{{ cell.tooltip }}">{{ cell.score }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="column-key">
+            <h3>Column Key</h3>
+            <div class="key-grid">
+                {% for col_num, col_name in column_headers %}
+                <div class="key-item">
+                    <span class="key-num">{{ col_num }}</span>
+                    <span class="key-name">{{ col_name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="no-data">No engine data available. Run the migration script first.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

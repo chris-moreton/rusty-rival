@@ -34,6 +34,7 @@ Usage:
 import argparse
 import json
 import math
+import os
 import random
 import subprocess
 import sys
@@ -43,6 +44,13 @@ import chess.pgn
 from datetime import datetime
 from pathlib import Path
 from itertools import combinations
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv(Path(__file__).parent.parent / '.env')
+
+# Check if database is configured
+DB_ENABLED = os.getenv('DATABASE_URL') is not None
 
 
 # Default K-factor for Elo updates (higher = faster adjustment)
@@ -77,6 +85,61 @@ def save_elo_ratings(ratings: dict):
     elo_file.parent.mkdir(parents=True, exist_ok=True)
     with open(elo_file, "w") as f:
         json.dump(ratings, f, indent=2, sort_keys=True)
+
+
+def save_game_to_db(white: str, black: str, result: str, time_control: str,
+                    opening_name: str = None, opening_fen: str = None,
+                    pgn_file: str = None):
+    """
+    Save a game result to the database.
+
+    This function is a no-op if DATABASE_URL is not configured.
+    Errors are logged but don't interrupt the competition.
+    """
+    if not DB_ENABLED:
+        return
+
+    try:
+        # Import here to avoid circular imports and allow running without DB
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from web.app import create_app, db
+        from web.models import Engine, Game
+
+        app = create_app()
+        with app.app_context():
+            white_engine = Engine.query.filter_by(name=white).first()
+            black_engine = Engine.query.filter_by(name=black).first()
+
+            if not white_engine or not black_engine:
+                return  # Engine not in database yet
+
+            # Calculate scores
+            if result == "1-0":
+                white_score, black_score = 1.0, 0.0
+            elif result == "0-1":
+                white_score, black_score = 0.0, 1.0
+            elif result == "1/2-1/2":
+                white_score, black_score = 0.5, 0.5
+            else:
+                return  # Incomplete game, don't record
+
+            game = Game(
+                white_engine_id=white_engine.id,
+                black_engine_id=black_engine.id,
+                result=result,
+                white_score=white_score,
+                black_score=black_score,
+                date_played=datetime.now().date(),
+                time_control=time_control,
+                opening_name=opening_name,
+                opening_fen=opening_fen,
+                pgn_file=pgn_file
+            )
+            db.session.add(game)
+            db.session.commit()
+    except Exception as e:
+        # Don't interrupt competition for database errors
+        print(f"Warning: Failed to save game to database: {e}")
 
 
 def get_initial_elo(engine_name: str) -> float:
@@ -836,6 +899,10 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
             print(game, file=f)
             print(file=f)
 
+        # Save to database
+        save_game_to_db(white, black, result, f"{time_per_move}s/move",
+                        opening_name, opening_fen, pgn_file.name if hasattr(pgn_file, 'name') else str(pgn_file))
+
         # Update persistent Elo ratings
         white_change, black_change = update_elo_after_game(elo_ratings, white, black, result)
 
@@ -1094,6 +1161,10 @@ def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
                 print(game, file=f)
                 print(file=f)
 
+            # Save to database
+            save_game_to_db(engine1_name, engine2_name, result, f"{time_per_move}s/move",
+                            pos_id, fen, pgn_file.name)
+
             # Note: We don't update global Elo in EPD mode since these are
             # specialized positions that would skew ratings
 
@@ -1123,6 +1194,10 @@ def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
             with open(pgn_file, "a") as f:
                 print(game, file=f)
                 print(file=f)
+
+            # Save to database
+            save_game_to_db(engine2_name, engine1_name, result, f"{time_per_move}s/move",
+                            pos_id, fen, pgn_file.name)
 
             # Update session stats
             session_games[engine1_name] += 1
@@ -1274,6 +1349,10 @@ def run_league(engine_names: list[str], engine_dir: Path,
                 with open(pgn_file, "a") as f:
                     print(game, file=f)
                     print(file=f)
+
+                # Save to database
+                save_game_to_db(white, black, result, f"{time_per_move}s/move",
+                                opening_name, opening_fen, pgn_file.name)
 
                 # Update persistent Elo ratings
                 white_change, black_change = update_elo_after_game(elo_ratings, white, black, result)
@@ -1431,6 +1510,10 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
                 print(game, file=f)
                 print(file=f)
 
+            # Save to database
+            save_game_to_db(challenger_name, opponent, result, f"{time_per_move}s/move",
+                            opening_name, opening_fen, pgn_file.name)
+
             challenger_change, opponent_change = update_elo_after_game(elo_ratings, challenger_name, opponent, result)
 
             if result == "1-0":
@@ -1455,6 +1538,10 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
             with open(pgn_file, "a") as f:
                 print(game, file=f)
                 print(file=f)
+
+            # Save to database
+            save_game_to_db(opponent, challenger_name, result, f"{time_per_move}s/move",
+                            opening_name, opening_fen, pgn_file.name)
 
             opponent_change, challenger_change = update_elo_after_game(elo_ratings, opponent, challenger_name, result)
 
@@ -1620,6 +1707,10 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             print(game, file=f)
             print(file=f)
 
+        # Save to database
+        save_game_to_db(engine1, engine2, result, f"{match_time:.2f}s/move",
+                        opening_name, opening_fen, pgn_file.name)
+
         # Track session stats - capture starting Elo before first game
         for eng in [engine1, engine2]:
             if eng not in session_start_elo:
@@ -1657,6 +1748,10 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
         with open(pgn_file, "a") as f:
             print(game, file=f)
             print(file=f)
+
+        # Save to database
+        save_game_to_db(engine2, engine1, result, f"{match_time:.2f}s/move",
+                        opening_name, opening_fen, pgn_file.name)
 
         e2_change, e1_change = update_elo_after_game(elo_ratings, engine2, engine1, result)
 

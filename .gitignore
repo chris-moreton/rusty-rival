@@ -8,6 +8,10 @@ perf.data*
 history.txt
 scripts/__pycache__/*
 
-
-
 engines/syzygy/
+
+# Environment variables
+.env
+
+# Python cache
+web/__pycache__/

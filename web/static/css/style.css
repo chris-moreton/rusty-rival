@@ -1,0 +1,233 @@
+/* Chess Engine Competition Dashboard Styles */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.controls {
+    margin-bottom: 20px;
+}
+
+.info {
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.filter {
+    color: #888;
+    font-size: 0.9em;
+}
+
+.filter a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.filter a:hover {
+    text-decoration: underline;
+}
+
+.legend {
+    margin-left: 20px;
+}
+
+.legend-item {
+    margin-right: 20px;
+}
+
+.color-box {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+    vertical-align: middle;
+    border: 1px solid #ccc;
+}
+
+.color-box.green {
+    background-color: #90EE90;
+}
+
+.color-box.red {
+    background-color: #FFB6C1;
+}
+
+/* Table styles */
+.table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 30px;
+}
+
+.h2h-table {
+    border-collapse: collapse;
+    font-size: 12px;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.h2h-table th,
+.h2h-table td {
+    border: 1px solid #ddd;
+    padding: 6px 8px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.h2h-table th {
+    background-color: #34495e;
+    color: white;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+}
+
+.h2h-table tbody tr:hover {
+    background-color: #f0f0f0;
+}
+
+/* Column widths */
+.rank-col {
+    width: 30px;
+    font-weight: bold;
+}
+
+.engine-col {
+    text-align: left !important;
+    font-weight: 600;
+    min-width: 150px;
+}
+
+.elo-col {
+    width: 50px;
+    color: #666;
+}
+
+.games-col {
+    width: 50px;
+    color: #888;
+    font-size: 11px;
+}
+
+.h2h-col {
+    width: 45px;
+    font-size: 10px;
+}
+
+/* H2H cell colors */
+.h2h-cell {
+    font-size: 11px;
+    cursor: default;
+}
+
+.h2h-cell.green {
+    background-color: #90EE90;
+}
+
+.h2h-cell.red {
+    background-color: #FFB6C1;
+}
+
+.h2h-cell.neutral {
+    background-color: #f9f9f9;
+}
+
+.h2h-cell.diagonal {
+    background-color: #e0e0e0;
+    color: #999;
+}
+
+.h2h-cell.no-games {
+    background-color: #f5f5f5;
+    color: #ccc;
+}
+
+/* Column key section */
+.column-key {
+    background-color: white;
+    padding: 15px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.column-key h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #34495e;
+    font-size: 14px;
+}
+
+.key-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.key-item {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+}
+
+.key-num {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    background-color: #34495e;
+    color: white;
+    border-radius: 4px;
+    margin-right: 8px;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.key-name {
+    color: #555;
+}
+
+/* No data message */
+.no-data {
+    color: #888;
+    font-style: italic;
+    padding: 40px;
+    text-align: center;
+    background-color: white;
+    border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .legend {
+        display: block;
+        margin-left: 0;
+        margin-top: 10px;
+    }
+
+    .legend-item {
+        display: block;
+        margin-bottom: 5px;
+    }
+}
