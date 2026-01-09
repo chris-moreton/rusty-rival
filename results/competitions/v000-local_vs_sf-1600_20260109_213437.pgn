@@ -1,0 +1,32 @@
+[Event "Engine Match"]
+[Site "cloud-server-1"]
+[Date "2026.01.09"]
+[Round "?"]
+[White "v000-local"]
+[Black "sf-1600"]
+[Result "1-0"]
+[TimeControl "0.10s/move"]
+[FEN "rnbqkb1r/pp2pppp/2p2n2/3p4/2PP4/4PN2/PP3PPP/RNBQKB1R b KQkq - 0 4"]
+[SetUp "1"]
+[Opening "Slav e3"]
+[WhiteNPS "1469162"]
+[BlackNPS "1002183"]
+
+4... Bf5 5. Nc3 a6 6. cxd5 g6 7. dxc6 bxc6 8. Bd3 Bg4 9. h3 Bxf3 10. Qxf3 e5 11. dxe5 Qxd3 12. Qxf6 a5 13. Qxh8 Nd7 14. f4 a4 15. Qg8 a3 16. e6 axb2 17. exd7+ Ke7 18. Bxb2 f5 19. d8=Q+ Kxd8 20. Qxf8+ Kc7 21. Qxa8 Kd7 22. Rd1 Qxd1+ 23. Kxd1 g5 24. fxg5 f4 25. Qa7+ Ke8 26. Ne4 h5 27. Nd6+ Kd8 28. Bf6# 1-0
+
+[Event "Engine Match"]
+[Site "cloud-server-1"]
+[Date "2026.01.09"]
+[Round "?"]
+[White "sf-1600"]
+[Black "v000-local"]
+[Result "0-1"]
+[TimeControl "0.10s/move"]
+[FEN "rnbqkb1r/pp2pppp/2p2n2/3p4/2PP4/4PN2/PP3PPP/RNBQKB1R b KQkq - 0 4"]
+[SetUp "1"]
+[Opening "Slav e3"]
+[WhiteNPS "601611"]
+[BlackNPS "1615592"]
+
+4... e6 5. Bd3 Na6 6. O-O Nb4 7. Be2 dxc4 8. Bxc4 Ng4 9. h3 Nf6 10. Re1 b5 11. Be2 Bd6 12. Bf1 Ne4 13. Bd2 O-O 14. a3 Nd5 15. Qc2 Nxd2 16. Nbxd2 Bd7 17. Bd3 f5 18. e4 Nf4 19. Bf1 Qe8 20. h4 Qg6 21. Rac1 Nh3+ 22. Kh1 Nxf2+ 23. Kg1 Nh3+ 24. Kh1 Nf2+ 25. Kg1 Qg3 26. Re2 Nh3+ 27. Kh1 Nf4 28. exf5 Nxe2 29. Ne4 Nxd4 30. Qd1 Qf4 31. Nxd6 Nxf3 32. gxf3 Qxh4+ 33. Kg1 Qg5+ 34. Kh2 exf5 35. Rxc6 Qh5+ 36. Kg3 f4+ 37. Kg2 Bxc6 38. Bxb5 Rab8 39. Kf2 Rxb5 40. Ke1 Rxb2 41. Qc2 Qh1+ 42. Kf2 Rxc2# 0-1
+

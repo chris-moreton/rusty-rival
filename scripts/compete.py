@@ -36,6 +36,7 @@ import json
 import math
 import os
 import random
+import socket
 import subprocess
 import sys
 import chess
@@ -967,6 +968,7 @@ def play_game(engine1_path: Path, engine2_path: Path,
 
     game = chess.pgn.Game()
     game.headers["Event"] = "Engine Match"
+    game.headers["Site"] = os.environ.get("COMPUTER_NAME", socket.gethostname())
     game.headers["Date"] = datetime.now().strftime("%Y.%m.%d")
     game.headers["White"] = engine1_name
     game.headers["Black"] = engine2_name

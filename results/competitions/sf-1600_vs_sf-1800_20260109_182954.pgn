@@ -1,0 +1,28 @@
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.09"]
+[Round "?"]
+[White "sf-1600"]
+[Black "sf-1800"]
+[Result "0-1"]
+[TimeControl "0.10s/move"]
+[FEN "r1bqk2r/2ppbppp/p1n2n2/1p2p3/4P3/1BP2N2/PP1P1PPP/RNBQ1RK1 b kq - 0 7"]
+[SetUp "1"]
+[Opening "Ruy Lopez c3"]
+
+7... Nxe4 8. Re1 Nf6 9. Nxe5 Nxe5 10. Qe2 Ng6 11. d4 d5 12. h4 h5 13. a4 b4 14. cxb4 Bf5 15. b5 c6 16. Bg5 axb5 17. Bxf6 gxf6 18. Nc3 b4 19. Qf3 Bg4 20. Nxd5 Bxf3 21. Nxb4 Kf8 22. Rad1 Rb8 23. Na6 Rxb3 24. Ra1 Rd3 25. Rac1 Bxg2 26. Kxg2 Nf4+ 27. Kf1 Rh3 28. f3 Rxf3+ 29. Kg1 Rg8+ 30. Kh1 Rh3# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.09"]
+[Round "?"]
+[White "sf-1800"]
+[Black "sf-1600"]
+[Result "1-0"]
+[TimeControl "0.10s/move"]
+[FEN "r1bqk2r/2ppbppp/p1n2n2/1p2p3/4P3/1BP2N2/PP1P1PPP/RNBQ1RK1 b kq - 0 7"]
+[SetUp "1"]
+[Opening "Ruy Lopez c3"]
+
+7... d6 8. a4 Be6 9. d4 Bd7 10. h3 h6 11. Na3 O-O 12. d5 Na7 13. Nd2 Qc8 14. Re1 Qb7 15. Nc2 c6 16. Ne3 Nc8 17. axb5 axb5 18. Rb1 cxd5 19. Nxd5 Rb8 20. Nb4 Kh8 21. Nf1 Be6 22. Bc2 Re8 23. Ng3 Ra8 24. Nd5 Bd8 25. Qd3 Ra2 26. Bd2 Bxd5 27. exd5 Ra5 28. Ra1 Ne7 29. Ne4 Nh7 30. Nxd6 Ng5 31. Nxb7 Nf5 32. Qxf5 Rxa1 33. Rxa1 Kg8 34. Qd7 Rf8 35. Kf1 e4 36. Be3 Bf6 37. Ra7 g6 38. Ke2 Nf3 39. gxf3 Bg5 40. Bd4 Bd2 41. fxe4 Rd8 42. Qxd8+ Kh7 43. Qh8# 1-0
+

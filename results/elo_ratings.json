@@ -1,0 +1,258 @@
+{
+  "java-rival-36": {
+    "elo": 2441.2470808194903,
+    "games": 278
+  },
+  "maia-1100": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "maia-1200": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "maia-1300": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "maia-1400": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "maia-1500": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "maia-1600": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "maia-1700": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "maia-1800": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "maia-1900": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "sf-1400": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "sf-1600": {
+    "elo": 1672.3264529887683,
+    "games": 255
+  },
+  "sf-1800": {
+    "elo": 1920.4496685859542,
+    "games": 266
+  },
+  "sf-2000": {
+    "elo": 1961.6424325709097,
+    "games": 242
+  },
+  "sf-2200": {
+    "elo": 2242.8349700595077,
+    "games": 266
+  },
+  "sf-2400": {
+    "elo": 2398.147097483235,
+    "games": 234
+  },
+  "sf-2600": {
+    "elo": 2488.560927865143,
+    "games": 259
+  },
+  "sf-2700": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "sf-2800": {
+    "elo": 2748.649072134857,
+    "games": 405
+  },
+  "sf-3000": {
+    "elo": 3032.71,
+    "games": 274
+  },
+  "sf-full": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v001-baseline": {
+    "elo": 2437.81,
+    "games": 272
+  },
+  "v003-improved": {
+    "elo": 2584.4,
+    "games": 244
+  },
+  "v004-performance": {
+    "elo": 2526.2,
+    "games": 228
+  },
+  "v005-retain-opt": {
+    "elo": 2561.63,
+    "games": 258
+  },
+  "v006-arrayvec": {
+    "elo": 2486.07,
+    "games": 244
+  },
+  "v008-make-unmake-fixed": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v008.1-history-bug-fix": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v009-unmake-opt": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v010-arrayvec-movelist": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v011-check-evasion": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v012-bishop-pair": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v013-knight-fork": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v014-rook-open-file": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v015-rook-mobility": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v016-queen-mobility": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v017-connected-rooks": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v018-killer-fix": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v019-capture-fix": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v020-remove-harmful-eval": {
+    "elo": 2507.84,
+    "games": 248
+  },
+  "v021-wrong-color-bishop": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v022-king-activity": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v023-kpk-draw": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v024-connected-passed-pawns": {
+    "elo": 2568.42,
+    "games": 254
+  },
+  "v025-tablebase": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v026-tablebase-perf": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v027-tablebase-fast": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v028-dtz-progress": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v029-log-lmr": {
+    "elo": 2492.76,
+    "games": 262
+  },
+  "v029.tbl-log-lmr": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v030-tb-root-only": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "v031-delta-pruning": {
+    "elo": 2556.79,
+    "games": 230
+  },
+  "v032-history-lmr": {
+    "elo": 2512.37,
+    "games": 258
+  },
+  "v033-trade-bonus": {
+    "elo": 2497.31,
+    "games": 282
+  },
+  "v034-threat-lmr": {
+    "elo": 2535.05,
+    "games": 274
+  },
+  "v035-pawn-push-ext": {
+    "elo": 2532.67,
+    "games": 262
+  },
+  "v036-frac-ext": {
+    "elo": 2507.07,
+    "games": 241
+  },
+  "v037-optimized": {
+    "elo": 2431.32,
+    "games": 262
+  },
+  "velvet-1400": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "velvet-1800": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "velvet-2200": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "velvet-2400": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "velvet-2600": {
+    "elo": 1500.0,
+    "games": 0
+  },
+  "velvet-full": {
+    "elo": 1500.0,
+    "games": 0
+  }
+}

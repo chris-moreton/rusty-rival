@@ -12,9 +12,7 @@ fn repl() -> Result<()> {
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
 
-    // `()` can be used when no completer is required
     let mut rl = DefaultEditor::new()?;
-    let _ = rl.load_history("history.txt"); // Ignore if history doesn't exist
     loop {
         let readline = rl.readline("");
         match readline {
@@ -29,7 +27,6 @@ fn repl() -> Result<()> {
                 break;
             }
         }
-        rl.save_history("history.txt").expect("TODO: panic message");
     }
     Ok(())
 }

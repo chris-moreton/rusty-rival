@@ -1,0 +1,46 @@
+; Gauntlet Test
+; Challenger: sf-2800
+; Date: 2026-01-09 19:59
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.09"]
+[Round "?"]
+[White "sf-2800"]
+[Black "java-rival-36"]
+[Result "1-0"]
+[TimeControl "0.50s/move"]
+[FEN "rnbqkb1r/pppppppp/5n2/8/2P5/5N2/PP1PPPPP/RNBQKB1R b KQkq - 2 2"]
+[SetUp "1"]
+[Opening "English Nf3"]
+
+2... Nc6 3. d4 e6 4. a3 d5 5. Bg5 Be7 6. e3 h6 7. Bxf6 Bxf6 8. Qc2 O-O 9. Nc3 a6 10. Rd1 b6 11. cxd5 exd5 12. h3 Qd6 13. Be2 g6 14. Rc1 Bb7 15. O-O Rae8 16. Nd1 Re6 17. Re1 Rfe8 18. Nc3 b5 19. Bf1 R8e7 20. b4 Bg7 21. h4 Re8 22. Ne2 Re4 23. Ng3 R4e6 24. h5 Bc8 25. hxg6 fxg6 26. Qb3 Bd7 27. Bd3 Ne7 28. Bc2 Rf8 29. e4 dxe4 30. Nxe4 Qd5 31. Nc5 Rxe1+ 32. Rxe1 Bg4 33. Rxe7 Bxf3 34. gxf3 Qxb3 35. Bxb3+ Kh8 36. f4 Rxf4 37. Re8+ Kh7 38. Ne6 Rf3 39. Bc2 Rf7 40. Kf1 Rd7 41. f3 Rf7 42. Be4 Rd7 43. f4 Rf7 44. Bd5 Rd7 45. Bf3 Rf7 46. Kg2 Bf6 47. Bb7 c6 48. Nf8+ Kg8 49. Ne6+ Kh7 50. Bxc6 Ra7 51. Rf8 Bg7 52. Rc8 Re7 53. d5 Bb2 54. Nf8+ Kg7 55. Kf3 Rf7 56. Ne6+ Kf6 57. Be8 Ra7 58. Nc5 Bxa3 59. Rc6+ Ke7 60. Bxg6 Kd8 61. Ne6+ Kd7 62. Nc5+ Kd8 63. d6 Bxb4 64. Bf5 Ke8 65. Rc7 Bxc5 66. Rxc5 Rd7 67. Rc8+ Rd8 68. Ke4 b4 69. Ke5 Rxc8 70. d7+ Kf7 71. Be6+ Kf8 72. dxc8=Q+ Ke7 73. Qc6 b3 74. Qd7+ Kf8 75. Bc4 a5 76. Be6 h5 77. Qf7# 1-0
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.09"]
+[Round "?"]
+[White "java-rival-36"]
+[Black "sf-2800"]
+[Result "0-1"]
+[TimeControl "0.50s/move"]
+[FEN "rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 2 4"]
+[SetUp "1"]
+[Opening "QGD"]
+
+4. Nf3 Nbd7 5. cxd5 exd5 6. Bf4 c6 7. e3 Nh5 8. Bg5 Ndf6 9. Be2 g6 10. Ne5 Ng7 11. Bh6 Nf5 12. Bxf8 Kxf8 13. Bd3 Nd6 14. O-O Bf5 15. Bxf5 Nxf5 16. Qb3 Qe7 17. Rfc1 Ne8 18. a4 Rd8 19. a5 a6 20. Na4 Kg7 21. Nc5 Ned6 22. Rc2 Rde8 23. Rac1 h5 24. Qb6 Rhg8 25. g3 Rgf8 26. Rc3 g5 27. Rb3 f6 28. Nxc6 bxc6 29. Qxc6 Qf7 30. Nxa6 Kg6 31. Qa4 Nc4 32. Nc5 Nfd6 33. Rbc3 Ra8 34. a6 Rfe8 35. R3c2 Nf5 36. b3 Ncd6 37. Nd7 Qe6 38. Rc7 Qe4 39. a7 Qf3 40. Nb6 Nxe3 41. fxe3 Qxe3+ 42. Kg2 Qe2+ 43. Kg1 Qe3+ 44. Kg2 Qd3 45. R7c2 Re2+ 46. Rxe2 Qxe2+ 47. Kg1 Qe3+ 48. Kh1 Qf3+ 49. Kg1 Qe3+ 50. Kh1 Qxc1+ 51. Kg2 Qd2+ 52. Kh1 Qc1+ 53. Kg2 Qb2+ 54. Kg1 Ne4 55. Qb5 Rxa7 56. Na4 Qxd4+ 57. Kh1 Qa1+ 58. Kg2 Qa2+ 59. Kg1 Qf2+ 60. Kh1 Rc7 61. Nc5 Qe1+ 62. Kg2 Qf2+ 63. Kh1 Nxc5 64. Qe8+ Kg7 65. h3 Rf7 66. Qe2 Qxe2 67. b4 Qf3+ 68. Kg1 Qxg3+ 69. Kf1 Ne4 70. b5 Qh4 71. Kg1 Qg3+ 72. Kh1 Nf2# 0-1
+
+[Event "Engine Match"]
+[Site "?"]
+[Date "2026.01.09"]
+[Round "?"]
+[White "sf-2800"]
+[Black "sf-1600"]
+[Result "1-0"]
+[TimeControl "0.50s/move"]
+[FEN "r1bqk2r/pp2bppp/2nppn2/8/3NP3/2N1BP2/PPP3PP/R2QKB1R b KQkq - 0 8"]
+[SetUp "1"]
+[Opening "Sicilian Dragon Yugoslav"]
+
+8... O-O 9. Be2 Re8 10. f4 e5 11. Nf3 Qa5 12. O-O Rd8 13. Nd5 Nxe4 14. b4 Qxd5 15. Qxd5 Nd4 16. Bxd4 Bf5 17. fxe5 Bg6 18. Qb3 d5 19. Rab1 a5 20. a4 Rac8 21. e6 axb4 22. Ne5 f6 23. Nf3 Bf5 24. Nh4 Bxe6 25. Bb5 Nd2 26. Qe3 Ne4 27. Qe2 g5 28. Nf3 b3 29. c4 Bd6 30. Rxb3 g4 31. Nd2 Bc7 32. cxd5 Bxh2+ 33. Kxh2 Bf5 34. Nxe4 Rc2 35. Nxf6+ Kf7 36. Be8+ Kf8 37. Nd7+ Kg8 38. Qe6+ Bxe6 39. Rf8# 1-0
+
