@@ -52,6 +52,10 @@ load_dotenv(Path(__file__).parent.parent / '.env')
 # Check if database is configured
 DB_ENABLED = os.getenv('DATABASE_URL') is not None
 
+# Add project root to path for web module imports
+if DB_ENABLED:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 # Default K-factor for Elo updates (higher = faster adjustment)
 # Use higher K for provisional ratings (< 30 games)
@@ -75,7 +79,6 @@ def _get_app():
     """Get or create the Flask app instance for DB operations."""
     global _app_instance
     if _app_instance is None and DB_ENABLED:
-        sys.path.insert(0, str(Path(__file__).parent.parent))
         from web.app import create_app
         _app_instance = create_app()
     return _app_instance
