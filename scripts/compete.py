@@ -961,12 +961,30 @@ def play_game(engine1_path: Path, engine2_path: Path,
 
     node = game
 
+    # Track nodes and time for NPS calculation
+    engine1_nodes = 0
+    engine1_time = 0.0
+    engine2_nodes = 0
+    engine2_time = 0.0
+
     try:
         while not board.is_game_over():
-            engine = engines[0] if board.turn == chess.WHITE else engines[1]
-            result = engine.play(board, chess.engine.Limit(time=time_per_move))
+            is_white = board.turn == chess.WHITE
+            engine = engines[0] if is_white else engines[1]
+            result = engine.play(board, chess.engine.Limit(time=time_per_move), info=chess.engine.INFO_ALL)
             board.push(result.move)
             node = node.add_variation(result.move)
+
+            # Accumulate nodes and time from search info
+            if result.info:
+                nodes = result.info.get("nodes", 0)
+                time_spent = result.info.get("time", 0.0)
+                if is_white:
+                    engine1_nodes += nodes
+                    engine1_time += time_spent
+                else:
+                    engine2_nodes += nodes
+                    engine2_time += time_spent
 
     except Exception as e:
         print(f"  Error during game: {e}")
@@ -975,6 +993,15 @@ def play_game(engine1_path: Path, engine2_path: Path,
         engine2.quit()
 
     game.headers["Result"] = board.result()
+
+    # Add NPS to headers
+    if engine1_time > 0:
+        engine1_nps = int(engine1_nodes / engine1_time)
+        game.headers["WhiteNPS"] = str(engine1_nps)
+    if engine2_time > 0:
+        engine2_nps = int(engine2_nodes / engine2_time)
+        game.headers["BlackNPS"] = str(engine2_nps)
+
     return board.result(), game
 
 
