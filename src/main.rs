@@ -14,7 +14,7 @@ fn repl() -> Result<()> {
 
     // `()` can be used when no completer is required
     let mut rl = DefaultEditor::new()?;
-    rl.load_history("history.txt").unwrap();
+    let _ = rl.load_history("history.txt"); // Ignore if history doesn't exist
     loop {
         let readline = rl.readline("");
         match readline {

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  tournament:
+    build: .
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    volumes:
+      # Mount results directory to persist PGN files
+      - ./results:/app/results
+      # Optionally mount local engines for testing
+      # - ./engines/v037-optimized:/app/engines/v037-optimized
+    # Override command to run a specific tournament
+    # Examples:
+    #   docker-compose run tournament v-docker sf-2800 --games 10 --time 0.5
+    #   docker-compose run tournament --random --games 100 --time 0.5

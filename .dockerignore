@@ -1,0 +1,35 @@
+# Build artifacts
+target/
+*.rs.bk
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Results (we want fresh results in container)
+results/competitions/*.pgn
+results/elo_ratings*.json
+
+# Local env
+.env
+
+# Engines (downloaded in container)
+engines/v*/
+engines/stockfish/
+engines/java-rival*/
+engines/maia*/
+engines/syzygy/
+
+# Keep EPD files
+!engines/epd/

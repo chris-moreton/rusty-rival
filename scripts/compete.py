@@ -277,6 +277,28 @@ def get_engines_dir() -> Path:
     return script_dir.parent / "engines"
 
 
+def find_stockfish_binary(engine_dir: Path) -> Path | None:
+    """Find Stockfish binary, checking multiple possible names."""
+    stockfish_dir = engine_dir / "stockfish"
+    if not stockfish_dir.exists():
+        return None
+
+    # Try various Stockfish binary names
+    candidates = [
+        "stockfish-macos-m1-apple-silicon",  # macOS ARM
+        "stockfish-linux-x86_64",             # Linux x86_64
+        "stockfish-ubuntu-x86-64-avx2",       # Linux AVX2
+        "stockfish",                          # Generic name
+    ]
+
+    for name in candidates:
+        binary = stockfish_dir / name
+        if binary.exists():
+            return binary
+
+    return None
+
+
 def discover_engines(engine_dir: Path) -> dict:
     """
     Auto-discover engines from directory structure.
@@ -289,7 +311,7 @@ def discover_engines(engine_dir: Path) -> dict:
     Returns dict: {engine_name: {"binary": Path, "uci_options": dict}}
     """
     engines = {}
-    stockfish_binary = engine_dir / "stockfish" / "stockfish-macos-m1-apple-silicon"
+    stockfish_binary = find_stockfish_binary(engine_dir)
 
     for entry in engine_dir.iterdir():
         if not entry.is_dir():
@@ -321,7 +343,7 @@ def discover_engines(engine_dir: Path) -> dict:
                 engines[engine_name] = {"binary": binary, "uci_options": {}}
 
     # Add virtual Stockfish engines at different Elo levels
-    if stockfish_binary.exists():
+    if stockfish_binary:
         for elo in [1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000]:
             name = f"sf-{elo}"
             engines[name] = {
