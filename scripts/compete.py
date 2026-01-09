@@ -307,11 +307,18 @@ def discover_engines(engine_dir: Path) -> dict:
             if binary.exists():
                 engines[name] = {"binary": binary, "uci_options": {}}
 
-        # java-rival engines
+        # java-rival engines (e.g., java-rival-36.0.0 -> java-rival-36)
         elif name.startswith("java-rival"):
-            binary = entry / "java-rival"
+            binary = entry / "run.sh"
             if binary.exists():
-                engines[name] = {"binary": binary, "uci_options": {}}
+                # Simplify name: java-rival-36.0.0 -> java-rival-36
+                parts = name.split("-")
+                if len(parts) >= 3:
+                    version = parts[2].split(".")[0]  # "36.0.0" -> "36"
+                    engine_name = f"java-rival-{version}"
+                else:
+                    engine_name = name
+                engines[engine_name] = {"binary": binary, "uci_options": {}}
 
     # Add virtual Stockfish engines at different Elo levels
     if stockfish_binary.exists():
