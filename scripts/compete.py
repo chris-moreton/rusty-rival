@@ -117,43 +117,75 @@ def load_elo_ratings() -> dict:
 
 
 def save_elo_ratings(ratings: dict):
-    """Save Elo ratings to database (and JSON file as backup)."""
-    if DB_ENABLED:
-        try:
-            from web.database import db
-            from web.models import Engine, EloRating
-
-            app = _get_app()
-            with app.app_context():
-                for engine_name, data in ratings.items():
-                    engine = Engine.query.filter_by(name=engine_name).first()
-                    if not engine:
-                        # Create engine if it doesn't exist
-                        engine = Engine(name=engine_name, active=False)
-                        db.session.add(engine)
-                        db.session.flush()
-
-                    elo_rating = EloRating.query.filter_by(engine_id=engine.id).first()
-                    if elo_rating:
-                        elo_rating.elo = data["elo"]
-                        elo_rating.games_played = data["games"]
-                    else:
-                        elo_rating = EloRating(
-                            engine_id=engine.id,
-                            elo=data["elo"],
-                            games_played=data["games"]
-                        )
-                        db.session.add(elo_rating)
-
-                db.session.commit()
-        except Exception as e:
-            print(f"Warning: Failed to save ratings to database: {e}")
-
-    # Also save to JSON as backup
+    """Save Elo ratings to JSON file (backup only, DB updates are done per-engine)."""
+    # Save to JSON as backup
     elo_file = get_elo_file_path()
     elo_file.parent.mkdir(parents=True, exist_ok=True)
     with open(elo_file, "w") as f:
         json.dump(ratings, f, indent=2, sort_keys=True)
+
+
+def update_engine_elo_in_db(engine_name: str, new_elo: float, games_played: int):
+    """
+    Update a single engine's Elo in the database.
+    This is concurrent-safe as it only touches one engine.
+    """
+    if not DB_ENABLED:
+        return
+
+    try:
+        from web.database import db
+        from web.models import Engine, EloRating
+
+        app = _get_app()
+        with app.app_context():
+            engine = Engine.query.filter_by(name=engine_name).first()
+            if not engine:
+                engine = Engine(name=engine_name, active=False)
+                db.session.add(engine)
+                db.session.flush()
+
+            elo_rating = EloRating.query.filter_by(engine_id=engine.id).first()
+            if elo_rating:
+                elo_rating.elo = new_elo
+                elo_rating.games_played = games_played
+            else:
+                elo_rating = EloRating(
+                    engine_id=engine.id,
+                    elo=new_elo,
+                    games_played=games_played
+                )
+                db.session.add(elo_rating)
+
+            db.session.commit()
+    except Exception as e:
+        print(f"Warning: Failed to update {engine_name} rating in database: {e}")
+
+
+def get_current_elo_from_db(engine_name: str) -> tuple[float, int] | None:
+    """
+    Get the current Elo and games count for an engine from the database.
+    Returns (elo, games) or None if not found or DB disabled.
+    """
+    if not DB_ENABLED:
+        return None
+
+    try:
+        from web.database import db
+        from web.models import Engine, EloRating
+
+        app = _get_app()
+        with app.app_context():
+            result = db.session.query(EloRating.elo, EloRating.games_played).join(
+                Engine, Engine.id == EloRating.engine_id
+            ).filter(Engine.name == engine_name).first()
+
+            if result:
+                return (float(result.elo), result.games_played)
+            return None
+    except Exception as e:
+        print(f"Warning: Failed to get {engine_name} rating from database: {e}")
+        return None
 
 
 def save_game_to_db(white: str, black: str, result: str, time_control: str,
@@ -376,22 +408,37 @@ def update_elo_after_game(ratings: dict, white: str, black: str, result: str) ->
         Expected = 1 / (1 + 10^((opponent_elo - self_elo) / 400))
         New_elo = old_elo + K * (actual_score - expected)
 
+    For concurrent safety, reads current Elo from DB at update time (not from
+    the ratings dict which may be stale). This allows multiple machines to
+    run tournaments simultaneously.
+
     Modifies ratings dict in place and saves to file.
 
     Returns:
         Tuple of (white_change, black_change) - the Elo points gained/lost by each player.
     """
-    # Ensure both players exist in ratings
-    for player in [white, black]:
-        if player not in ratings:
-            # New player gets initial_elo from engines.json or DEFAULT_ELO
-            initial = get_initial_elo(player)
-            ratings[player] = {"elo": initial, "games": 0}
+    # Get CURRENT Elo from database (for concurrent safety)
+    # Fall back to ratings dict if DB unavailable
+    white_db = get_current_elo_from_db(white)
+    black_db = get_current_elo_from_db(black)
 
-    white_elo = ratings[white]["elo"]
-    black_elo = ratings[black]["elo"]
-    white_games = ratings[white]["games"]
-    black_games = ratings[black]["games"]
+    if white_db:
+        white_elo, white_games = white_db
+    elif white in ratings:
+        white_elo = ratings[white]["elo"]
+        white_games = ratings[white]["games"]
+    else:
+        white_elo = get_initial_elo(white)
+        white_games = 0
+
+    if black_db:
+        black_elo, black_games = black_db
+    elif black in ratings:
+        black_elo = ratings[black]["elo"]
+        black_games = ratings[black]["games"]
+    else:
+        black_elo = get_initial_elo(black)
+        black_games = 0
 
     # Calculate expected scores
     white_expected = 1 / (1 + 10 ** ((black_elo - white_elo) / 400))
@@ -416,13 +463,27 @@ def update_elo_after_game(ratings: dict, white: str, black: str, result: str) ->
     white_change = white_k * (white_actual - white_expected)
     black_change = black_k * (black_actual - black_expected)
 
-    # Update ratings
-    ratings[white]["elo"] += white_change
-    ratings[black]["elo"] += black_change
-    ratings[white]["games"] += 1
-    ratings[black]["games"] += 1
+    # Calculate new values
+    new_white_elo = white_elo + white_change
+    new_black_elo = black_elo + black_change
+    new_white_games = white_games + 1
+    new_black_games = black_games + 1
 
-    # Save immediately (crash-safe)
+    # Update database (concurrent-safe, per-engine updates)
+    update_engine_elo_in_db(white, new_white_elo, new_white_games)
+    update_engine_elo_in_db(black, new_black_elo, new_black_games)
+
+    # Update ratings dict for JSON backup and display
+    if white not in ratings:
+        ratings[white] = {"elo": 0, "games": 0}
+    if black not in ratings:
+        ratings[black] = {"elo": 0, "games": 0}
+    ratings[white]["elo"] = new_white_elo
+    ratings[white]["games"] = new_white_games
+    ratings[black]["elo"] = new_black_elo
+    ratings[black]["games"] = new_black_games
+
+    # Save JSON backup
     save_elo_ratings(ratings)
 
     return (white_change, black_change)
