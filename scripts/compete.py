@@ -208,10 +208,16 @@ def save_game_to_db(white: str, black: str, result: str, time_control: str,
         app = _get_app()
         with app.app_context():
             white_engine = Engine.query.filter_by(name=white).first()
-            black_engine = Engine.query.filter_by(name=black).first()
+            if not white_engine:
+                white_engine = Engine(name=white, active=False)
+                db.session.add(white_engine)
+                db.session.flush()
 
-            if not white_engine or not black_engine:
-                return  # Engine not in database yet
+            black_engine = Engine.query.filter_by(name=black).first()
+            if not black_engine:
+                black_engine = Engine(name=black, active=False)
+                db.session.add(black_engine)
+                db.session.flush()
 
             # Calculate scores
             if result == "1-0":
