@@ -286,7 +286,10 @@ def find_stockfish_binary(engine_dir: Path) -> Path | None:
 
     # Try various Stockfish binary names
     candidates = [
-        "stockfish-macos-m1-apple-silicon",  # macOS ARM
+        "stockfish-windows-x86-64-avx2.exe",  # Windows AVX2
+        "stockfish-windows-x86-64.exe",       # Windows
+        "stockfish.exe",                      # Windows generic
+        "stockfish-macos-m1-apple-silicon",   # macOS ARM
         "stockfish-linux-x86_64",             # Linux x86_64
         "stockfish-ubuntu-x86-64-avx2",       # Linux AVX2
         "stockfish",                          # Generic name
