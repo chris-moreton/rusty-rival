@@ -100,12 +100,6 @@ def db_retry(func):
     return wrapper
 
 
-def get_elo_file_path() -> Path:
-    """Get the path to the Elo ratings file (legacy, for fallback)."""
-    script_dir = Path(__file__).parent
-    return script_dir.parent / "results" / "elo_ratings.json"
-
-
 # Cache the app instance to avoid recreating it for every DB operation
 _app_instance = None
 
@@ -146,11 +140,6 @@ def load_elo_ratings() -> dict:
     except Exception as e:
         print(f"Error: Failed to load ratings from database: {e}")
         sys.exit(1)
-
-
-def save_elo_ratings(ratings: dict):
-    """No-op: ratings are saved to database per-engine, not to JSON."""
-    pass
 
 
 @db_retry
@@ -591,9 +580,6 @@ def update_elo_after_game(ratings: dict, white: str, black: str, result: str) ->
     ratings[white]["games"] = new_white_games
     ratings[black]["elo"] = new_black_elo
     ratings[black]["games"] = new_black_games
-
-    # Save JSON backup
-    save_elo_ratings(ratings)
 
     return (white_change, black_change)
 
@@ -1090,7 +1076,6 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
         if name not in elo_ratings:
             initial = get_initial_elo(name)
             elo_ratings[name] = {"elo": initial, "games": 0}
-            save_elo_ratings(elo_ratings)
 
     # Store starting Elo for display
     start_elo = {
@@ -1383,7 +1368,6 @@ def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
         if name not in elo_ratings:
             initial = get_initial_elo(name)
             elo_ratings[name] = {"elo": initial, "games": 0}
-            save_elo_ratings(elo_ratings)
 
     # Show starting Elo
     print(f"\nStarting Elo:")
@@ -1537,7 +1521,6 @@ def run_league(engine_names: list[str], engine_dir: Path,
         if name not in elo_ratings:
             initial = get_initial_elo(name)
             elo_ratings[name] = {"elo": initial, "games": 0}
-            save_elo_ratings(elo_ratings)
 
     # Track games and points in this competition
     games_this_comp = {name: 0 for name in engine_names}
@@ -1715,14 +1698,12 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
     if challenger_name not in elo_ratings:
         initial = get_initial_elo(challenger_name)
         elo_ratings[challenger_name] = {"elo": initial, "games": 0}
-        save_elo_ratings(elo_ratings)
 
     # Initialize opponents if needed
     for opponent in opponents:
         if opponent not in elo_ratings:
             initial = get_initial_elo(opponent)
             elo_ratings[opponent] = {"elo": initial, "games": 0}
-            save_elo_ratings(elo_ratings)
 
     # Store starting Elo
     start_elo = elo_ratings[challenger_name]["elo"]
@@ -1915,7 +1896,6 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
         if engine not in elo_ratings:
             initial_elo = get_initial_elo(engine)
             elo_ratings[engine] = {"elo": initial_elo, "games": 0}
-            save_elo_ratings(elo_ratings)
 
     print(f"\n{'='*70}")
     print(f"RANDOM MODE{' (WEIGHTED)' if weighted else ''}")
