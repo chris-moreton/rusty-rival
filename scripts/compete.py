@@ -39,10 +39,12 @@ import random
 import socket
 import subprocess
 import sys
+import time
 import chess
 import chess.engine
 import chess.pgn
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
 from itertools import combinations
 from dotenv import load_dotenv
@@ -65,6 +67,38 @@ K_FACTOR_ESTABLISHED = 20
 PROVISIONAL_GAMES = 30
 DEFAULT_ELO = 1500
 
+# Database retry settings
+DB_MAX_RETRIES = 3
+DB_RETRY_DELAY = 2  # seconds
+
+
+def db_retry(func):
+    """Decorator to retry database operations on connection errors."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        last_error = None
+        for attempt in range(DB_MAX_RETRIES):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_error = e
+                error_str = str(e).lower()
+                # Check if it's a connection error worth retrying
+                if any(msg in error_str for msg in ['connection', 'closed', 'terminated', 'timeout', 'operationalerror']):
+                    if attempt < DB_MAX_RETRIES - 1:
+                        wait_time = DB_RETRY_DELAY * (attempt + 1)
+                        print(f"Database connection error, retrying in {wait_time}s... (attempt {attempt + 1}/{DB_MAX_RETRIES})")
+                        time.sleep(wait_time)
+                        # Reset the app instance to force new connection
+                        global _app_instance
+                        _app_instance = None
+                        continue
+                # Not a connection error, or out of retries - raise immediately
+                raise
+        # All retries exhausted
+        raise last_error
+    return wrapper
+
 
 def get_elo_file_path() -> Path:
     """Get the path to the Elo ratings file (legacy, for fallback)."""
@@ -85,6 +119,7 @@ def _get_app():
     return _app_instance
 
 
+@db_retry
 def load_elo_ratings() -> dict:
     """
     Load Elo ratings from database.
@@ -118,6 +153,7 @@ def save_elo_ratings(ratings: dict):
     pass
 
 
+@db_retry
 def update_engine_elo_in_db(engine_name: str, new_elo: float, games_played: int):
     """
     Update a single engine's Elo in the database.
@@ -153,6 +189,7 @@ def update_engine_elo_in_db(engine_name: str, new_elo: float, games_played: int)
         sys.exit(1)
 
 
+@db_retry
 def get_current_elo_from_db(engine_name: str) -> tuple[float, int] | None:
     """
     Get the current Elo and games count for an engine from the database.
@@ -176,6 +213,7 @@ def get_current_elo_from_db(engine_name: str) -> tuple[float, int] | None:
         sys.exit(1)
 
 
+@db_retry
 def save_game_to_db(white: str, black: str, result: str, time_control: str,
                     opening_name: str = None, opening_fen: str = None,
                     pgn_file: str = None):
@@ -229,6 +267,7 @@ def save_game_to_db(white: str, black: str, result: str, time_control: str,
         sys.exit(1)
 
 
+@db_retry
 def get_initial_elo(engine_name: str) -> float:
     """
     Get the initial Elo rating for an engine.
@@ -422,6 +461,7 @@ def get_all_engines(engine_dir: Path) -> list[str]:
     return sorted(engines.keys())
 
 
+@db_retry
 def get_active_engines(engine_dir: Path) -> list[str]:
     """
     Get list of active engines from database.
