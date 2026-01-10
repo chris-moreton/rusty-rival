@@ -123,10 +123,6 @@ h1 {
     min-width: 150px;
 }
 
-.engine-col.last-played {
-    background-color: #fff9c4;
-}
-
 /* Engine type highlighting */
 .engine-col.engine-stockfish {
     background-color: #e3f2fd;  /* Light blue */
@@ -134,12 +130,6 @@ h1 {
 
 .engine-col.engine-official {
     background-color: #fff3e0;  /* Light orange/amber */
-}
-
-/* last-played takes precedence over engine type */
-.engine-col.engine-stockfish.last-played,
-.engine-col.engine-official.last-played {
-    background-color: #fff9c4;
 }
 
 .elo-col {
