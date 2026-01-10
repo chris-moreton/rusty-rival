@@ -20,7 +20,6 @@ use crate::search::iterative_deepening;
 use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
-// use crate::scan::screen_scan;
 
 fn replace_shortcuts(l: &str) -> &str {
     match l {
@@ -94,8 +93,6 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
         "quit" => exit(0),
         "mvm" => cmd_mvm(search_state, parts),
         "position" => cmd_position(uci_state, search_state, parts),
-        "sw" => cmd_scan(true),
-        "sb" => cmd_scan(false),
         _ => Left("Unknown command".parse().unwrap()),
     }
 }
@@ -407,10 +404,5 @@ fn cmd_ucinewgame(uci_state: &mut UciState, search_state: &mut SearchState) -> E
         }
     }
     uci_state.fen = START_POS.parse().unwrap();
-    Right(None)
-}
-
-fn cmd_scan(_is_white: bool) -> Either<String, Option<String>> {
-    // screen_scan(!is_white).expect("TODO: panic message");
     Right(None)
 }

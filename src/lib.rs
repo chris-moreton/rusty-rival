@@ -14,7 +14,6 @@ pub mod mvm_test_fens;
 pub mod perft;
 pub mod piece_square_tables;
 pub mod quiesce;
-mod scan;
 pub mod search;
 pub mod see;
 pub mod tablebase;
