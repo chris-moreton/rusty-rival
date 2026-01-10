@@ -39,7 +39,7 @@
                         <th class="engine-col sortable" data-sort="name">Engine <span class="sort-arrow"></span></th>
                         <th class="elo-col sortable" data-sort="elo">Elo <span class="sort-arrow"></span></th>
                         <th class="stability-col sortable" data-sort="stability" title="How well actual results match expected results (100 = perfect match)">Stab <span class="sort-arrow"></span></th>
-                        <th class="games-col">Games</th>
+                        <th class="games-col sortable" data-sort="games">Games <span class="sort-arrow"></span></th>
                         {% for col_num, col_name in column_headers %}
                         <th class="h2h-col" title="{{ col_name }}">{{ col_num }}</th>
                         {% endfor %}
@@ -47,7 +47,7 @@
                 </thead>
                 <tbody>
                     {% for row in grid %}
-                    <tr data-name="{{ row.engine_name }}" data-elo="{{ row.elo }}" data-stability="{{ row.stability }}">
+                    <tr data-name="{{ row.engine_name }}" data-elo="{{ row.elo }}" data-stability="{{ row.stability }}" data-games="{{ row.games_played }}">
                         <td class="rank-col">{{ row.rank }}</td>
                         <td class="engine-col{% if row.engine_name in last_played %} last-played{% endif %}">{{ row.engine_name }}</td>
                         <td class="elo-col">{{ "%.0f"|format(row.elo) }}</td>
@@ -111,8 +111,8 @@
                 let aVal = a.dataset[key];
                 let bVal = b.dataset[key];
 
-                // Numeric sort for elo and stability
-                if (key === 'elo' || key === 'stability') {
+                // Numeric sort for elo, stability, and games
+                if (key === 'elo' || key === 'stability' || key === 'games') {
                     aVal = parseFloat(aVal);
                     bVal = parseFloat(bVal);
                 } else {

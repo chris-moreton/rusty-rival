@@ -2912,3 +2912,19 @@
 
 3. d3 e6 4. Nc3 d5 5. cxd5 exd5 6. Qa4+ Nc6 7. Ne5 Bd7 8. Nxd7 Qxd7 9. e4 Nb4 10. Qb3 d4 11. a3 dxc3 12. axb4 cxb2 13. Qxb2 cxb4 14. Be2 Bc5 15. Rb1 O-O 16. O-O a5 17. Qe5 b6 18. Qg3 Qe6 19. Bb2 Rad8 20. Be5 Rde8 21. Bb2 Bd6 22. f4 Bb8 23. Qg5 Kh8 24. Bf3 Rd8 25. Rfd1 h6 26. Qg3 Rfe8 27. Be2 Bc7 28. Rdc1 Re7 29. Qh4 Red7 30. e5 Ne8 31. d4 Qe7 32. Qh5 Qf8 33. Bb5 Re7 34. Qf3 f6 35. e6 f5 36. g3 Nf6 37. Bd3 Nd5 38. Bc4 Nf6 39. Qd3 Ne4 40. Qe2 b5 41. Bxb5 Bb6 42. Bd7 Nc3 43. Bxc3 Rdxd7 44. Qe5 Rd8 45. Bb2 Qf6 46. Qxf6 gxf6 47. Rc6 Bxd4+ 48. Bxd4 Rxd4 49. Ra6 Rd5 50. Kf1 Rb5 51. Ke2 b3 52. Kd2 Rb8 53. Rc6 a4 54. Ra6 b2 55. Kd1 Rb4 56. h4 Kg7 57. h5 Re8 58. Kc2 Rc8+ 59. Kd2 Rc7 60. Ra5 Rb6 61. Rxa4 Rd6+ 62. Ke3 Rc3+ 63. Ke2 Rxe6+ 64. Kd2 Rxg3 65. Ra7+ Kf8 66. Ra8+ Ke7 67. Ra7+ Kd8 68. Ra8+ Kc7 69. Ra7+ Kb6 70. Rd7 Kc6 71. Ra7 Rg2+ 72. Kd3 Kc5 73. Ra2 Rge2 74. Ra5+ Kb4 75. Ra7 R6e3+ 76. Kd4 Rf3 77. Rb7+ Ka3 78. Rb8 Rh2 79. Rb6 Rxf4+ 80. Ke3 Rfh4 81. Rf1 R4h3+ 82. Kf4 Rb3 83. Ra6+ Kb4 84. Rb6+ Kc4 85. Rxb3 Kxb3 86. Kxf5 Rf2+ 87. Rxf2 b1=Q+ 88. Kxf6 Qa1+ 89. Kg6 Qg1+ 90. Kxh6 Qxf2 91. Kg6 Qc2+ 92. Kg5 Qh7 93. h6 Ka4 94. Kh5 Qg8 95. h7 Qxh7+ 96. Kg5 Qf7 97. Kg4 Kb4 98. Kg5 Kc4 99. Kg4 Kd3 100. Kh3 Qg6 101. Kh2 Ke2 102. Kh1 Kf1 103. Kh2 Qg2# 0-1
 
+[Event "Engine Match"]
+[Site "192.168.1.102"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v003-improved"]
+[Black "v037-optimized"]
+[Result "1/2-1/2"]
+[TimeControl "0.50s/move"]
+[FEN "r1bqk2r/pppp1ppp/2n2n2/4p3/1bBPP3/2N2N2/PPP2PPP/R1BQK2R b KQkq - 0 5"]
+[SetUp "1"]
+[Opening "Italian Scotch Gambit"]
+[WhiteNPS "3272905"]
+[BlackNPS "3446347"]
+
+5... Nxe4 6. Bd2 Nxd2 7. Qxd2 exd4 8. Nxd4 Qe7+ 9. Nde2 Ne5 10. Bb3 c6 11. a3 Ba5 12. O-O d5 13. Nd4 Bxc3 14. Qxc3 O-O 15. Rae1 Qf6 16. Nb5 Ng4 17. Qxf6 Nxf6 18. Nd6 b5 19. Re7 Bd7 20. f4 Rab8 21. c3 Rb6 22. Bc2 c5 23. Nf5 g6 24. Nh4 b4 25. axb4 cxb4 26. Nf3 bxc3 27. bxc3 Re6 28. Rxe6 Bxe6 29. Nd4 Rc8 30. f5 Bxf5 31. Bxf5 gxf5 32. Rxf5 Kg7 33. Rg5+ Kf8 34. Rf5 Ng4 35. Rf4 h5 36. h3 Ne3 37. Ne2 Re8 38. Ra4 Nxg2 39. Ra2 Ne3 40. Rxa7 Kg8 41. Rc7 h4 42. Rc5 Re5 43. Kf2 Nd1+ 44. Kf1 Kg7 45. Nd4 Re4 46. Ne2 Rc4 47. Rxc4 dxc4 48. Ke1 Ne3 49. Nf4 Nf5 50. Nd5 Kg6 51. Ke2 Kg5 52. Nb6 Nd6 53. Ke3 f5 54. Nd5 Ne4 55. Kf3 Nc5 56. Nf4 Na4 57. Nd5 f4 58. Ke2 Kf5 59. Kf3 Kg5 60. Ke2 Nc5 61. Kf2 Ne4+ 62. Kf3 Nd2+ 63. Ke2 Nb1 64. Kf3 Kf5 65. Nxf4 Nxc3 66. Ng2 Nd5 67. Nxh4+ Kg5 68. Ng2 c3 69. h4+ Kh5 70. Ke2 c2 71. Kd2 c1=Q+ 72. Kxc1 Nf4 73. Nxf4+ Kxh4 1/2-1/2
+
