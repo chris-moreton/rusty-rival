@@ -205,7 +205,7 @@ def get_current_elo_from_db(engine_name: str) -> tuple[float, int] | None:
 @db_retry
 def save_game_to_db(white: str, black: str, result: str, time_control: str,
                     opening_name: str = None, opening_fen: str = None,
-                    pgn_file: str = None):
+                    pgn: str = None):
     """
     Save a game result to the database.
     """
@@ -247,7 +247,7 @@ def save_game_to_db(white: str, black: str, result: str, time_control: str,
                 time_control=time_control,
                 opening_name=opening_name,
                 opening_fen=opening_fen,
-                pgn_file=pgn_file
+                pgn=pgn
             )
             db.session.add(game)
             db.session.commit()
@@ -1061,7 +1061,7 @@ def play_game(engine1_path: Path, engine2_path: Path,
 
 
 def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
-              num_games: int, time_per_move: float, pgn_file: Path,
+              num_games: int, time_per_move: float,
               use_opening_book: bool = True) -> dict:
     """Run a match between two engines, alternating colors."""
 
@@ -1113,8 +1113,6 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
         print(f"Opening book: {len(OPENING_BOOK)} positions (randomized)")
     else:
         print("Opening book: disabled")
-    print(f"PGN output: {pgn_file}")
-    print(f"Elo ratings: {get_elo_file_path()}")
     print(f"{'='*70}")
 
     # Show starting Elo
@@ -1124,10 +1122,6 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
         prov = "?" if data["games"] < PROVISIONAL_GAMES else ""
         print(f"  {name}: {data['elo']:.0f} ({data['games']} games){prov}")
     print(flush=True)
-
-    # Clear/create the PGN file at the start
-    with open(pgn_file, "w") as f:
-        pass
 
     for i in range(num_games):
         # Get opening for this game pair
@@ -1154,14 +1148,9 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
                                   white_uci, black_uci)
         results[result] += 1
 
-        # Append game to PGN file immediately (crash-safe)
-        with open(pgn_file, "a") as f:
-            print(game, file=f)
-            print(file=f)
-
-        # Save to database
+        # Save to database with full PGN
         save_game_to_db(white, black, result, f"{time_per_move}s/move",
-                        opening_name, opening_fen, pgn_file.name if hasattr(pgn_file, 'name') else str(pgn_file))
+                        opening_name, opening_fen, str(game))
 
         # Update persistent Elo ratings
         white_change, black_change = update_elo_after_game(elo_ratings, white, black, result)
@@ -1220,8 +1209,6 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
         prov = "?" if data["games"] < PROVISIONAL_GAMES else ""
         print(f"  {name}: {data['elo']:.0f} ({delta:+.0f}) - {data['games']} games{prov}")
 
-    print(f"\nPGN saved to: {pgn_file}")
-    print(f"Elo ratings saved to: {get_elo_file_path()}")
     print(f"{'='*70}\n")
 
     return {
@@ -1389,12 +1376,6 @@ def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
     session_points = {name: 0.0 for name in engine_names}
     session_games = {name: 0 for name in engine_names}
 
-    # Create PGN file
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    pgn_file = results_dir / f"epd_{epd_file.stem}_{timestamp}.pgn"
-    with open(pgn_file, "w") as f:
-        pass
-
     game_num = 0
 
     # Iterate through each position
@@ -1415,14 +1396,9 @@ def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
                 engine1["uci_options"], engine2["uci_options"]
             )
 
-            # Save to PGN
-            with open(pgn_file, "a") as f:
-                print(game, file=f)
-                print(file=f)
-
-            # Save to database
+            # Save to database with full PGN
             save_game_to_db(engine1_name, engine2_name, result, f"{time_per_move}s/move",
-                            pos_id, fen, pgn_file.name)
+                            pos_id, fen, str(game))
 
             # Note: We don't update global Elo in EPD mode since these are
             # specialized positions that would skew ratings
@@ -1449,14 +1425,9 @@ def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
                 engine2["uci_options"], engine1["uci_options"]
             )
 
-            # Save to PGN
-            with open(pgn_file, "a") as f:
-                print(game, file=f)
-                print(file=f)
-
-            # Save to database
+            # Save to database with full PGN
             save_game_to_db(engine2_name, engine1_name, result, f"{time_per_move}s/move",
-                            pos_id, fen, pgn_file.name)
+                            pos_id, fen, str(game))
 
             # Update session stats
             session_games[engine1_name] += 1
@@ -1483,7 +1454,6 @@ def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
     print(f"{'='*70}")
     print(f"Positions: {len(positions)}")
     print(f"Games: {total_games}")
-    print(f"PGN: {pgn_file}")
 
     print(f"\nFinal Standings:")
     sorted_results = sorted(session_points.items(), key=lambda x: -x[1])
@@ -1537,7 +1507,6 @@ def run_league(engine_names: list[str], engine_dir: Path,
     print(f"Time: {time_per_move}s/move")
     if use_opening_book:
         print(f"Opening book: {len(OPENING_BOOK)} positions")
-    print(f"Elo ratings: {get_elo_file_path()}")
     print(f"{'='*95}")
 
     # Show starting Elo ratings
@@ -1569,14 +1538,6 @@ def run_league(engine_names: list[str], engine_dir: Path,
     # Get engine paths and UCI options
     engine_info = {name: get_engine_info(name, engine_dir) for name in engine_names}
 
-    # Create PGN file
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    pgn_file = results_dir / f"league_{timestamp}.pgn"
-    with open(pgn_file, "w") as f:
-        f.write(f"; Round Robin Tournament\n")
-        f.write(f"; Engines: {', '.join(engine_names)}\n")
-        f.write(f"; Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
-
     game_num = 0
 
     # Play rounds
@@ -1603,14 +1564,9 @@ def run_league(engine_names: list[str], engine_dir: Path,
                                          time_per_move, opening_fen, opening_name,
                                          white_uci, black_uci)
 
-                # Append to PGN
-                with open(pgn_file, "a") as f:
-                    print(game, file=f)
-                    print(file=f)
-
-                # Save to database
+                # Save to database with full PGN
                 save_game_to_db(white, black, result, f"{time_per_move}s/move",
-                                opening_name, opening_fen, pgn_file.name)
+                                opening_name, opening_fen, str(game))
 
                 # Update persistent Elo ratings
                 white_change, black_change = update_elo_after_game(elo_ratings, white, black, result)
@@ -1667,10 +1623,7 @@ def run_league(engine_names: list[str], engine_dir: Path,
         if total > 0:
             elo_diff, elo_err = calculate_elo_difference(w1, w2, d)
             print(f"{e1} vs {e2}: +{w1} -{w2} ={d}  (Elo diff: {elo_diff:+.0f} ±{elo_err:.0f})")
-    print(f"{'='*95}")
-
-    print(f"\nPGN saved to: {pgn_file}")
-    print(f"Elo ratings saved to: {get_elo_file_path()}\n")
+    print(f"{'='*95}\n")
 
 
 def run_gauntlet(challenger_name: str, engine_dir: Path,
@@ -1718,7 +1671,6 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
     print(f"Total games: {total_games}")
     print(f"Time: {time_per_move}s/move")
     print(f"Opening book: {len(OPENING_BOOK)} positions (random selection)")
-    print(f"Elo ratings: {get_elo_file_path()}")
     print(f"{'='*70}")
 
     # Show starting Elo
@@ -1733,14 +1685,6 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
     # Get engine paths and UCI options
     challenger_path, challenger_uci = get_engine_info(challenger_name, engine_dir)
     opponent_info = {opp: get_engine_info(opp, engine_dir) for opp in opponents}
-
-    # Create PGN file
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    pgn_file = results_dir / f"gauntlet_{challenger_name}_{timestamp}.pgn"
-    with open(pgn_file, "w") as f:
-        f.write(f"; Gauntlet Test\n")
-        f.write(f"; Challenger: {challenger_name}\n")
-        f.write(f"; Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
 
     # Track results per opponent
     results_per_opponent = {opp: {"wins": 0, "losses": 0, "draws": 0} for opp in opponents}
@@ -1762,13 +1706,9 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
                                       time_per_move, opening_fen, opening_name,
                                       challenger_uci, opponent_uci)
 
-            with open(pgn_file, "a") as f:
-                print(game, file=f)
-                print(file=f)
-
-            # Save to database
+            # Save to database with full PGN
             save_game_to_db(challenger_name, opponent, result, f"{time_per_move}s/move",
-                            opening_name, opening_fen, pgn_file.name)
+                            opening_name, opening_fen, str(game))
 
             challenger_change, opponent_change = update_elo_after_game(elo_ratings, challenger_name, opponent, result)
 
@@ -1791,13 +1731,9 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
                                       time_per_move, opening_fen, opening_name,
                                       opponent_uci, challenger_uci)
 
-            with open(pgn_file, "a") as f:
-                print(game, file=f)
-                print(file=f)
-
-            # Save to database
+            # Save to database with full PGN
             save_game_to_db(opponent, challenger_name, result, f"{time_per_move}s/move",
-                            opening_name, opening_fen, pgn_file.name)
+                            opening_name, opening_fen, str(game))
 
             opponent_change, challenger_change = update_elo_after_game(elo_ratings, opponent, challenger_name, result)
 
@@ -1859,8 +1795,6 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
     prov = "?" if final_games < PROVISIONAL_GAMES else ""
 
     print(f"\nChallenger Elo: {start_elo:.0f} -> {final_elo:.0f} ({elo_change:+.0f}) - {final_games} games{prov}")
-    print(f"\nPGN saved to: {pgn_file}")
-    print(f"Elo ratings saved to: {get_elo_file_path()}")
     print(f"{'='*70}\n")
 
 
@@ -1909,15 +1843,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     else:
         print(f"Time: {time_per_move}s/move")
     print(f"Opening book: {len(OPENING_BOOK)} positions (random selection)")
-    print(f"Elo ratings: {get_elo_file_path()}")
     print(f"{'='*70}")
-
-    # Create PGN file
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    pgn_file = results_dir / f"random_{timestamp}.pgn"
-    with open(pgn_file, "w") as f:
-        f.write(f"; Random Mode\n")
-        f.write(f"; Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
 
     game_num = 0
 
@@ -1958,13 +1884,9 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
                                   match_time, opening_fen, opening_name,
                                   engine1_uci, engine2_uci)
 
-        with open(pgn_file, "a") as f:
-            print(game, file=f)
-            print(file=f)
-
-        # Save to database
+        # Save to database with full PGN
         save_game_to_db(engine1, engine2, result, f"{match_time:.2f}s/move",
-                        opening_name, opening_fen, pgn_file.name)
+                        opening_name, opening_fen, str(game))
 
         # Track session stats - capture starting Elo before first game
         for eng in [engine1, engine2]:
@@ -2000,13 +1922,9 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
                                   match_time, opening_fen, opening_name,
                                   engine2_uci, engine1_uci)
 
-        with open(pgn_file, "a") as f:
-            print(game, file=f)
-            print(file=f)
-
-        # Save to database
+        # Save to database with full PGN
         save_game_to_db(engine2, engine1, result, f"{match_time:.2f}s/move",
-                        opening_name, opening_fen, pgn_file.name)
+                        opening_name, opening_fen, str(game))
 
         e2_change, e1_change = update_elo_after_game(elo_ratings, engine2, engine1, result)
 
@@ -2039,8 +1957,6 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
         prov = "?" if data["games"] < PROVISIONAL_GAMES else ""
         print(f"{rank:<6}{name:<30}{data['elo']:>8.0f}{data['games']:>7}{prov}")
 
-    print(f"\nPGN saved to: {pgn_file}")
-    print(f"Elo ratings saved to: {get_elo_file_path()}")
     print(f"{'='*70}\n")
 
 
@@ -2148,10 +2064,8 @@ def main():
         if time_per_move is None:
             print("Error: --timelow/--timehigh not supported in head-to-head mode, use --time")
             sys.exit(1)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pgn_file = results_dir / f"{resolved_engines[0]}_vs_{resolved_engines[1]}_{timestamp}.pgn"
         run_match(resolved_engines[0], resolved_engines[1], engine_dir,
-                  args.games, time_per_move, pgn_file, use_opening_book)
+                  args.games, time_per_move, use_opening_book)
     else:
         print("Error: At least 2 engines are required (or use --random or --gauntlet mode)")
         sys.exit(1)

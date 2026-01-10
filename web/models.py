@@ -36,7 +36,7 @@ class Game(db.Model):
     time_control = db.Column(db.String(50))
     opening_name = db.Column(db.String(100))
     opening_fen = db.Column(db.Text)
-    pgn_file = db.Column(db.String(200))
+    pgn = db.Column(db.Text)  # Full PGN content of the game
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships

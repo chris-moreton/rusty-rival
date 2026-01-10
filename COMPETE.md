@@ -80,7 +80,7 @@ CREATE TABLE games (
     time_control VARCHAR(50),
     opening_name VARCHAR(100),
     opening_fen TEXT,
-    pgn_file VARCHAR(200),
+    pgn TEXT,  -- Full PGN content of the game
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -97,6 +97,14 @@ CREATE INDEX idx_games_white_engine ON games(white_engine_id);
 CREATE INDEX idx_games_black_engine ON games(black_engine_id);
 CREATE INDEX idx_games_date ON games(date_played);
 CREATE INDEX idx_engines_active ON engines(active);
+```
+
+**Migration from previous version:** If you have an existing database with `pgn_file` column:
+
+```sql
+-- Migrate from pgn_file (filename) to pgn (full content)
+ALTER TABLE games DROP COLUMN IF EXISTS pgn_file;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS pgn TEXT;
 ```
 
 #### 2b. Configure Environment Variables
@@ -541,16 +549,25 @@ The dashboard runs at `http://localhost:5000` by default.
 
 ---
 
-## Output Files
+## Data Storage
 
-| Location | Description |
-|----------|-------------|
-| `results/competitions/*.pgn` | PGN files for each competition |
+All competition data is stored in the PostgreSQL database:
 
-PGN filenames include timestamp and engine names:
-- `v1.0.13_vs_sf-2400_20260110_154230.pgn`
-- `random_20260110_160000.pgn`
-- `epd_eet_20260110_162000.pgn`
+| Table | Description |
+|-------|-------------|
+| `engines` | Engine metadata, active status, initial Elo |
+| `games` | Individual game results with full PGN content |
+| `elo_ratings` | Current Elo ratings and game counts |
+
+PGN content is stored in the `pgn` column of the `games` table. To export games, query the database directly:
+
+```sql
+-- Export all games for a specific engine
+SELECT g.pgn FROM games g
+JOIN engines w ON g.white_engine_id = w.id
+JOIN engines b ON g.black_engine_id = b.id
+WHERE w.name = 'v1.0.13' OR b.name = 'v1.0.13';
+```
 
 ---
 
