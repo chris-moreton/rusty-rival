@@ -4016,3 +4016,115 @@
 
 4... Nc6 5. Nf3 Bxc3+ 6. bxc3 d6 7. e3 h6 8. Bxf6 Qxf6 9. Bd3 O-O 10. O-O e5 11. Rb1 a6 12. Be4 Ra7 13. Qc2 Kh8 14. Rb2 Ne7 15. c5 d5 16. dxe5 Qc6 17. Bd3 Qxc5 18. Nd4 Qa5 19. Rb4 b5 20. Nf3 c5 21. Rf4 Nc6 22. Bf5 g5 23. Rg4 Qc7 24. Rg3 Nxe5 25. Bxc8 Nxf3+ 26. Rxf3 Qxc8 27. Qf5 Qxf5 28. Rxf5 Rd8 29. Rd1 c4 30. Rfxd5 Rxd5 31. Rxd5 Kh7 32. f4 Re7 33. Kf2 g4 34. h3 gxh3 35. gxh3 Re6 36. a4 bxa4 37. Ra5 Rc6 38. Rxa4 Kg6 39. Kf3 f5 40. h4 Kh5 41. Ra5 Kg6 42. e4 fxe4+ 43. Kxe4 h5 44. Kd4 Rf6 45. Rg5+ Kh6 46. f5 Rf7 47. Rg6+ Kh7 48. Rxa6 Rxf5 49. Re6 Rf8 50. Re4 Rc8 51. Kd5 Kg6 52. Rxc4 Rd8+ 53. Ke4 Rd2 54. Rc6+ Kg7 55. Rc5 Kg6 56. Rg5+ Kh6 57. Rf5 Kg6 58. Rf4 Re2+ 59. Kd3 Re1 60. c4 Rd1+ 61. Kc3 Rc1+ 62. Kd2 Ra1 63. Ke3 Ra4 64. Kd4 Ra2 65. Kc3 Ra4 66. Rf8 Ra7 67. c5 Rf7 68. Rg8+ Kf6 69. Rh8 Kg6 70. Rd8 Kf6 71. Rd5 Rh7 72. Kc4 Ke6 73. c6 Rc7 74. Kc5 Rf7 75. Rd6+ Ke5 76. Rd8 Kf4 77. Kb6 Kg3 78. Rd4 Rf2 79. c7 Rc2 80. Kb7 Rb2+ 81. Kc6 Rc2+ 82. Kd7 Rc5 83. Rb4 Kh3 84. c8=Q Rxc8 85. Kxc8 Kg3 86. Kd8 Kf3 87. Ke7 Kg2 88. Rb3 Kf2 89. Kf6 Ke2 90. Rb5 Ke3 91. Rxh5 Kd3 92. Rf5 Kc3 93. h5 Kb2 94. h6 Kc2 95. h7 Kd2 96. h8=Q Ke3 97. Qh3+ Kd4 98. Qb3 Ke4 99. Rd5 Kf4 100. Rd4# 1-0
 
+[Event "Engine Match"]
+[Site "192.168.1.102"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v004-performance"]
+[Black "v003-improved"]
+[Result "1/2-1/2"]
+[TimeControl "0.50s/move"]
+[FEN "r1bqk2r/pppp1ppp/2n2n2/4p3/1bB1P3/2NP1N2/PPP2PPP/R1BQK2R b KQkq - 2 5"]
+[SetUp "1"]
+[Opening "Italian Evans Gambit"]
+[WhiteNPS "3757700"]
+[BlackNPS "3733381"]
+
+5... d5 6. exd5 Nxd5 7. Bd2 Bxc3 8. bxc3 a6 9. Ng5 f6 10. Ne4 b5 11. Bb3 f5 12. Qh5+ g6 13. Qg5 Nce7 14. Nf6+ Kf7 15. Nxd5 Nxd5 16. Qxd8 Rxd8 17. Bg5 Rd7 18. O-O Bb7 19. Rae1 Re8 20. a4 Kg7 21. axb5 axb5 22. c4 h6 23. Bc1 bxc4 24. Bxc4 g5 25. Bb2 Rde7 26. Ba3 Rd7 27. Bc5 Bc6 28. Bd4 Rde7 29. Bxd5 Bxd5 30. Bc5 Re6 31. Ra1 Kg8 32. c4 Rc6 33. Ba3 Bf7 34. Rfe1 Rb6 35. Bc1 Rc6 36. Ra5 Rd6 37. h4 gxh4 38. Raxe5 Rxe5 39. Rxe5 Rxd3 40. Be3 Bxc4 41. Rxf5 Rd1+ 42. Kh2 Rd5 43. Rf6 Rd6 44. Rxd6 cxd6 45. Bxh6 Be6 46. Bg5 h3 47. gxh3 Kf7 48. h4 d5 49. Be3 Kg6 50. Kg3 Kh5 51. Bd4 Bc8 52. Bf6 Kg6 53. Be5 Kh5 54. Bg7 Ba6 55. Bf6 Kg6 56. Bb2 Kh5 57. f3 Be2 58. Bf6 Kg6 59. Ba1 Kh5 60. Bg7 Ba6 61. Bf6 Kg6 62. Bd4 Kh5 63. Bf2 Be2 64. Ba7 Bf1 65. Bc5 Bb5 66. Bb6 Bc4 67. f4 Bd3 68. Bd4 Bf5 69. Ba1 Bd3 70. Bc3 Bc2 71. Bb2 Bh7 72. Bh8 Be4 73. Bf6 Kg6 74. Bb2 Kh5 75. Bg7 Kg6 76. Ba1 Kh5 77. Be5 Bf5 78. Bf6 Bg4 79. Kf2 Kg6 80. Ba1 Kh5 81. Kg3 Bc8 82. Bc3 Bd7 83. Bb2 Bf5 84. Bd4 Be4 85. Bc5 Bf5 86. Bf2 Be4 87. Ba7 Bb1 88. Bb8 Bg6 89. Bd6 Be4 90. Be7 Bf5 91. Kf2 d4 92. Bf6 d3 93. Be7 Be4 94. Ke3 Kg4 95. Bf6 Bf5 96. Bd8 Bg6 97. Bg5 Bh7 98. Kd2 Bg6 99. Kc3 Be4 100. Kd2 Bg6 101. Ke1 Be8 102. Bh6 Bg6 103. Kf2 Kxh4 104. Bf8 Kh5 105. Ke3 Bf5 106. Ba3 Kh6 107. Bb2 Be4 108. Bc3 Bg6 109. Be5 Be4 110. Bd4 Kh7 111. Bf6 Bf5 112. Bc3 Kg8 113. Kf2 Kf7 114. Kg1 Bh3 115. Bb4 Be6 116. Kf2 Bf5 117. Bc3 Bh7 118. Kf1 Bg6 119. Kg1 Bf5 120. Kf2 Bh7 121. Kf1 Bg6 122. Kg1 Bf5 123. Kf2 Bh7 124. Kf1 Bg6 125. Kg1 Bf5 126. Kf2 Bh7 127. Kf1 Bg6 128. Kg1 Bf5 129. Kf2 1/2-1/2
+
+[Event "Engine Match"]
+[Site "192.168.1.102"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v003-improved"]
+[Black "v005-retain-opt"]
+[Result "1/2-1/2"]
+[TimeControl "0.50s/move"]
+[FEN "rnbqkb1r/pppp1ppp/8/4p3/4Pn2/2N5/PPPP1PPP/R1BQKBNR w KQkq - 0 4"]
+[SetUp "1"]
+[Opening "Vienna Nxe4"]
+[WhiteNPS "3266534"]
+[BlackNPS "3241028"]
+
+4. d3 Nc6 5. Nf3 Bb4 6. g3 Ne6 7. Bg2 Qf6 8. O-O Bxc3 9. bxc3 h6 10. Be3 d6 11. Kh1 Nc5 12. Qb1 Rb8 13. Nd2 Bg4 14. h3 Bh5 15. Qb2 Ne6 16. Rac1 O-O 17. f3 Bg6 18. f4 exf4 19. gxf4 Ned8 20. d4 b6 21. d5 Na5 22. Bd4 Qh4 23. c4 f6 24. c5 Ndb7 25. cxb6 axb6 26. e5 dxe5 27. fxe5 fxe5 28. Bxe5 Rxf1+ 29. Rxf1 Qe7 30. Rg1 Re8 31. Bh2 Nd6 32. Bf3 Nac4 33. Nxc4 Nxc4 34. Qd4 Qf7 35. Qf4 Re7 36. Qxf7+ Bxf7 37. Bf4 g5 38. h4 Ne5 39. Bxe5 Rxe5 40. c4 Bg6 41. Rg3 Kf8 42. hxg5 hxg5 43. Kg2 Bd3 44. Rg4 Bb1 45. a3 Ba2 46. Kf2 Bb1 47. c5 bxc5 48. Rc4 g4 49. Rxg4 Ba2 50. a4 Bxd5 51. Bxd5 Rxd5 52. Re4 Rd6 53. Re5 Rd2+ 54. Ke3 Ra2 55. Re4 Kf7 56. Kd3 c4+ 57. Rxc4 Ke8 58. Kc3 Kd8 59. Kb3 Re2 60. a5 Kc8 61. Rb4 Re3+ 62. Ka4 Re1 63. Rb2 Ra1+ 64. Kb4 Kb7 65. Kb5 Rc1 66. a6+ Ka7 67. Ra2 Rb1+ 68. Kc6 Rc1+ 69. Kb5 Rb1+ 70. Kc6 Rc1+ 71. Kb5 Rb1+ 72. Kc6 Rc1+ 73. Kb5 Rb1+ 74. Kc6 Rc1+ 75. Kb5 1/2-1/2
+
+[Event "Engine Match"]
+[Site "192.168.1.102"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v005-retain-opt"]
+[Black "v003-improved"]
+[Result "1/2-1/2"]
+[TimeControl "0.50s/move"]
+[FEN "r1bqk2r/1pppbppp/p1n2n2/4p3/B3P3/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 5 6"]
+[SetUp "1"]
+[Opening "Ruy Lopez Nc3"]
+[WhiteNPS "3394187"]
+[BlackNPS "3333615"]
+
+6... b5 7. Bb3 d6 8. O-O Bg4 9. h3 Bxf3 10. Qxf3 Nd4 11. Qe3 Nh5 12. d3 Nf4 13. Nd5 Bg5 14. Nxf4 Bxf4 15. Qe1 Bxc1 16. Rxc1 Qg5 17. Kh1 O-O 18. Qa5 c6 19. Qc7 Qd8 20. Qb7 Qc8 21. Qe7 Qd8 22. Qb7 Qc8 23. Qe7 Qd8 24. Qxd8 Raxd8 25. Ra1 Rb8 26. c3 Nxb3 27. axb3 Rb6 28. Ra5 f6 29. g4 b4 30. cxb4 Rxb4 31. Rxa6 d5 32. Rxc6 dxe4 33. Rc3 exd3 34. Rxd3 Rfb8 35. Rc1 Rxb3 36. Rc8+ Kf7 37. Rxb8 Rxb8 38. b3 g6 39. Kg2 Rb4 40. Kg3 h5 41. Rf3 Ke6 42. Rc3 Kf7 43. f3 f5 44. Kh4 Kf6 45. Rc6+ Kf7 46. Kg5 fxg4 47. fxg4 Rxb3 48. Rf6+ Ke7 49. Rxg6 Rxh3 50. gxh5 Rg3+ 51. Kh6 Rf3 52. Rg7+ Ke6 53. Rg6+ Ke7 54. Rg2 Kf6 55. Rg6+ Ke7 56. Rg1 Kf6 57. Rg6+ Ke7 58. Kg5 Rg3+ 59. Kf5 Rxg6 60. hxg6 e4 61. g7 Kf7 62. g8=Q+ Kxg8 63. Kxe4 1/2-1/2
+
+[Event "Engine Match"]
+[Site "192.168.1.102"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v003-improved"]
+[Black "v006-arrayvec"]
+[Result "1-0"]
+[TimeControl "0.50s/move"]
+[FEN "rnbqkb1r/pp2pppp/2p2n2/3p4/3PP3/2N5/PPP2PPP/R1BQKBNR w KQkq - 2 4"]
+[SetUp "1"]
+[Opening "Caro-Kann Classical"]
+[WhiteNPS "2940649"]
+[BlackNPS "3340909"]
+
+4. e5 Ne4 5. Nxe4 dxe4 6. c3 e6 7. Qg4 Qd5 8. Nh3 c5 9. Nf4 Qc6 10. Nh5 Kd7 11. Qf4 Ke8 12. Qg5 cxd4 13. Nxg7+ Kd7 14. Qf4 f5 15. exf6 Bd6 16. Qg4 dxc3 17. Nxe6 cxb2 18. Bxb2 Bb4+ 19. Kd1 Qd5+ 20. Kc2 Qd2+ 21. Kb1 Nc6 22. Bc4 b5 23. Qg7+ Be7 24. Bxb5 Kxe6 25. fxe7 Bb7 26. e8=Q+ Rhxe8 27. Qxb7 Ne5 28. Qxe4 Kf6 29. f4 h5 30. Rc1 Qxc1+ 31. Kxc1 Rec8+ 32. Kb1 Rc5 33. Bxe5+ Rxe5 34. Qxe5+ Kg6 35. f5+ Kg5 36. h4+ Kh6 37. Qf6+ Kh7 38. Qf7+ Kh8 39. f6 a5 40. Qg7# 1-0
+
+[Event "Engine Match"]
+[Site "192.168.1.102"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v006-arrayvec"]
+[Black "v003-improved"]
+[Result "1-0"]
+[TimeControl "0.50s/move"]
+[FEN "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 4 4"]
+[SetUp "1"]
+[Opening "Petrov Four Knights"]
+[WhiteNPS "2801188"]
+[BlackNPS "2680195"]
+
+4. Bb5 Bb4 5. O-O O-O 6. d3 d6 7. Bg5 Bxc3 8. bxc3 a6 9. Ba4 h6 10. Bd2 b5 11. Bb3 Bg4 12. h3 Bd7 13. c4 Qe7 14. g4 Kh8 15. cxb5 axb5 16. c3 Na5 17. Bc2 h5 18. g5 Ne8 19. Nh4 g6 20. Qf3 c5 21. Qg2 Qe6 22. Kh2 c4 23. d4 exd4 24. cxd4 Qe7 25. f4 Nb7 26. Qf3 Nd8 27. e5 d5 28. Bxg6 Ng7 29. a3 Qe8 30. Bb1 Nde6 31. Qe3 Nc7 32. f5 Qd8 33. f6 Nge8 34. g6 Kg8 35. Qh6 Nxf6 36. exf6 Ne6 37. Qh7# 1-0
+
+[Event "Engine Match"]
+[Site "192.168.1.102"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v003-improved"]
+[Black "v020-remove-harmful-eval"]
+[Result "0-1"]
+[TimeControl "0.50s/move"]
+[FEN "rnbqk2r/ppp1ppbp/3p1np1/8/3P1B2/5N2/PPP1PPPP/RN1QKB1R w KQkq - 0 5"]
+[SetUp "1"]
+[Opening "London vs KID"]
+[WhiteNPS "3125982"]
+[BlackNPS "3589551"]
+
+5. Nc3 Nc6 6. e3 Nh5 7. d5 Nxf4 8. dxc6 Ne6 9. Bb5 O-O 10. cxb7 Bxb7 11. O-O Qc8 12. Bc4 Nc5 13. Nd4 e5 14. Nb3 Nxb3 15. axb3 Kh8 16. Ra3 Qf5 17. Nd5 Qd7 18. e4 c6 19. Ne3 Bc8 20. Be2 Qd8 21. Qd2 f5 22. Rd1 Rf6 23. exf5 Bxf5 24. Nxf5 gxf5 25. Qe3 Qc7 26. Qg5 d5 27. Rf1 e4 28. c3 Qe5 29. Bh5 Bh6 30. Qh4 Bf8 31. Ra5 f4 32. g4 Bh6 33. Rfa1 e3 34. fxe3 f3 35. e4 f2+ 36. Kf1 Bg5 37. Qxg5 Qxg5 38. Rd1 Qe3 39. exd5 Rf4 40. b4 Qh3+ 41. Ke2 f1=Q+ 42. Rxf1 Qxf1+ 43. Ke3 Qf3+ 44. Kd2 Qg2+ 45. Kd3 Qe4+ 46. Kd2 Rf2+ 47. Kc1 Qc2# 0-1
+
+[Event "Engine Match"]
+[Site "192.168.1.102"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v020-remove-harmful-eval"]
+[Black "v003-improved"]
+[Result "0-1"]
+[TimeControl "0.50s/move"]
+[FEN "rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"]
+[SetUp "1"]
+[Opening "Petrov Defense"]
+[WhiteNPS "3663383"]
+[BlackNPS "3313124"]
+
+3. Nc3 d6 4. Bc4 Bg4 5. h3 Be6 6. Qe2 Nc6 7. Bxe6 fxe6 8. O-O Nd4 9. Qd1 Qe7 10. d3 c5 11. Bd2 Qc7 12. Bg5 Qf7 13. Rc1 h6 14. Bd2 Nh7 15. Nxd4 exd4 16. Ne2 e5 17. c4 Nf6 18. Qa4+ Qd7 19. Qxd7+ Nxd7 20. Ng3 g6 21. Ne2 b6 22. b3 a5 23. f4 a4 24. f5 Rg8 25. Rce1 axb3 26. axb3 Ra2 27. Rd1 gxf5 28. Nc1 Rb2 29. exf5 Be7 30. Rf2 h5 31. Re2 Rb1 32. Kh2 Bh4 33. Bf4 Kd8 34. Bh6 Rh8 35. Bd2 Rg8 36. Kh1 Nf6 37. Bh6 Rh8 38. Bg7 Rh7 39. Bxf6+ Bxf6 40. Ra2 Rc7 41. Ra8+ Rc8 42. Rxc8+ Kxc8 43. Rg1 Bg5 44. Ne2 Rxb3 45. Rd1 e4 46. dxe4 Rb4 47. g4 hxg4 48. hxg4 Rxc4 49. Kg2 b5 50. Rd3 Rb4 51. Rf3 Rb2 52. Kf1 Rb1+ 53. Kf2 Kd7 54. f6 Be3+ 55. Rxe3 dxe3+ 56. Kxe3 Ke6 57. g5 b4 58. Nf4+ Kf7 59. e5 Re1+ 60. Kd2 Rxe5 61. Nh3 Rf5 62. Kc2 c4 63. Kd2 b3 64. g6+ Kxg6 65. f7 Rxf7 66. Ng1 b2 67. Kc2 c3 68. Ne2 Rf2 69. Kd3 b1=Q+ 70. Ke3 Rxe2+ 71. Kxe2 c2 72. Ke3 c1=Q+ 73. Kf3 Qg1 74. Ke2 Qbd1# 0-1
+
