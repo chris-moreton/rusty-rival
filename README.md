@@ -10,8 +10,21 @@ Binaries for Windows, Mac OS and Linux are available on the [releases](https://g
    
 The engine can be about 50% faster if compiled on the machine on which it will be run in order to take advantage of cpu-specific instructions. To compile locally, it requires that [Rust](https://www.rust-lang.org/tools/install) be installed.
 
+**Linux/macOS:**
+```bash
+RUSTFLAGS="-C target-cpu=native" RUST_MIN_STACK=4097152 cargo build --release
 ```
-RUSTFLAGS="-C target-cpu=native" RUST_MIN_STACK=4097152 cargo run --release
+
+**Windows (PowerShell):**
+```powershell
+$env:RUSTFLAGS="-C target-cpu=native"; $env:RUST_MIN_STACK=4097152; cargo build --release
+```
+
+**Windows (cmd.exe):**
+```cmd
+set RUSTFLAGS=-C target-cpu=native
+set RUST_MIN_STACK=4097152
+cargo build --release
 ```
 2. Store the executable in engines directory:
 ```bash
