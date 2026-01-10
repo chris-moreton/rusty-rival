@@ -156,7 +156,7 @@ def update_engine_elo_in_db(engine_name: str, new_elo: float, games_played: int)
         with app.app_context():
             engine = Engine.query.filter_by(name=engine_name).first()
             if not engine:
-                engine = Engine(name=engine_name, active=False)
+                engine = Engine(name=engine_name, active=True)
                 db.session.add(engine)
                 db.session.flush()
 
@@ -217,13 +217,13 @@ def save_game_to_db(white: str, black: str, result: str, time_control: str,
         with app.app_context():
             white_engine = Engine.query.filter_by(name=white).first()
             if not white_engine:
-                white_engine = Engine(name=white, active=False)
+                white_engine = Engine(name=white, active=True)
                 db.session.add(white_engine)
                 db.session.flush()
 
             black_engine = Engine.query.filter_by(name=black).first()
             if not black_engine:
-                black_engine = Engine(name=black, active=False)
+                black_engine = Engine(name=black, active=True)
                 db.session.add(black_engine)
                 db.session.flush()
 
