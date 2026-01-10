@@ -48,12 +48,101 @@ If PowerShell gives an execution policy error, run this first:
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### Step 2: Environment Variables
+### Step 2: Database Setup
 
-Create a `.env` file in the project root for database configuration (optional, for Elo tracking):
+The competition framework requires a PostgreSQL database for tracking Elo ratings and game history.
+
+#### 2a. Create the Database
+
+Create a PostgreSQL database and run the following SQL to set up the schema:
+
+```sql
+-- Create tables for engine competition tracking
+
+CREATE TABLE engines (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    binary_path VARCHAR(500),
+    active BOOLEAN DEFAULT TRUE,
+    initial_elo INTEGER DEFAULT 1500,
+    uci_options JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE games (
+    id SERIAL PRIMARY KEY,
+    white_engine_id INTEGER NOT NULL REFERENCES engines(id),
+    black_engine_id INTEGER NOT NULL REFERENCES engines(id),
+    result VARCHAR(10) NOT NULL,  -- '1-0', '0-1', '1/2-1/2', '*'
+    white_score NUMERIC(2,1) NOT NULL,  -- 1.0, 0.5, or 0.0
+    black_score NUMERIC(2,1) NOT NULL,
+    date_played DATE NOT NULL,
+    time_control VARCHAR(50),
+    opening_name VARCHAR(100),
+    opening_fen TEXT,
+    pgn_file VARCHAR(200),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE elo_ratings (
+    id SERIAL PRIMARY KEY,
+    engine_id INTEGER NOT NULL UNIQUE REFERENCES engines(id),
+    elo NUMERIC(7,2) NOT NULL,
+    games_played INTEGER DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for common queries
+CREATE INDEX idx_games_white_engine ON games(white_engine_id);
+CREATE INDEX idx_games_black_engine ON games(black_engine_id);
+CREATE INDEX idx_games_date ON games(date_played);
+CREATE INDEX idx_engines_active ON engines(active);
+```
+
+#### 2b. Configure Environment Variables
+
+Create a `.env` file in the project root:
 
 ```
-DATABASE_URL=your_database_url_here
+DATABASE_URL=postgresql://username:password@hostname:5432/database_name
+```
+
+Example for local development:
+```
+DATABASE_URL=postgresql://postgres:password@localhost:5432/rusty_rival
+```
+
+#### 2c. Add Engines to the Database
+
+Before running competitions, add the engines you want to use:
+
+```sql
+-- Add Stockfish virtual engines (these match the sf-XXXX naming convention)
+INSERT INTO engines (name, active, initial_elo) VALUES
+    ('sf-1400', true, 1400),
+    ('sf-1600', true, 1600),
+    ('sf-1800', true, 1800),
+    ('sf-2000', true, 2000),
+    ('sf-2200', true, 2200),
+    ('sf-2400', true, 2400),
+    ('sf-2600', true, 2600),
+    ('sf-2800', true, 2800),
+    ('sf-3000', true, 3000),
+    ('sf-full', true, 3500);
+
+-- Add Rusty Rival versions (initial_elo = 2600 for Rusty Rival engines)
+INSERT INTO engines (name, active, initial_elo) VALUES
+    ('v1.0.13', true, 2600);
+
+-- Create initial Elo ratings for each engine
+INSERT INTO elo_ratings (engine_id, elo, games_played)
+SELECT id, initial_elo, 0 FROM engines;
+```
+
+**Note:** Engines are auto-created with `active=false` when they first appear in a game. To include an engine in random/gauntlet modes, set `active=true`:
+
+```sql
+UPDATE engines SET active = true WHERE name = 'v1.0.13';
 ```
 
 ### Step 3: Installing Stockfish
