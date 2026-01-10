@@ -1,0 +1,20 @@
+; Round Robin Tournament
+; Engines: v1.0.13, sf-2400, sf-2600, sf-2800, sf-3000
+; Date: 2026-01-10 20:25
+
+[Event "Engine Match"]
+[Site "ChrisArbico"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v1.0.13"]
+[Black "sf-2400"]
+[Result "1-0"]
+[TimeControl "1.00s/move"]
+[FEN "rn1qkb1r/ppp1pppp/4bn2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 4 4"]
+[SetUp "1"]
+[Opening "QGD Early Bf5"]
+[WhiteNPS "2256642"]
+[BlackNPS "1956148"]
+
+4. cxd5 Bxd5 5. f3 Be6 6. e4 g6 7. Nge2 Bc8 8. e5 Ng8 9. Qa4+ c6 10. Rb1 Bf5 11. Ne4 Bh6 12. Bxh6 b5 13. Qb4 Nxh6 14. a4 Bxe4 15. fxe4 e6 16. axb5 Qh4+ 17. Ng3 c5 18. b6 axb6 19. dxc5 Kf8 20. Qxb6 Ng4 21. Qb7 Ra2 22. Qxb8+ Kg7 23. Qb3 Rd8 24. h3 Nxe5 25. Kf2 h5 26. Qxa2 Qf4+ 27. Kg1 h4 28. Ne2 Qe3+ 29. Kh2 Kg8 30. b4 Qf2 31. Rb3 f5 32. Qa1 Ng4+ 33. hxg4 fxg4 34. Qe5 Ra8 35. Qxe6+ Qf7 36. Qxf7+ Kxf7 37. b5 Ra1 38. b6 Ra2 39. b7 Rb2 40. Rxb2 h3 41. b8=Q g5 42. Qc7+ Kf6 43. Rb6# 1-0
+

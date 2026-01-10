@@ -1,0 +1,20 @@
+; Round Robin Tournament
+; Engines: v1.0.13, sf-2400, sf-2600, sf-2800, sf-3000
+; Date: 2026-01-10 20:18
+
+[Event "Engine Match"]
+[Site "ChrisArbico"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v1.0.13"]
+[Black "sf-2400"]
+[Result "1-0"]
+[TimeControl "1.00s/move"]
+[FEN "rnbqkbnr/pppppp1p/6p1/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq - 0 2"]
+[SetUp "1"]
+[Opening "Modern d4"]
+[WhiteNPS "2619785"]
+[BlackNPS "1624821"]
+
+2... Bg7 3. Nc3 d6 4. Nf3 a6 5. Bc4 Nf6 6. O-O Nc6 7. d5 b5 8. dxc6 bxc4 9. Qd4 h6 10. Qxc4 Be6 11. Nd5 Bxd5 12. exd5 Qc8 13. Be3 e5 14. dxe6 Qxe6 15. Qxe6+ fxe6 16. Rad1 Ne4 17. Nd4 Bxd4 18. Bxd4 e5 19. Rfe1 O-O 20. Rxe4 exd4 21. Re7 Rab8 22. b3 Rbc8 23. Rxd4 Rfe8 24. Rde4 Kf8 25. Rxe8+ Rxe8 26. f3 Rc8 27. Rb4 Re8 28. c4 Rc8 29. Rb7 Kg7 30. Ra7 Kf6 31. Rxa6 Ke6 32. Ra5 Rb8 33. h4 Rb6 34. h5 Kf7 35. hxg6+ Kxg6 36. Ra7 Kf7 37. Rxc7+ Ke8 38. f4 h5 39. Rc8+ Ke7 40. f5 d5 41. cxd5 Rb5 42. f6+ Kf7 43. d6 h4 44. c7 h3 45. Rf8+ Kxf8 46. d7 Kf7 47. d8=Q h2+ 48. Kh1 Rc5 49. Qe7+ Kg6 50. Qxc5 Kf7 51. Qf5 Kf8 52. f7 Kg7 53. f8=Q# 1-0
+

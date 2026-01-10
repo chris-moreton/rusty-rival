@@ -1,0 +1,20 @@
+; Round Robin Tournament
+; Engines: v1.0.13, sf-2400, sf-2600, sf-2800, sf-3000
+; Date: 2026-01-10 20:27
+
+[Event "Engine Match"]
+[Site "ChrisArbico"]
+[Date "2026.01.10"]
+[Round "?"]
+[White "v1.0.13"]
+[Black "sf-2400"]
+[Result "1-0"]
+[TimeControl "1.00s/move"]
+[FEN "rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/5NP1/PP2PP1P/RNBQKB1R w KQkq - 2 5"]
+[SetUp "1"]
+[Opening "QGD Catalan Be7"]
+[WhiteNPS "2427039"]
+[BlackNPS "1491787"]
+
+5. Nc3 O-O 6. cxd5 exd5 7. Bg2 c6 8. O-O Re8 9. Qc2 Nbd7 10. e3 Bb4 11. Kh1 a5 12. b3 Bxc3 13. Qxc3 a4 14. bxa4 Rxa4 15. Nd2 Nb6 16. Qc2 h5 17. Nf3 Ne4 18. Qb3 Bf5 19. Ne5 c5 20. dxc5 Nxc5 21. Qb5 h4 22. Nxf7 Kxf7 23. Qxc5 h3 24. Bf3 Re6 25. Bb2 Be4 26. Bxe4 Rexe4 27. Bd4 Nc4 28. Qb5 Ra5 29. Qxb7+ Re7 30. Qb1 g6 31. Qd1 Qd6 32. Qg4 Qd7 33. Qf4+ Ke8 34. Rfb1 Qd6 35. Qh6 Qe6 36. Rb8+ Kd7 37. Rb7+ Ke8 38. Qh8+ Kf7 39. Qh7+ Ke8 40. Rb8+ Kd7 41. Qh4 Kc6 42. Kg1 g5 43. Qxg5 Qe4 44. Qf6+ Re6 45. f3 Qxe3+ 46. Bxe3 Rxf6 47. Bf4 Re6 48. Rh8 Ra3 49. Kf2 d4 50. Rxh3 Ne5 51. Bxe5 Rxe5 52. Rh6+ Kc5 53. f4 Re4 54. Kf1 Rc3 55. a4 Re8 56. Rb1 Rce3 57. Rb5+ Kc4 58. Rc6+ Kd3 59. Rb3+ Kd2 60. Rxe3 Rxe3 61. Rc4 Re1+ 62. Kf2 Re4 63. h4 Re2+ 64. Kf3 Re3+ 65. Kg4 d3 66. f5 Re5 67. Kf4 Ke2 68. Kxe5 Ke3 69. Rd4 Kd2 70. f6 Kc1 71. Rxd3 Kc2 72. Rf3 Kd2 73. f7 Ke1 74. f8=Q Kd1 75. Rf2 Ke1 76. Qf5 Kd1 77. Qb1# 1-0
+
