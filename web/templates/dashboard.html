@@ -49,7 +49,7 @@
                     {% for row in grid %}
                     <tr data-name="{{ row.engine_name }}" data-elo="{{ row.elo }}" data-stability="{{ row.stability }}" data-games="{{ row.games_played }}">
                         <td class="rank-col">{{ row.rank }}</td>
-                        <td class="engine-col{% if row.engine_name in last_played %} last-played{% endif %}">{{ row.engine_name }}</td>
+                        <td class="engine-col engine-{{ row.engine_type }}{% if row.engine_name in last_played %} last-played{% endif %}">{{ row.engine_name }}</td>
                         <td class="elo-col">{{ "%.0f"|format(row.elo) }}</td>
                         <td class="stability-col" style="background-color: {{ row.stability_color }};" title="Stability: {{ row.stability }}%">{{ row.stability }}</td>
                         <td class="games-col">{{ row.games_played }}</td>

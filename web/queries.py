@@ -3,7 +3,29 @@ Database queries for the competition dashboard.
 """
 
 import math
+import re
 from sqlalchemy import func
+
+
+def get_engine_type(name: str) -> str:
+    """
+    Determine the engine type from its name.
+
+    Returns:
+        'stockfish' - for sf-* engines
+        'official' - for vX.X.X official releases (e.g., v1.0.13)
+        'dev' - for development versions (e.g., v031-delta-pruning)
+        'other' - for everything else
+    """
+    if name.startswith('sf-'):
+        return 'stockfish'
+    # Official releases: vX.X.X pattern (semantic versioning)
+    if re.match(r'^v\d+\.\d+\.\d+$', name):
+        return 'official'
+    # Dev versions: vXXX-name pattern
+    if re.match(r'^v\d{2,3}-', name):
+        return 'dev'
+    return 'other'
 
 
 def get_db():
@@ -295,6 +317,7 @@ def build_h2h_grid(engines, h2h_raw):
         grid.append({
             'rank': row_rank,
             'engine_name': row_engine.Engine.name,
+            'engine_type': get_engine_type(row_engine.Engine.name),
             'elo': row_elo,
             'games_played': row_engine.EloRating.games_played,
             'stability': stability_rounded,
