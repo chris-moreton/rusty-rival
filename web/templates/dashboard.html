@@ -51,7 +51,7 @@
                         <td class="rank-col">{{ row.rank }}</td>
                         <td class="engine-col engine-{{ row.engine_type }}">{{ row.engine_name }}</td>
                         <td class="elo-col">{{ "%.0f"|format(row.elo) }}</td>
-                        <td class="stability-col" style="background-color: {{ row.stability_color }};" title="Stability: {{ row.stability }}%">{{ row.stability }}</td>
+                        <td class="stability-col{% if row.least_stable %} least-stable{% endif %}" style="background-color: {{ row.stability_color }};" title="Stability: {{ row.stability }}%">{{ row.stability }}</td>
                         <td class="games-col">{{ row.games_played }}</td>
                         {% for cell in row.cells %}
                         <td class="h2h-cell" style="background-color: {{ cell.bg_color }};" title="{{ cell.tooltip }}">{{ cell.score }}</td>

@@ -143,6 +143,11 @@ h1 {
     font-size: 11px;
 }
 
+.stability-col.least-stable {
+    outline: 2px solid #d32f2f;
+    outline-offset: -2px;
+}
+
 .games-col {
     width: 50px;
     color: #888;

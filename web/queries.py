@@ -322,8 +322,18 @@ def build_h2h_grid(engines, h2h_raw):
             'games_played': row_engine.EloRating.games_played,
             'stability': stability_rounded,
             'stability_color': stability_to_color(stability_rounded),
+            'least_stable': False,
             'cells': cells
         })
+
+    # Mark the engine with lowest stability (only consider engines with games)
+    engines_with_games = [row for row in grid if row['games_played'] > 0]
+    if engines_with_games:
+        min_stability = min(row['stability'] for row in engines_with_games)
+        for row in grid:
+            if row['stability'] == min_stability and row['games_played'] > 0:
+                row['least_stable'] = True
+                break  # Only mark one engine
 
     return grid
 
