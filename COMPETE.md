@@ -491,12 +491,61 @@ v1.0.12: 1586 (492 games)
 
 ---
 
+## Web Dashboard
+
+A Flask-based web interface displays head-to-head statistics and Elo ratings.
+
+### Running the Dashboard
+
+**Linux/macOS:**
+```bash
+cd /path/to/rusty-rival
+source .venv/bin/activate
+python -m web.app
+```
+
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\rusty-rival
+& .\.venv\Scripts\Activate.ps1
+python -m web.app
+```
+
+**Windows (cmd.exe):**
+```cmd
+cd C:\path\to\rusty-rival
+.venv\Scripts\activate.bat
+python -m web.app
+```
+
+The dashboard runs at `http://localhost:5000` by default.
+
+### Features
+
+- **H2H Grid**: Shows head-to-head scores between all engine pairs
+- **Elo Rankings**: Engines sorted by current Elo rating
+- **Performance Colors**: Cells are color-coded based on performance vs expected:
+  - **Green**: Overperforming (scoring better than Elo predicts)
+  - **Red**: Underperforming (scoring worse than Elo predicts)
+  - **White**: Within expected variance
+- **Tooltips**: Hover over cells for detailed stats (games played, expected vs actual score)
+- **Active Filter**: By default shows only active engines; add `?all=1` to URL to show all
+
+### Endpoints
+
+| URL | Description |
+|-----|-------------|
+| `/` | Main dashboard with H2H grid |
+| `/?all=1` | Dashboard including inactive engines |
+| `/health` | Health check endpoint |
+
+---
+
 ## Output Files
 
 | Location | Description |
 |----------|-------------|
 | `results/competitions/*.pgn` | PGN files for each competition |
-| `results/elo_ratings.json` | Persistent Elo ratings database |
 
 PGN filenames include timestamp and engine names:
 - `v1.0.13_vs_sf-2400_20260110_154230.pgn`
