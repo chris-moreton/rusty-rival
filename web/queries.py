@@ -78,6 +78,36 @@ def calculate_expected_score(elo_a: float, elo_b: float, num_games: int) -> floa
     return expected_per_game * num_games
 
 
+def stability_to_color(stability: int) -> str:
+    """
+    Convert stability score (0-100) to a background color.
+
+    - 100 = dark green (perfect match with expected)
+    - 50 = white/neutral
+    - 0 = dark red (poor match)
+
+    Args:
+        stability: Score from 0-100
+
+    Returns:
+        CSS color string
+    """
+    if stability >= 50:
+        # Green gradient: 50 = white, 100 = dark green (#4caf50)
+        intensity = (stability - 50) / 50.0  # 0 to 1
+        r = int(255 - (255 - 76) * intensity)   # 255 -> 76
+        g = int(255 - (255 - 175) * intensity)  # 255 -> 175
+        b = int(255 - (255 - 80) * intensity)   # 255 -> 80
+    else:
+        # Red gradient: 50 = white, 0 = dark red (#e57373)
+        intensity = (50 - stability) / 50.0  # 0 to 1
+        r = int(255 - (255 - 229) * intensity)  # 255 -> 229
+        g = int(255 - (255 - 115) * intensity)  # 255 -> 115
+        b = int(255 - (255 - 115) * intensity)  # 255 -> 115
+
+    return f'rgb({r}, {g}, {b})'
+
+
 def calculate_excess_deviation(deviation: float, num_games: int) -> float:
     """
     Calculate how many standard deviations beyond tolerance the result is.
@@ -261,12 +291,14 @@ def build_h2h_grid(engines, h2h_raw):
         else:
             stability = 0  # No games = no stability data
 
+        stability_rounded = round(stability)
         grid.append({
             'rank': row_rank,
             'engine_name': row_engine.Engine.name,
             'elo': row_elo,
             'games_played': row_engine.EloRating.games_played,
-            'stability': round(stability),
+            'stability': stability_rounded,
+            'stability_color': stability_to_color(stability_rounded),
             'cells': cells
         })
 
