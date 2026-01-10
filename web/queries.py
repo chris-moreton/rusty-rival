@@ -227,18 +227,38 @@ def build_h2h_grid(engines, h2h_raw):
     return grid
 
 
+def get_last_played_engines():
+    """
+    Get the engine names from the most recently played game.
+    Returns tuple of (engine1_name, engine2_name) or (None, None) if no games.
+    """
+    db = get_db()
+    Engine, Game, EloRating = get_models()
+
+    last_game = db.session.query(Game).order_by(Game.created_at.desc()).first()
+
+    if not last_game:
+        return (None, None)
+
+    white_engine = db.session.query(Engine).filter(Engine.id == last_game.white_engine_id).first()
+    black_engine = db.session.query(Engine).filter(Engine.id == last_game.black_engine_id).first()
+
+    return (white_engine.name if white_engine else None, black_engine.name if black_engine else None)
+
+
 def get_dashboard_data(active_only=True):
     """
     Get all data needed for the dashboard.
-    Returns (engines, grid, column_headers).
+    Returns (engines, grid, column_headers, last_played_engines).
     """
     engines = get_engines_ranked_by_elo(active_only=active_only)
 
     if not engines:
-        return [], [], []
+        return [], [], [], (None, None)
 
     h2h_raw = get_h2h_raw_data()
     grid = build_h2h_grid(engines, h2h_raw)
     column_headers = [(i + 1, e.Engine.name) for i, e in enumerate(engines)]
+    last_played = get_last_played_engines()
 
-    return engines, grid, column_headers
+    return engines, grid, column_headers, last_played

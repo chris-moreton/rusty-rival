@@ -123,6 +123,10 @@ h1 {
     min-width: 150px;
 }
 
+.engine-col.last-played {
+    background-color: #fff9c4;
+}
+
 .elo-col {
     width: 50px;
     color: #666;

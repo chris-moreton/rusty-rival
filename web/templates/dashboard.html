@@ -48,7 +48,7 @@
                     {% for row in grid %}
                     <tr>
                         <td class="rank-col">{{ row.rank }}</td>
-                        <td class="engine-col">{{ row.engine_name }}</td>
+                        <td class="engine-col{% if row.engine_name in last_played %} last-played{% endif %}">{{ row.engine_name }}</td>
                         <td class="elo-col">{{ "%.0f"|format(row.elo) }}</td>
                         <td class="games-col">{{ row.games_played }}</td>
                         {% for cell in row.cells %}
