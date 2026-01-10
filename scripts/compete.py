@@ -275,6 +275,10 @@ def get_initial_elo(engine_name: str) -> float:
     if engine_name.startswith("sf-") and engine_name[3:].isdigit():
         return float(engine_name[3:])
 
+    # Rusty Rival engines start at 2600
+    if engine_name.startswith("v") and engine_name[1:2].isdigit():
+        return 2600.0
+
     return DEFAULT_ELO
 
 
