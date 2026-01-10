@@ -1,5 +1,14 @@
-# Windows stack size configuration
-# The chess engine's recursive search needs more than Windows' default 1MB stack
+# Stack size configuration
+# The chess engine's recursive search needs more than the default stack size
+
+# Linux (default is 8MB via ulimit, but set explicitly for safety)
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-args=-Wl,-z,stack-size=8388608"]
+
+[target.x86_64-unknown-linux-musl]
+rustflags = ["-C", "link-args=-Wl,-z,stack-size=8388608"]
+
+# Windows (default is only 1MB)
 
 # MSVC toolchain (default on Windows)
 [target.x86_64-pc-windows-msvc]
