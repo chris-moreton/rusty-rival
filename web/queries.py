@@ -78,43 +78,59 @@ def calculate_expected_score(elo_a: float, elo_b: float, num_games: int) -> floa
     return expected_per_game * num_games
 
 
-def deviation_to_color(deviation: float, is_overperforming: bool, num_games: int) -> str:
+def deviation_to_color(deviation: float, num_games: int) -> str:
     """
     Convert deviation from expected to a background color.
 
+    - White/neutral if within tolerance of expected (normal variance)
+    - Green if overperforming (positive deviation beyond tolerance)
+    - Red if underperforming (negative deviation beyond tolerance)
+
     Args:
-        deviation: How many points above/below expected (absolute value)
-        is_overperforming: True for green (lower-rated winning), False for red (higher-rated losing)
-        num_games: Number of games played (affects scaling)
+        deviation: Points above (positive) or below (negative) expected
+        num_games: Number of games played
 
     Returns:
-        CSS color string (rgba or hex)
+        CSS color string
     """
     if num_games == 0:
         return '#f5f5f5'  # No games - neutral gray
 
-    # Normalize deviation by number of games to get a percentage
-    # A deviation of 10% of games is significant
-    deviation_pct = abs(deviation) / num_games if num_games > 0 else 0
+    # Tolerance based on statistical variance
+    # Standard deviation of game outcomes ≈ 0.5 * sqrt(n)
+    # Use ~1 standard deviation as tolerance (generous)
+    tolerance = 0.5 * math.sqrt(num_games)
+    # Minimum tolerance of 1.0 points for very small sample sizes
+    tolerance = max(1.0, tolerance)
 
-    # Scale intensity: 0% deviation = very light, 50%+ deviation = full color
-    # Using a curve to make small deviations more visible
-    intensity = min(1.0, deviation_pct * 2)  # 50% deviation = full intensity
+    # If within tolerance, return neutral white
+    if abs(deviation) <= tolerance:
+        return '#ffffff'
 
-    # Apply sqrt to make small deviations more visible
+    # Calculate excess deviation beyond tolerance
+    excess = abs(deviation) - tolerance
+
+    # Scale intensity: how much beyond tolerance relative to expected variance
+    # Use 2 more standard deviations as the range for full intensity
+    # So total range is 1 SD (tolerance) to 3 SD (full color)
+    full_intensity_threshold = tolerance * 2  # 2 more SDs
+    intensity = min(1.0, excess / full_intensity_threshold)
+
+    # Apply sqrt to make gradients more visible at lower intensities
     intensity = math.sqrt(intensity)
 
-    if is_overperforming:
-        # Green: from very light (#e8f5e9) to darker (#4caf50)
-        # RGB interpolation
-        r = int(232 - (232 - 76) * intensity)   # 232 -> 76
-        g = int(245 - (245 - 175) * intensity)  # 245 -> 175
-        b = int(233 - (233 - 80) * intensity)   # 233 -> 80
+    if deviation > 0:
+        # Green: overperforming
+        # From white (#ffffff) to green (#4caf50)
+        r = int(255 - (255 - 76) * intensity)   # 255 -> 76
+        g = int(255 - (255 - 175) * intensity)  # 255 -> 175
+        b = int(255 - (255 - 80) * intensity)   # 255 -> 80
     else:
-        # Red: from very light (#ffebee) to darker (#e57373)
+        # Red: underperforming
+        # From white (#ffffff) to red (#e57373)
         r = int(255 - (255 - 229) * intensity)  # 255 -> 229
-        g = int(235 - (235 - 115) * intensity)  # 235 -> 115
-        b = int(238 - (238 - 115) * intensity)  # 238 -> 115
+        g = int(255 - (255 - 115) * intensity)  # 255 -> 115
+        b = int(255 - (255 - 115) * intensity)  # 255 -> 115
 
     return f'rgb({r}, {g}, {b})'
 
@@ -179,23 +195,11 @@ def build_h2h_grid(engines, h2h_raw):
             expected_row = calculate_expected_score(row_elo, col_elo, total_games)
             deviation = row_points - expected_row  # Positive = overperforming, negative = underperforming
 
-            # Determine if row_engine is higher or lower rated
-            row_is_higher_rated = row_rank < col_rank
-
-            # Color logic:
-            # - Higher-rated engine underperforming (deviation < 0) -> RED
-            # - Lower-rated engine overperforming (deviation > 0) -> GREEN
-            # - Results match expectations -> neutral/white
-
-            if row_is_higher_rated and deviation < 0:
-                # Higher-rated losing more than expected -> RED
-                bg_color = deviation_to_color(deviation, is_overperforming=False, num_games=total_games)
-            elif not row_is_higher_rated and deviation > 0:
-                # Lower-rated winning more than expected -> GREEN
-                bg_color = deviation_to_color(deviation, is_overperforming=True, num_games=total_games)
-            else:
-                # Results roughly as expected or better than expected for higher-rated
-                bg_color = '#f9f9f9'  # Neutral
+            # Color based purely on deviation from expected:
+            # - Within tolerance -> white
+            # - Overperforming (positive) -> green
+            # - Underperforming (negative) -> red
+            bg_color = deviation_to_color(deviation, total_games)
 
             # Build tooltip with more detail
             expected_str = f"{expected_row:.1f}"
