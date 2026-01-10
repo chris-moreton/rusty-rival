@@ -326,8 +326,22 @@ def discover_engines(engine_dir: Path) -> dict:
 
         # v* engines (rusty-rival versions)
         if name.startswith("v") and name[1:2].isdigit():
-            binary = entry / "rusty-rival"
-            if binary.exists():
+            binary = None
+
+            # First try versioned binary names (e.g., rusty-rival-v1.0.13-windows-x86_64.exe)
+            for f in entry.iterdir():
+                if f.is_file() and f.name.startswith(f"rusty-rival-{name}"):
+                    binary = f
+                    break
+
+            # Fall back to legacy names: rusty-rival.exe or rusty-rival
+            if not binary:
+                if (entry / "rusty-rival.exe").exists():
+                    binary = entry / "rusty-rival.exe"
+                elif (entry / "rusty-rival").exists():
+                    binary = entry / "rusty-rival"
+
+            if binary:
                 engines[name] = {"binary": binary, "uci_options": {}}
 
         # java-rival engines (e.g., java-rival-36.0.0 -> java-rival-36)
