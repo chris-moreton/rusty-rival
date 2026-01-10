@@ -18,7 +18,7 @@ A comprehensive engine vs engine testing harness with Elo tracking, multiple com
 cd /path/to/rusty-rival
 python3 -m venv .venv
 source .venv/bin/activate
-pip install python-chess python-dotenv
+pip install -r web/requirements.txt
 ```
 
 **Windows (PowerShell):**
@@ -26,7 +26,7 @@ pip install python-chess python-dotenv
 cd C:\path\to\rusty-rival
 python -m venv .venv
 & .\.venv\Scripts\Activate.ps1
-pip install python-chess python-dotenv
+pip install -r web/requirements.txt
 ```
 
 **Windows (cmd.exe):**
@@ -34,8 +34,14 @@ pip install python-chess python-dotenv
 cd C:\path\to\rusty-rival
 python -m venv .venv
 .venv\Scripts\activate.bat
-pip install python-chess python-dotenv
+pip install -r web/requirements.txt
 ```
+
+This installs all required packages including:
+- `python-chess` - Chess library for game management
+- `Flask` and `Flask-SQLAlchemy` - Database integration for Elo tracking
+- `psycopg` - PostgreSQL driver (for database connection)
+- `python-dotenv` - Environment variable loading
 
 If PowerShell gives an execution policy error, run this first:
 ```powershell
