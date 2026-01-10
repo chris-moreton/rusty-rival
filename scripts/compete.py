@@ -87,43 +87,35 @@ def _get_app():
 
 def load_elo_ratings() -> dict:
     """
-    Load Elo ratings from database (or JSON file as fallback).
+    Load Elo ratings from database.
     Returns dict: {engine_name: {"elo": float, "games": int}}
     """
-    if DB_ENABLED:
-        try:
-            from web.database import db
-            from web.models import Engine, EloRating
+    if not DB_ENABLED:
+        print("Error: DATABASE_URL not configured. Set it in .env file.")
+        sys.exit(1)
 
-            app = _get_app()
-            with app.app_context():
-                results = db.session.query(Engine.name, EloRating.elo, EloRating.games_played).join(
-                    EloRating, Engine.id == EloRating.engine_id
-                ).all()
+    try:
+        from web.database import db
+        from web.models import Engine, EloRating
 
-                ratings = {}
-                for name, elo, games in results:
-                    ratings[name] = {"elo": float(elo), "games": games}
-                return ratings
-        except Exception as e:
-            print(f"Warning: Failed to load ratings from database: {e}")
-            # Fall through to JSON fallback
+        app = _get_app()
+        with app.app_context():
+            results = db.session.query(Engine.name, EloRating.elo, EloRating.games_played).join(
+                EloRating, Engine.id == EloRating.engine_id
+            ).all()
 
-    # Fallback to JSON file
-    elo_file = get_elo_file_path()
-    if elo_file.exists():
-        with open(elo_file, "r") as f:
-            return json.load(f)
-    return {}
+            ratings = {}
+            for name, elo, games in results:
+                ratings[name] = {"elo": float(elo), "games": games}
+            return ratings
+    except Exception as e:
+        print(f"Error: Failed to load ratings from database: {e}")
+        sys.exit(1)
 
 
 def save_elo_ratings(ratings: dict):
-    """Save Elo ratings to JSON file (backup only, DB updates are done per-engine)."""
-    # Save to JSON as backup
-    elo_file = get_elo_file_path()
-    elo_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(elo_file, "w") as f:
-        json.dump(ratings, f, indent=2, sort_keys=True)
+    """No-op: ratings are saved to database per-engine, not to JSON."""
+    pass
 
 
 def update_engine_elo_in_db(engine_name: str, new_elo: float, games_played: int):
@@ -131,9 +123,6 @@ def update_engine_elo_in_db(engine_name: str, new_elo: float, games_played: int)
     Update a single engine's Elo in the database.
     This is concurrent-safe as it only touches one engine.
     """
-    if not DB_ENABLED:
-        return
-
     try:
         from web.database import db
         from web.models import Engine, EloRating
@@ -160,17 +149,15 @@ def update_engine_elo_in_db(engine_name: str, new_elo: float, games_played: int)
 
             db.session.commit()
     except Exception as e:
-        print(f"Warning: Failed to update {engine_name} rating in database: {e}")
+        print(f"Error: Failed to update {engine_name} rating in database: {e}")
+        sys.exit(1)
 
 
 def get_current_elo_from_db(engine_name: str) -> tuple[float, int] | None:
     """
     Get the current Elo and games count for an engine from the database.
-    Returns (elo, games) or None if not found or DB disabled.
+    Returns (elo, games) or None if not found.
     """
-    if not DB_ENABLED:
-        return None
-
     try:
         from web.database import db
         from web.models import Engine, EloRating
@@ -185,8 +172,8 @@ def get_current_elo_from_db(engine_name: str) -> tuple[float, int] | None:
                 return (float(result.elo), result.games_played)
             return None
     except Exception as e:
-        print(f"Warning: Failed to get {engine_name} rating from database: {e}")
-        return None
+        print(f"Error: Failed to get {engine_name} rating from database: {e}")
+        sys.exit(1)
 
 
 def save_game_to_db(white: str, black: str, result: str, time_control: str,
@@ -194,13 +181,7 @@ def save_game_to_db(white: str, black: str, result: str, time_control: str,
                     pgn_file: str = None):
     """
     Save a game result to the database.
-
-    This function is a no-op if DATABASE_URL is not configured.
-    Errors are logged but don't interrupt the competition.
     """
-    if not DB_ENABLED:
-        return
-
     try:
         from web.database import db
         from web.models import Engine, Game
@@ -244,8 +225,8 @@ def save_game_to_db(white: str, black: str, result: str, time_control: str,
             db.session.add(game)
             db.session.commit()
     except Exception as e:
-        # Don't interrupt competition for database errors
-        print(f"Warning: Failed to save game to database: {e}")
+        print(f"Error: Failed to save game to database: {e}")
+        sys.exit(1)
 
 
 def get_initial_elo(engine_name: str) -> float:
@@ -254,22 +235,22 @@ def get_initial_elo(engine_name: str) -> float:
 
     Priority:
     1. Database (Engine.initial_elo)
-    2. Derive from engine name (sf-2400 → 2400)
+    2. Derive from engine name (sf-2400 → 2400, v* → 2600)
     3. DEFAULT_ELO
     """
     # Try database first
-    if DB_ENABLED:
-        try:
-            from web.database import db
-            from web.models import Engine
+    try:
+        from web.database import db
+        from web.models import Engine
 
-            app = _get_app()
-            with app.app_context():
-                engine = Engine.query.filter_by(name=engine_name).first()
-                if engine and engine.initial_elo:
-                    return float(engine.initial_elo)
-        except Exception:
-            pass
+        app = _get_app()
+        with app.app_context():
+            engine = Engine.query.filter_by(name=engine_name).first()
+            if engine and engine.initial_elo:
+                return float(engine.initial_elo)
+    except Exception as e:
+        print(f"Error: Failed to get initial Elo from database: {e}")
+        sys.exit(1)
 
     # Derive from engine name for Stockfish (sf-XXXX → XXXX)
     if engine_name.startswith("sf-") and engine_name[3:].isdigit():
@@ -444,21 +425,18 @@ def get_all_engines(engine_dir: Path) -> list[str]:
 def get_active_engines(engine_dir: Path) -> list[str]:
     """
     Get list of active engines from database.
-    Falls back to all discovered engines if DB unavailable.
     """
-    if DB_ENABLED:
-        try:
-            from web.database import db
-            from web.models import Engine
+    try:
+        from web.database import db
+        from web.models import Engine
 
-            app = _get_app()
-            with app.app_context():
-                active = Engine.query.filter_by(active=True).all()
-                return sorted([e.name for e in active])
-        except Exception:
-            pass
-    # Fallback: all discovered engines are active
-    return get_all_engines(engine_dir)
+        app = _get_app()
+        with app.app_context():
+            active = Engine.query.filter_by(active=True).all()
+            return sorted([e.name for e in active])
+    except Exception as e:
+        print(f"Error: Failed to get active engines from database: {e}")
+        sys.exit(1)
 
 
 def get_engine_info(name: str, engine_dir: Path) -> tuple[Path, dict]:
