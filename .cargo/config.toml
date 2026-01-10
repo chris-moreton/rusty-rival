@@ -1,0 +1,16 @@
+# Windows stack size configuration
+# The chess engine's recursive search needs more than Windows' default 1MB stack
+
+# MSVC toolchain (default on Windows)
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-args=/STACK:8388608"]
+
+[target.i686-pc-windows-msvc]
+rustflags = ["-C", "link-args=/STACK:8388608"]
+
+# MinGW/GNU toolchain
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "link-args=-Wl,--stack,8388608"]
+
+[target.i686-pc-windows-gnu]
+rustflags = ["-C", "link-args=-Wl,--stack,8388608"]
