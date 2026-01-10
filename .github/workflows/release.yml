@@ -5,6 +5,10 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
+env:
+  # Extract version from tag (removes 'v' prefix)
+  VERSION: ${{ github.ref_name }}
+
 jobs:
   build:
     name: Build ${{ matrix.target }}
@@ -16,25 +20,36 @@ jobs:
           # Linux x86_64
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            name: rusty-rival-linux-x86_64
+            suffix: linux-x86_64
+            extension: ""
 
           # Windows x86_64
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            name: rusty-rival-windows-x86_64.exe
+            suffix: windows-x86_64
+            extension: ".exe"
 
           # macOS Intel (cross-compiled from ARM)
           - target: x86_64-apple-darwin
             os: macos-latest
-            name: rusty-rival-macos-x86_64
+            suffix: macos-x86_64
+            extension: ""
 
           # macOS Apple Silicon
           - target: aarch64-apple-darwin
             os: macos-latest
-            name: rusty-rival-macos-aarch64
+            suffix: macos-aarch64
+            extension: ""
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set binary name
+        id: binary
+        shell: bash
+        run: |
+          VERSION="${{ github.ref_name }}"
+          echo "name=rusty-rival-${VERSION}-${{ matrix.suffix }}${{ matrix.extension }}" >> $GITHUB_OUTPUT
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -46,17 +61,17 @@ jobs:
 
       - name: Rename binary (Unix)
         if: matrix.os != 'windows-latest'
-        run: mv target/${{ matrix.target }}/release/rusty-rival ${{ matrix.name }}
+        run: mv target/${{ matrix.target }}/release/rusty-rival ${{ steps.binary.outputs.name }}
 
       - name: Rename binary (Windows)
         if: matrix.os == 'windows-latest'
-        run: mv target/${{ matrix.target }}/release/rusty-rival.exe ${{ matrix.name }}
+        run: mv target/${{ matrix.target }}/release/rusty-rival.exe ${{ steps.binary.outputs.name }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }}
-          path: ${{ matrix.name }}
+          name: ${{ steps.binary.outputs.name }}
+          path: ${{ steps.binary.outputs.name }}
 
   release:
     name: Create Release
@@ -68,12 +83,15 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
+      - name: List artifacts
+        run: find . -type f
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            rusty-rival-linux-x86_64/rusty-rival-linux-x86_64
-            rusty-rival-windows-x86_64.exe/rusty-rival-windows-x86_64.exe
-            rusty-rival-macos-x86_64/rusty-rival-macos-x86_64
-            rusty-rival-macos-aarch64/rusty-rival-macos-aarch64
+            rusty-rival-${{ github.ref_name }}-linux-x86_64/rusty-rival-${{ github.ref_name }}-linux-x86_64
+            rusty-rival-${{ github.ref_name }}-windows-x86_64.exe/rusty-rival-${{ github.ref_name }}-windows-x86_64.exe
+            rusty-rival-${{ github.ref_name }}-macos-x86_64/rusty-rival-${{ github.ref_name }}-macos-x86_64
+            rusty-rival-${{ github.ref_name }}-macos-aarch64/rusty-rival-${{ github.ref_name }}-macos-aarch64
           generate_release_notes: true
