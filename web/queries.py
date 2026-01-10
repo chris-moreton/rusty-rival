@@ -78,6 +78,33 @@ def calculate_expected_score(elo_a: float, elo_b: float, num_games: int) -> floa
     return expected_per_game * num_games
 
 
+def calculate_excess_deviation(deviation: float, num_games: int) -> float:
+    """
+    Calculate how many standard deviations beyond tolerance the result is.
+    Returns 0 if within tolerance, positive value if outside.
+
+    Args:
+        deviation: Points above/below expected
+        num_games: Number of games played
+
+    Returns:
+        Excess deviation in standard deviation units (0 = within tolerance)
+    """
+    if num_games == 0:
+        return 0.0
+
+    # Same tolerance calculation as deviation_to_color
+    tolerance = 0.5 * math.sqrt(num_games)
+    tolerance = max(1.0, tolerance)
+
+    excess = abs(deviation) - tolerance
+    if excess <= 0:
+        return 0.0
+
+    # Normalize by tolerance to get "excess standard deviations"
+    return excess / tolerance
+
+
 def deviation_to_color(deviation: float, num_games: int) -> str:
     """
     Convert deviation from expected to a background color.
@@ -144,7 +171,7 @@ def build_h2h_grid(engines, h2h_raw):
         h2h_raw: Raw H2H data from get_h2h_raw_data()
 
     Returns:
-        List of row dicts with engine info and cells
+        List of row dicts with engine info, cells, and stability score
     """
     # Build lookups
     engine_elos = {e.Engine.id: float(e.EloRating.elo) for e in engines}
@@ -156,6 +183,10 @@ def build_h2h_grid(engines, h2h_raw):
         row_rank = row_idx + 1
 
         cells = []
+        # Track deviations for stability calculation
+        total_excess_deviation = 0.0
+        total_opponent_games = 0
+
         for col_idx, col_engine in enumerate(engines):
             col_id = col_engine.Engine.id
             col_elo = engine_elos[col_id]
@@ -195,6 +226,11 @@ def build_h2h_grid(engines, h2h_raw):
             expected_row = calculate_expected_score(row_elo, col_elo, total_games)
             deviation = row_points - expected_row  # Positive = overperforming, negative = underperforming
 
+            # Track for stability calculation (weighted by games)
+            excess = calculate_excess_deviation(deviation, total_games)
+            total_excess_deviation += excess * total_games
+            total_opponent_games += total_games
+
             # Color based purely on deviation from expected:
             # - Within tolerance -> white
             # - Overperforming (positive) -> green
@@ -216,11 +252,21 @@ def build_h2h_grid(engines, h2h_raw):
                 'tooltip': tooltip
             })
 
+        # Calculate stability score (0-100, higher = more stable/settled)
+        # Average excess deviation weighted by games, then convert to 0-100
+        if total_opponent_games > 0:
+            avg_excess = total_excess_deviation / total_opponent_games
+            # Map avg_excess to 0-100: 0 excess = 100, 2+ excess SDs = 0
+            stability = max(0, 100 - (avg_excess * 50))
+        else:
+            stability = 0  # No games = no stability data
+
         grid.append({
             'rank': row_rank,
             'engine_name': row_engine.Engine.name,
             'elo': row_elo,
             'games_played': row_engine.EloRating.games_played,
+            'stability': round(stability),
             'cells': cells
         })
 

@@ -32,12 +32,13 @@
 
         {% if grid %}
         <div class="table-wrapper">
-            <table class="h2h-table">
+            <table class="h2h-table" id="h2h-table">
                 <thead>
                     <tr>
                         <th class="rank-col">#</th>
-                        <th class="engine-col">Engine</th>
-                        <th class="elo-col">Elo</th>
+                        <th class="engine-col sortable" data-sort="name">Engine <span class="sort-arrow"></span></th>
+                        <th class="elo-col sortable" data-sort="elo">Elo <span class="sort-arrow"></span></th>
+                        <th class="stability-col sortable" data-sort="stability" title="How well actual results match expected results (100 = perfect match)">Stab <span class="sort-arrow"></span></th>
                         <th class="games-col">Games</th>
                         {% for col_num, col_name in column_headers %}
                         <th class="h2h-col" title="{{ col_name }}">{{ col_num }}</th>
@@ -46,10 +47,11 @@
                 </thead>
                 <tbody>
                     {% for row in grid %}
-                    <tr>
+                    <tr data-name="{{ row.engine_name }}" data-elo="{{ row.elo }}" data-stability="{{ row.stability }}">
                         <td class="rank-col">{{ row.rank }}</td>
                         <td class="engine-col{% if row.engine_name in last_played %} last-played{% endif %}">{{ row.engine_name }}</td>
                         <td class="elo-col">{{ "%.0f"|format(row.elo) }}</td>
+                        <td class="stability-col" title="Stability: {{ row.stability }}%">{{ row.stability }}</td>
                         <td class="games-col">{{ row.games_played }}</td>
                         {% for cell in row.cells %}
                         <td class="h2h-cell" style="background-color: {{ cell.bg_color }};" title="{{ cell.tooltip }}">{{ cell.score }}</td>
@@ -75,5 +77,73 @@
         <p class="no-data">No engine data available. Run the migration script first.</p>
         {% endif %}
     </div>
+
+    <script>
+    (function() {
+        const table = document.getElementById('h2h-table');
+        if (!table) return;
+
+        const headers = table.querySelectorAll('th.sortable');
+        let currentSort = { column: null, direction: 'asc' };
+
+        headers.forEach(header => {
+            header.addEventListener('click', () => {
+                const sortKey = header.dataset.sort;
+
+                // Toggle direction if same column, otherwise default to desc for numeric, asc for name
+                if (currentSort.column === sortKey) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = sortKey;
+                    currentSort.direction = sortKey === 'name' ? 'asc' : 'desc';
+                }
+
+                sortTable(sortKey, currentSort.direction);
+                updateSortArrows(header, currentSort.direction);
+            });
+        });
+
+        function sortTable(key, direction) {
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            rows.sort((a, b) => {
+                let aVal = a.dataset[key];
+                let bVal = b.dataset[key];
+
+                // Numeric sort for elo and stability
+                if (key === 'elo' || key === 'stability') {
+                    aVal = parseFloat(aVal);
+                    bVal = parseFloat(bVal);
+                } else {
+                    // String sort for name
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+
+                let comparison = 0;
+                if (aVal < bVal) comparison = -1;
+                if (aVal > bVal) comparison = 1;
+
+                return direction === 'asc' ? comparison : -comparison;
+            });
+
+            // Update rank numbers and re-append rows
+            rows.forEach((row, index) => {
+                row.querySelector('.rank-col').textContent = index + 1;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateSortArrows(activeHeader, direction) {
+            // Clear all arrows
+            headers.forEach(h => {
+                h.classList.remove('sort-asc', 'sort-desc');
+            });
+            // Set active arrow
+            activeHeader.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+        }
+    })();
+    </script>
 </body>
 </html>
