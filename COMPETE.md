@@ -4,14 +4,70 @@ A comprehensive engine vs engine testing harness with Elo tracking, multiple com
 
 ---
 
+## Table of Contents
+
+1. [Quick Start](#quick-start)
+2. [Setup](#setup)
+3. [Competition Modes](#competition-modes)
+4. [Command Reference](#command-reference)
+5. [Engine Management](#engine-management)
+6. [Elo Rating System](#elo-rating-system)
+7. [Web Dashboard](#web-dashboard)
+8. [Troubleshooting](#troubleshooting)
+
+---
+
+## Quick Start
+
+Once setup is complete, here are the most common commands:
+
+### Head-to-Head Match
+
+```bash
+# Linux/macOS
+./scripts/compete.py v1.0.13 sf-2400 --games 100 --time 1.0
+
+# Windows
+python scripts/compete.py v1.0.13 sf-2400 --games 100 --time 1.0
+```
+
+### Round-Robin League (3+ engines)
+
+```bash
+./scripts/compete.py v1.0.13 sf-2400 sf-2600 sf-2800 --games 50 --time 1.0
+```
+
+### Gauntlet Mode (test one engine against all active engines)
+
+```bash
+./scripts/compete.py v1.0.13 --gauntlet --games 50 --time 0.5
+```
+
+### Random Mode (continuous random pairings)
+
+```bash
+./scripts/compete.py --random --games 100 --time 0.5
+```
+
+### EPD Testing (specific positions, Elo not updated)
+
+```bash
+./scripts/compete.py v1.0.13 sf-2800 --epd eet.epd --time 1.0
+```
+
+**Engine name shorthand:** Use `v12` instead of `v012-my-feature`, `sf-2400` for Stockfish at Elo 2400.
+
+---
+
 ## Setup
 
 ### Prerequisites
 
 - Python 3.10+
-- A virtual environment with required packages
+- PostgreSQL database
+- At least one chess engine (Stockfish or Rusty Rival)
 
-### Step 1: Python Environment Setup
+### Step 1: Python Environment
 
 **Linux/macOS:**
 ```bash
@@ -37,28 +93,20 @@ python -m venv .venv
 pip install -r web/requirements.txt
 ```
 
-This installs all required packages including:
-- `python-chess` - Chess library for game management
-- `Flask` and `Flask-SQLAlchemy` - Database integration for Elo tracking
-- `psycopg` - PostgreSQL driver (for database connection)
-- `python-dotenv` - Environment variable loading
-
-If PowerShell gives an execution policy error, run this first:
+If PowerShell gives an execution policy error:
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 ### Step 2: Database Setup
 
-The competition framework requires a PostgreSQL database for tracking Elo ratings and game history.
+The framework requires a PostgreSQL database for Elo tracking and game history.
 
 #### 2a. Create the Database
 
-Create a PostgreSQL database and run the following SQL to set up the schema:
+Run this SQL to create the schema:
 
 ```sql
--- Create tables for engine competition tracking
-
 CREATE TABLE engines (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
@@ -73,14 +121,14 @@ CREATE TABLE games (
     id SERIAL PRIMARY KEY,
     white_engine_id INTEGER NOT NULL REFERENCES engines(id),
     black_engine_id INTEGER NOT NULL REFERENCES engines(id),
-    result VARCHAR(10) NOT NULL,  -- '1-0', '0-1', '1/2-1/2', '*'
-    white_score NUMERIC(2,1) NOT NULL,  -- 1.0, 0.5, or 0.0
+    result VARCHAR(10) NOT NULL,
+    white_score NUMERIC(2,1) NOT NULL,
     black_score NUMERIC(2,1) NOT NULL,
     date_played DATE NOT NULL,
     time_control VARCHAR(50),
     opening_name VARCHAR(100),
     opening_fen TEXT,
-    pgn TEXT,  -- Full PGN content of the game
+    pgn TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -92,22 +140,13 @@ CREATE TABLE elo_ratings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for common queries
 CREATE INDEX idx_games_white_engine ON games(white_engine_id);
 CREATE INDEX idx_games_black_engine ON games(black_engine_id);
 CREATE INDEX idx_games_date ON games(date_played);
 CREATE INDEX idx_engines_active ON engines(active);
 ```
 
-**Migration from previous version:** If you have an existing database with `pgn_file` column:
-
-```sql
--- Migrate from pgn_file (filename) to pgn (full content)
-ALTER TABLE games DROP COLUMN IF EXISTS pgn_file;
-ALTER TABLE games ADD COLUMN IF NOT EXISTS pgn TEXT;
-```
-
-#### 2b. Configure Environment Variables
+#### 2b. Configure Environment
 
 Create a `.env` file in the project root:
 
@@ -120,12 +159,12 @@ Example for local development:
 DATABASE_URL=postgresql://postgres:password@localhost:5432/rusty_rival
 ```
 
-#### 2c. Add Engines to the Database
+#### 2c. Add Engines to Database
 
-Before running competitions, add the engines you want to use:
+Engines are auto-created with `active=false` when first used. To include an engine in random/gauntlet modes, set `active=true`:
 
 ```sql
--- Add Stockfish virtual engines (these match the sf-XXXX naming convention)
+-- Add and activate Stockfish engines
 INSERT INTO engines (name, active, initial_elo) VALUES
     ('sf-1400', true, 1400),
     ('sf-1600', true, 1600),
@@ -138,26 +177,20 @@ INSERT INTO engines (name, active, initial_elo) VALUES
     ('sf-3000', true, 3000),
     ('sf-full', true, 3500);
 
--- Add Rusty Rival versions (initial_elo = 2600 for Rusty Rival engines)
+-- Add Rusty Rival version
 INSERT INTO engines (name, active, initial_elo) VALUES
     ('v1.0.13', true, 2600);
 
--- Create initial Elo ratings for each engine
+-- Create initial Elo ratings
 INSERT INTO elo_ratings (engine_id, elo, games_played)
 SELECT id, initial_elo, 0 FROM engines;
 ```
 
-**Note:** Engines are auto-created with `active=false` when they first appear in a game. To include an engine in random/gauntlet modes, set `active=true`:
+### Step 3: Install Engines
 
-```sql
-UPDATE engines SET active = true WHERE name = 'v1.0.13';
-```
+#### Stockfish
 
-### Step 3: Installing Stockfish
-
-Download Stockfish from [stockfishchess.org/download](https://stockfishchess.org/download) or [GitHub releases](https://github.com/official-stockfish/Stockfish/releases).
-
-Place the binary in `engines/stockfish/`:
+Download from [stockfishchess.org](https://stockfishchess.org/download) and place in `engines/stockfish/`:
 
 ```
 engines/
@@ -167,100 +200,143 @@ engines/
     stockfish-macos-m1-apple-silicon    # macOS Apple Silicon
 ```
 
-The script auto-detects Stockfish and creates virtual engines at various Elo levels:
-- `sf-1400`, `sf-1600`, `sf-1800`, `sf-2000`, `sf-2200`, `sf-2400`, `sf-2600`, `sf-2800`, `sf-3000`
-- `sf-full` (full strength)
+The script auto-creates virtual Stockfish engines: `sf-1400`, `sf-1600`, `sf-1800`, `sf-2000`, `sf-2200`, `sf-2400`, `sf-2600`, `sf-2800`, `sf-3000`, and `sf-full`.
 
-### Step 4: Installing Rusty Rival Versions
+#### Rusty Rival
 
-Download release binaries from [GitHub releases](https://github.com/chris-moreton/rusty-rival/releases) or build from source.
-
-**Release binaries:**
-
-Create a version directory and place the binary inside:
+Download from [GitHub releases](https://github.com/chris-moreton/rusty-rival/releases) or build from source:
 
 ```
 engines/
   v1.0.13/
-    rusty-rival-v1.0.13-windows-x86_64.exe   # Windows release
-    rusty-rival-v1.0.13-linux-x86_64         # Linux release
-    rusty-rival-v1.0.13-macos-aarch64        # macOS release
+    rusty-rival-v1.0.13-windows-x86_64.exe   # Windows
+    rusty-rival-v1.0.13-linux-x86_64         # Linux
+    rusty-rival-v1.0.13-macos-aarch64        # macOS
 ```
 
-The script recognizes versioned binary names (`rusty-rival-vX.X.X-*`) automatically.
-
-**Legacy naming (also supported):**
-
-```
-engines/
-  v1.0.13/
-    rusty-rival.exe   # Windows
-    rusty-rival       # Linux/macOS
-```
+Legacy naming (`rusty-rival.exe` / `rusty-rival`) is also supported.
 
 ---
 
-## Building Local Test Versions
+## Competition Modes
 
-When developing, you can create local test builds to compare against other versions.
+### Head-to-Head Match (2 engines)
 
-### Naming Convention
+Direct match between two engines with alternating colors.
 
-Use the format `vNNN-description` where:
-- `NNN` is a zero-padded version number (e.g., `012`, `027`)
-- `description` is a short identifier for the changes
+- Each opening played twice (once per side)
+- Uses built-in opening book (250 positions) by default
+- Shows running score and Elo after each game
+- Elo ratings **are updated**
 
-Examples:
-- `v012-my-test-version`
-- `v027-tablebase-fast`
-- `v030-better-eval`
-
-### Creating a Test Build
-
-**Linux/macOS:**
 ```bash
-# Build optimized for your CPU
-RUSTFLAGS="-C target-cpu=native" RUST_MIN_STACK=4097152 cargo build --release
-
-# Create version directory and copy binary
-mkdir -p engines/v030-my-new-feature
-cp target/release/rusty-rival engines/v030-my-new-feature/
+./scripts/compete.py v1.0.13 sf-2400 --games 100 --time 1.0
 ```
 
-**Windows (PowerShell):**
-```powershell
-# Build optimized for your CPU
-$env:RUSTFLAGS="-C target-cpu=native"; $env:RUST_MIN_STACK=4097152; cargo build --release
+### Round-Robin League (3+ engines)
 
-# Create version directory and copy binary
-mkdir engines\v030-my-new-feature
-copy target\release\rusty-rival.exe engines\v030-my-new-feature\
+Full round-robin tournament between all specified engines.
+
+- Creates all possible pairings (4 engines = 6 pairings)
+- Plays games interleaved across all pairings
+- Shows league table after each game
+- `--games` specifies games per pairing
+- Elo ratings **are updated**
+
+```bash
+./scripts/compete.py v1.0.13 sf-2400 sf-2600 sf-2800 --games 50 --time 1.0
 ```
 
-**Windows (cmd.exe):**
-```cmd
-set RUSTFLAGS=-C target-cpu=native
-set RUST_MIN_STACK=4097152
-cargo build --release
+### Gauntlet Mode
 
-mkdir engines\v030-my-new-feature
-copy target\release\rusty-rival.exe engines\v030-my-new-feature\
+Test a single "challenger" engine against all **active** engines in the database.
+
+- Plays the challenger against every active engine
+- Interleaved rounds: cycles through all opponents before repeating
+- Each round = 1 game as white + 1 game as black per opponent
+- Shows per-opponent statistics at the end
+- Elo ratings **are updated**
+
+```bash
+./scripts/compete.py v1.0.13 --gauntlet --games 50 --time 0.5
 ```
+
+**Important:** Only engines with `active=true` in the database are included as opponents.
+
+### Random Mode
+
+Continuous random pairings from all **active** engines.
+
+- Randomly selects two active engines for each match
+- Each match = 2 games (one per side) with the same opening
+- Shows standings after every game
+- Elo ratings **are updated**
+- **Live updates**: Re-checks active engines before each match, so you can enable/disable engines without restarting
+
+```bash
+./scripts/compete.py --random --games 100 --time 0.5
+
+# Weighted: favor engines with fewer games played
+./scripts/compete.py --random --weighted --games 100 --time 0.5
+```
+
+**Important:** Only engines with `active=true` in the database are included. Use `--enable` and `--disable` to control which engines participate (changes take effect on the next match).
+
+### EPD Mode
+
+Play through positions from an EPD file sequentially.
+
+- Each position played twice per pairing (once per side)
+- Positions played in order (not random)
+- Elo ratings **are NOT updated** (specialized positions would skew ratings)
+
+```bash
+./scripts/compete.py v1.0.13 sf-2800 --epd eet.epd --time 1.0
+```
+
+**Included EPD files** (in `engines/epd/`):
+- `eet.epd` - 100 positions (Eigenmann Endgame Test)
+- `pet.epd` - 49 positions (Peter McKenzie pawn endgame test)
 
 ---
 
-## Running Competitions
+## Command Reference
 
-### Basic Syntax
+### Syntax
 
-**Linux/macOS:**
 ```bash
+# Linux/macOS
 ./scripts/compete.py [engines...] [options]
+
+# Windows
+python scripts/compete.py [engines...] [options]
 ```
 
-**Windows (with venv activated):**
-```cmd
-python scripts/compete.py [engines...] [options]
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--games N`, `-g N` | Number of games/rounds (default: 100) |
+| `--time T`, `-t T` | Time per move in seconds (default: 1.0) |
+| `--timelow T` | Minimum time per move (use with `--timehigh`) |
+| `--timehigh T` | Maximum time per move (use with `--timelow`) |
+| `--no-book` | Disable opening book (start from initial position) |
+| `--gauntlet` | Gauntlet mode: test one engine against all active engines |
+| `--random` | Random mode: continuous random pairings |
+| `--weighted` | With `--random`: favor engines with fewer games played |
+| `--epd FILE` | EPD mode: play positions from file |
+| `--list` | List all engines with their active status |
+| `--enable ENGINE...` | Enable one or more engines |
+| `--disable ENGINE...` | Disable one or more engines |
+
+### Time Control Examples
+
+```bash
+# Fixed time per move (1 second)
+python scripts/compete.py v1.0.13 sf-2400 --time 1.0
+
+# Random time per match (only in random mode)
+python scripts/compete.py --random --timelow 0.1 --timehigh 2.0
 ```
 
 ### Engine Name Shorthand
@@ -274,186 +350,31 @@ You can use shorthand names instead of full names:
 | `v1.0.13` | `v1.0.13` (semantic version) |
 | `sf-2400` | Stockfish at 2400 Elo |
 
-The script matches the shorthand against available engines:
-- `v12` matches the first engine starting with `v012-`, `v12-`, or `v12.`
-- Exact matches take priority
+The script matches shorthand against available engines. Exact matches take priority.
 
 ---
 
-## Quick Start Examples
+## Engine Management
 
-### Head-to-Head Match
-
-**Linux/macOS:**
-```bash
-./scripts/compete.py v1.0.13 sf-2400 --games 100 --time 1.0
-```
-
-**Windows:**
-```cmd
-python scripts/compete.py v1.0.13 sf-2400 --games 100 --time 1.0
-```
-
-### Round-Robin League
-
-Test multiple engines against each other:
-
-**Linux/macOS:**
-```bash
-./scripts/compete.py v1.0.13 sf-2400 sf-2600 sf-2800 sf-3000 --games 100 --time 1.0
-```
-
-**Windows:**
-```cmd
-python scripts/compete.py v1.0.13 sf-2400 sf-2600 sf-2800 sf-3000 --games 100 --time 1.0
-```
-
-### Random Mode
-
-Continuous random pairings from all active engines:
-
-**Linux/macOS:**
-```bash
-./scripts/compete.py --random --games 100 --time 0.5
-```
-
-**Windows:**
-```cmd
-python scripts/compete.py --random --games 100 --time 0.5
-```
-
-### Gauntlet Mode
-
-Test one engine against all others:
-
-**Linux/macOS:**
-```bash
-./scripts/compete.py v1.0.13 --gauntlet --games 50 --time 0.5
-```
-
-**Windows:**
-```cmd
-python scripts/compete.py v1.0.13 --gauntlet --games 50 --time 0.5
-```
-
-### EPD Endgame Testing
-
-Test with specific positions from an EPD file:
-
-**Linux/macOS:**
-```bash
-./scripts/compete.py v1.0.13 sf-2800 --epd eet.epd --time 1.0
-```
-
-**Windows:**
-```cmd
-python scripts/compete.py v1.0.13 sf-2800 --epd eet.epd --time 1.0
-```
-
----
-
-## Competition Modes
-
-### Head-to-Head Match (2 engines)
-
-Direct match between two engines with alternating colors.
-
-- Each opening position is played twice (once per side)
-- Uses the built-in opening book (250 positions) by default
-- Shows running score and Elo after each game
-
-### Round-Robin League (3+ engines)
-
-Full round-robin tournament between all specified engines.
-
-- Creates all possible pairings (e.g., 4 engines = 6 pairings)
-- Plays games in interleaved rounds across all pairings
-- Shows league table after each round and after each game
-- `--games` specifies games per pairing
-
-### Gauntlet Mode
-
-Test a single "challenger" engine against all active engines in the pool.
-
-- Plays the challenger against every active engine
-- Interleaved rounds: cycles through all opponents before repeating
-- Each round = 1 game as white + 1 game as black per opponent
-- Shows per-opponent statistics at the end
-
-### Random Mode
-
-Continuous random pairings from the active engine pool.
-
-- Randomly selects two active engines for each match
-- Each match = 2 games (one per side) with the same opening
-- Updates Elo ratings after each game
-- Shows standings after every game
-- With `--weighted`: selection probability = 1/(games+1)
-
-### EPD Mode
-
-Play through positions from an EPD file sequentially.
-
-- Each position played twice per pairing (once per side)
-- Positions played sequentially (not random)
-- **Elo ratings are NOT updated** (specialized positions would skew ratings)
-- Shows standings after each position
-
-**Included EPD files** (in `engines/epd/`):
-- `eet.epd` - 100 positions (Eigenmann Endgame Test)
-- `pet.epd` - 49 positions (Peter McKenzie pawn endgame test)
-
----
-
-## Command Reference
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--games N`, `-g N` | Number of games/rounds/matches (default: 100) |
-| `--time T`, `-t T` | Time per move in seconds (default: 1.0) |
-| `--timelow T` | Minimum time per move (use with `--timehigh`) |
-| `--timehigh T` | Maximum time per move (use with `--timelow`) |
-| `--no-book` | Disable opening book (start from initial position) |
-| `--gauntlet` | Enable gauntlet mode |
-| `--random` | Enable random mode |
-| `--weighted` | With `--random`: favor engines with fewer games |
-| `--epd FILE` | EPD mode: play positions from file |
-
-### Time Control
-
-```bash
-# Fixed time per move
-python scripts/compete.py v1.0.13 sf-2400 --time 1.0
-
-# Random time per match (only in random mode)
-python scripts/compete.py --random --timelow 0.1 --timehigh 2.0
-```
-
----
-
-## Engine Directory Structure
+### Directory Structure
 
 ```
 engines/
   stockfish/
     stockfish-windows-x86-64-avx2.exe
     stockfish-ubuntu-x86-64-avx2
-    stockfish-macos-m1-apple-silicon
   v1.0.13/
     rusty-rival-v1.0.13-windows-x86_64.exe
-  v1.0.12/
-    rusty-rival-v1.0.12-linux-x86_64
   v027-my-local-test/
     rusty-rival.exe          # Windows
     rusty-rival              # Linux/macOS
+  java-rival-37.0.0/
+    rivalchess-v37.0.0.jar   # Java engine (cross-platform)
   epd/
     eet.epd
     pet.epd
   syzygy/                    # Optional: Syzygy tablebases
     KQvK.rtbw
-    ...
 ```
 
 ### Engine Discovery
@@ -464,17 +385,67 @@ The script automatically discovers engines:
 2. **Rusty Rival versions**: Looks in `engines/v*/` directories
    - First tries versioned names: `rusty-rival-v1.0.13-*`
    - Falls back to `rusty-rival.exe` (Windows) or `rusty-rival` (Unix)
-3. **Virtual Stockfish engines**: Auto-creates `sf-1400` through `sf-3000` using UCI_LimitStrength
+3. **Java engines**: Looks in `engines/java-rival-*/` for `.jar` files
+   - Runs with `java -jar` (cross-platform, no wrapper script needed)
+   - Example: `engines/java-rival-37.0.0/rivalchess-v37.0.0.jar` → `java-rival-37`
+4. **Virtual Stockfish engines**: Auto-creates `sf-1400` through `sf-3000` using UCI_LimitStrength
+
+### Enabling and Disabling Engines
+
+Control which engines are included in random and gauntlet modes:
+
+```bash
+# List all engines with their status
+python scripts/compete.py --list
+
+# Disable engines (won't be selected in random/gauntlet mode)
+python scripts/compete.py --disable sf-1400 sf-full java-rival-36
+
+# Enable engines
+python scripts/compete.py --enable java-rival-37 v1.0.13
+```
+
+Example output from `--list`:
+```
+Engine                         Status          Elo    Games
+----------------------------------------------------------
+sf-3000                        active         2991      510
+sf-2800                        active         2705     1472
+v1.0.13                        active         2408      143
+java-rival-37                  disabled       1500        0
+```
+
+**Note:** Changes take effect immediately. In random mode, the engine list is refreshed before each match, so you can enable/disable engines while a competition is running.
+
+### Building Local Test Versions
+
+When developing, create local builds for comparison testing.
+
+**Naming convention:** `vNNN-description` (e.g., `v030-better-eval`)
+
+**Linux/macOS:**
+```bash
+RUSTFLAGS="-C target-cpu=native" RUST_MIN_STACK=4097152 cargo build --release
+mkdir -p engines/v030-my-new-feature
+cp target/release/rusty-rival engines/v030-my-new-feature/
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:RUSTFLAGS="-C target-cpu=native"; $env:RUST_MIN_STACK=4097152; cargo build --release
+mkdir engines\v030-my-new-feature
+copy target\release\rusty-rival.exe engines\v030-my-new-feature\
+```
 
 ---
 
 ## Elo Rating System
 
-The framework maintains persistent Elo ratings in `results/elo_ratings.json`.
+Elo ratings are stored in the PostgreSQL database (`elo_ratings` table).
 
 ### Rating Calculation
 
-- **Initial rating**: Average of existing ratings (or 1500 if first engine)
+- **Initial rating**: Based on the `initial_elo` column in the `engines` table (default: 1500)
 - **K-factor**: 40 for provisional ratings (<30 games), 20 for established
 - **Update**: Standard Elo formula after each game
 
@@ -495,7 +466,7 @@ v1.0.12: 1586 (492 games)
 | Round-robin | Yes |
 | Gauntlet | Yes |
 | Random | Yes |
-| EPD | **No** (specialized positions would skew ratings) |
+| EPD | **No** |
 
 ---
 
@@ -507,67 +478,25 @@ A Flask-based web interface displays head-to-head statistics and Elo ratings.
 
 **Linux/macOS:**
 ```bash
-cd /path/to/rusty-rival
 source .venv/bin/activate
 python -m web.app
 ```
 
-**Windows (PowerShell):**
-```powershell
-cd C:\path\to\rusty-rival
-& .\.venv\Scripts\Activate.ps1
-python -m web.app
-```
-
-**Windows (cmd.exe):**
+**Windows:**
 ```cmd
-cd C:\path\to\rusty-rival
 .venv\Scripts\activate.bat
 python -m web.app
 ```
 
-The dashboard runs at `http://localhost:5000` by default.
+The dashboard runs at `http://localhost:5000`.
 
 ### Features
 
-- **H2H Grid**: Shows head-to-head scores between all engine pairs
-- **Elo Rankings**: Engines sorted by current Elo rating
-- **Performance Colors**: Cells are color-coded based on performance vs expected:
-  - **Green**: Overperforming (scoring better than Elo predicts)
-  - **Red**: Underperforming (scoring worse than Elo predicts)
-  - **White**: Within expected variance
-- **Tooltips**: Hover over cells for detailed stats (games played, expected vs actual score)
-- **Active Filter**: By default shows only active engines; add `?all=1` to URL to show all
-
-### Endpoints
-
-| URL | Description |
-|-----|-------------|
-| `/` | Main dashboard with H2H grid |
-| `/?all=1` | Dashboard including inactive engines |
-| `/health` | Health check endpoint |
-
----
-
-## Data Storage
-
-All competition data is stored in the PostgreSQL database:
-
-| Table | Description |
-|-------|-------------|
-| `engines` | Engine metadata, active status, initial Elo |
-| `games` | Individual game results with full PGN content |
-| `elo_ratings` | Current Elo ratings and game counts |
-
-PGN content is stored in the `pgn` column of the `games` table. To export games, query the database directly:
-
-```sql
--- Export all games for a specific engine
-SELECT g.pgn FROM games g
-JOIN engines w ON g.white_engine_id = w.id
-JOIN engines b ON g.black_engine_id = b.id
-WHERE w.name = 'v1.0.13' OR b.name = 'v1.0.13';
-```
+- **H2H Grid**: Head-to-head scores between all engine pairs
+- **Elo Rankings**: Engines sorted by current rating
+- **Performance Colors**: Green (overperforming), Red (underperforming), White (expected)
+- **Tooltips**: Hover for detailed stats
+- **Active Filter**: Add `?all=1` to URL to show inactive engines
 
 ---
 
@@ -575,7 +504,6 @@ WHERE w.name = 'v1.0.13' OR b.name = 'v1.0.13';
 
 ### Python Not Found
 
-Install Python:
 - **Windows**: `winget install Python.Python.3.12`
 - **macOS**: `brew install python`
 - **Linux**: `sudo apt install python3`
@@ -588,52 +516,30 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 **Windows - script opens in Notepad:**
-Use `&` operator or the batch file:
 ```powershell
 & .\.venv\Scripts\Activate.ps1
-# or
-.\.venv\Scripts\activate.bat
 ```
 
 ### Engine Not Found
 
 ```
 Error: Engine 'v99' not found
-Available engines: v1.0.13, sf-2400, ...
 ```
 
-Check that:
-1. The engine directory exists in `engines/`
-2. The binary is inside with the correct name
-3. The binary has execute permissions (Linux/macOS: `chmod +x`)
-
-### Binary Not Found
-
-```
-Error: Engine binary not found: engines/v1.0.13/rusty-rival
-```
-
-The script looks for binaries in this order:
-1. `rusty-rival-v1.0.13-*` (versioned name)
-2. `rusty-rival.exe` (Windows)
-3. `rusty-rival` (Linux/macOS)
+Check:
+1. Engine directory exists in `engines/`
+2. Binary is inside with correct name
+3. Binary has execute permissions (Linux/macOS: `chmod +x`)
 
 ### Stockfish Not Found
 
-Ensure the Stockfish binary is in `engines/stockfish/` with one of these names:
+Ensure the binary is in `engines/stockfish/` with a recognized name:
 - `stockfish-windows-x86-64-avx2.exe`
-- `stockfish-windows-x86-64.exe`
-- `stockfish.exe`
 - `stockfish-ubuntu-x86-64-avx2`
-- `stockfish-linux-x86_64`
 - `stockfish-macos-m1-apple-silicon`
-- `stockfish`
+- `stockfish.exe` / `stockfish`
 
 ### EPD File Not Found
-
-```
-Error: EPD file not found: custom.epd
-```
 
 Provide the full path or place the file in `engines/epd/`.
 
@@ -641,15 +547,8 @@ Provide the full path or place the file in `engines/epd/`.
 
 ## Opening Book
 
-The built-in opening book contains 250 balanced positions from major openings:
+The built-in opening book contains 250 balanced positions from major openings (Sicilian, Italian, Ruy Lopez, Queen's Gambit, King's Indian, French, Caro-Kann, English, etc.).
 
-- Sicilian Defense, Italian Game, Ruy Lopez
-- Queen's Gambit, King's Indian Defense
-- French Defense, Caro-Kann
-- English Opening, Slav Defense
-- Nimzo-Indian, Scotch Game
-- And more...
-
-Each opening is played twice (once with each engine as white) to ensure fairness.
+Each opening is played twice (once with each engine as white) for fairness.
 
 Disable with `--no-book` to start all games from the initial position.

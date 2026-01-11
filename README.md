@@ -33,73 +33,9 @@ cp target/release/rusty-rival engines/v020-my-feature/
 git tag v020-my-feature
 ```
 
-## Engine Configuration
+## Engine Competition
 
-Engines are configured via `engines/engines.json`. This allows you to:
-- Add third-party UCI engines (Stockfish, Maia, etc.)
-- Configure UCI options per engine (e.g., limit Stockfish's Elo)
-- Run the same binary at different strength levels
-
-### Configuration File Format
-
-```json
-{
-  "v019-capture-fix": {
-    "binary": "v019-capture-fix/rusty-rival"
-  },
-  "sf-1500": {
-    "binary": "/opt/homebrew/bin/stockfish",
-    "uci_options": {
-      "UCI_LimitStrength": "true",
-      "UCI_Elo": "1500"
-    }
-  },
-  "sf-2000": {
-    "binary": "/opt/homebrew/bin/stockfish",
-    "uci_options": {
-      "UCI_LimitStrength": "true",
-      "UCI_Elo": "2000"
-    }
-  },
-  "maia-1100": {
-    "binary": "/usr/local/bin/lc0",
-    "uci_options": {
-      "WeightsFile": "/path/to/maia-1100.pb.gz"
-    }
-  }
-}
-```
-
-- `binary`: Path to engine executable (relative to `engines/` or absolute)
-- `uci_options`: Optional dict of UCI options sent after initialization
-
-All engines must be listed in the config file to be recognized.
-
-## Engine Competition (compete.py)
-
-The `scripts/compete.py` script is a comprehensive engine testing framework with Elo tracking.
-
-```bash
-# Head-to-head match
-./scripts/compete.py v27 v24 --games 100 --time 1.0
-
-# Round-robin league
-./scripts/compete.py v27 v24 v19 v1 --games 50 --time 0.5
-
-# Random continuous competition
-./scripts/compete.py --random --games 100 --time 0.5
-
-# EPD endgame testing (Elo not updated)
-./scripts/compete.py v27 v24 --epd eet.epd --time 1.0
-```
-
-**See [COMPETE.md](COMPETE.md) for full documentation** including:
-- All competition modes (head-to-head, round-robin, gauntlet, random, EPD)
-- Engine configuration and active/inactive status
-- Elo rating system details
-- Opening book information
-- Time control options (fixed and random ranges)
-- Troubleshooting guide
+The `scripts/compete.py` script provides a comprehensive engine testing framework with Elo tracking. See **[COMPETE.md](COMPETE.md)** for full documentation including setup, all competition modes, and troubleshooting.
 
 ## Running Perft
 
