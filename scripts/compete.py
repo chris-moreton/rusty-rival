@@ -498,7 +498,7 @@ def get_k_factor(games_played: int) -> float:
     return K_FACTOR_ESTABLISHED
 
 
-def update_elo_after_game(ratings: dict, white: str, black: str, result: str) -> tuple[float, float]:
+def update_elo_after_game(white: str, black: str, result: str) -> tuple[float, float]:
     """
     Update Elo ratings after a single game using the standard Elo formula.
 
@@ -506,34 +506,24 @@ def update_elo_after_game(ratings: dict, white: str, black: str, result: str) ->
         Expected = 1 / (1 + 10^((opponent_elo - self_elo) / 400))
         New_elo = old_elo + K * (actual_score - expected)
 
-    For concurrent safety, reads current Elo from DB at update time (not from
-    the ratings dict which may be stale). This allows multiple machines to
-    run tournaments simultaneously.
-
-    Modifies ratings dict in place and saves to file.
+    Reads current Elo from database at update time for concurrent safety.
+    This allows multiple machines to run tournaments simultaneously.
 
     Returns:
         Tuple of (white_change, black_change) - the Elo points gained/lost by each player.
     """
     # Get CURRENT Elo from database (for concurrent safety)
-    # Fall back to ratings dict if DB unavailable
     white_db = get_current_elo_from_db(white)
     black_db = get_current_elo_from_db(black)
 
     if white_db:
         white_elo, white_games = white_db
-    elif white in ratings:
-        white_elo = ratings[white]["elo"]
-        white_games = ratings[white]["games"]
     else:
         white_elo = get_initial_elo(white)
         white_games = 0
 
     if black_db:
         black_elo, black_games = black_db
-    elif black in ratings:
-        black_elo = ratings[black]["elo"]
-        black_games = ratings[black]["games"]
     else:
         black_elo = get_initial_elo(black)
         black_games = 0
@@ -570,16 +560,6 @@ def update_elo_after_game(ratings: dict, white: str, black: str, result: str) ->
     # Update database (concurrent-safe, per-engine updates)
     update_engine_elo_in_db(white, new_white_elo, new_white_games)
     update_engine_elo_in_db(black, new_black_elo, new_black_games)
-
-    # Update ratings dict for JSON backup and display
-    if white not in ratings:
-        ratings[white] = {"elo": 0, "games": 0}
-    if black not in ratings:
-        ratings[black] = {"elo": 0, "games": 0}
-    ratings[white]["elo"] = new_white_elo
-    ratings[white]["games"] = new_white_games
-    ratings[black]["elo"] = new_black_elo
-    ratings[black]["games"] = new_black_games
 
     return (white_change, black_change)
 
@@ -1153,7 +1133,7 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
                         opening_name, opening_fen, str(game))
 
         # Update persistent Elo ratings
-        white_change, black_change = update_elo_after_game(elo_ratings, white, black, result)
+        white_change, black_change = update_elo_after_game(white, black, result)
 
         # Calculate points
         if result == "1-0":
@@ -1220,15 +1200,17 @@ def run_match(engine1_name: str, engine2_name: str, engine_dir: Path,
     }
 
 
-def print_league_table(ratings: dict, competitors: set[str], games_this_comp: dict[str, int],
+def print_league_table(competitors: set[str], games_this_comp: dict[str, int],
                        points_this_comp: dict[str, float], round_num: int, is_final: bool = False,
                        competitors_only: bool = False, game_num: int = 0, total_games: int = 0,
                        session_start_elo: dict[str, float] = None):
     """
     Print the league standings.
 
+    Fetches fresh Elo ratings from the database to ensure accuracy across
+    multiple concurrent competitions.
+
     Args:
-        ratings: Global Elo ratings dict {engine: {"elo": float, "games": int}}
         competitors: Set of engine names in the current competition
         games_this_comp: Dict of games played this competition per engine
         points_this_comp: Dict of points scored this competition per engine
@@ -1239,10 +1221,13 @@ def print_league_table(ratings: dict, competitors: set[str], games_this_comp: di
         total_games: Total games in competition (for per-game display)
         session_start_elo: Dict of starting Elo for each engine this session
     """
+    # Fetch fresh ratings from database
+    ratings = load_elo_ratings()
+
     if competitors_only:
         # Compact table showing only competitors, sorted by points
         sorted_competitors = sorted(
-            [(name, points_this_comp.get(name, 0), ratings[name]["elo"]) for name in competitors],
+            [(name, points_this_comp.get(name, 0), ratings.get(name, {"elo": 0})["elo"]) for name in competitors],
             key=lambda x: (-x[1], -x[2])  # Sort by points desc, then Elo desc
         )
 
@@ -1253,7 +1238,8 @@ def print_league_table(ratings: dict, competitors: set[str], games_this_comp: di
         print(f"{'-'*70}")
 
         for rank, (name, points, elo) in enumerate(sorted_competitors, 1):
-            prov = "?" if ratings[name]["games"] < PROVISIONAL_GAMES else ""
+            engine_data = ratings.get(name, {"games": 0})
+            prov = "?" if engine_data["games"] < PROVISIONAL_GAMES else ""
             if session_start_elo and name in session_start_elo:
                 change = elo - session_start_elo[name]
                 change_str = f"{change:+.0f}"
@@ -1444,7 +1430,7 @@ def run_epd(engine_names: list[str], engine_dir: Path, epd_file: Path,
 
         # Show standings after each position
         print_league_table(
-            elo_ratings, set(engine_names), session_games,
+            set(engine_names), session_games,
             session_points, 0, False, True, game_num, total_games
         )
 
@@ -1569,7 +1555,7 @@ def run_league(engine_names: list[str], engine_dir: Path,
                                 opening_name, opening_fen, str(game))
 
                 # Update persistent Elo ratings
-                white_change, black_change = update_elo_after_game(elo_ratings, white, black, result)
+                white_change, black_change = update_elo_after_game(white, black, result)
 
                 # Update games and points for this competition
                 games_this_comp[white] += 1
@@ -1608,11 +1594,11 @@ def run_league(engine_names: list[str], engine_dir: Path,
                       f"Elo: {white} {white_change:+.1f}, {black} {black_change:+.1f}")
 
                 # Print compact standings after each game
-                print_league_table(elo_ratings, competitors, games_this_comp, points_this_comp,
+                print_league_table(competitors, games_this_comp, points_this_comp,
                                    round_idx + 1, competitors_only=True, game_num=game_num, total_games=total_games)
 
     # Print final standings (full table)
-    print_league_table(elo_ratings, competitors, games_this_comp, points_this_comp, num_rounds, is_final=True)
+    print_league_table(competitors, games_this_comp, points_this_comp, num_rounds, is_final=True)
 
     # Print head-to-head results
     print(f"{'='*95}")
@@ -1710,7 +1696,7 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
             save_game_to_db(challenger_name, opponent, result, f"{time_per_move}s/move",
                             opening_name, opening_fen, str(game))
 
-            challenger_change, opponent_change = update_elo_after_game(elo_ratings, challenger_name, opponent, result)
+            challenger_change, opponent_change = update_elo_after_game(challenger_name, opponent, result)
 
             if result == "1-0":
                 results_per_opponent[opponent]["wins"] += 1
@@ -1735,7 +1721,7 @@ def run_gauntlet(challenger_name: str, engine_dir: Path,
             save_game_to_db(opponent, challenger_name, result, f"{time_per_move}s/move",
                             opening_name, opening_fen, str(game))
 
-            opponent_change, challenger_change = update_elo_after_game(elo_ratings, opponent, challenger_name, result)
+            opponent_change, challenger_change = update_elo_after_game(opponent, challenger_name, result)
 
             if result == "0-1":
                 results_per_opponent[opponent]["wins"] += 1
@@ -1897,7 +1883,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
             if eng not in session_points:
                 session_points[eng] = 0.0
 
-        e1_change, e2_change = update_elo_after_game(elo_ratings, engine1, engine2, result)
+        e1_change, e2_change = update_elo_after_game(engine1, engine2, result)
 
         if result == "1-0":
             session_points[engine1] += 1.0
@@ -1909,7 +1895,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
 
         print(f"Game {game_num:3d}/{total_games}: {engine1} (W) vs {engine2} -> {result}  [{opening_name}]  "
               f"Elo: {engine1} {e1_change:+.1f}, {engine2} {e2_change:+.1f}")
-        print_league_table(elo_ratings, session_engines, session_games, session_points,
+        print_league_table(session_engines, session_games, session_points,
                            0, competitors_only=True, game_num=game_num, total_games=total_games,
                            session_start_elo=session_start_elo)
 
@@ -1926,7 +1912,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
         save_game_to_db(engine2, engine1, result, f"{match_time:.2f}s/move",
                         opening_name, opening_fen, str(game))
 
-        e2_change, e1_change = update_elo_after_game(elo_ratings, engine2, engine1, result)
+        e2_change, e1_change = update_elo_after_game(engine2, engine1, result)
 
         # Track session stats
         for eng in [engine1, engine2]:
@@ -1941,7 +1927,7 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
 
         print(f"Game {game_num:3d}/{total_games}: {engine2} (W) vs {engine1} -> {result}  [{opening_name}]  "
               f"Elo: {engine2} {e2_change:+.1f}, {engine1} {e1_change:+.1f}")
-        print_league_table(elo_ratings, session_engines, session_games, session_points,
+        print_league_table(session_engines, session_games, session_points,
                            0, competitors_only=True, game_num=game_num, total_games=total_games,
                            session_start_elo=session_start_elo)
 
