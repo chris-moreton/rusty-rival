@@ -29,6 +29,13 @@ Usage:
     # Each position played twice per pairing (once per side)
     ./scripts/compete.py v27 v24 --epd eet.epd --time 1.0
     ./scripts/compete.py v27 v24 v1 --epd engines/epd/pet.epd --time 0.5
+
+    # List all engines with their active status
+    ./scripts/compete.py --list
+
+    # Enable/disable engines (controls which engines are used in random mode)
+    ./scripts/compete.py --disable sf-1400 sf-full
+    ./scripts/compete.py --enable java-rival-37
 """
 
 import argparse
@@ -327,11 +334,14 @@ def discover_engines(engine_dir: Path) -> dict:
     Auto-discover engines from directory structure.
 
     Convention:
-    - v* directories: binary is {dir}/rusty-rival
+    - v* directories: binary is {dir}/rusty-rival or versioned name
     - sf-XXXX: virtual Stockfish at Elo XXXX (uses stockfish binary with UCI_LimitStrength)
-    - java-rival-*: binary is {dir}/java-rival
+    - java-rival-*: looks for .jar file, runs with "java -jar"
 
-    Returns dict: {engine_name: {"binary": Path, "uci_options": dict}}
+    Returns dict: {engine_name: {"binary": Path, "uci_options": dict, "command": list (optional)}}
+
+    If "command" key is present (for Java engines), use it for popen_uci.
+    Otherwise, use "binary" path directly.
     """
     engines = {}
     stockfish_binary = find_stockfish_binary(engine_dir)
@@ -368,12 +378,33 @@ def discover_engines(engine_dir: Path) -> dict:
 
         # java-rival engines (e.g., java-rival-36.0.0 -> java-rival-36)
         elif name.startswith("java-rival"):
-            binary = entry / "run.sh"
-            if binary.exists():
+            # Look for JAR files (cross-platform) or run.sh (legacy)
+            jar_file = None
+            for f in entry.iterdir():
+                if f.is_file() and f.suffix == ".jar":
+                    jar_file = f
+                    break
+
+            if jar_file:
                 # Simplify name: java-rival-36.0.0 -> java-rival-36
                 parts = name.split("-")
                 if len(parts) >= 3:
                     version = parts[2].split(".")[0]  # "36.0.0" -> "36"
+                    engine_name = f"java-rival-{version}"
+                else:
+                    engine_name = name
+                # Store command as list for Java engines
+                engines[engine_name] = {
+                    "binary": jar_file,  # Keep for existence check
+                    "command": ["java", "-jar", str(jar_file)],
+                    "uci_options": {}
+                }
+            elif (entry / "run.sh").exists():
+                # Legacy support for run.sh
+                binary = entry / "run.sh"
+                parts = name.split("-")
+                if len(parts) >= 3:
+                    version = parts[2].split(".")[0]
                     engine_name = f"java-rival-{version}"
                 else:
                     engine_name = name
@@ -468,10 +499,61 @@ def get_active_engines(engine_dir: Path) -> list[str]:
         sys.exit(1)
 
 
-def get_engine_info(name: str, engine_dir: Path) -> tuple[Path, dict]:
+@db_retry
+def set_engine_active(engine_name: str, active: bool) -> bool:
     """
-    Get engine binary path and UCI options.
-    Returns (binary_path, uci_options_dict).
+    Enable or disable an engine by setting its active flag.
+    Returns True if successful, False if engine not found.
+    """
+    try:
+        from web.database import db
+        from web.models import Engine
+
+        app = _get_app()
+        with app.app_context():
+            engine = Engine.query.filter_by(name=engine_name).first()
+            if not engine:
+                return False
+            engine.active = active
+            db.session.commit()
+            return True
+    except Exception as e:
+        print(f"Error: Failed to update engine: {e}")
+        return False
+
+
+@db_retry
+def list_engines_status() -> list[tuple[str, bool, float, int]]:
+    """
+    List all engines with their active status, Elo, and games played.
+    Returns list of (name, active, elo, games) tuples.
+    """
+    try:
+        from web.database import db
+        from web.models import Engine, EloRating
+
+        app = _get_app()
+        with app.app_context():
+            engines = Engine.query.all()
+            result = []
+            for e in engines:
+                elo = e.rating.elo if e.rating else 1500.0
+                games = e.rating.games_played if e.rating else 0
+                result.append((e.name, e.active, float(elo), games))
+            return sorted(result, key=lambda x: -x[2])  # Sort by Elo descending
+    except Exception as e:
+        print(f"Error: Failed to list engines: {e}")
+        return []
+
+
+def get_engine_info(name: str, engine_dir: Path) -> tuple[Path | list, dict]:
+    """
+    Get engine command and UCI options.
+    Returns (command, uci_options_dict).
+
+    command can be:
+    - Path: for native executables (will be converted to str for popen_uci)
+    - list: for Java engines ["java", "-jar", "path/to/engine.jar"]
     """
     engines = discover_engines(engine_dir)
 
@@ -488,7 +570,9 @@ def get_engine_info(name: str, engine_dir: Path) -> tuple[Path, dict]:
         print(f"Error: Engine binary not found: {binary_path}")
         sys.exit(1)
 
-    return binary_path, uci_options
+    # Return command list if present (for Java engines), otherwise return path
+    command = engine_config.get("command", binary_path)
+    return command, uci_options
 
 
 def get_k_factor(games_played: int) -> float:
@@ -953,21 +1037,29 @@ def resolve_engine_name(shorthand: str, engine_dir: Path) -> str:
         sys.exit(1)
 
 
-def play_game(engine1_path: Path, engine2_path: Path,
+def play_game(engine1_cmd: Path | list, engine2_cmd: Path | list,
               engine1_name: str, engine2_name: str,
               time_per_move: float,
               start_fen: str = None,
               opening_name: str = None,
               engine1_uci_options: dict = None,
               engine2_uci_options: dict = None) -> tuple[str, chess.pgn.Game]:
-    """Play a single game and return (result, pgn_game)."""
+    """Play a single game and return (result, pgn_game).
+
+    engine1_cmd/engine2_cmd can be:
+    - Path: for native executables
+    - list: for Java engines ["java", "-jar", "path/to/engine.jar"]
+    """
     if start_fen:
         board = chess.Board(start_fen)
     else:
         board = chess.Board()
 
-    engine1 = chess.engine.SimpleEngine.popen_uci(str(engine1_path), stderr=subprocess.DEVNULL)
-    engine2 = chess.engine.SimpleEngine.popen_uci(str(engine2_path), stderr=subprocess.DEVNULL)
+    # popen_uci accepts either a string or a list of arguments
+    cmd1 = engine1_cmd if isinstance(engine1_cmd, list) else str(engine1_cmd)
+    cmd2 = engine2_cmd if isinstance(engine2_cmd, list) else str(engine2_cmd)
+    engine1 = chess.engine.SimpleEngine.popen_uci(cmd1, stderr=subprocess.DEVNULL)
+    engine2 = chess.engine.SimpleEngine.popen_uci(cmd2, stderr=subprocess.DEVNULL)
 
     # Configure UCI options if provided
     if engine1_uci_options:
@@ -1797,6 +1889,9 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
 
     If time_low and time_high are provided, randomly select a time for each match
     from that range. Otherwise use time_per_move.
+
+    The active engines list is re-fetched before each match, allowing live
+    enable/disable of engines without restarting the competition.
     """
     use_time_range = time_low is not None and time_high is not None
     # Find all active engines
@@ -1840,6 +1935,30 @@ def run_random(engine_dir: Path, num_matches: int, time_per_move: float, results
     session_start_elo = {}  # engine -> Elo at start of session
 
     for match_idx in range(num_matches):
+        # Re-fetch active engines before each match (allows live enable/disable)
+        current_engines = get_active_engines(engine_dir)
+
+        # Check if engine list changed
+        if set(current_engines) != set(all_engines):
+            added = set(current_engines) - set(all_engines)
+            removed = set(all_engines) - set(current_engines)
+            if added:
+                print(f"\n[Engine(s) enabled: {', '.join(sorted(added))}]")
+                # Initialize newly added engines in elo_ratings
+                for engine in added:
+                    if engine not in elo_ratings:
+                        initial_elo = get_initial_elo(engine)
+                        elo_ratings[engine] = {"elo": initial_elo, "games": 0}
+            if removed:
+                print(f"\n[Engine(s) disabled: {', '.join(sorted(removed))}]")
+            all_engines = current_engines
+
+        # Skip if not enough engines
+        if len(all_engines) < 2:
+            print(f"\nWarning: Only {len(all_engines)} active engine(s), need at least 2. Waiting...")
+            time.sleep(5)
+            continue
+
         # Pick two engines (weighted or uniform random)
         if weighted:
             # Weight = 1 / (games + 1) - fewer games means higher weight
@@ -1971,8 +2090,52 @@ def main():
                         help="With --random: weight selection by inverse game count (fewer games = higher chance)")
     parser.add_argument("--epd", type=str, default=None,
                         help="EPD file mode: play through positions from an EPD file sequentially")
+    parser.add_argument("--enable", type=str, nargs="+", metavar="ENGINE",
+                        help="Enable one or more engines (set active=True)")
+    parser.add_argument("--disable", type=str, nargs="+", metavar="ENGINE",
+                        help="Disable one or more engines (set active=False)")
+    parser.add_argument("--list", action="store_true",
+                        help="List all engines with their active status")
 
     args = parser.parse_args()
+
+    # Handle --list command
+    if args.list:
+        engines = list_engines_status()
+        if not engines:
+            print("No engines found in database")
+            sys.exit(0)
+        print(f"\n{'Engine':<30} {'Status':<10} {'Elo':>8} {'Games':>8}")
+        print("-" * 58)
+        for name, active, elo, games in engines:
+            status = "active" if active else "disabled"
+            print(f"{name:<30} {status:<10} {elo:>8.0f} {games:>8}")
+        print()
+        sys.exit(0)
+
+    # Handle --enable command
+    if args.enable:
+        script_dir = Path(__file__).parent
+        engine_dir = script_dir.parent / "engines"
+        for engine in args.enable:
+            resolved = resolve_engine_name(engine, engine_dir)
+            if set_engine_active(resolved, True):
+                print(f"Enabled: {resolved}")
+            else:
+                print(f"Error: Engine '{resolved}' not found in database")
+        sys.exit(0)
+
+    # Handle --disable command
+    if args.disable:
+        script_dir = Path(__file__).parent
+        engine_dir = script_dir.parent / "engines"
+        for engine in args.disable:
+            resolved = resolve_engine_name(engine, engine_dir)
+            if set_engine_active(resolved, False):
+                print(f"Disabled: {resolved}")
+            else:
+                print(f"Error: Engine '{resolved}' not found in database")
+        sys.exit(0)
 
     # Validate time arguments
     if args.timelow is not None or args.timehigh is not None:
