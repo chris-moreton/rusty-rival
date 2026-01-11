@@ -392,6 +392,10 @@ fn cmd_register() -> Either<String, Option<String>> {
 
 fn cmd_ucinewgame(uci_state: &mut UciState, search_state: &mut SearchState) -> Either<String, Option<String>> {
     search_state.nodes = 0;
+    // Clear root_moves and pv to prevent stale data from previous games
+    // being output if time expires before the first search iteration completes
+    search_state.root_moves.clear();
+    search_state.pv.clear();
     for i in 0..NUM_HASH_ENTRIES {
         search_state.hash_table_height[i as usize] = HashEntry {
             score: 0,
