@@ -237,6 +237,7 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
 fn cmd_go(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
     let t = parts.get(1).unwrap();
     search_state.nodes = 0;
+    search_state.nodes_limit = u64::MAX;
 
     match *t {
         "perft" => {
@@ -248,13 +249,15 @@ fn cmd_go(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&
             let mut position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
             let mv = iterative_deepening(&mut position, 200, search_state);
-            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv)))
+            Right(Some(format_bestmove(mv, search_state)))
         }
         "mate" => {
+            let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
             let mut position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
-            let mv = iterative_deepening(&mut position, 200, search_state);
-            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv)))
+            // Search depth = 2 * mate_depth (plies, not moves)
+            let mv = iterative_deepening(&mut position, mate_depth.saturating_mul(2), search_state);
+            Right(Some(format_bestmove(mv, search_state)))
         }
         _ => {
             let line = parts.join(" ");
@@ -266,6 +269,8 @@ fn cmd_go(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&
             uci_state.depth = extract_go_param("depth", &line, 250);
             uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
             uci_state.move_time = extract_go_param("movetime", &line, 10000000);
+
+            search_state.nodes_limit = uci_state.nodes;
 
             let mut position = get_position(uci_state.fen.trim());
 
@@ -280,9 +285,20 @@ fn cmd_go(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
             let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state);
 
-            Right(Some("bestmove ".to_owned() + &algebraic_move_from_move(mv)))
+            Right(Some(format_bestmove(mv, search_state)))
         }
     }
+}
+
+fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
+    let bestmove = algebraic_move_from_move(mv);
+    // Include ponder move if we have a second move in the PV
+    if let Some(&ponder_mv) = search_state.current_best.0.get(1) {
+        if ponder_mv != 0 {
+            return format!("bestmove {} ponder {}", bestmove, algebraic_move_from_move(ponder_mv));
+        }
+    }
+    format!("bestmove {}", bestmove)
 }
 
 fn calc_from_colour_times(uci_state: &mut UciState, millis: u64, inc_millis: u64) {

@@ -61,7 +61,7 @@ macro_rules! time_expired {
 macro_rules! check_time {
     ($search_state:expr) => {
         if !$search_state.stop && $search_state.nodes % 1000 == 0 {
-            if $search_state.end_time < Instant::now() {
+            if $search_state.end_time < Instant::now() || $search_state.nodes >= $search_state.nodes_limit {
                 $search_state.stop = true;
                 send_info($search_state, false);
             }
