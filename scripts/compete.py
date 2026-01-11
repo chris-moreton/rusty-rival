@@ -56,6 +56,7 @@ import stat
 import subprocess
 import sys
 import time
+import traceback
 import urllib.request
 import chess
 import chess.engine
@@ -156,6 +157,7 @@ def load_elo_ratings() -> dict:
             return ratings
     except Exception as e:
         print(f"Error: Failed to load ratings from database: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 
@@ -192,6 +194,7 @@ def update_engine_elo_in_db(engine_name: str, new_elo: float, games_played: int)
             db.session.commit()
     except Exception as e:
         print(f"Error: Failed to update {engine_name} rating in database: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 
@@ -216,6 +219,7 @@ def get_current_elo_from_db(engine_name: str) -> tuple[float, int] | None:
             return None
     except Exception as e:
         print(f"Error: Failed to get {engine_name} rating from database: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 
@@ -270,6 +274,7 @@ def save_game_to_db(white: str, black: str, result: str, time_control: str,
             db.session.commit()
     except Exception as e:
         print(f"Error: Failed to save game to database: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 
@@ -295,6 +300,7 @@ def get_initial_elo(engine_name: str) -> float:
                 return float(engine.initial_elo)
     except Exception as e:
         print(f"Error: Failed to get initial Elo from database: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
     # Derive from engine name for Stockfish (sf-XXXX → XXXX)
@@ -392,6 +398,7 @@ def init_engine(engine_type: str, version: str) -> bool:
         return False
     except Exception as e:
         print(f"Error: Failed to download: {e}")
+        traceback.print_exc()
         if target_dir.exists() and not any(target_dir.iterdir()):
             target_dir.rmdir()
         return False
@@ -610,6 +617,7 @@ def get_active_engines(engine_dir: Path) -> list[str]:
             return sorted([e.name for e in active])
     except Exception as e:
         print(f"Error: Failed to get active engines from database: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 
@@ -652,6 +660,7 @@ def set_engine_active(engine_name: str, active: bool) -> bool:
             return True
     except Exception as e:
         print(f"Error: Failed to update engine: {e}")
+        traceback.print_exc()
         return False
 
 
@@ -676,6 +685,7 @@ def list_engines_status() -> list[tuple[str, bool, float, int]]:
             return sorted(result, key=lambda x: -x[2])  # Sort by Elo descending
     except Exception as e:
         print(f"Error: Failed to list engines: {e}")
+        traceback.print_exc()
         return []
 
 
@@ -1248,6 +1258,7 @@ def play_game(engine1_cmd: Path | list, engine2_cmd: Path | list,
 
     except Exception as e:
         print(f"  Error during game: {e}")
+        traceback.print_exc()
     finally:
         engine1.quit()
         engine2.quit()
