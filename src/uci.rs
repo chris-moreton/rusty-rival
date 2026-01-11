@@ -413,11 +413,15 @@ fn cmd_go(
     thread_search_state.end_time = end_time;
     thread_search_state.stop = stop_flag.clone();
 
-    // Spawn the search thread
-    let handle = thread::spawn(move || {
-        let mv = iterative_deepening(&mut position, max_depth, &mut thread_search_state);
-        println!("{}", format_bestmove(mv, &thread_search_state));
-    });
+    // Spawn the search thread with a larger stack size to prevent stack overflow
+    // during deep searches (default 2MB is not enough for very deep positions)
+    let handle = thread::Builder::new()
+        .stack_size(16 * 1024 * 1024) // 16 MB stack (matches RUST_MIN_STACK recommendation)
+        .spawn(move || {
+            let mv = iterative_deepening(&mut position, max_depth, &mut thread_search_state);
+            println!("{}", format_bestmove(mv, &thread_search_state));
+        })
+        .expect("Failed to spawn search thread");
 
     // Store the search handle
     *search_handle = Some(SearchHandle { stop: stop_flag, handle });

@@ -142,7 +142,9 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 
     let mut aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
 
-    search_state.current_best = (pv_single(0), -MATE_SCORE);
+    // Initialize with the first legal move so we always have a valid move to return
+    // even if time expires before the first search iteration completes
+    search_state.current_best = (pv_single(legal_moves[0].0), -MATE_SCORE);
 
     const ASPIRATION_RADIUS: [Score; 6] = [25, 50, 100, 200, 400, 800];
 
