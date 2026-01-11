@@ -7,7 +7,9 @@ use regex::Regex;
 use std::cmp::{max, min};
 use std::ops::Add;
 use std::process::exit;
-
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
@@ -17,7 +19,7 @@ use crate::moves::{generate_moves, is_check};
 
 use crate::perft::perft;
 use crate::search::iterative_deepening;
-use crate::types::{BoundType, HashEntry, Position, SearchState, UciState, BLACK, WHITE};
+use crate::types::{set_stop, BoundType, HashEntry, Position, SearchHandle, SearchState, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
 
@@ -70,10 +72,110 @@ fn replace_shortcuts(l: &str) -> &str {
 }
 
 pub fn run_command_test(uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
-    run_command(uci_state, search_state, replace_shortcuts(l))
+    // Tests expect synchronous behavior, so use the sync version
+    run_command_sync(uci_state, search_state, replace_shortcuts(l))
 }
 
-pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
+/// Run a command synchronously (blocking). Used for benchmarking where we need
+/// to read results from search_state after the search completes.
+pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState, l: &str) -> Either<String, Option<String>> {
+    let mut trimmed_line = replace_shortcuts(l).trim().replace("  ", " ");
+    if trimmed_line.starts_with("position startpos") {
+        trimmed_line = trimmed_line.replace("startpos", &("fen ".to_string() + START_POS));
+    }
+    let parts = trimmed_line.split(' ').collect::<Vec<&str>>();
+
+    match *parts.first().unwrap() {
+        "go" => cmd_go_sync(uci_state, search_state, parts),
+        "ucinewgame" => {
+            // Simplified ucinewgame for sync mode (no search handle needed)
+            search_state.nodes = 0;
+            search_state.root_moves.clear();
+            search_state.pv.clear();
+            for i in 0..NUM_HASH_ENTRIES {
+                search_state.hash_table_height[i as usize] = HashEntry {
+                    score: 0,
+                    version: 0,
+                    height: 0,
+                    mv: 0,
+                    bound: BoundType::Exact,
+                    lock: 0,
+                }
+            }
+            uci_state.fen = START_POS.parse().unwrap();
+            Right(None)
+        }
+        "position" => cmd_position(uci_state, search_state, parts),
+        _ => {
+            let mut search_handle: Option<SearchHandle> = None;
+            run_command(uci_state, search_state, &mut search_handle, l)
+        }
+    }
+}
+
+/// Synchronous version of cmd_go for benchmarking
+fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+    let t = parts.get(1).unwrap();
+    search_state.nodes = 0;
+    search_state.nodes_limit = u64::MAX;
+    set_stop(&search_state.stop, false);
+
+    match *t {
+        "perft" => {
+            let depth = parts.get(2).unwrap().to_string().parse().unwrap();
+            cmd_perft(depth, uci_state);
+            Right(None)
+        }
+        "infinite" => {
+            let mut position = get_position(uci_state.fen.trim());
+            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            let mv = iterative_deepening(&mut position, 200, search_state);
+            Right(Some(format_bestmove(mv, search_state)))
+        }
+        "mate" => {
+            let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
+            let mut position = get_position(uci_state.fen.trim());
+            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            let mv = iterative_deepening(&mut position, mate_depth.saturating_mul(2), search_state);
+            Right(Some(format_bestmove(mv, search_state)))
+        }
+        _ => {
+            let line = parts.join(" ");
+            uci_state.wtime = extract_go_param("wtime", &line, 0);
+            uci_state.btime = extract_go_param("btime", &line, 0);
+            uci_state.winc = extract_go_param("winc", &line, 0);
+            uci_state.binc = extract_go_param("binc", &line, 0);
+            uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
+            uci_state.depth = extract_go_param("depth", &line, 250);
+            uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
+            uci_state.move_time = extract_go_param("movetime", &line, 10000000);
+
+            search_state.nodes_limit = uci_state.nodes;
+
+            let mut position = get_position(uci_state.fen.trim());
+
+            if position.mover == WHITE {
+                calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
+            } else {
+                calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
+            }
+
+            uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
+
+            search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
+            let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state);
+
+            Right(Some(format_bestmove(mv, search_state)))
+        }
+    }
+}
+
+pub fn run_command(
+    uci_state: &mut UciState,
+    search_state: &mut SearchState,
+    search_handle: &mut Option<SearchHandle>,
+    l: &str,
+) -> Either<String, Option<String>> {
     let mut trimmed_line = replace_shortcuts(l).trim().replace("  ", " ");
     if trimmed_line.starts_with("position startpos") {
         trimmed_line = trimmed_line.replace("startpos", &("fen ".to_string() + START_POS));
@@ -85,12 +187,19 @@ pub fn run_command(uci_state: &mut UciState, search_state: &mut SearchState, l: 
         "uci" => cmd_uci(),
         "isready" => cmd_isready(),
         "state" => cmd_state(uci_state, search_state),
-        "go" => cmd_go(uci_state, search_state, parts),
+        "go" => cmd_go(uci_state, search_state, search_handle, parts),
+        "stop" => cmd_stop(search_handle),
         "setoption" => cmd_setoption(parts, search_state),
         "register" => cmd_register(),
-        "ucinewgame" => cmd_ucinewgame(uci_state, search_state),
+        "ucinewgame" => cmd_ucinewgame(uci_state, search_state, search_handle),
         "debug" => cmd_debug(uci_state, parts),
-        "quit" => exit(0),
+        "quit" => {
+            // Stop any running search before quitting
+            if let Some(handle) = search_handle.take() {
+                handle.stop_and_wait();
+            }
+            exit(0)
+        }
         "mvm" => cmd_mvm(search_state, parts),
         "position" => cmd_position(uci_state, search_state, parts),
         _ => Left("Unknown command".parse().unwrap()),
@@ -234,60 +343,94 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
     Right(Some("Done".parse().unwrap()))
 }
 
-fn cmd_go(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
-    let t = parts.get(1).unwrap();
-    search_state.nodes = 0;
-    search_state.nodes_limit = u64::MAX;
-
-    match *t {
-        "perft" => {
-            let depth = parts.get(2).unwrap().to_string().parse().unwrap();
-            cmd_perft(depth, uci_state);
-            Right(None)
-        }
-        "infinite" => {
-            let mut position = get_position(uci_state.fen.trim());
-            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
-            let mv = iterative_deepening(&mut position, 200, search_state);
-            Right(Some(format_bestmove(mv, search_state)))
-        }
-        "mate" => {
-            let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
-            let mut position = get_position(uci_state.fen.trim());
-            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
-            // Search depth = 2 * mate_depth (plies, not moves)
-            let mv = iterative_deepening(&mut position, mate_depth.saturating_mul(2), search_state);
-            Right(Some(format_bestmove(mv, search_state)))
-        }
-        _ => {
-            let line = parts.join(" ");
-            uci_state.wtime = extract_go_param("wtime", &line, 0);
-            uci_state.btime = extract_go_param("btime", &line, 0);
-            uci_state.winc = extract_go_param("winc", &line, 0);
-            uci_state.binc = extract_go_param("binc", &line, 0);
-            uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
-            uci_state.depth = extract_go_param("depth", &line, 250);
-            uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
-            uci_state.move_time = extract_go_param("movetime", &line, 10000000);
-
-            search_state.nodes_limit = uci_state.nodes;
-
-            let mut position = get_position(uci_state.fen.trim());
-
-            if position.mover == WHITE {
-                calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
-            } else {
-                calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
-            }
-
-            uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
-
-            search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
-            let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state);
-
-            Right(Some(format_bestmove(mv, search_state)))
-        }
+fn cmd_go(
+    uci_state: &mut UciState,
+    search_state: &mut SearchState,
+    search_handle: &mut Option<SearchHandle>,
+    parts: Vec<&str>,
+) -> Either<String, Option<String>> {
+    // If there's already a search running, wait for it first
+    if let Some(handle) = search_handle.take() {
+        handle.stop_and_wait();
     }
+
+    let t = parts.get(1).unwrap();
+
+    // perft runs synchronously (no threading needed)
+    if *t == "perft" {
+        let depth = parts.get(2).unwrap().to_string().parse().unwrap();
+        cmd_perft(depth, uci_state);
+        return Right(None);
+    }
+
+    // Parse go parameters
+    let line = parts.join(" ");
+    let (max_depth, end_time, nodes_limit) = if *t == "infinite" {
+        (200u8, Instant::now().add(Duration::from_secs(86400)), u64::MAX)
+    } else if *t == "mate" {
+        let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
+        (
+            mate_depth.saturating_mul(2),
+            Instant::now().add(Duration::from_secs(86400)),
+            u64::MAX,
+        )
+    } else {
+        uci_state.wtime = extract_go_param("wtime", &line, 0);
+        uci_state.btime = extract_go_param("btime", &line, 0);
+        uci_state.winc = extract_go_param("winc", &line, 0);
+        uci_state.binc = extract_go_param("binc", &line, 0);
+        uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
+        uci_state.depth = extract_go_param("depth", &line, 250);
+        uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
+        uci_state.move_time = extract_go_param("movetime", &line, 10000000);
+
+        let position = get_position(uci_state.fen.trim());
+        if position.mover == WHITE {
+            calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
+        } else {
+            calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
+        }
+
+        uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
+
+        (
+            uci_state.depth as u8,
+            Instant::now().add(Duration::from_millis(uci_state.move_time)),
+            uci_state.nodes,
+        )
+    };
+
+    // Clone position for the search thread
+    let mut position = get_position(uci_state.fen.trim());
+
+    // Create a new stop flag for this search
+    let stop_flag = Arc::new(AtomicBool::new(false));
+
+    // Clone search_state for the thread, but use the new stop flag
+    let mut thread_search_state = search_state.clone();
+    thread_search_state.nodes = 0;
+    thread_search_state.nodes_limit = nodes_limit;
+    thread_search_state.end_time = end_time;
+    thread_search_state.stop = stop_flag.clone();
+
+    // Spawn the search thread
+    let handle = thread::spawn(move || {
+        let mv = iterative_deepening(&mut position, max_depth, &mut thread_search_state);
+        println!("{}", format_bestmove(mv, &thread_search_state));
+    });
+
+    // Store the search handle
+    *search_handle = Some(SearchHandle { stop: stop_flag, handle });
+
+    Right(None)
+}
+
+fn cmd_stop(search_handle: &mut Option<SearchHandle>) -> Either<String, Option<String>> {
+    if let Some(handle) = search_handle.take() {
+        set_stop(&handle.stop, true);
+        let _ = handle.handle.join();
+    }
+    Right(None)
 }
 
 fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
@@ -406,7 +549,16 @@ fn cmd_register() -> Either<String, Option<String>> {
     Right(None)
 }
 
-fn cmd_ucinewgame(uci_state: &mut UciState, search_state: &mut SearchState) -> Either<String, Option<String>> {
+fn cmd_ucinewgame(
+    uci_state: &mut UciState,
+    search_state: &mut SearchState,
+    search_handle: &mut Option<SearchHandle>,
+) -> Either<String, Option<String>> {
+    // Stop any running search first
+    if let Some(handle) = search_handle.take() {
+        handle.stop_and_wait();
+    }
+
     search_state.nodes = 0;
     // Clear root_moves and pv to prevent stale data from previous games
     // being output if time expires before the first search iteration completes

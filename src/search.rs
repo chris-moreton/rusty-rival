@@ -19,8 +19,8 @@ use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    pv_prepend, pv_single, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score, SearchState, Square,
-    Window, BLACK, WHITE,
+    is_stopped, pv_prepend, pv_single, set_stop, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score,
+    SearchState, Square, Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
@@ -45,9 +45,9 @@ macro_rules! time_remains {
 #[macro_export]
 macro_rules! time_expired {
     ($search_state:expr) => {
-        if $search_state.stop || Instant::now() >= $search_state.end_time {
-            if !$search_state.stop {
-                $search_state.stop = true;
+        if is_stopped(&$search_state.stop) || Instant::now() >= $search_state.end_time {
+            if !is_stopped(&$search_state.stop) {
+                set_stop(&$search_state.stop, true);
                 send_info($search_state, false);
             }
             true
@@ -60,9 +60,9 @@ macro_rules! time_expired {
 #[macro_export]
 macro_rules! check_time {
     ($search_state:expr) => {
-        if !$search_state.stop && $search_state.nodes % 1000 == 0 {
+        if !is_stopped(&$search_state.stop) && $search_state.nodes % 1000 == 0 {
             if $search_state.end_time < Instant::now() || $search_state.nodes >= $search_state.nodes_limit {
-                $search_state.stop = true;
+                set_stop(&$search_state.stop, true);
                 send_info($search_state, false);
             }
         }
@@ -83,7 +83,7 @@ macro_rules! debug_out {
 
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState) -> Move {
     search_state.start_time = Instant::now();
-    search_state.stop = false;
+    set_stop(&search_state.stop, false);
     search_state.hash_table_version += 1;
 
     let original_mover = position.mover;
@@ -336,12 +336,12 @@ pub fn search(
     on_null_move: bool,
 ) -> PathScore {
     // Check stop flag at TOP before any moves are made - safe to return here
-    if search_state.stop {
+    if is_stopped(&search_state.stop) {
         return (pv_single(0), 0);
     }
 
     check_time!(search_state);
-    if search_state.stop {
+    if is_stopped(&search_state.stop) {
         return (pv_single(0), 0);
     }
 
@@ -457,7 +457,7 @@ pub fn search(
 
         unmake_null_move(position, old_ep);
 
-        if search_state.stop {
+        if is_stopped(&search_state.stop) {
             return (pv_single(0), 0);
         }
 
@@ -499,7 +499,7 @@ pub fn search(
 
             unmake_move(position, hash_move, &unmake);
             check_time!(search_state);
-            if search_state.stop {
+            if is_stopped(&search_state.stop) {
                 return best_pathscore;
             }
 
@@ -644,7 +644,7 @@ pub fn search(
             unmake_move(position, m, &unmake);
 
             check_time!(search_state);
-            if search_state.stop {
+            if is_stopped(&search_state.stop) {
                 break;
             }
 

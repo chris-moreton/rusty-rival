@@ -10,7 +10,8 @@ use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
 use crate::see::{captured_piece_value_see, see};
 use crate::types::{
-    pv_single, Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square, Window, BLACK, WHITE,
+    is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square,
+    Window, BLACK, WHITE,
 };
 use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
@@ -112,12 +113,12 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
 #[allow(clippy::only_used_in_recursion)]
 pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
     // Check stop flag at TOP before any moves are made - safe to return here
-    if search_state.stop {
+    if is_stopped(&search_state.stop) {
         return (pv_single(0), 0);
     }
 
     check_time!(search_state);
-    if search_state.stop {
+    if is_stopped(&search_state.stop) {
         return (pv_single(0), 0);
     }
     search_state.nodes += 1;
@@ -168,7 +169,7 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
             unmake_move(position, m, &unmake);
 
             check_time!(search_state);
-            if search_state.stop {
+            if is_stopped(&search_state.stop) {
                 break;
             }
 

@@ -1,7 +1,7 @@
 use crate::fen::{algebraic_move_from_move, get_position};
 use crate::mvm_test_fens::get_test_fens;
 use crate::types::{Move, Score, SearchState, UciState};
-use crate::uci::run_command;
+use crate::uci::run_command_sync;
 use crate::utils::hydrate_move_from_algebraic_move;
 use ansi_term::Colour::{Green, Red, Yellow};
 use either::{Either, Left, Right};
@@ -42,8 +42,8 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
         let mut these_millis = 250;
 
         loop {
-            run_command(uci_state, search_state, "ucinewgame");
-            run_command(uci_state, search_state, &owned);
+            run_command_sync(uci_state, search_state, "ucinewgame");
+            run_command_sync(uci_state, search_state, &owned);
 
             let mut main_uci_state = uci_state.clone();
             let mut main_search_state = search_state.clone();
@@ -213,7 +213,7 @@ fn show_result(
 }
 
 fn get_main_move(uci_state: &mut UciState, search_state: &mut SearchState, millis: &u32) -> (Move, Score, u64) {
-    run_command(uci_state, search_state, &format!("go movetime {}", millis));
+    run_command_sync(uci_state, search_state, &format!("go movetime {}", millis));
     let best_move = search_state.current_best.0[0];
     let best_score = search_state.current_best.1;
     (best_move, best_score, search_state.nodes)
@@ -222,7 +222,7 @@ fn get_main_move(uci_state: &mut UciState, search_state: &mut SearchState, milli
 fn get_secondary_move(uci_state: &mut UciState, search_state: &mut SearchState, best_move: Move, millis: &u32) -> (Move, Score) {
     search_state.ignore_root_move = best_move;
 
-    run_command(uci_state, search_state, &format!("go movetime {}", millis));
+    run_command_sync(uci_state, search_state, &format!("go movetime {}", millis));
     let second_best_move = search_state.current_best.0[0];
     let second_best_score = search_state.current_best.1;
     (second_best_move, second_best_score)

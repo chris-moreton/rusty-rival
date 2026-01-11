@@ -2,6 +2,9 @@ use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use arrayvec::ArrayVec;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread::JoinHandle;
 use std::time::Instant;
 
 pub type Square = i8;
@@ -91,6 +94,20 @@ pub fn default_uci_state() -> UciState {
     }
 }
 
+/// Holds the handle to a running search thread
+pub struct SearchHandle {
+    pub stop: Arc<AtomicBool>,
+    pub handle: JoinHandle<()>,
+}
+
+impl SearchHandle {
+    /// Signal the search to stop and wait for it to finish
+    pub fn stop_and_wait(self) {
+        set_stop(&self.stop, true);
+        let _ = self.handle.join();
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct SearchState {
     pub current_best: PathScore,
@@ -114,7 +131,7 @@ pub struct SearchState {
     pub multi_pv: u8,
     pub contempt: Score,
     pub ignore_root_move: Move,
-    pub stop: bool,
+    pub stop: Arc<AtomicBool>,
 }
 
 pub fn default_search_state() -> SearchState {
@@ -154,8 +171,20 @@ pub fn default_search_state() -> SearchState {
         multi_pv: 1,
         contempt: 0,
         ignore_root_move: 0,
-        stop: false,
+        stop: Arc::new(AtomicBool::new(false)),
     }
+}
+
+/// Helper to check if stop flag is set
+#[inline(always)]
+pub fn is_stopped(stop: &Arc<AtomicBool>) -> bool {
+    stop.load(Ordering::Relaxed)
+}
+
+/// Helper to set the stop flag
+#[inline(always)]
+pub fn set_stop(stop: &Arc<AtomicBool>, value: bool) {
+    stop.store(value, Ordering::Relaxed);
 }
 
 pub struct EvaluateCache {
