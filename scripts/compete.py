@@ -2115,26 +2115,20 @@ def main():
 
     # Handle --enable command
     if args.enable:
-        script_dir = Path(__file__).parent
-        engine_dir = script_dir.parent / "engines"
         for engine in args.enable:
-            resolved = resolve_engine_name(engine, engine_dir)
-            if set_engine_active(resolved, True):
-                print(f"Enabled: {resolved}")
+            if set_engine_active(engine, True):
+                print(f"Enabled: {engine}")
             else:
-                print(f"Error: Engine '{resolved}' not found in database")
+                print(f"Error: Engine '{engine}' not found in database")
         sys.exit(0)
 
     # Handle --disable command
     if args.disable:
-        script_dir = Path(__file__).parent
-        engine_dir = script_dir.parent / "engines"
         for engine in args.disable:
-            resolved = resolve_engine_name(engine, engine_dir)
-            if set_engine_active(resolved, False):
-                print(f"Disabled: {resolved}")
+            if set_engine_active(engine, False):
+                print(f"Disabled: {engine}")
             else:
-                print(f"Error: Engine '{resolved}' not found in database")
+                print(f"Error: Engine '{engine}' not found in database")
         sys.exit(0)
 
     # Validate time arguments
