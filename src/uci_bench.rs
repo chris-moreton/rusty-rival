@@ -47,15 +47,21 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
 
             let mut main_uci_state = uci_state.clone();
             let mut main_search_state = search_state.clone();
-            let main_handle = thread::spawn(move || get_main_move(&mut main_uci_state, &mut main_search_state, &these_millis));
+            let main_handle = thread::Builder::new()
+                .stack_size(16 * 1024 * 1024)
+                .spawn(move || get_main_move(&mut main_uci_state, &mut main_search_state, &these_millis))
+                .expect("Failed to spawn main search thread");
 
             let mut second_uci_state = uci_state.clone();
             let mut second_search_state = search_state.clone();
-            let second_handle = thread::spawn(move || {
-                let position = get_position(fen);
-                let raw_move = hydrate_move_from_algebraic_move(&position, expected_move.to_string());
-                get_secondary_move(&mut second_uci_state, &mut second_search_state, raw_move, &these_millis)
-            });
+            let second_handle = thread::Builder::new()
+                .stack_size(16 * 1024 * 1024)
+                .spawn(move || {
+                    let position = get_position(fen);
+                    let raw_move = hydrate_move_from_algebraic_move(&position, expected_move.to_string());
+                    get_secondary_move(&mut second_uci_state, &mut second_search_state, raw_move, &these_millis)
+                })
+                .expect("Failed to spawn secondary search thread");
 
             let (best_move, best_score, main_search_nodes) = main_handle.join().unwrap();
             let (second_best_move, second_best_score) = second_handle.join().unwrap();
