@@ -132,6 +132,7 @@ pub struct SearchState {
     pub contempt: Score,
     pub ignore_root_move: Move,
     pub stop: Arc<AtomicBool>,
+    pub last_info_nodes: u64,
 }
 
 pub fn default_search_state() -> SearchState {
@@ -172,6 +173,7 @@ pub fn default_search_state() -> SearchState {
         contempt: 0,
         ignore_root_move: 0,
         stop: Arc::new(AtomicBool::new(false)),
+        last_info_nodes: 0,
     }
 }
 

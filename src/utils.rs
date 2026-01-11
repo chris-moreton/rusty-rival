@@ -230,6 +230,11 @@ pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
     if !search_state.show_info || search_state.root_moves.is_empty() || search_state.nodes == 0 {
         return;
     }
+    // Skip duplicate output at the same node count
+    if search_state.nodes == search_state.last_info_nodes {
+        return;
+    }
+    search_state.last_info_nodes = search_state.nodes;
     let multi_pv = if show_multi_pv { search_state.multi_pv } else { 1 };
     // Limit multi_pv to actual number of root moves to avoid index out of bounds
     let multi_pv = multi_pv.min(search_state.root_moves.len() as u8);

@@ -64,10 +64,9 @@ macro_rules! check_time {
             if $search_state.end_time < Instant::now() || $search_state.nodes >= $search_state.nodes_limit {
                 set_stop(&$search_state.stop, true);
                 send_info($search_state, false);
+            } else if $search_state.nodes % 1000000 == 0 {
+                send_info($search_state, false);
             }
-        }
-        if $search_state.nodes % 1000000 == 0 {
-            send_info($search_state, false);
         }
     };
 }
@@ -193,7 +192,6 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         send_info(search_state, true);
     }
 
-    send_info(search_state, true);
     legal_moves[0].0
 }
 
