@@ -137,7 +137,7 @@ pub fn it_handles_cached_mates() {
     find_move(&mut uci_state, &mut search_state, "2R5/5k2/3K3p/4Q1pP/5nP1/8/8/8 w - - 0 1", "e5e7");
 }
 
-fn find_move(mut uci_state: &mut UciState, mut search_state: &mut SearchState, fen: &str, m: &str) {
+fn find_move(uci_state: &mut UciState, search_state: &mut SearchState, fen: &str, m: &str) {
     let a = format!("position fen {}", fen);
     assert_eq!(run_command_test(uci_state, search_state, &a), Right(None));
     let result = run_command_test(uci_state, search_state, "go depth 10");
