@@ -36,17 +36,27 @@ Usage:
     # Enable/disable engines (controls which engines are used in random mode)
     ./scripts/compete.py --disable sf-1400 sf-full
     ./scripts/compete.py --enable java-rival-37
+
+    # Initialize engines from GitHub releases (downloads and configures)
+    # For rusty-rival (downloads platform-specific binary, sets permissions)
+    ./scripts/compete.py --init rusty v1.0.15
+
+    # For java-rival (downloads JAR file)
+    ./scripts/compete.py --init java 38
 """
 
 import argparse
 import json
 import math
 import os
+import platform
 import random
 import socket
+import stat
 import subprocess
 import sys
 import time
+import urllib.request
 import chess
 import chess.engine
 import chess.pgn
@@ -304,6 +314,110 @@ def get_engines_dir() -> Path:
     return script_dir.parent / "engines"
 
 
+def init_engine(engine_type: str, version: str) -> bool:
+    """
+    Download and initialize an engine from GitHub releases.
+
+    Args:
+        engine_type: "rusty" for rusty-rival or "java" for rivalchess-uci
+        version: Version string (e.g., "v1.0.15" for rusty, "38" for java)
+
+    Returns:
+        True if successful, False otherwise
+    """
+    engine_dir = get_engines_dir()
+    engine_dir.mkdir(parents=True, exist_ok=True)
+
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+
+    if engine_type == "rusty":
+        # Normalize version to include 'v' prefix
+        if not version.startswith("v"):
+            version = f"v{version}"
+
+        # Determine platform-specific asset name
+        if system == "windows":
+            asset_name = f"rusty-rival-{version}-windows-x86_64.exe"
+        elif system == "darwin":
+            if machine in ("arm64", "aarch64"):
+                asset_name = f"rusty-rival-{version}-macos-aarch64"
+            else:
+                asset_name = f"rusty-rival-{version}-macos-x86_64"
+        else:  # Linux
+            asset_name = f"rusty-rival-{version}-linux-x86_64"
+
+        download_url = f"https://github.com/chris-moreton/rusty-rival/releases/download/{version}/{asset_name}"
+        target_dir = engine_dir / version
+        target_file = target_dir / asset_name
+
+    elif engine_type == "java":
+        # Java version: "38" -> "v38.0.0"
+        if version.startswith("v"):
+            version = version[1:]  # Remove 'v' if present
+        # Handle both "38" and "38.0.0" formats
+        if "." not in version:
+            full_version = f"v{version}.0.0"
+        else:
+            full_version = f"v{version}"
+
+        asset_name = f"rivalchess-{full_version}.jar"
+        download_url = f"https://github.com/chris-moreton/rivalchess-uci/releases/download/{full_version}/{asset_name}"
+        target_dir = engine_dir / f"java-rival-{full_version[1:]}"  # e.g., java-rival-38.0.0
+        target_file = target_dir / asset_name
+
+    else:
+        print(f"Error: Unknown engine type '{engine_type}'. Use 'rusty' or 'java'.")
+        return False
+
+    # Check if already exists
+    if target_file.exists():
+        print(f"Engine already exists: {target_file}")
+        return True
+
+    # Create target directory
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    # Download the asset
+    print(f"Downloading {asset_name} from {download_url}...")
+    try:
+        urllib.request.urlretrieve(download_url, target_file)
+        print(f"Downloaded to {target_file}")
+    except urllib.error.HTTPError as e:
+        print(f"Error: Failed to download {download_url}")
+        print(f"HTTP Error {e.code}: {e.reason}")
+        # Clean up empty directory if download failed
+        if target_dir.exists() and not any(target_dir.iterdir()):
+            target_dir.rmdir()
+        return False
+    except Exception as e:
+        print(f"Error: Failed to download: {e}")
+        if target_dir.exists() and not any(target_dir.iterdir()):
+            target_dir.rmdir()
+        return False
+
+    # Post-download setup (not needed for .jar files)
+    if not target_file.suffix == ".jar":
+        if system == "darwin":
+            # Remove macOS quarantine attribute
+            print("Removing macOS quarantine attribute...")
+            result = subprocess.run(
+                ["xattr", "-d", "com.apple.quarantine", str(target_file)],
+                capture_output=True
+            )
+            if result.returncode != 0:
+                # xattr returns error if attribute doesn't exist, which is fine
+                pass
+
+        if system != "windows":
+            # Make executable on Unix-like systems
+            print("Setting executable permission...")
+            target_file.chmod(target_file.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    print(f"Engine initialized successfully: {target_dir.name}")
+    return True
+
+
 def find_stockfish_binary(engine_dir: Path) -> Path | None:
     """Find Stockfish binary, checking multiple possible names."""
     stockfish_dir = engine_dir / "stockfish"
@@ -503,17 +617,36 @@ def get_active_engines(engine_dir: Path) -> list[str]:
 def set_engine_active(engine_name: str, active: bool) -> bool:
     """
     Enable or disable an engine by setting its active flag.
-    Returns True if successful, False if engine not found.
+    If engine exists on disk but not in database, creates the database entry.
+    Returns True if successful, False if engine not found on disk or in database.
     """
     try:
         from web.database import db
-        from web.models import Engine
+        from web.models import Engine, EloRating
 
         app = _get_app()
         with app.app_context():
             engine = Engine.query.filter_by(name=engine_name).first()
             if not engine:
-                return False
+                # Check if engine exists on disk
+                engine_dir = get_engines_dir()
+                discovered = discover_engines(engine_dir)
+                if engine_name not in discovered:
+                    return False
+                # Create engine in database
+                initial_elo = get_initial_elo(engine_name)
+                engine = Engine(name=engine_name, active=active)
+                db.session.add(engine)
+                db.session.flush()
+                # Create initial Elo rating
+                elo_rating = EloRating(
+                    engine_id=engine.id,
+                    elo=initial_elo,
+                    games_played=0
+                )
+                db.session.add(elo_rating)
+                db.session.commit()
+                return True
             engine.active = active
             db.session.commit()
             return True
@@ -2096,6 +2229,10 @@ def main():
                         help="Disable one or more engines (set active=False)")
     parser.add_argument("--list", action="store_true",
                         help="List all engines with their active status")
+    parser.add_argument("--init", type=str, nargs=2, metavar=("TYPE", "VERSION"),
+                        help="Download and initialize an engine from GitHub releases. "
+                             "TYPE is 'rusty' or 'java'. "
+                             "Examples: --init rusty v1.0.15, --init java 38")
 
     args = parser.parse_args()
 
@@ -2112,6 +2249,14 @@ def main():
             print(f"{name:<30} {status:<10} {elo:>8.0f} {games:>8}")
         print()
         sys.exit(0)
+
+    # Handle --init command
+    if args.init:
+        engine_type, version = args.init
+        if init_engine(engine_type, version):
+            sys.exit(0)
+        else:
+            sys.exit(1)
 
     # Handle --enable command
     if args.enable:

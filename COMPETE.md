@@ -204,7 +204,16 @@ The script auto-creates virtual Stockfish engines: `sf-1400`, `sf-1600`, `sf-180
 
 #### Rusty Rival
 
-Download from [GitHub releases](https://github.com/chris-moreton/rusty-rival/releases) or build from source:
+Use `--init` to download from GitHub releases automatically:
+
+```bash
+# Download rusty-rival (auto-detects platform, sets permissions)
+python scripts/compete.py --init rusty v1.0.15
+```
+
+This downloads the correct binary for your platform to `engines/v1.0.15/` and handles macOS quarantine removal and Unix executable permissions.
+
+Manual download is also supported - get from [GitHub releases](https://github.com/chris-moreton/rusty-rival/releases):
 
 ```
 engines/
@@ -215,6 +224,17 @@ engines/
 ```
 
 Legacy naming (`rusty-rival.exe` / `rusty-rival`) is also supported.
+
+#### Java Rival
+
+Use `--init` to download from GitHub releases:
+
+```bash
+# Download java-rival JAR (cross-platform)
+python scripts/compete.py --init java 38
+```
+
+This downloads to `engines/java-rival-38.0.0/rivalchess-v38.0.0.jar`.
 
 ---
 
@@ -328,6 +348,7 @@ python scripts/compete.py [engines...] [options]
 | `--list` | List all engines with their active status |
 | `--enable ENGINE...` | Enable one or more engines |
 | `--disable ENGINE...` | Disable one or more engines |
+| `--init TYPE VERSION` | Download engine from GitHub releases (see below) |
 
 ### Time Control Examples
 
