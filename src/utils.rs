@@ -225,7 +225,9 @@ pub fn pawn_push(position: &Position, m: Move) -> bool {
 }
 
 pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
-    if !search_state.show_info || search_state.root_moves.is_empty() {
+    // Don't output info if no nodes have been searched yet - PV data would be stale
+    // from a previous iteration or game
+    if !search_state.show_info || search_state.root_moves.is_empty() || search_state.nodes == 0 {
         return;
     }
     let multi_pv = if show_multi_pv { search_state.multi_pv } else { 1 };
