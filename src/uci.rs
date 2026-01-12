@@ -1,4 +1,4 @@
-use crate::engine_constants::{NUM_HASH_ENTRIES, UCI_MILLIS_REDUCTION};
+use crate::engine_constants::UCI_MILLIS_REDUCTION;
 use crate::tablebase::init_tablebase;
 
 use either::{Either, Left, Right};
@@ -19,7 +19,7 @@ use crate::moves::{generate_moves, is_check};
 
 use crate::perft::perft;
 use crate::search::iterative_deepening;
-use crate::types::{set_stop, BoundType, HashEntry, Position, SearchHandle, SearchState, UciState, BLACK, WHITE};
+use crate::types::{set_stop, Position, SearchHandle, SearchState, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
 
@@ -92,16 +92,7 @@ pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState
             search_state.nodes = 0;
             search_state.root_moves.clear();
             search_state.pv.clear();
-            for i in 0..NUM_HASH_ENTRIES {
-                search_state.hash_table_height[i as usize] = HashEntry {
-                    score: 0,
-                    version: 0,
-                    height: 0,
-                    mv: 0,
-                    bound: BoundType::Exact,
-                    lock: 0,
-                }
-            }
+            search_state.hash_table.clear();
             uci_state.fen = START_POS.parse().unwrap();
             Right(None)
         }
@@ -363,17 +354,15 @@ fn cmd_go(
         return Right(None);
     }
 
-    // Parse go parameters
+    // Parse go parameters - calculate move_time_ms to pass to thread
+    // The actual end_time will be calculated INSIDE the thread to avoid
+    // counting clone/spawn overhead against search time
     let line = parts.join(" ");
-    let (max_depth, end_time, nodes_limit) = if *t == "infinite" {
-        (200u8, Instant::now().add(Duration::from_secs(86400)), u64::MAX)
+    let (max_depth, move_time_ms, nodes_limit) = if *t == "infinite" {
+        (200u8, 86400 * 1000u64, u64::MAX) // 24 hours in ms
     } else if *t == "mate" {
         let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
-        (
-            mate_depth.saturating_mul(2),
-            Instant::now().add(Duration::from_secs(86400)),
-            u64::MAX,
-        )
+        (mate_depth.saturating_mul(2), 86400 * 1000u64, u64::MAX)
     } else {
         uci_state.wtime = extract_go_param("wtime", &line, 0);
         uci_state.btime = extract_go_param("btime", &line, 0);
@@ -393,11 +382,7 @@ fn cmd_go(
 
         uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
 
-        (
-            uci_state.depth as u8,
-            Instant::now().add(Duration::from_millis(uci_state.move_time)),
-            uci_state.nodes,
-        )
+        (uci_state.depth as u8, uci_state.move_time, uci_state.nodes)
     };
 
     // Clone position for the search thread
@@ -407,10 +392,10 @@ fn cmd_go(
     let stop_flag = Arc::new(AtomicBool::new(false));
 
     // Clone search_state for the thread, but use the new stop flag
+    // Note: hash_table is shared via Arc (no 128MB copy!)
     let mut thread_search_state = search_state.clone();
     thread_search_state.nodes = 0;
     thread_search_state.nodes_limit = nodes_limit;
-    thread_search_state.end_time = end_time;
     thread_search_state.stop = stop_flag.clone();
 
     // Spawn the search thread with a larger stack size to prevent stack overflow
@@ -418,6 +403,9 @@ fn cmd_go(
     let handle = thread::Builder::new()
         .stack_size(16 * 1024 * 1024) // 16 MB stack (matches RUST_MIN_STACK recommendation)
         .spawn(move || {
+            // Calculate end_time HERE inside the thread - this ensures clone/spawn
+            // overhead doesn't eat into search time
+            thread_search_state.end_time = Instant::now().add(Duration::from_millis(move_time_ms));
             let mv = iterative_deepening(&mut position, max_depth, &mut thread_search_state);
             println!("{}", format_bestmove(mv, &thread_search_state));
         })
@@ -501,16 +489,7 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<Str
         let option = parts[2].to_lowercase();
         match option.as_str() {
             "clear" => {
-                for i in 0..NUM_HASH_ENTRIES {
-                    search_state.hash_table_height[i as usize] = HashEntry {
-                        score: 0,
-                        version: 0,
-                        height: 0,
-                        mv: 0,
-                        bound: BoundType::Exact,
-                        lock: 0,
-                    }
-                }
+                search_state.hash_table.clear();
                 Right(None)
             }
             "multipv" => {
@@ -568,16 +547,7 @@ fn cmd_ucinewgame(
     // being output if time expires before the first search iteration completes
     search_state.root_moves.clear();
     search_state.pv.clear();
-    for i in 0..NUM_HASH_ENTRIES {
-        search_state.hash_table_height[i as usize] = HashEntry {
-            score: 0,
-            version: 0,
-            height: 0,
-            mv: 0,
-            bound: BoundType::Exact,
-            lock: 0,
-        }
-    }
+    search_state.hash_table.clear();
     uci_state.fen = START_POS.parse().unwrap();
     Right(None)
 }

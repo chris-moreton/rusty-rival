@@ -263,19 +263,22 @@ pub fn store_hash_entry(
 ) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
         let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
-        search_state.hash_table_height[index] = HashEntry {
-            // adjust any mate score so that the score appears calculated as if this ply were the root
-            score: match movescore.1 {
-                x if x > MATE_START => movescore.1 + ply as Score,
-                x if x < MATE_START => movescore.1 - ply as Score,
-                _ => movescore.1,
+        search_state.hash_table.set(
+            index,
+            HashEntry {
+                // adjust any mate score so that the score appears calculated as if this ply were the root
+                score: match movescore.1 {
+                    x if x > MATE_START => movescore.1 + ply as Score,
+                    x if x < MATE_START => movescore.1 - ply as Score,
+                    _ => movescore.1,
+                },
+                version: search_state.hash_table_version,
+                height,
+                mv: movescore.0,
+                bound,
+                lock: position.zobrist_lock,
             },
-            version: search_state.hash_table_version,
-            height,
-            mv: movescore.0,
-            bound,
-            lock: position.zobrist_lock,
-        };
+        );
     }
 }
 
@@ -373,47 +376,45 @@ pub fn search(
     let mut best_pathscore: PathScore = (pv_single(0), -MATE_SCORE);
 
     let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
-    let mut hash_move = match search_state.hash_table_height.get(index) {
-        Some(x) => {
-            if x.lock == position.zobrist_lock {
-                // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
-                // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
-                // adjusted it again such that it represented the distance from the root at which it was stored - e.g. we found it at ply 7, and wound
-                // up needing to store that score when it went back up to ply 5, so we adjusted it so it looked like it was found at ply 2.
-                // In other words, we marked it as a mate in 7 plies (99.93) when we found it (even though it's already mate), but if we need to store it in the
-                // has table at ply 5, we should record it as a mate in two plies (99.98).
-                // Now that we are retrieving it, we need to adjust it for the current ply. Following the previous example, if the current ply is 10, then
-                // we adjust the score to make it look like it was found at ply 12.
-                let score = match x.score {
-                    s if s > MATE_START => s - ply as Score,
-                    s if s < -MATE_START => s + ply as Score,
-                    s => s,
-                };
+    let hash_entry = search_state.hash_table.get(index);
+    let mut hash_move = if hash_entry.lock == position.zobrist_lock {
+        // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
+        // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
+        // adjusted it again such that it represented the distance from the root at which it was stored - e.g. we found it at ply 7, and wound
+        // up needing to store that score when it went back up to ply 5, so we adjusted it so it looked like it was found at ply 2.
+        // In other words, we marked it as a mate in 7 plies (99.93) when we found it (even though it's already mate), but if we need to store it in the
+        // has table at ply 5, we should record it as a mate in two plies (99.98).
+        // Now that we are retrieving it, we need to adjust it for the current ply. Following the previous example, if the current ply is 10, then
+        // we adjust the score to make it look like it was found at ply 12.
+        let score = match hash_entry.score {
+            s if s > MATE_START => s - ply as Score,
+            s if s < -MATE_START => s + ply as Score,
+            s => s,
+        };
 
-                if x.height >= depth {
-                    hash_height = x.height;
-                    hash_version = x.version;
-                    if x.bound == Exact {
-                        search_state.hash_hits_exact += 1;
-                        return (pv_single(x.mv), score);
-                    }
-                    if x.bound == Lower && score > alpha {
-                        alpha = score;
-                    }
-                    if x.bound == Upper && score < beta {
-                        beta = score
-                    }
-                    if alpha >= beta {
-                        return (pv_single(x.mv), score);
-                    }
-                }
-                x.mv
-            } else {
-                search_state.hash_clashes += 1;
-                0
+        if hash_entry.height >= depth {
+            hash_height = hash_entry.height;
+            hash_version = hash_entry.version;
+            if hash_entry.bound == Exact {
+                search_state.hash_hits_exact += 1;
+                return (pv_single(hash_entry.mv), score);
+            }
+            if hash_entry.bound == Lower && score > alpha {
+                alpha = score;
+            }
+            if hash_entry.bound == Upper && score < beta {
+                beta = score
+            }
+            if alpha >= beta {
+                return (pv_single(hash_entry.mv), score);
             }
         }
-        None => 0,
+        hash_entry.mv
+    } else if hash_entry.lock != 0 {
+        search_state.hash_clashes += 1;
+        0
+    } else {
+        0
     };
 
     let in_check = is_check(position, position.mover);

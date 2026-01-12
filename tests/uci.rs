@@ -336,11 +336,8 @@ pub fn it_handles_the_setoption_clear_hash_command() {
         lock: 0,
     };
 
-    search_state.hash_table_height[0] = he;
-    match search_state.hash_table_height.get(0) {
-        Some(he) => assert_eq!(he.score, 100),
-        None => panic!(),
-    }
+    search_state.hash_table.set(0, he);
+    assert_eq!(search_state.hash_table.get(0).score, 100);
 
     let result = run_command_test(&mut uci_state, &mut search_state, "setoption name Clear Hash");
     assert_eq!(result, Right(None));

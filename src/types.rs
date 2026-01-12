@@ -1,6 +1,7 @@
 use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use arrayvec::ArrayVec;
+use std::cell::UnsafeCell;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -20,6 +21,85 @@ pub type Score = i32;
 pub type HashLock = u128;
 pub type HashIndex = u32;
 pub type HashArray = [HashEntry; NUM_HASH_ENTRIES as usize];
+
+/// Thread-safe wrapper for the hash table that allows sharing between threads.
+/// Uses UnsafeCell for interior mutability - data races on individual hash entries
+/// are acceptable in chess engines (worst case is a cache miss or stale data).
+pub struct SharedHashTable {
+    data: UnsafeCell<Box<HashArray>>,
+}
+
+// SAFETY: Hash table data races are acceptable in chess engines.
+// The worst case is reading stale/corrupted data which just causes
+// a cache miss - it doesn't cause crashes or undefined behavior.
+unsafe impl Send for SharedHashTable {}
+unsafe impl Sync for SharedHashTable {}
+
+impl SharedHashTable {
+    pub fn new() -> Self {
+        SharedHashTable {
+            data: UnsafeCell::new(
+                Box::try_from(
+                    vec![
+                        HashEntry {
+                            score: 0,
+                            version: 0,
+                            height: 0,
+                            mv: 0,
+                            bound: BoundType::Exact,
+                            lock: 0,
+                        };
+                        NUM_HASH_ENTRIES as usize
+                    ]
+                    .into_boxed_slice(),
+                )
+                .unwrap(),
+            ),
+        }
+    }
+
+    /// Get a reference to a hash entry (for reading)
+    #[inline(always)]
+    pub fn get(&self, index: usize) -> &HashEntry {
+        unsafe { &(*self.data.get())[index] }
+    }
+
+    /// Get a mutable reference to a hash entry (for writing)
+    #[inline(always)]
+    pub fn set(&self, index: usize, entry: HashEntry) {
+        unsafe {
+            (*self.data.get())[index] = entry;
+        }
+    }
+
+    /// Clear the hash table (used by ucinewgame)
+    pub fn clear(&self) {
+        let empty = HashEntry {
+            score: 0,
+            version: 0,
+            height: 0,
+            mv: 0,
+            bound: BoundType::Exact,
+            lock: 0,
+        };
+        for i in 0..NUM_HASH_ENTRIES as usize {
+            self.set(i, empty);
+        }
+    }
+}
+
+impl Default for SharedHashTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl std::fmt::Debug for SharedHashTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SharedHashTable({} entries)", NUM_HASH_ENTRIES)
+    }
+}
+
 pub const MAX_PV_LENGTH: usize = 64;
 pub type PV = ArrayVec<Move, MAX_PV_LENGTH>;
 pub type PathScore = (PV, Score);
@@ -108,14 +188,14 @@ impl SearchHandle {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SearchState {
     pub current_best: PathScore,
     pub root_moves: MoveScoreList,
     pub start_time: Instant,
     pub end_time: Instant,
     pub iterative_depth: u8,
-    pub hash_table_height: Box<HashArray>,
+    pub hash_table: Arc<SharedHashTable>,
     pub hash_table_version: u32,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
     pub mate_killer: [Move; MAX_DEPTH as usize],
@@ -135,6 +215,37 @@ pub struct SearchState {
     pub last_info_nodes: u64,
 }
 
+impl Clone for SearchState {
+    fn clone(&self) -> Self {
+        SearchState {
+            current_best: self.current_best.clone(),
+            root_moves: self.root_moves.clone(),
+            start_time: self.start_time,
+            end_time: self.end_time,
+            iterative_depth: self.iterative_depth,
+            // Share the hash table via Arc - no 128MB copy!
+            hash_table: Arc::clone(&self.hash_table),
+            hash_table_version: self.hash_table_version,
+            killer_moves: self.killer_moves,
+            mate_killer: self.mate_killer,
+            history_moves: self.history_moves,
+            highest_history_score: self.highest_history_score,
+            nodes: self.nodes,
+            nodes_limit: self.nodes_limit,
+            show_info: self.show_info,
+            hash_hits_exact: self.hash_hits_exact,
+            pv: self.pv.clone(),
+            hash_clashes: self.hash_clashes,
+            history: self.history.clone(),
+            multi_pv: self.multi_pv,
+            contempt: self.contempt,
+            ignore_root_move: self.ignore_root_move,
+            stop: Arc::clone(&self.stop),
+            last_info_nodes: self.last_info_nodes,
+        }
+    }
+}
+
 pub fn default_search_state() -> SearchState {
     SearchState {
         current_best: (PV::new(), 0),
@@ -142,21 +253,7 @@ pub fn default_search_state() -> SearchState {
         start_time: Instant::now(),
         end_time: Instant::now(),
         iterative_depth: 0,
-        hash_table_height: Box::try_from(
-            vec![
-                HashEntry {
-                    score: 0,
-                    version: 0,
-                    height: 0,
-                    mv: 0,
-                    bound: BoundType::Exact,
-                    lock: 0
-                };
-                NUM_HASH_ENTRIES as usize
-            ]
-            .into_boxed_slice(),
-        )
-        .unwrap(),
+        hash_table: Arc::new(SharedHashTable::new()),
         hash_table_version: 1,
         killer_moves: [[0, 0]; MAX_DEPTH as usize],
         mate_killer: [0; MAX_DEPTH as usize],
