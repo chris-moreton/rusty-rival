@@ -34,6 +34,12 @@ pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 3;
 // Using 400 to be more selective - only trigger for major threats (like losing a piece)
 pub const THREAT_EXTENSION_MARGIN: Score = 400;
 
+// SEE pruning: skip bad captures at low depths
+// At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
+// This prunes obviously losing captures like QxP when the pawn is defended
+pub const SEE_PRUNE_MAX_DEPTH: u8 = 6;
+pub const SEE_PRUNE_MARGIN: Score = 20;
+
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
 pub const FRAC_EXT_CHECK: u8 = 4; // 1.0 ply for check

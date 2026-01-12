@@ -1,7 +1,7 @@
 use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
     LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, THREAT_EXTENSION_MARGIN,
+    NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -17,6 +17,7 @@ use crate::move_scores::score_move;
 use crate::moves::{generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move};
 use crate::opponent;
 use crate::quiesce::quiesce;
+use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     is_stopped, pv_prepend, pv_single, set_stop, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score,
@@ -588,6 +589,18 @@ pub fn search(
         let old_mover = position.mover;
         // For alpha pruning and LMR, treat promotions like captures (don't prune/reduce them)
         let is_tactical = captured_piece_value(position, m) > 0;
+        let is_promotion = m & PROMOTION_FULL_MOVE_MASK != 0;
+
+        // SEE pruning: skip bad captures at low depths
+        // Only in scout (null-window) searches to avoid missing important PV moves
+        // Don't prune promotions (they change material dramatically) or when in check
+        // Don't prune when searching for mate (alpha/beta near mate scores)
+        if scouting && is_tactical && !is_promotion && !in_check && depth <= SEE_PRUNE_MAX_DEPTH && alpha.abs() < MATE_START {
+            let see_threshold = -(SEE_PRUNE_MARGIN * (depth as Score) * (depth as Score));
+            if static_exchange_evaluation(position, m) < see_threshold {
+                continue;
+            }
+        }
 
         // Pawn push extension: extend by 1 ply for pawn push to 7th rank
         // Only if no check extension already applied (avoid over-extending)
