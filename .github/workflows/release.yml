@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+*'  # Matches v1.0.20, v1.0.20-rc1, v1.0.20-beta, etc.
 
 env:
   # Extract version from tag (removes 'v' prefix)
@@ -95,3 +95,4 @@ jobs:
             rusty-rival-${{ github.ref_name }}-macos-x86_64/rusty-rival-${{ github.ref_name }}-macos-x86_64
             rusty-rival-${{ github.ref_name }}-macos-aarch64/rusty-rival-${{ github.ref_name }}-macos-aarch64
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
