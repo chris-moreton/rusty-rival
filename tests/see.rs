@@ -103,3 +103,17 @@ fn it_gets_the_see_score() {
 
     assert_see_score("8/8/3p4/4r3/2RKP3/5k2/8/8 b - - 0 1", "e5e4", PAWN_VALUE_AVERAGE);
 }
+
+#[test]
+fn it_handles_two_knights_both_capturing_on_same_square() {
+    // White knights on d3 and f3, black pawn on e5, black knight on g6
+    // Nd3xe5, Ng6xe5, Nf3xe5 - both white knights participate
+    assert_see_score("8/8/6n1/4p3/8/3N1N2/8/4K2k w - - 0 1", "d3e5", PAWN_VALUE_AVERAGE);
+}
+
+#[test]
+fn it_handles_two_rooks_with_xray() {
+    // White rooks on e1 and e3, black queen on e5, black rook on e8
+    // Re3xe5, Re8xe5, Re1xe5 (x-ray through first rook)
+    assert_see_score("4r2k/8/8/4q3/8/4R3/8/4R1K1 w - - 0 1", "e3e5", QUEEN_VALUE_AVERAGE);
+}
