@@ -360,15 +360,20 @@ fn cmd_go(
         return Right(None);
     }
 
-    // Parse go parameters - calculate move_time_ms to pass to thread
-    // The actual end_time will be calculated INSIDE the thread to avoid
-    // counting clone/spawn overhead against search time
+    // Parse go parameters
+    // Note: end_time is calculated here (before clone/spawn) to ensure we don't
+    // exceed tournament time limits. The clone is now fast (Arc-based hash table)
+    // so the overhead is minimal.
     let line = parts.join(" ");
-    let (max_depth, move_time_ms, nodes_limit) = if *t == "infinite" {
-        (200u8, 86400 * 1000u64, u64::MAX) // 24 hours in ms
+    let (max_depth, end_time, nodes_limit) = if *t == "infinite" {
+        (200u8, Instant::now().add(Duration::from_secs(86400)), u64::MAX)
     } else if *t == "mate" {
         let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
-        (mate_depth.saturating_mul(2), 86400 * 1000u64, u64::MAX)
+        (
+            mate_depth.saturating_mul(2),
+            Instant::now().add(Duration::from_secs(86400)),
+            u64::MAX,
+        )
     } else {
         uci_state.wtime = extract_go_param("wtime", &line, 0);
         uci_state.btime = extract_go_param("btime", &line, 0);
@@ -388,7 +393,11 @@ fn cmd_go(
 
         uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
 
-        (uci_state.depth as u8, uci_state.move_time, uci_state.nodes)
+        (
+            uci_state.depth as u8,
+            Instant::now().add(Duration::from_millis(uci_state.move_time)),
+            uci_state.nodes,
+        )
     };
 
     // Clone position for the search thread
@@ -405,6 +414,7 @@ fn cmd_go(
     let mut thread_search_state = search_state.clone();
     thread_search_state.nodes = 0;
     thread_search_state.nodes_limit = nodes_limit;
+    thread_search_state.end_time = end_time;
     thread_search_state.stop = stop_flag.clone();
     thread_search_state.search_moves = search_moves;
 
@@ -413,9 +423,6 @@ fn cmd_go(
     let handle = thread::Builder::new()
         .stack_size(16 * 1024 * 1024) // 16 MB stack (matches RUST_MIN_STACK recommendation)
         .spawn(move || {
-            // Calculate end_time HERE inside the thread - this ensures clone/spawn
-            // overhead doesn't eat into search time
-            thread_search_state.end_time = Instant::now().add(Duration::from_millis(move_time_ms));
             let mv = iterative_deepening(&mut position, max_depth, &mut thread_search_state);
             println!("{}", format_bestmove(mv, &thread_search_state));
         })
