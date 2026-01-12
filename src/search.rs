@@ -64,8 +64,6 @@ macro_rules! check_time {
             if $search_state.end_time < Instant::now() || $search_state.nodes >= $search_state.nodes_limit {
                 set_stop(&$search_state.stop, true);
                 send_info($search_state, false);
-            } else if $search_state.nodes % 1000000 == 0 {
-                send_info($search_state, false);
             }
         }
     };
@@ -218,11 +216,12 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
         unmake_move(position, mv.0, &unmake);
         mv.1 = path_score.1;
 
+        search_state.pv.insert(mv.0, (pv_prepend(mv.0, &path_score.0), mv.1));
+
         if mv.1 > current_best.1 && time_remains!(search_state.end_time) {
             current_best = (pv_prepend(mv.0, &path_score.0), mv.1);
+            send_info(search_state, false);
         }
-
-        search_state.pv.insert(mv.0, (pv_prepend(mv.0, &path_score.0), mv.1));
 
         if time_expired!(search_state) {
             return current_best;
