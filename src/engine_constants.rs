@@ -40,6 +40,13 @@ pub const THREAT_EXTENSION_MARGIN: Score = 400;
 pub const SEE_PRUNE_MAX_DEPTH: u8 = 6;
 pub const SEE_PRUNE_MARGIN: Score = 20;
 
+// Late Move Pruning (LMP): skip late quiet moves at low depths
+// After searching N moves at depth D, skip remaining quiet moves entirely
+// Index by depth: [depth 0, depth 1, depth 2, depth 3]
+// Conservative thresholds to avoid missing important moves
+pub const LMP_MAX_DEPTH: u8 = 3;
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 8, 12, 16];
+
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
 pub const FRAC_EXT_CHECK: u8 = 4; // 1.0 ply for check

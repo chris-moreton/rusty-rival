@@ -1,7 +1,7 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
-    LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
+    LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH,
+    NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -620,6 +620,25 @@ pub fn search(
             legal_move_count += 1;
 
             if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !is_check(position, position.mover) {
+                unmake_move(position, m, &unmake);
+                continue;
+            }
+
+            // Late Move Pruning (LMP): skip late quiet moves at shallow depths
+            // More aggressive than LMR - completely skips the move instead of reducing
+            // Don't prune in endgames (every move matters) or near mate scores
+            if scouting
+                && depth <= LMP_MAX_DEPTH
+                && !in_check
+                && !is_tactical
+                && !is_promotion
+                && !is_end_game(position)
+                && legal_move_count > LMP_MOVE_THRESHOLDS[depth as usize]
+                && m != search_state.killer_moves[ply as usize][0]
+                && m != search_state.killer_moves[ply as usize][1]
+                && !is_check(position, position.mover)
+                && alpha.abs() < MATE_START
+            {
                 unmake_move(position, m, &unmake);
                 continue;
             }
