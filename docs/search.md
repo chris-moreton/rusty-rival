@@ -216,8 +216,28 @@ Tracks which quiet moves cause cutoffs:
 Used for:
 1. **Capture ordering**: Added to base capture score (3000)
 2. **Quiescence pruning**: Only search captures with SEE > 0
+3. **Main search pruning**: Skip bad captures at low depths (see below)
 
 **Implementation**: Recursive negamax-style evaluation of capture sequences on a single square.
+
+### 14. SEE Pruning in Main Search
+
+**Location**: `search.rs:594-608`
+
+At low depths, skip captures that lose material according to SEE.
+
+- **Maximum depth**: 6 ply
+- **Threshold formula**: `-20 × depth²`
+  - Depth 2: skip if SEE < -80
+  - Depth 4: skip if SEE < -320
+  - Depth 6: skip if SEE < -720
+- **Conditions**:
+  - Scout (null-window) search only
+  - Not a promotion (material changes dramatically)
+  - Not in check (need to consider all moves)
+  - Alpha not near mate scores (don't prune sacrifices in mating attacks)
+
+**Why it helps**: Avoids wasting time searching obviously bad captures like QxP when the pawn is defended. Reduces node count by ~30%.
 
 ## Quiescence Search
 
@@ -389,21 +409,15 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 **Current state**: We have alpha pruning which is similar but per-move. Razoring would skip the entire subtree.
 
-#### 17. SEE Pruning in Main Search
-
-**Current state**: SEE only used in qsearch.
-
-**Improvement**: Use SEE to prune bad captures in main search too (not just late quiet moves).
-
 ### Performance/Structural
 
-#### 18. Prefetch Hash Table
+#### 17. Prefetch Hash Table
 
 **What it is**: When making a move, prefetch the hash entry for the child position.
 
 **Why it helps**: Hides memory latency. Hash table is large and often cache-misses.
 
-#### 19. Tune Parameters
+#### 18. Tune Parameters
 
 Many constants could be tuned via SPSA or similar:
 - LMR thresholds and reduction amounts
@@ -430,6 +444,7 @@ Based on both standard chess programming techniques and analysis of Java Rival's
 
 ### Already Implemented
 - ~~**Logarithmic LMR**~~ - Done in v029, +108 Elo
+- ~~**SEE Pruning in Main Search**~~ - Done in v1.0.20-rc1, ~30% node reduction
 
 ### High Priority (from Java Rival analysis)
 1. **Delta Pruning in Quiescence** - Simple to implement, reduces qsearch nodes
