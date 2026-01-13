@@ -182,10 +182,11 @@ Moves are scored for ordering:
 | 6 | 400 | Killer move 2 (current ply) |
 | 7 | 300 | Killer move 1 (ply - 2) |
 | 8 | 200 | Killer move 2 (ply - 2) |
-| 9 | 0-500 | History heuristic (scaled) |
-| 10 | 250 | Pawn push to 7th/2nd rank |
-| 11 | 50 | Passed pawn push to 6th/3rd rank |
-| 12 | 3/2/1 | Under-promotions (rook/bishop/knight) |
+| 9 | 150 | Countermove to opponent's last move |
+| 10 | 0-500 | History heuristic (scaled) |
+| 11 | 250 | Pawn push to 7th/2nd rank |
+| 12 | 50 | Passed pawn push to 6th/3rd rank |
+| 13 | 3/2/1 | Under-promotions (rook/bishop/knight) |
 
 **Pick function**: Uses linear scan with swap-remove (`pick_high_score_move`) rather than full sort.
 
@@ -209,7 +210,22 @@ Tracks which quiet moves cause cutoffs:
 - **Scaling**: History scores scaled 0-500 for move ordering
 - **Overflow protection**: All scores halved when max exceeds i64::MAX/2
 
-### 13. Static Exchange Evaluation (SEE)
+### 13. Countermove Heuristic
+
+**Location**: `search.rs`, `update_countermove()` and `move_scores.rs`, `countermove_score()`
+
+Tracks which quiet move refuted each opponent move:
+
+- **Table structure**: [12 pieces][64 to-squares] = 768 entries
+- **Key**: [opponent's piece type + side][opponent's to-square]
+- **Value**: The quiet move that caused a beta cutoff in response
+- **Update**: On beta cutoff, store current move as countermove to previous opponent move
+- **Scoring**: Countermoves get bonus of 150 in move ordering (between distant killers and history)
+- **Conditions**: Only quiet moves stored (captures/promotions excluded)
+
+**Why it helps**: Complements killer moves for positional play. While killers track good moves at a given ply regardless of what led there, countermoves track good responses to specific opponent moves across the tree.
+
+### 15. Static Exchange Evaluation (SEE)
 
 **Location**: `see.rs`
 
@@ -220,7 +236,7 @@ Used for:
 
 **Implementation**: Recursive negamax-style evaluation of capture sequences on a single square.
 
-### 14. SEE Pruning in Main Search
+### 16. SEE Pruning in Main Search
 
 **Location**: `search.rs:594-608`
 
@@ -286,34 +302,15 @@ reduction = floor(0.5 + ln(depth) * ln(moveNumber) / 2.0)
 
 This allows much deeper reductions for late moves at high depths (3-4+ ply reductions), dramatically increasing search speed.
 
-#### 3. Countermove Heuristic
-
-**What it is**: Track which move refuted each opponent move, and boost that countermove in ordering.
-
-**Why it helps**: Complements killers for positional play. If opponent played Nf3, track which of our moves historically refuted it.
-
-**Implementation**: Simple 2D array [piece][to-square] -> Move. Very low overhead.
-
 ### Medium Priority
 
-#### 4. Late Move Pruning (LMP)
-
-**What it is**: At low depths, completely skip late quiet moves (don't even search them).
-
-**Why it helps**: More aggressive than LMR - doesn't waste any time on moves unlikely to matter.
-
-**Typical thresholds**:
-- Depth 1: skip after 5 moves
-- Depth 2: skip after 8 moves
-- Depth 3: skip after 12 moves
-
-#### 5. History Pruning
+#### 3. History Pruning
 
 **What it is**: Prune moves with very negative history scores.
 
 **Why it helps**: History tracks long-term move quality. If a move consistently fails, it's safe to prune at low depths.
 
-#### 6. Improving/Worsening Detection
+#### 4. Improving/Worsening Detection
 
 **What it is**: Track if eval is improving from grandparent node (ply - 2).
 
@@ -323,7 +320,7 @@ This allows much deeper reductions for late moves at high depths (3-4+ ply reduc
 
 Used by Stockfish for null move, futility, and LMR tuning.
 
-#### 7. Better Move Picker (Staged Selection)
+#### 5. Better Move Picker (Staged Selection)
 
 **Current state**: Linear scan through all scored moves.
 
@@ -337,7 +334,7 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 ### From Java Rival Analysis
 
-#### 8. Threat Extensions
+#### 6. Threat Extensions
 
 **What it is**: When null move search reveals the opponent has a strong threat (their best reply is much better than expected), extend the search.
 
@@ -345,7 +342,7 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 **Implementation**: After null move search, if the returned score is very bad for us, set a threat extension flag.
 
-#### 9. Delta Pruning in Quiescence
+#### 7. Delta Pruning in Quiescence
 
 **What it is**: In quiescence search, skip captures that can't possibly raise alpha even with the maximum possible gain.
 
@@ -355,7 +352,7 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 **Implementation**: Simple - just add a check before searching each capture in quiesce().
 
-#### 10. Pawn Push Extensions
+#### 8. Pawn Push Extensions
 
 **What it is**: Extend search for pawn pushes to the 7th rank (or 2nd for black) since they're about to promote.
 
@@ -363,7 +360,7 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 **Implementation**: Check if move is a pawn push to penultimate rank, add fractional or full extension.
 
-#### 11. Fractional Extensions
+#### 9. Fractional Extensions
 
 **What it is**: Instead of extending by 0 or 1 ply, accumulate fractional extensions (e.g., 0.5 for check, 0.25 for pawn push) and extend when they sum to 1.
 
@@ -371,7 +368,7 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 **Implementation**: Track fractional extension sum, extend when >= 1.0.
 
-#### 12. Trade Bonuses (Evaluation)
+#### 10. Trade Bonuses (Evaluation)
 
 **What it is**: Encourage piece trades when ahead in material, pawn trades when behind.
 
@@ -379,7 +376,7 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 **Implementation**: In evaluate(), add bonus for having fewer pieces when ahead, fewer pawns when behind.
 
-#### 13. History-Based LMR Decisions
+#### 11. History-Based LMR Decisions
 
 **What it is**: Use the history score to influence LMR reduction amount. Moves with good history get reduced less.
 
@@ -391,19 +388,19 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 ### Lower Priority (But Worth Considering)
 
-#### 14. Probcut
+#### 12. Probcut
 
 **What it is**: At high depth, do a shallow search with raised beta. If it fails high, the position is probably winning and can be cut.
 
 **Why it helps**: Additional forward pruning at internal nodes.
 
-#### 15. Multi-Cut
+#### 13. Multi-Cut
 
 **What it is**: At high depth, if multiple moves fail high at shallow depth, assume the position is good.
 
 **Why it helps**: Additional pruning when position has many good moves.
 
-#### 16. Razoring
+#### 14. Razoring
 
 **What it is**: At low depths, if eval is very far below alpha, drop into qsearch directly.
 
@@ -411,13 +408,13 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 ### Performance/Structural
 
-#### 17. Prefetch Hash Table
+#### 15. Prefetch Hash Table
 
 **What it is**: When making a move, prefetch the hash entry for the child position.
 
 **Why it helps**: Hides memory latency. Hash table is large and often cache-misses.
 
-#### 18. Tune Parameters
+#### 16. Tune Parameters
 
 Many constants could be tuned via SPSA or similar:
 - LMR thresholds and reduction amounts
@@ -445,6 +442,8 @@ Based on both standard chess programming techniques and analysis of Java Rival's
 ### Already Implemented
 - ~~**Logarithmic LMR**~~ - Done in v029, +108 Elo
 - ~~**SEE Pruning in Main Search**~~ - Done in v1.0.20-rc1, ~30% node reduction
+- ~~**Late Move Pruning**~~ - Done in v1.0.20-rc2, ~77% total node reduction
+- ~~**Countermove Heuristic**~~ - Done in v1.0.20-rc3
 
 ### High Priority (from Java Rival analysis)
 1. **Delta Pruning in Quiescence** - Simple to implement, reduces qsearch nodes
@@ -454,8 +453,6 @@ Based on both standard chess programming techniques and analysis of Java Rival's
 
 ### High Priority (standard techniques)
 5. **Singular Extensions** - High impact, used by all top engines
-6. **Countermove Heuristic** - Simple addition to move ordering
-7. **Late Move Pruning** - Complements LMR well
 
 ### Medium Priority
 8. **Pawn Push Extensions** - Extend for pawns about to promote

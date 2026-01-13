@@ -612,6 +612,8 @@ pub fn search(
         let move_extension = check_extension + pawn_push_ext;
 
         let unmake = make_move_in_place(position, m);
+        // Track move at this ply for countermove heuristic
+        search_state.ply_move[ply as usize] = m;
         // For killer moves, use actual capture detection from unmake info
         let move_is_capture = unmake.captured_piece != CAPTURED_NONE;
 
@@ -855,7 +857,45 @@ fn cutoff_unmake(
     );
     update_history(position, search_state, m, depth as i64 * depth as i64);
     update_killers(ply, search_state, m, best_pathscore.1, is_capture);
+    update_countermove(position, ply, search_state, m, is_capture);
     best_pathscore
+}
+
+/// Update countermove table: store move m as a good response to the previous opponent's move
+#[inline(always)]
+fn update_countermove(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, is_capture: bool) {
+    // Only store quiet moves as countermoves (captures are handled by MVV-LVA)
+    if is_capture || (m & PROMOTION_FULL_MOVE_MASK != 0) {
+        return;
+    }
+    // Need a previous move to respond to
+    if ply == 0 {
+        return;
+    }
+    let prev_move = search_state.ply_move[(ply - 1) as usize];
+    if prev_move == 0 {
+        return;
+    }
+    // Index by [piece_12][to_square] of the previous move
+    // The previous move was made by the opponent (position.mover ^ 1)
+    let opponent_side = position.mover ^ 1;
+    let prev_piece = piece_type_to_index(prev_move) + (opponent_side as usize * 6);
+    let prev_to = to_square_part(prev_move) as usize;
+    search_state.countermoves[prev_piece][prev_to] = m;
+}
+
+/// Convert move's piece mask to index 0-5
+#[inline(always)]
+fn piece_type_to_index(m: Move) -> usize {
+    match m & PIECE_MASK_FULL {
+        PIECE_MASK_PAWN => 0,
+        PIECE_MASK_KNIGHT => 1,
+        PIECE_MASK_BISHOP => 2,
+        PIECE_MASK_ROOK => 3,
+        PIECE_MASK_QUEEN => 4,
+        PIECE_MASK_KING => 5,
+        _ => 0,
+    }
 }
 
 #[inline(always)]
