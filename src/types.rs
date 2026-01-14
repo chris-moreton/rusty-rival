@@ -204,6 +204,7 @@ pub struct SearchState {
     pub static_evals: [Score; MAX_DEPTH as usize], // Static eval at each ply for improving detection
     pub history_moves: [[[HistoryScore; 64]; 64]; 12],
     pub highest_history_score: HistoryScore,
+    pub lowest_history_score: HistoryScore,
     pub nodes: u64,
     pub nodes_limit: u64,
     pub show_info: bool,
@@ -236,6 +237,7 @@ impl Clone for SearchState {
             static_evals: self.static_evals,
             history_moves: self.history_moves,
             highest_history_score: self.highest_history_score,
+            lowest_history_score: self.lowest_history_score,
             nodes: self.nodes,
             nodes_limit: self.nodes_limit,
             show_info: self.show_info,
@@ -268,6 +270,7 @@ pub fn default_search_state() -> SearchState {
         static_evals: [0; MAX_DEPTH as usize],
         history_moves: [[[0; 64]; 64]; 12],
         highest_history_score: 0,
+        lowest_history_score: 0,
         nodes: 0,
         nodes_limit: u64::MAX,
         show_info: true,

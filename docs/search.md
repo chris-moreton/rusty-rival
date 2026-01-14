@@ -28,7 +28,7 @@ The engine searches progressively deeper from depth 1 up to the maximum depth. K
 
 - **Move Ordering at Root**: Moves are sorted by score from previous iteration for better alpha-beta cutoffs
 
-- **Time Management**: Checks time every 1000 nodes; sends info every 1M nodes
+- **Time Management**: Checks time every 1000 nodes; sends info at end of each depth and when best move changes
 
 ### Alpha-Beta Search
 
@@ -56,7 +56,7 @@ Standard fail-soft alpha-beta with negamax scoring. The search function includes
 
 ### 1. Transposition Table (Hash Table)
 
-**Location**: `search.rs:344-386`, `store_hash_entry()` at line 226
+**Location**: `search.rs:380-420`, `store_hash_entry()` at line 256
 
 - **Size**: 128MB with ~6M entries (22 bytes per entry)
 - **Replacement**: Depth-preferred with version-based aging
@@ -65,7 +65,7 @@ Standard fail-soft alpha-beta with negamax scoring. The search function includes
 
 ### 2. Null Move Pruning
 
-**Location**: `search.rs:410-432`
+**Location**: `search.rs:463-491`
 
 Skips the opponent's turn to see if position is still good, allowing deep branches to be pruned.
 
@@ -83,18 +83,24 @@ Skips the opponent's turn to see if position is still good, allowing deep branch
 
 ### 3. Late Move Reductions (LMR)
 
-**Location**: `search.rs:564-575`, `lmr_scout_search()` at line 685
+**Location**: `search.rs:687-709`, `lmr_scout_search()` at line 822
 
 Reduces search depth for moves that are unlikely to be best.
 
 - **Minimum depth**: 3 ply
 - **Legal moves before attempting**: 4 (first 4 moves searched fully)
-- **Reduction amount**: 2 ply
+- **Reduction formula**: `floor(0.75 + ln(depth) * ln(move_count) / 2.5)` (precomputed in LMR_TABLE)
+  - At depth 6, move 10: reduces by 1
+  - At depth 10, move 20: reduces by 2
+  - At depth 15, move 30: reduces by 3
 - **Conditions**:
   - No extensions applied
   - Move is not a capture or promotion (non-tactical)
   - Move is not a killer move at current ply
   - Move doesn't give check
+- **Adjustments**:
+  - Reduce 1 less if position is "improving" (static eval better than 2 plies ago)
+  - Reduce 1 less if threat detected from null move search
 
 **Re-search logic**:
 1. Scout search with reduced depth
@@ -103,16 +109,15 @@ Reduces search depth for moves that are unlikely to be best.
 
 ### 4. Check Extensions
 
-**Location**: `search.rs:436-438`, `extend()` function at line 276
+**Location**: `search.rs:496`
 
 - **Condition**: Position is in check
 - **Extension**: 1 ply
-- **Limit**: Only one extension per path to avoid explosion
-- **Depth limit**: Only extends if `ply < iterative_depth * 2`
+- **Depth limit**: Only extends if `ply < iterative_depth * 2` (prevents infinite extension chains)
 
 ### 5. Internal Iterative Deepening (IID)
 
-**Location**: `search.rs:440-444`
+**Location**: `search.rs:499-504`
 
 When no hash move is available at high depth, does a shallow search to find a good move to try first.
 
@@ -122,7 +127,7 @@ When no hash move is available at high depth, does a shallow search to find a go
 
 ### 6. Reverse Futility Pruning (Beta Pruning)
 
-**Location**: `search.rs:392-398`
+**Location**: `search.rs:446-451`
 
 At shallow depths, if static eval is much better than beta, prune the branch.
 
@@ -133,7 +138,7 @@ At shallow depths, if static eval is much better than beta, prune the branch.
 
 ### 7. Futility Pruning (Alpha Pruning)
 
-**Location**: `search.rs:400-408`, move loop at 559-561
+**Location**: `search.rs:453-457`, move loop at 641-644
 
 Two-phase pruning for hopeless positions:
 
@@ -149,7 +154,7 @@ Two-phase pruning for hopeless positions:
 
 ### 8. Principal Variation Search (PVS)
 
-**Location**: `search.rs:577-581`
+**Location**: `search.rs:714-718`
 
 After finding a move that improves alpha:
 1. Search remaining moves with scout (zero-width) window first
@@ -157,7 +162,7 @@ After finding a move that improves alpha:
 
 ### 9. Staged Move Generation
 
-**Location**: `search.rs:491-544`
+**Location**: `search.rs:550-603`
 
 Generates moves in phases to maximize cutoffs before generating all moves:
 
@@ -192,7 +197,7 @@ Moves are scored for ordering:
 
 ### 11. Killer Move Heuristic
 
-**Location**: `search.rs:821-829`, `update_killers()`
+**Location**: `search.rs:996-1005`, `update_killers()`
 
 - **Killers per ply**: 2
 - **Mate killer**: Separate slot for moves that caused mate cutoffs
@@ -200,7 +205,7 @@ Moves are scored for ordering:
 
 ### 12. History Heuristic
 
-**Location**: `search.rs:771-802`, `update_history()`
+**Location**: `search.rs:946-978`, `update_history()`
 
 Tracks which quiet moves cause cutoffs:
 
@@ -227,7 +232,7 @@ Tracks which quiet move refuted each opponent move:
 
 ### 14. Improving Detection
 
-**Location**: `search.rs:422-442`
+**Location**: `search.rs:424-444`
 
 Tracks whether the static evaluation is improving compared to 2 plies ago (same side to move).
 
@@ -244,7 +249,7 @@ Tracks whether the static evaluation is improving compared to 2 plies ago (same 
 
 ### 15. Late Move Pruning (LMP)
 
-**Location**: `search.rs:642-663`
+**Location**: `search.rs:646-663`
 
 At shallow depths, completely skip late quiet moves instead of just reducing them.
 
@@ -261,7 +266,35 @@ At shallow depths, completely skip late quiet moves instead of just reducing the
 
 **Why it helps**: More aggressive than LMR - saves time by not searching obviously bad moves at all. Combined with SEE pruning, reduces total nodes by ~77%.
 
-### 16. Static Exchange Evaluation (SEE)
+### 16. History Pruning
+
+**Location**: `search.rs:665-685`
+
+At low depths, skip quiet moves that have very negative history scores.
+
+- **Maximum depth**: 4 ply
+- **Threshold formula**: `history < -(4096 × depth²)`
+  - At depth 1: prune if history < -4,096
+  - At depth 2: prune if history < -16,384
+  - At depth 4: prune if history < -65,536
+- **Conditions**:
+  - Scout (null-window) search only
+  - Not in check
+  - Not a capture or promotion
+  - At least 1 other legal move found
+  - Not a killer move
+  - Move doesn't give check
+  - Alpha not near mate scores
+
+**Implementation notes**:
+- History scores can now go negative (removed 0 floor clamp)
+- Negative scores indicate moves that consistently fail to produce cutoffs
+- Move ordering uses `max(0, history)` for bonus calculation (negative scores get 0 bonus)
+- History pruning becomes more effective as games progress and more data accumulates
+
+**Why it helps**: Moves that consistently fail to improve alpha are unlikely to be good. By tracking this in the history table, we can prune them at shallow depths. This is similar to LMP but based on move quality rather than move order.
+
+### 17. Static Exchange Evaluation (SEE)
 
 **Location**: `see.rs`
 
@@ -272,9 +305,9 @@ Used for:
 
 **Implementation**: Recursive negamax-style evaluation of capture sequences on a single square.
 
-### 17. SEE Pruning in Main Search
+### 18. SEE Pruning in Main Search
 
-**Location**: `search.rs:594-608`
+**Location**: `search.rs:611-620`
 
 At low depths, skip captures that lose material according to SEE.
 
@@ -291,6 +324,43 @@ At low depths, skip captures that lose material according to SEE.
 
 **Why it helps**: Avoids wasting time searching obviously bad captures like QxP when the pawn is defended. Reduces node count by ~30%.
 
+### 19. Pawn Push Extensions
+
+**Location**: `search.rs:622-629`
+
+Extends search for pawn pushes to the 7th rank (about to promote).
+
+- **Extension**: 1 ply
+- **Condition**: Pawn push to 7th rank (white) or 2nd rank (black)
+- **Limit**: Only if no check extension already applied
+- **Depth limit**: Only extends if `ply < iterative_depth * 2`
+
+**Why it helps**: Promotions are game-changing; worth searching deeper to see the consequences.
+
+### 20. Threat Detection
+
+**Location**: `search.rs:486-490`
+
+Detects when the opponent has a significant threat based on null move search results.
+
+- **Detection**: If null move search returns score < alpha - 400, threat is detected
+- **Usage**: Reduces LMR by 1 ply when threat detected (more conservative search)
+- **Threshold**: 400 centipawns (roughly losing a piece)
+
+**Why it helps**: When opponent has a strong threat, we need to search more carefully to find defensive moves.
+
+### 21. Delta Pruning in Quiescence
+
+**Location**: `quiesce.rs:151-161`
+
+Skip captures in quiescence search that can't possibly raise alpha.
+
+- **Margin**: 200 centipawns
+- **Condition**: If `eval + captured_piece_value + margin < alpha`, skip the capture
+- **Applied**: Before making each capture move
+
+**Why it helps**: Reduces quiescence nodes by not searching hopeless captures.
+
 ## Quiescence Search
 
 **Location**: `quiesce.rs`
@@ -305,10 +375,10 @@ Called when main search reaches depth 0 to resolve tactical instability.
 
 ## Tablebase Integration
 
-**Location**: `search.rs:316-325`
+**Location**: `search.rs:109-134`
 
-- **Probing**: WDL (Win/Draw/Loss) at every node when ≤6 pieces
-- **DTZ probing**: Used in root for reporting progress
+- **Probing**: DTZ at root only (per-node probing disabled for performance)
+- **Root probing**: When ≤6 pieces, probe all legal moves and return best TB move immediately
 - **Score mapping**: Win/Loss converted to mate-like scores
 
 ---
@@ -327,24 +397,15 @@ Based on analysis of the current implementation and common chess programming tec
 
 **Implementation complexity**: Medium. Need to do a verification search at reduced depth excluding the hash move.
 
-#### 2. More Aggressive LMR
+#### 2. ~~More Aggressive LMR~~ (Implemented)
 
-**Current state**: Fixed 2-ply reduction after first 4 moves.
-
-**Improvement**: Use a logarithmic formula based on depth AND move number:
-```
-reduction = floor(0.5 + ln(depth) * ln(moveNumber) / 2.0)
-```
-
-This allows much deeper reductions for late moves at high depths (3-4+ ply reductions), dramatically increasing search speed.
+Now uses logarithmic formula: `floor(0.75 + ln(depth) * ln(move_count) / 2.5)`. See section 3.
 
 ### Medium Priority
 
-#### 3. History Pruning
+#### 3. ~~History Pruning~~ (Implemented)
 
-**What it is**: Prune moves with very negative history scores.
-
-**Why it helps**: History tracks long-term move quality. If a move consistently fails, it's safe to prune at low depths.
+Now prunes quiet moves with very negative history scores. See section 19.
 
 #### 4. ~~Improving/Worsening Detection~~ (Implemented in v1.0.20-rc4)
 
@@ -370,31 +431,17 @@ This avoids scoring ALL moves upfront when a cutoff happens early.
 
 ### From Java Rival Analysis
 
-#### 6. Threat Extensions
+#### 6. ~~Threat Extensions~~ (Partially Implemented)
 
-**What it is**: When null move search reveals the opponent has a strong threat (their best reply is much better than expected), extend the search.
+Now detects threats via null move search and reduces LMR when threat detected. See section 20.
 
-**Why it helps**: Java Rival uses this and performs well despite lower NPS. Helps find tactics where opponent has a hidden threat.
+#### 7. ~~Delta Pruning in Quiescence~~ (Implemented)
 
-**Implementation**: After null move search, if the returned score is very bad for us, set a threat extension flag.
+Now skips captures that can't raise alpha. See section 21.
 
-#### 7. Delta Pruning in Quiescence
+#### 8. ~~Pawn Push Extensions~~ (Implemented)
 
-**What it is**: In quiescence search, skip captures that can't possibly raise alpha even with the maximum possible gain.
-
-**Why it helps**: Reduces quiescence nodes significantly. If `eval + max_capture_value + margin < alpha`, skip the capture.
-
-**Typical margin**: 200 centipawns (accounts for positional factors).
-
-**Implementation**: Simple - just add a check before searching each capture in quiesce().
-
-#### 8. Pawn Push Extensions
-
-**What it is**: Extend search for pawn pushes to the 7th rank (or 2nd for black) since they're about to promote.
-
-**Why it helps**: Promotions are game-changing; worth searching deeper.
-
-**Implementation**: Check if move is a pawn push to penultimate rank, add fractional or full extension.
+Now extends for pawn pushes to 7th rank. See section 18.
 
 #### 9. Fractional Extensions
 
@@ -481,19 +528,16 @@ Based on both standard chess programming techniques and analysis of Java Rival's
 - ~~**Late Move Pruning**~~ - Done in v1.0.20-rc2, ~77% total node reduction
 - ~~**Countermove Heuristic**~~ - Done in v1.0.20-rc3
 - ~~**Improving Detection**~~ - Done in v1.0.20-rc4, reduces LMR in improving positions
+- ~~**History Pruning**~~ - Done in v1.0.20-rc5, prunes moves with negative history
 
 ### High Priority (from Java Rival analysis)
-1. **Delta Pruning in Quiescence** - Simple to implement, reduces qsearch nodes
-2. **Threat Extensions** - Key to Java Rival's tactical strength despite lower NPS
-3. **History-Based LMR** - Use history score to reduce less for good moves
-4. **Trade Bonuses** - Simple eval improvement for better endgame conversion
+1. **History-Based LMR** - Use history score to reduce less for good moves
+2. **Trade Bonuses** - Simple eval improvement for better endgame conversion
 
 ### High Priority (standard techniques)
-5. **Singular Extensions** - High impact, used by all top engines
+3. **Singular Extensions** - High impact, used by all top engines
 
 ### Medium Priority
-8. **Pawn Push Extensions** - Extend for pawns about to promote
-9. **Fractional Extensions** - More nuanced extension system
-10. **History Pruning** - Prune moves with very bad history
+4. **Fractional Extensions** - More nuanced extension system
 
-The Java Rival analysis suggests that **search selectivity** (knowing what to search deeply) matters more than raw NPS. Threat extensions and delta pruning in particular seem to explain why Java Rival performs well despite being 5-10x slower.
+The Java Rival analysis suggests that **search selectivity** (knowing what to search deeply) matters more than raw NPS.

@@ -1,7 +1,8 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
-    LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH,
-    NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, HISTORY_PRUNE_MARGIN, HISTORY_PRUNE_MAX_DEPTH,
+    IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH,
+    MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
+    SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -247,6 +248,7 @@ fn clear_history_table(search_state: &mut SearchState) {
         }
     }
     search_state.highest_history_score = 0;
+    search_state.lowest_history_score = 0;
 }
 
 #[inline(always)]
@@ -660,6 +662,28 @@ pub fn search(
                 continue;
             }
 
+            // History Pruning: skip quiet moves with very negative history scores
+            // These moves have consistently failed to produce cutoffs
+            if scouting
+                && depth <= HISTORY_PRUNE_MAX_DEPTH
+                && !in_check
+                && !is_tactical
+                && !is_promotion
+                && legal_move_count > 1
+                && m != search_state.killer_moves[ply as usize][0]
+                && m != search_state.killer_moves[ply as usize][1]
+                && !is_check(position, position.mover)
+                && alpha.abs() < MATE_START
+            {
+                let piece_idx = piece_index_12(position, m);
+                let history = search_state.history_moves[piece_idx][from_square_part(m) as usize][to_square_part(m) as usize];
+                let threshold = -(HISTORY_PRUNE_MARGIN * (depth as i64) * (depth as i64));
+                if history < threshold {
+                    unmake_move(position, m, &unmake);
+                    continue;
+                }
+            }
+
             let lmr = if move_extension == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
                 && real_depth > LMR_MIN_DEPTH
@@ -928,8 +952,9 @@ fn update_history(position: &Position, search_state: &mut SearchState, m: Move, 
 
         search_state.history_moves[piece_index][f][t] += score;
 
-        if search_state.history_moves[piece_index][f][t] < 0 {
-            search_state.history_moves[piece_index][f][t] = 0;
+        // Track lowest history score for history pruning
+        if search_state.history_moves[piece_index][f][t] < search_state.lowest_history_score {
+            search_state.lowest_history_score = search_state.history_moves[piece_index][f][t];
         }
 
         halve_history_scores_if_required(search_state, f, t, piece_index)

@@ -47,6 +47,12 @@ pub const SEE_PRUNE_MARGIN: Score = 20;
 pub const LMP_MAX_DEPTH: u8 = 3;
 pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 8, 12, 16];
 
+// History Pruning: skip quiet moves with very negative history scores
+// Moves that consistently fail to produce cutoffs are unlikely to be good
+// Threshold scales with depth: prune if history < -HISTORY_PRUNE_MARGIN * depth²
+pub const HISTORY_PRUNE_MAX_DEPTH: u8 = 4;
+pub const HISTORY_PRUNE_MARGIN: i64 = 4096;
+
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
 pub const FRAC_EXT_CHECK: u8 = 4; // 1.0 ply for check
