@@ -419,22 +419,37 @@ pub fn search(
 
     let in_check = is_check(position, position.mover);
 
-    let mut lazy_eval: Score = -Score::MAX;
+    // Calculate and store static eval for improving detection
+    // Use a sentinel value when in check (position is too volatile for static eval)
+    let static_eval = if in_check { -MATE_SCORE } else { evaluate(position) };
+
+    // Improving detection: is our position better than 2 plies ago?
+    // This helps tune pruning/reduction aggressiveness
+    // Note: We require ply >= 3 because ply 1 is the first call to search()
+    // (start_search is at ply 0 but doesn't call search), so static_evals[0]
+    // is never set. At ply 3+, static_evals[ply-2] is guaranteed to be valid.
+    let improving = if in_check || ply as usize >= MAX_DEPTH as usize {
+        false // Can't determine improving when in check or at max depth
+    } else {
+        search_state.static_evals[ply as usize] = static_eval;
+        if ply >= 3 {
+            let prev_eval = search_state.static_evals[(ply - 2) as usize];
+            // Both evals are from the same side's perspective (same mover parity)
+            prev_eval != -MATE_SCORE && static_eval > prev_eval
+        } else {
+            true // Assume improving near root
+        }
+    };
 
     if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
-        lazy_eval = evaluate(position);
         let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
-        if lazy_eval - margin as Score >= beta {
-            return (pv_single(0), lazy_eval - margin);
+        if static_eval - margin as Score >= beta {
+            return (pv_single(0), static_eval - margin);
         }
     }
 
     let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
-        if lazy_eval == -Score::MAX {
-            lazy_eval = evaluate(position);
-        }
-
-        lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
+        static_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
     } else {
         false
     };
@@ -654,6 +669,11 @@ pub fn search(
                 && !is_check(position, position.mover)
             {
                 let mut reduction = lmr_reduction(real_depth, legal_move_count);
+                // Improving-based LMR: reduce less when improving
+                // In improving positions, be more conservative - don't reduce as much
+                if improving && reduction > 1 {
+                    reduction -= 1;
+                }
                 // Threat-based LMR: reduce less when opponent has a detected threat
                 // This ensures we don't miss tactical replies to threats
                 if threat_detected && reduction > 0 {
