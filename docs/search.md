@@ -225,7 +225,43 @@ Tracks which quiet move refuted each opponent move:
 
 **Why it helps**: Complements killer moves for positional play. While killers track good moves at a given ply regardless of what led there, countermoves track good responses to specific opponent moves across the tree.
 
-### 15. Static Exchange Evaluation (SEE)
+### 14. Improving Detection
+
+**Location**: `search.rs:422-442`
+
+Tracks whether the static evaluation is improving compared to 2 plies ago (same side to move).
+
+- **Storage**: `static_evals[MAX_DEPTH]` array in SearchState
+- **Calculation**: At each ply, store `static_eval` and compare to `static_evals[ply-2]`
+- **Check handling**: Use `-MATE_SCORE` as sentinel when in check (position too volatile)
+- **Ply requirement**: Requires `ply >= 3` since ply 0 isn't set by search()
+
+**Usage in LMR**:
+- When `improving` is true and reduction > 1: reduce by 1 less ply
+- This makes the search more conservative in improving positions
+
+**Why it helps**: In improving positions, late moves are more likely to be relevant (we're on the right track). Being conservative avoids missing important continuation moves.
+
+### 15. Late Move Pruning (LMP)
+
+**Location**: `search.rs:642-663`
+
+At shallow depths, completely skip late quiet moves instead of just reducing them.
+
+- **Maximum depth**: 3 ply
+- **Move thresholds by depth**: [0, 8, 12, 16] (moves searched before pruning)
+- **Conditions**:
+  - Scout (null-window) search only
+  - Not in check
+  - Not a capture or promotion
+  - Not in endgame (every move matters)
+  - Not a killer move
+  - Move doesn't give check
+  - Alpha not near mate scores
+
+**Why it helps**: More aggressive than LMR - saves time by not searching obviously bad moves at all. Combined with SEE pruning, reduces total nodes by ~77%.
+
+### 16. Static Exchange Evaluation (SEE)
 
 **Location**: `see.rs`
 
@@ -236,7 +272,7 @@ Used for:
 
 **Implementation**: Recursive negamax-style evaluation of capture sequences on a single square.
 
-### 16. SEE Pruning in Main Search
+### 17. SEE Pruning in Main Search
 
 **Location**: `search.rs:594-608`
 
@@ -310,7 +346,7 @@ This allows much deeper reductions for late moves at high depths (3-4+ ply reduc
 
 **Why it helps**: History tracks long-term move quality. If a move consistently fails, it's safe to prune at low depths.
 
-#### 4. Improving/Worsening Detection
+#### 4. ~~Improving/Worsening Detection~~ (Implemented in v1.0.20-rc4)
 
 **What it is**: Track if eval is improving from grandparent node (ply - 2).
 
@@ -318,7 +354,7 @@ This allows much deeper reductions for late moves at high depths (3-4+ ply reduc
 - Improving positions: be more conservative with pruning
 - Worsening positions: can prune more aggressively
 
-Used by Stockfish for null move, futility, and LMR tuning.
+Used by Stockfish for null move, futility, and LMR tuning. Currently used for LMR decisions only.
 
 #### 5. Better Move Picker (Staged Selection)
 
@@ -444,6 +480,7 @@ Based on both standard chess programming techniques and analysis of Java Rival's
 - ~~**SEE Pruning in Main Search**~~ - Done in v1.0.20-rc1, ~30% node reduction
 - ~~**Late Move Pruning**~~ - Done in v1.0.20-rc2, ~77% total node reduction
 - ~~**Countermove Heuristic**~~ - Done in v1.0.20-rc3
+- ~~**Improving Detection**~~ - Done in v1.0.20-rc4, reduces LMR in improving positions
 
 ### High Priority (from Java Rival analysis)
 1. **Delta Pruning in Quiescence** - Simple to implement, reduces qsearch nodes
