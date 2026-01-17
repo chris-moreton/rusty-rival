@@ -15,9 +15,10 @@ use crate::engine_constants::{
     VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
     VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
+use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
-use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, Position, Score, Square, BLACK, WHITE};
+use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, PawnHashTable, Position, Score, Square, BLACK, WHITE};
 use crate::utils::linear_scale;
 use crate::{get_and_unset_lsb, opponent};
 use std::cmp::{max, min};
@@ -67,6 +68,71 @@ pub fn evaluate(position: &Position) -> Score {
         + trapped_piece_penalty(position);
 
     10 + if position.mover == WHITE { score } else { -score }
+}
+
+/// Evaluate with pawn hash table support for caching pawn structure evaluation
+#[inline(always)]
+pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -> Score {
+    let mut cache = default_evaluate_cache();
+
+    cache_piece_count(position, &mut cache);
+
+    if insufficient_material(position, cache.piece_count, true) {
+        return 0;
+    }
+
+    if is_wrong_colored_bishop_draw(position, cache.piece_count) {
+        return 0;
+    }
+
+    if is_kpk_draw(position, cache.piece_count) {
+        return 0;
+    }
+
+    // Try to get pawn structure score from hash table
+    let pawn_key = pawn_zobrist_key(position);
+    let pawn_structure = match pawn_hash.get(pawn_key) {
+        Some(score) => score,
+        None => {
+            // Calculate and cache pawn structure score
+            let score = pawn_structure_score(position, &mut cache);
+            pawn_hash.set(pawn_key, score);
+            score
+        }
+    };
+
+    let score =
+        material_score(position)
+        + piece_square_values(position)
+        + king_score(position, &cache)
+        + king_threat_score(position)
+        + rook_eval(position)
+        + passed_pawn_score(position, &mut cache)
+        + knight_outpost_scores(position, &mut cache)
+        + pawn_structure // Use cached pawn structure score
+        + bishop_mobility_score(position)
+        + bishop_pair_bonus(
+            position.pieces[WHITE as usize].bishop_bitboard,
+            position.pieces[WHITE as usize].pawn_bitboard,
+        ) - bishop_pair_bonus(
+            position.pieces[BLACK as usize].bishop_bitboard,
+            position.pieces[BLACK as usize].pawn_bitboard,
+        ) + knight_fork_threat_score(position)
+            + rook_file_score(position)
+            + queen_mobility_score(position)
+            + endgame_king_centralization_bonus(position)
+            + trade_bonus(position)
+            + bishop_knight_imbalance_score(position)
+            + trapped_piece_penalty(position);
+
+    10 + if position.mover == WHITE { score } else { -score }
+}
+
+/// Calculate pawn structure score (doubled, isolated, backward pawns)
+/// This is the part of evaluation that depends only on pawn positions
+#[inline(always)]
+fn pawn_structure_score(position: &Position, cache: &mut EvaluateCache) -> Score {
+    doubled_and_isolated_pawn_score(position, cache) + backward_pawn_score(position)
 }
 
 #[inline(always)]

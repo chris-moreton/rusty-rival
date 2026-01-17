@@ -879,3 +879,11 @@ fn zobrist_piece(mut bb: Bitboard, colour: Mover, piece_index: usize) -> HashLoc
     }
     index
 }
+
+/// Calculate Zobrist key for pawn structure only (used for pawn hash table)
+/// Only depends on white and black pawn positions - no other pieces or state
+#[inline(always)]
+pub fn pawn_zobrist_key(position: &Position) -> HashLock {
+    zobrist_piece(position.pieces[WHITE as usize].pawn_bitboard, WHITE, ZOBRIST_PIECE_INDEX_PAWN)
+        ^ zobrist_piece(position.pieces[BLACK as usize].pawn_bitboard, BLACK, ZOBRIST_PIECE_INDEX_PAWN)
+}

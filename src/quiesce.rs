@@ -1,6 +1,6 @@
 use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE};
 use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
-use crate::evaluate::evaluate;
+use crate::evaluate::evaluate_with_pawn_hash;
 use crate::make_move::{make_move_in_place, unmake_move};
 use crate::move_constants::{
     PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
@@ -123,7 +123,7 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
     }
     search_state.nodes += 1;
 
-    let eval = evaluate(position);
+    let eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
 
     if depth == 0 || eval >= window.1 {
         return (pv_single(0), eval);

@@ -3,7 +3,7 @@ use crate::engine_constants::{
     LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH,
     NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
 };
-use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
+use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
 use crate::tablebase::{probe_dtz, tablebase_available, TB_MAX_PIECES};
 
@@ -422,7 +422,7 @@ pub fn search(
     let mut lazy_eval: Score = -Score::MAX;
 
     if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
-        lazy_eval = evaluate(position);
+        lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
         let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
         if lazy_eval - margin as Score >= beta {
             return (pv_single(0), lazy_eval - margin);
@@ -431,7 +431,7 @@ pub fn search(
 
     let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
         if lazy_eval == -Score::MAX {
-            lazy_eval = evaluate(position);
+            lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
         }
 
         lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha

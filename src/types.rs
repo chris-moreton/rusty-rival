@@ -1,4 +1,4 @@
-use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES};
+use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use arrayvec::ArrayVec;
 use std::cell::UnsafeCell;
@@ -100,6 +100,77 @@ impl std::fmt::Debug for SharedHashTable {
     }
 }
 
+// Pawn hash table entry - caches pawn structure evaluation
+#[derive(Copy, Clone, Default)]
+pub struct PawnHashEntry {
+    pub key: u64,     // Lower 64 bits of pawn Zobrist key for verification
+    pub score: Score, // Cached pawn structure score
+}
+
+// Pawn hash table - smaller dedicated cache for pawn structure evaluation
+pub struct PawnHashTable {
+    data: UnsafeCell<Box<[PawnHashEntry; NUM_PAWN_HASH_ENTRIES]>>,
+}
+
+// SAFETY: Same reasoning as SharedHashTable - data races just cause cache misses
+unsafe impl Send for PawnHashTable {}
+unsafe impl Sync for PawnHashTable {}
+
+impl PawnHashTable {
+    pub fn new() -> Self {
+        PawnHashTable {
+            data: UnsafeCell::new(Box::new([PawnHashEntry::default(); NUM_PAWN_HASH_ENTRIES])),
+        }
+    }
+
+    #[inline(always)]
+    pub fn get(&self, key: HashLock) -> Option<Score> {
+        let index = (key as usize) % NUM_PAWN_HASH_ENTRIES;
+        let key_lower = key as u64;
+        // SAFETY: We accept data races as they only cause cache misses
+        let entry = unsafe { &(*self.data.get())[index] };
+        if entry.key == key_lower {
+            Some(entry.score)
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
+    pub fn set(&self, key: HashLock, score: Score) {
+        let index = (key as usize) % NUM_PAWN_HASH_ENTRIES;
+        let key_lower = key as u64;
+        // SAFETY: We accept data races as they only cause cache misses
+        unsafe {
+            let entry = &mut (*self.data.get())[index];
+            entry.key = key_lower;
+            entry.score = score;
+        }
+    }
+
+    pub fn clear(&self) {
+        // SAFETY: Called before search starts, no concurrent access expected
+        unsafe {
+            let data = &mut *self.data.get();
+            for entry in data.iter_mut() {
+                *entry = PawnHashEntry::default();
+            }
+        }
+    }
+}
+
+impl Default for PawnHashTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl std::fmt::Debug for PawnHashTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "PawnHashTable({} entries)", NUM_PAWN_HASH_ENTRIES)
+    }
+}
+
 pub const MAX_PV_LENGTH: usize = 64;
 pub type PV = ArrayVec<Move, MAX_PV_LENGTH>;
 pub type PathScore = (PV, Score);
@@ -197,6 +268,7 @@ pub struct SearchState {
     pub iterative_depth: u8,
     pub hash_table: Arc<SharedHashTable>,
     pub hash_table_version: u32,
+    pub pawn_hash_table: Arc<PawnHashTable>,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
     pub mate_killer: [Move; MAX_DEPTH as usize],
     pub countermoves: [[Move; 64]; 12],       // [piece_12][to_square] -> best countermove
@@ -228,6 +300,7 @@ impl Clone for SearchState {
             // Share the hash table via Arc - no 128MB copy!
             hash_table: Arc::clone(&self.hash_table),
             hash_table_version: self.hash_table_version,
+            pawn_hash_table: Arc::clone(&self.pawn_hash_table),
             killer_moves: self.killer_moves,
             mate_killer: self.mate_killer,
             countermoves: self.countermoves,
@@ -259,6 +332,7 @@ pub fn default_search_state() -> SearchState {
         iterative_depth: 0,
         hash_table: Arc::new(SharedHashTable::new()),
         hash_table_version: 1,
+        pawn_hash_table: Arc::new(PawnHashTable::new()),
         killer_moves: [[0, 0]; MAX_DEPTH as usize],
         mate_killer: [0; MAX_DEPTH as usize],
         countermoves: [[0; 64]; 12],

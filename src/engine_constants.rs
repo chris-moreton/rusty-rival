@@ -60,6 +60,9 @@ pub const MAX_QUIESCE_DEPTH: u8 = 100;
 pub const HASH_ENTRY_BYTES: u64 = 22;
 pub const HASH_SIZE_MB: u64 = 128;
 pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTES;
+
+// Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
+pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
 pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [128, 192, 256, 320, 384, 448, 512, 576];
 
 pub const TICKER_MILLIS: u16 = 500;
