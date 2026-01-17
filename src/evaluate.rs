@@ -1,19 +1,20 @@
 use crate::bitboards::{
     bit, north_fill, south_fill, A1_BIT, A2_BIT, A7_BIT, A8_BIT, B1_BIT, B3_BIT, B6_BIT, B8_BIT, BISHOP_RAYS, C1_BIT, C8_BIT,
-    DARK_SQUARES_BITS, F1_BIT, F8_BIT, FILE_A_BITS, FILE_H_BITS, G1_BIT, G3_BIT, G6_BIT, G8_BIT, H1_BIT, H2_BIT, H7_BIT, H8_BIT,
-    KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS,
-    RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
+    DARK_SQUARES_BITS, F1_BIT, F8_BIT, FILE_A_BITS, FILE_B_BITS, FILE_C_BITS, FILE_D_BITS, FILE_E_BITS, FILE_F_BITS, FILE_G_BITS,
+    FILE_H_BITS, G1_BIT, G3_BIT, G6_BIT, G8_BIT, H1_BIT, H2_BIT, H7_BIT, H8_BIT, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
+    LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
     BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD,
-    ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK,
-    KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR,
-    QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS,
-    ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY,
-    VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
-    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST,
-    VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    ISOLATED_PAWN_PENALTY, KING_OPEN_FILE_PENALTY, KING_SEMI_OPEN_FILE_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
+    KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR,
+    PAWN_ADJUST_MAX_MATERIAL, PAWN_STORM_PENALTY, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR,
+    ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
+    SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY,
+    VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN,
+    VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
+    VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
+    VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
@@ -66,7 +67,9 @@ pub fn evaluate(position: &Position) -> Score {
         + trade_bonus(position)
         + bishop_knight_imbalance_score(position)
         + trapped_piece_penalty(position)
-        + space_score(position);
+        + space_score(position)
+        + king_file_safety(position)
+        + pawn_storm_penalty(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -125,7 +128,9 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
             + trade_bonus(position)
             + bishop_knight_imbalance_score(position)
             + trapped_piece_penalty(position)
-            + space_score(position);
+            + space_score(position)
+            + king_file_safety(position)
+            + pawn_storm_penalty(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -1482,4 +1487,161 @@ pub fn space_score(position: &Position) -> Score {
     let scale = pawn_count.min(16) / 2; // 0-8 scale based on pawns
 
     (white_space as Score - black_space as Score) * SPACE_BONUS_PER_SQUARE * scale / 8
+}
+
+/// File constants array for easy indexing
+const FILES: [Bitboard; 8] = [
+    FILE_H_BITS,
+    FILE_G_BITS,
+    FILE_F_BITS,
+    FILE_E_BITS,
+    FILE_D_BITS,
+    FILE_C_BITS,
+    FILE_B_BITS,
+    FILE_A_BITS,
+];
+
+/// King open file penalty: penalize open/semi-open files adjacent to the king
+/// Open files near the king are dangerous as they can be used for attacks
+#[inline(always)]
+pub fn king_file_safety(position: &Position) -> Score {
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
+
+    // Only apply in middlegame (when there's significant material)
+    let material = piece_material(position, WHITE) + piece_material(position, BLACK);
+    if material < ENDGAME_MATERIAL_THRESHOLD * 2 {
+        return 0;
+    }
+
+    let mut score: Score = 0;
+    let all_pawns = white.pawn_bitboard | black.pawn_bitboard;
+
+    // White king file safety
+    let wk_file = (white.king_square % 8) as usize;
+    for file_offset in 0..=2 {
+        let file_idx = if file_offset == 0 {
+            wk_file
+        } else if file_offset == 1 && wk_file > 0 {
+            wk_file - 1
+        } else if file_offset == 2 && wk_file < 7 {
+            wk_file + 1
+        } else {
+            continue;
+        };
+
+        let file_mask = FILES[file_idx];
+        let is_open = (all_pawns & file_mask) == 0;
+        let is_semi_open = (white.pawn_bitboard & file_mask) == 0;
+
+        if is_open {
+            score -= KING_OPEN_FILE_PENALTY;
+        } else if is_semi_open {
+            score -= KING_SEMI_OPEN_FILE_PENALTY;
+        }
+    }
+
+    // Black king file safety
+    let bk_file = (black.king_square % 8) as usize;
+    for file_offset in 0..=2 {
+        let file_idx = if file_offset == 0 {
+            bk_file
+        } else if file_offset == 1 && bk_file > 0 {
+            bk_file - 1
+        } else if file_offset == 2 && bk_file < 7 {
+            bk_file + 1
+        } else {
+            continue;
+        };
+
+        let file_mask = FILES[file_idx];
+        let is_open = (all_pawns & file_mask) == 0;
+        let is_semi_open = (black.pawn_bitboard & file_mask) == 0;
+
+        if is_open {
+            score += KING_OPEN_FILE_PENALTY;
+        } else if is_semi_open {
+            score += KING_SEMI_OPEN_FILE_PENALTY;
+        }
+    }
+
+    score
+}
+
+/// Pawn storm: penalty when enemy pawns are advancing toward our king
+/// Advanced enemy pawns near our king are dangerous
+#[inline(always)]
+pub fn pawn_storm_penalty(position: &Position) -> Score {
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
+
+    // Only apply in middlegame
+    let material = piece_material(position, WHITE) + piece_material(position, BLACK);
+    if material < ENDGAME_MATERIAL_THRESHOLD * 2 {
+        return 0;
+    }
+
+    let mut score: Score = 0;
+
+    // Check black pawns storming white king (if white king is castled kingside)
+    if white.king_square % 8 <= 2 {
+        // King is on kingside (files a-c, which is H, G, F in our indexing)
+        for &file_mask in FILES.iter().take(3) {
+            let black_pawns_on_file = black.pawn_bitboard & file_mask;
+
+            if black_pawns_on_file != 0 {
+                // Find the most advanced black pawn on this file (lowest rank for black)
+                let most_advanced_sq = black_pawns_on_file.trailing_zeros() as i8;
+                let rank = most_advanced_sq / 8;
+                // Black pawns start at rank 6 (index), advancing toward rank 0
+                // Advancement = 6 - rank (0 = at start, 6 = about to promote)
+                let advancement = (6 - rank).clamp(0, 4) as usize;
+                score -= PAWN_STORM_PENALTY[advancement];
+            }
+        }
+    } else if white.king_square % 8 >= 5 {
+        // King is on queenside
+        for &file_mask in FILES.iter().skip(5) {
+            let black_pawns_on_file = black.pawn_bitboard & file_mask;
+
+            if black_pawns_on_file != 0 {
+                let most_advanced_sq = black_pawns_on_file.trailing_zeros() as i8;
+                let rank = most_advanced_sq / 8;
+                let advancement = (6 - rank).clamp(0, 4) as usize;
+                score -= PAWN_STORM_PENALTY[advancement];
+            }
+        }
+    }
+
+    // Check white pawns storming black king
+    if black.king_square % 8 <= 2 {
+        // Black king is on kingside
+        for &file_mask in FILES.iter().take(3) {
+            let white_pawns_on_file = white.pawn_bitboard & file_mask;
+
+            if white_pawns_on_file != 0 {
+                // Find the most advanced white pawn on this file (highest rank for white)
+                let most_advanced_sq = 63 - (white_pawns_on_file.leading_zeros() as i8);
+                let rank = most_advanced_sq / 8;
+                // White pawns start at rank 1, advancing toward rank 7
+                // Advancement = rank - 1 (0 = at start, 6 = about to promote)
+                let advancement = (rank - 1).clamp(0, 4) as usize;
+                score += PAWN_STORM_PENALTY[advancement];
+            }
+        }
+    } else if black.king_square % 8 >= 5 {
+        // Black king is on queenside
+        for &file_mask in FILES.iter().skip(5) {
+            let white_pawns_on_file = white.pawn_bitboard & file_mask;
+
+            if white_pawns_on_file != 0 {
+                let most_advanced_sq = 63 - (white_pawns_on_file.leading_zeros() as i8);
+                let rank = most_advanced_sq / 8;
+                let advancement = (rank - 1).clamp(0, 4) as usize;
+                score += PAWN_STORM_PENALTY[advancement];
+            }
+        }
+    }
+
+    score
 }

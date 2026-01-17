@@ -193,3 +193,11 @@ pub const TRAPPED_ROOK_PENALTY: Score = 50; // Rook trapped in corner by own kin
 // Space evaluation: bonus per safe square controlled in opponent's territory
 // More important in closed positions with many pawns
 pub const SPACE_BONUS_PER_SQUARE: Score = 2;
+
+// King safety: penalty for open/semi-open files near the king
+pub const KING_OPEN_FILE_PENALTY: Score = 15;
+pub const KING_SEMI_OPEN_FILE_PENALTY: Score = 8;
+
+// King safety: penalty for enemy pawns storming toward our king
+// More advanced pawns (closer to our king) get higher penalty
+pub const PAWN_STORM_PENALTY: [Score; 5] = [0, 5, 15, 30, 50]; // indexed by how many ranks advanced
