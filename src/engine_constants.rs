@@ -47,12 +47,6 @@ pub const SEE_PRUNE_MARGIN: Score = 20;
 pub const LMP_MAX_DEPTH: u8 = 3;
 pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 8, 12, 16];
 
-// History Pruning: skip quiet moves with very negative history scores
-// Moves that consistently fail to produce cutoffs are unlikely to be good
-// Threshold scales with depth: prune if history < -HISTORY_PRUNE_MARGIN * depth²
-pub const HISTORY_PRUNE_MAX_DEPTH: u8 = 4;
-pub const HISTORY_PRUNE_MARGIN: i64 = 4096;
-
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
 pub const FRAC_EXT_CHECK: u8 = 4; // 1.0 ply for check
@@ -174,3 +168,10 @@ pub const VALUE_KING_ENDGAME_CENTRALIZATION: [Score; 64] = [
 // Material threshold below which we apply extra king centralization bonus
 // This is roughly when no queens and at most one rook per side
 pub const ENDGAME_MATERIAL_THRESHOLD: Score = ROOK_VALUE_AVERAGE * 2;
+
+// Bishop vs Knight imbalance
+// Bishops are stronger in open positions (fewer pawns), knights in closed positions (more pawns)
+// With 16 pawns (max), knights get bonus; with 0 pawns, bishops get bonus
+// The bonus is per minor piece imbalance (e.g., having 2 bishops vs 2 knights)
+// At 8 pawns (average), imbalance is neutral
+pub const BISHOP_KNIGHT_IMBALANCE_BONUS: Score = 15; // Max bonus per imbalance point

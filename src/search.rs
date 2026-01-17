@@ -1,8 +1,7 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, HISTORY_PRUNE_MARGIN, HISTORY_PRUNE_MAX_DEPTH,
-    IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH,
-    MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
-    SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
+    LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH,
+    NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -248,7 +247,6 @@ fn clear_history_table(search_state: &mut SearchState) {
         }
     }
     search_state.highest_history_score = 0;
-    search_state.lowest_history_score = 0;
 }
 
 #[inline(always)]
@@ -421,37 +419,22 @@ pub fn search(
 
     let in_check = is_check(position, position.mover);
 
-    // Calculate and store static eval for improving detection
-    // Use a sentinel value when in check (position is too volatile for static eval)
-    let static_eval = if in_check { -MATE_SCORE } else { evaluate(position) };
-
-    // Improving detection: is our position better than 2 plies ago?
-    // This helps tune pruning/reduction aggressiveness
-    // Note: We require ply >= 3 because ply 1 is the first call to search()
-    // (start_search is at ply 0 but doesn't call search), so static_evals[0]
-    // is never set. At ply 3+, static_evals[ply-2] is guaranteed to be valid.
-    let improving = if in_check || ply as usize >= MAX_DEPTH as usize {
-        false // Can't determine improving when in check or at max depth
-    } else {
-        search_state.static_evals[ply as usize] = static_eval;
-        if ply >= 3 {
-            let prev_eval = search_state.static_evals[(ply - 2) as usize];
-            // Both evals are from the same side's perspective (same mover parity)
-            prev_eval != -MATE_SCORE && static_eval > prev_eval
-        } else {
-            true // Assume improving near root
-        }
-    };
+    let mut lazy_eval: Score = -Score::MAX;
 
     if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
+        lazy_eval = evaluate(position);
         let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
-        if static_eval - margin as Score >= beta {
-            return (pv_single(0), static_eval - margin);
+        if lazy_eval - margin as Score >= beta {
+            return (pv_single(0), lazy_eval - margin);
         }
     }
 
     let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
-        static_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
+        if lazy_eval == -Score::MAX {
+            lazy_eval = evaluate(position);
+        }
+
+        lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
     } else {
         false
     };
@@ -662,28 +645,6 @@ pub fn search(
                 continue;
             }
 
-            // History Pruning: skip quiet moves with very negative history scores
-            // These moves have consistently failed to produce cutoffs
-            if scouting
-                && depth <= HISTORY_PRUNE_MAX_DEPTH
-                && !in_check
-                && !is_tactical
-                && !is_promotion
-                && legal_move_count > 1
-                && m != search_state.killer_moves[ply as usize][0]
-                && m != search_state.killer_moves[ply as usize][1]
-                && !is_check(position, position.mover)
-                && alpha.abs() < MATE_START
-            {
-                let piece_idx = piece_index_12(position, m);
-                let history = search_state.history_moves[piece_idx][from_square_part(m) as usize][to_square_part(m) as usize];
-                let threshold = -(HISTORY_PRUNE_MARGIN * (depth as i64) * (depth as i64));
-                if history < threshold {
-                    unmake_move(position, m, &unmake);
-                    continue;
-                }
-            }
-
             let lmr = if move_extension == 0
                 && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
                 && real_depth > LMR_MIN_DEPTH
@@ -693,11 +654,6 @@ pub fn search(
                 && !is_check(position, position.mover)
             {
                 let mut reduction = lmr_reduction(real_depth, legal_move_count);
-                // Improving-based LMR: reduce less when improving
-                // In improving positions, be more conservative - don't reduce as much
-                if improving && reduction > 1 {
-                    reduction -= 1;
-                }
                 // Threat-based LMR: reduce less when opponent has a detected threat
                 // This ensures we don't miss tactical replies to threats
                 if threat_detected && reduction > 0 {
@@ -952,9 +908,8 @@ fn update_history(position: &Position, search_state: &mut SearchState, m: Move, 
 
         search_state.history_moves[piece_index][f][t] += score;
 
-        // Track lowest history score for history pruning
-        if search_state.history_moves[piece_index][f][t] < search_state.lowest_history_score {
-            search_state.lowest_history_score = search_state.history_moves[piece_index][f][t];
+        if search_state.history_moves[piece_index][f][t] < 0 {
+            search_state.history_moves[piece_index][f][t] = 0;
         }
 
         halve_history_scores_if_required(search_state, f, t, piece_index)

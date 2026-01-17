@@ -199,12 +199,10 @@ pub struct SearchState {
     pub hash_table_version: u32,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
     pub mate_killer: [Move; MAX_DEPTH as usize],
-    pub countermoves: [[Move; 64]; 12],            // [piece_12][to_square] -> best countermove
-    pub ply_move: [Move; MAX_DEPTH as usize],      // Track move at each ply for countermove lookup
-    pub static_evals: [Score; MAX_DEPTH as usize], // Static eval at each ply for improving detection
+    pub countermoves: [[Move; 64]; 12],       // [piece_12][to_square] -> best countermove
+    pub ply_move: [Move; MAX_DEPTH as usize], // Track move at each ply for countermove lookup
     pub history_moves: [[[HistoryScore; 64]; 64]; 12],
     pub highest_history_score: HistoryScore,
-    pub lowest_history_score: HistoryScore,
     pub nodes: u64,
     pub nodes_limit: u64,
     pub show_info: bool,
@@ -234,10 +232,8 @@ impl Clone for SearchState {
             mate_killer: self.mate_killer,
             countermoves: self.countermoves,
             ply_move: self.ply_move,
-            static_evals: self.static_evals,
             history_moves: self.history_moves,
             highest_history_score: self.highest_history_score,
-            lowest_history_score: self.lowest_history_score,
             nodes: self.nodes,
             nodes_limit: self.nodes_limit,
             show_info: self.show_info,
@@ -267,10 +263,8 @@ pub fn default_search_state() -> SearchState {
         mate_killer: [0; MAX_DEPTH as usize],
         countermoves: [[0; 64]; 12],
         ply_move: [0; MAX_DEPTH as usize],
-        static_evals: [0; MAX_DEPTH as usize],
         history_moves: [[[0; 64]; 64]; 12],
         highest_history_score: 0,
-        lowest_history_score: 0,
         nodes: 0,
         nodes_limit: u64::MAX,
         show_info: true,

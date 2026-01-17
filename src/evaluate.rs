@@ -3,14 +3,14 @@ use crate::bitboards::{
     LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
-    BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD, ISOLATED_PAWN_PENALTY,
-    KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE,
-    KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE,
-    QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
-    STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
-    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
-    VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD,
+    ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK,
+    KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR,
+    QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS,
+    ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR,
+    VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
+    VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION,
+    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
@@ -59,7 +59,8 @@ pub fn evaluate(position: &Position) -> Score {
         + rook_file_score(position)
         + queen_mobility_score(position)
         + endgame_king_centralization_bonus(position)
-        + trade_bonus(position);
+        + trade_bonus(position)
+        + bishop_knight_imbalance_score(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -1153,4 +1154,42 @@ pub fn trade_bonus(position: &Position) -> Score {
     } else {
         -bonus // Black is ahead, bonus for black
     }
+}
+
+/// Bishop vs Knight imbalance scoring.
+/// Bishops are stronger in open positions (fewer pawns), knights in closed positions.
+/// The imbalance is scaled by pawn count:
+/// - With few pawns (open): bonus for having more bishops than knights
+/// - With many pawns (closed): bonus for having more knights than bishops
+/// - At 8 pawns (average): neutral
+#[inline(always)]
+pub fn bishop_knight_imbalance_score(position: &Position) -> Score {
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
+
+    // Count pawns (0-16)
+    let total_pawns = (white.pawn_bitboard.count_ones() + black.pawn_bitboard.count_ones()) as i32;
+
+    // Imbalance: positive means more bishops, negative means more knights
+    // Calculate for white (white bishops - white knights)
+    let white_imbalance = white.bishop_bitboard.count_ones() as i32 - white.knight_bitboard.count_ones() as i32;
+    // Calculate for black (black bishops - black knights)
+    let black_imbalance = black.bishop_bitboard.count_ones() as i32 - black.knight_bitboard.count_ones() as i32;
+
+    // Net imbalance from white's perspective
+    let net_imbalance = white_imbalance - black_imbalance;
+
+    // If no imbalance, no bonus
+    if net_imbalance == 0 {
+        return 0;
+    }
+
+    // Scale factor: (8 - pawns) gives us how "open" the position is
+    // Range: -8 (16 pawns, very closed) to +8 (0 pawns, very open)
+    // Positive scale = bonus for bishops, negative scale = bonus for knights
+    let openness = 8 - total_pawns; // -8 to +8
+
+    // Final score: net_imbalance * openness * bonus_per_unit / 8
+    // Divide by 8 to scale the bonus appropriately
+    net_imbalance * openness * BISHOP_KNIGHT_IMBALANCE_BONUS / 8
 }
