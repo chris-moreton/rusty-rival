@@ -35,7 +35,24 @@ git tag v020-my-feature
 
 ## Engine Competition
 
-The `scripts/compete.py` script provides a comprehensive engine testing framework with Elo tracking. See **[COMPETE.md](COMPETE.md)** for full documentation including setup, all competition modes, and troubleshooting.
+For engine vs engine matches with Elo tracking, see the separate [chess-compete](https://github.com/chris-moreton/chess-compete) repository.
+
+## Benchmarking
+
+The `scripts/benchmark.py` script measures search performance (nodes per second) across a diverse set of test positions.
+
+```bash
+# Benchmark a single engine at depth 12
+./scripts/benchmark.py v020-my-feature --depth 12
+
+# Compare multiple engines
+./scripts/benchmark.py v019-baseline v020-my-feature --depth 12
+
+# Quick test with lower depth
+./scripts/benchmark.py v020-my-feature --depth 8
+```
+
+Output shows NPS for each position and overall comparison when benchmarking multiple engines.
 
 ## Running Perft
 
