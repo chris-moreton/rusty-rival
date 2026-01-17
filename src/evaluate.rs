@@ -2,18 +2,18 @@ use crate::bitboards::{
     bit, north_fill, south_fill, A1_BIT, A2_BIT, A7_BIT, A8_BIT, B1_BIT, B3_BIT, B6_BIT, B8_BIT, BISHOP_RAYS, C1_BIT, C8_BIT,
     DARK_SQUARES_BITS, F1_BIT, F8_BIT, FILE_A_BITS, FILE_H_BITS, G1_BIT, G3_BIT, G6_BIT, G8_BIT, H1_BIT, H2_BIT, H7_BIT, H8_BIT,
     KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS,
-    RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
+    RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
     BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD,
     ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK,
     KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR,
     QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS,
-    ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY,
-    VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN,
-    VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
-    VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
-    VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY,
+    VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
+    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST,
+    VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
@@ -65,7 +65,8 @@ pub fn evaluate(position: &Position) -> Score {
         + endgame_king_centralization_bonus(position)
         + trade_bonus(position)
         + bishop_knight_imbalance_score(position)
-        + trapped_piece_penalty(position);
+        + trapped_piece_penalty(position)
+        + space_score(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -123,7 +124,8 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
             + endgame_king_centralization_bonus(position)
             + trade_bonus(position)
             + bishop_knight_imbalance_score(position)
-            + trapped_piece_penalty(position);
+            + trapped_piece_penalty(position)
+            + space_score(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -1397,4 +1399,87 @@ pub fn trapped_piece_penalty(position: &Position) -> Score {
     }
 
     score
+}
+
+/// Space evaluation: rewards control of squares in opponent's territory
+/// Space is more valuable in closed positions with many pawns
+#[inline(always)]
+pub fn space_score(position: &Position) -> Score {
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
+    let all_pieces = white.all_pieces_bitboard | black.all_pieces_bitboard;
+
+    // Territory definitions
+    let white_territory = RANK_5_BITS | RANK_6_BITS | RANK_7_BITS | RANK_8_BITS;
+    let black_territory = RANK_1_BITS | RANK_2_BITS | RANK_3_BITS | RANK_4_BITS;
+
+    // Calculate pawn attacks (safe squares are not attacked by enemy pawns)
+    let white_pawn_attacks = ((white.pawn_bitboard & !FILE_A_BITS) << 9) | ((white.pawn_bitboard & !FILE_H_BITS) << 7);
+    let black_pawn_attacks = ((black.pawn_bitboard & !FILE_A_BITS) >> 7) | ((black.pawn_bitboard & !FILE_H_BITS) >> 9);
+
+    // Calculate piece attacks for each side
+    let mut white_attacks: Bitboard = white_pawn_attacks;
+    let mut black_attacks: Bitboard = black_pawn_attacks;
+
+    // Knight attacks
+    let mut knights = white.knight_bitboard;
+    while knights != 0 {
+        let sq = get_and_unset_lsb!(knights);
+        white_attacks |= KNIGHT_MOVES_BITBOARDS[sq as usize];
+    }
+    let mut knights = black.knight_bitboard;
+    while knights != 0 {
+        let sq = get_and_unset_lsb!(knights);
+        black_attacks |= KNIGHT_MOVES_BITBOARDS[sq as usize];
+    }
+
+    // Bishop attacks
+    let mut bishops = white.bishop_bitboard;
+    while bishops != 0 {
+        let sq = get_and_unset_lsb!(bishops);
+        white_attacks |= magic_moves_bishop(sq, all_pieces);
+    }
+    let mut bishops = black.bishop_bitboard;
+    while bishops != 0 {
+        let sq = get_and_unset_lsb!(bishops);
+        black_attacks |= magic_moves_bishop(sq, all_pieces);
+    }
+
+    // Rook attacks
+    let mut rooks = white.rook_bitboard;
+    while rooks != 0 {
+        let sq = get_and_unset_lsb!(rooks);
+        white_attacks |= magic_moves_rook(sq, all_pieces);
+    }
+    let mut rooks = black.rook_bitboard;
+    while rooks != 0 {
+        let sq = get_and_unset_lsb!(rooks);
+        black_attacks |= magic_moves_rook(sq, all_pieces);
+    }
+
+    // Queen attacks (combines bishop and rook moves)
+    let mut queens = white.queen_bitboard;
+    while queens != 0 {
+        let sq = get_and_unset_lsb!(queens);
+        white_attacks |= magic_moves_bishop(sq, all_pieces) | magic_moves_rook(sq, all_pieces);
+    }
+    let mut queens = black.queen_bitboard;
+    while queens != 0 {
+        let sq = get_and_unset_lsb!(queens);
+        black_attacks |= magic_moves_bishop(sq, all_pieces) | magic_moves_rook(sq, all_pieces);
+    }
+
+    // King attacks
+    white_attacks |= KING_MOVES_BITBOARDS[white.king_square as usize];
+    black_attacks |= KING_MOVES_BITBOARDS[black.king_square as usize];
+
+    // Safe squares: squares in opponent's territory controlled by us but not attacked by enemy pawns
+    let white_space = (white_attacks & white_territory & !black_pawn_attacks).count_ones();
+    let black_space = (black_attacks & black_territory & !white_pawn_attacks).count_ones();
+
+    // Scale by pawn count - space is more important in closed positions
+    let pawn_count = (white.pawn_bitboard.count_ones() + black.pawn_bitboard.count_ones()) as Score;
+    let scale = pawn_count.min(16) / 2; // 0-8 scale based on pawns
+
+    (white_space as Score - black_space as Score) * SPACE_BONUS_PER_SQUARE * scale / 8
 }

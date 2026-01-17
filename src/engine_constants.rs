@@ -189,3 +189,7 @@ pub const BISHOP_KNIGHT_IMBALANCE_BONUS: Score = 15; // Max bonus per imbalance 
 // Pieces that are trapped (very limited mobility) lose significant value
 pub const TRAPPED_BISHOP_PENALTY: Score = 100; // Bishop trapped on a7/h7/a2/h2 by pawns
 pub const TRAPPED_ROOK_PENALTY: Score = 50; // Rook trapped in corner by own king
+
+// Space evaluation: bonus per safe square controlled in opponent's territory
+// More important in closed positions with many pawns
+pub const SPACE_BONUS_PER_SQUARE: Score = 2;
