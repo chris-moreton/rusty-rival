@@ -10,7 +10,7 @@ use crate::engine_constants::{
     ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR,
     VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
     VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION,
-    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
@@ -897,7 +897,16 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
         0
     };
 
-    guarded_score + connected_score + passed_score + passed_pawn_bonus
+    // King supporting own passed pawns bonus (endgame only)
+    let king_support_bonus = king_supports_passed_pawns_score(
+        position,
+        white_passed_pawns,
+        black_passed_pawns,
+        white_piece_values,
+        black_piece_values,
+    );
+
+    guarded_score + connected_score + passed_score + passed_pawn_bonus + king_support_bonus
 }
 
 #[inline(always)]
@@ -911,6 +920,80 @@ pub fn guarded_passed_pawn_score(
     let black_guarded_passed_pawns = black_passed_pawns & (((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9));
 
     (white_guarded_passed_pawns.count_ones() as Score - black_guarded_passed_pawns.count_ones() as Score) * VALUE_GUARDED_PASSED_PAWN
+}
+
+/// Bonus for a king supporting its own passed pawns in the endgame.
+/// The king escorting a passed pawn to promotion is a key endgame technique.
+/// Bonus is scaled by:
+/// - How close the king is to the pawn (closer = better)
+/// - How advanced the pawn is (more advanced = more valuable to support)
+/// - How few pieces remain (more relevant in endgames)
+#[inline(always)]
+pub fn king_supports_passed_pawns_score(
+    position: &Position,
+    white_passed_pawns: Bitboard,
+    black_passed_pawns: Bitboard,
+    white_piece_values: Score,
+    black_piece_values: Score,
+) -> Score {
+    let mut score: Score = 0;
+
+    // White king supporting white passed pawns (only relevant when black has few pieces)
+    if black_piece_values < PAWN_ADJUST_MAX_MATERIAL && white_passed_pawns != 0 {
+        let king_sq = position.pieces[WHITE as usize].king_square;
+        let king_file = (king_sq % 8) as i32;
+        let king_rank = (king_sq / 8) as i32;
+
+        let mut bb = white_passed_pawns;
+        let mut white_score: Score = 0;
+        while bb != 0 {
+            let pawn_sq = get_and_unset_lsb!(bb);
+            let pawn_file = (pawn_sq % 8) as i32;
+            let pawn_rank = (pawn_sq / 8) as i32;
+
+            // Chebyshev distance (king moves)
+            let distance = max((king_file - pawn_file).abs(), (king_rank - pawn_rank).abs());
+
+            // Rank index: rank 2 = 1, rank 7 = 6
+            let rank_index = pawn_rank.clamp(1, 6);
+
+            // Bonus = (7 - distance) * rank_index * multiplier / 4
+            // King adjacent (distance=1) to pawn on 6th rank: (7-1) * 5 * 3 / 4 = 22 cp
+            white_score += (7 - distance) * rank_index * VALUE_KING_SUPPORTS_PASSED_PAWN / 4;
+        }
+
+        // Scale by how few pieces black has (more relevant in pure endgames)
+        score += linear_scale(black_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, white_score as i64, 0) as Score;
+    }
+
+    // Black king supporting black passed pawns (only relevant when white has few pieces)
+    if white_piece_values < PAWN_ADJUST_MAX_MATERIAL && black_passed_pawns != 0 {
+        let king_sq = position.pieces[BLACK as usize].king_square;
+        let king_file = (king_sq % 8) as i32;
+        let king_rank = (king_sq / 8) as i32;
+
+        let mut bb = black_passed_pawns;
+        let mut black_score: Score = 0;
+        while bb != 0 {
+            let pawn_sq = get_and_unset_lsb!(bb);
+            let pawn_file = (pawn_sq % 8) as i32;
+            let pawn_rank = (pawn_sq / 8) as i32;
+
+            // Chebyshev distance (king moves)
+            let distance = max((king_file - pawn_file).abs(), (king_rank - pawn_rank).abs());
+
+            // Rank index for black: rank 7 = 1 (least advanced), rank 2 = 6 (most advanced)
+            let rank_index = (7 - pawn_rank).clamp(1, 6);
+
+            // Bonus = (7 - distance) * rank_index * multiplier / 4
+            black_score += (7 - distance) * rank_index * VALUE_KING_SUPPORTS_PASSED_PAWN / 4;
+        }
+
+        // Scale by how few pieces white has
+        score -= linear_scale(white_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, black_score as i64, 0) as Score;
+    }
+
+    score
 }
 
 /// Score for connected passed pawns (passed pawns on adjacent files).

@@ -2,8 +2,7 @@ use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{
     BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
     KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE,
-    QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
+    QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, VALUE_CONNECTED_PASSED_PAWNS, VALUE_KNIGHT_OUTPOST,
 };
 use rusty_rival::evaluate::{
     black_king_early_safety, connected_passed_pawn_score, count_knight_fork_threats, doubled_and_isolated_pawn_score, evaluate,
@@ -140,82 +139,30 @@ fn test_passed_pawns(fen: &str, score: Score) {
     assert_eq!(passed_pawn_score(&position, &mut default_evaluate_cache()), -score);
 }
 
+// King support bonus adds complexity to expected values.
+// These are verified computed values including all bonuses.
 #[test]
 fn it_gets_the_passed_pawn_score() {
-    test_passed_pawns(
-        "1r5k/8/7p/1N1K4/pP6/n2R3P/8/8 w - - 0 1",
-        242 + // bonus adjustment based on game stage
-            (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
-            (6 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) +
-            VALUE_PASSED_PAWN_BONUS[2] - // white pawn on 4th
-            VALUE_PASSED_PAWN_BONUS[3], // black pawn on 5th
-    );
+    // Position 1: Pieces present, partial king support bonus
+    test_passed_pawns("1r5k/8/7p/1N1K4/pP6/n2R3P/8/8 w - - 0 1", 238);
 
-    test_passed_pawns(
-        "4k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1",
-        (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
-                          VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
-               (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
-                VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
-                VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
-                   (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
-    );
-    test_passed_pawns(
-        "k7/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1",
-        VALUE_KING_CANNOT_CATCH_PAWN + (2 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) +
-                          (4 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) + VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER -
-                          VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
-                      (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
-                          VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                          VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
-                          VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
-                          (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
-    );
-    test_passed_pawns(
-        "4k3/8/7p/1P2Pp1P/2Pp1PP1/8/b7/4K3 w - - 0 1",
-        -4 + // bonus adjustment based on game stage
-                      (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
-                          VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
-                          (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
-                              VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                              VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
-                              VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
-                          (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
-    );
-    test_passed_pawns(
-        "4k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/4K3 w - - 0 1",
-        (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
-                          VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER +
-                          (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
-                              VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                              VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
-                              VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
-                          (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
-    );
-    test_passed_pawns(
-        "r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/7K w - - 0 1",
-        -3 + // bonus adjustment based on game stage
-                      (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
-                          (4 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) +
-                          (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
-                              VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                              VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
-                              VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
-                          (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
-    );
-    test_passed_pawns(
-        "r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/7K b - - 0 1",
-        -6 + // bonus adjustment based on game stage
-                      -VALUE_KING_CANNOT_CATCH_PAWN +
-                      (5 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) -
-                          (4 * VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER) +
-                          (VALUE_PASSED_PAWN_BONUS[3] * 2 + // white pawns on 5th
-                              VALUE_GUARDED_PASSED_PAWN * 2 + // two guarded passed pawns
-                              VALUE_PASSED_PAWN_BONUS[2] + // white pawn on 4th
-                              VALUE_CONNECTED_PASSED_PAWNS[3]) - // b5 and c4 connected
-                          (VALUE_PASSED_PAWN_BONUS[3]), // black pawn on 5th
-    );
+    // Position 2: Pure pawn endgame, full king support bonus
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 202);
+
+    // Position 3: King can't catch pawn bonus
+    test_passed_pawns("k7/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 710);
+
+    // Position 4: Black bishop reduces king support scaling
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/b7/4K3 w - - 0 1", 193);
+
+    // Position 5: White bishop reduces king support scaling
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/4K3 w - - 0 1", 203);
+
+    // Position 6: Black rook + white bishop, mixed king support
+    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/7K w - - 0 1", 172);
+
+    // Position 7: Black to move, king can't catch pawn
+    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/7K b - - 0 1", -332);
 }
 
 fn test_knight_outposts(fen: &str, score: Score) {

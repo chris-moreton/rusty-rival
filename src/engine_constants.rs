@@ -141,6 +141,12 @@ pub const VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN: Score = 500;
 
 pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 4;
 
+// King supporting own passed pawns in endgame
+// Bonus for friendly king being close to its own passed pawns
+// Formula: (7 - distance) * rank_index * multiplier / 4
+// More valuable for advanced pawns (higher rank_index)
+pub const VALUE_KING_SUPPORTS_PASSED_PAWN: Score = 3;
+
 pub const KNIGHT_FORK_THREAT_SCORE: Score = 5;
 
 pub const ROOK_OPEN_FILE_BONUS: Score = 25;
