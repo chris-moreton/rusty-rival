@@ -1,16 +1,19 @@
 use crate::bitboards::{
-    bit, north_fill, south_fill, BISHOP_RAYS, DARK_SQUARES_BITS, FILE_A_BITS, FILE_H_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
-    LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
+    bit, north_fill, south_fill, A1_BIT, A2_BIT, A7_BIT, A8_BIT, B1_BIT, B3_BIT, B6_BIT, B8_BIT, BISHOP_RAYS, C1_BIT, C8_BIT,
+    DARK_SQUARES_BITS, F1_BIT, F8_BIT, FILE_A_BITS, FILE_H_BITS, G1_BIT, G3_BIT, G6_BIT, G8_BIT, H1_BIT, H2_BIT, H7_BIT, H8_BIT,
+    KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS,
+    RANK_6_BITS, RANK_7_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
     BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD,
     ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK,
     KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR,
     QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS,
-    ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR,
-    VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
-    VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION,
-    VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY,
+    VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN,
+    VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
+    VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
+    VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::piece_square_tables::piece_square_values;
@@ -60,7 +63,8 @@ pub fn evaluate(position: &Position) -> Score {
         + queen_mobility_score(position)
         + endgame_king_centralization_bonus(position)
         + trade_bonus(position)
-        + bishop_knight_imbalance_score(position);
+        + bishop_knight_imbalance_score(position)
+        + trapped_piece_penalty(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -1275,4 +1279,56 @@ pub fn bishop_knight_imbalance_score(position: &Position) -> Score {
     // Final score: net_imbalance * openness * bonus_per_unit / 8
     // Divide by 8 to scale the bonus appropriately
     net_imbalance * openness * BISHOP_KNIGHT_IMBALANCE_BONUS / 8
+}
+
+/// Trapped piece detection
+/// Returns penalty score from white's perspective (negative if white has trapped pieces)
+#[inline(always)]
+pub fn trapped_piece_penalty(position: &Position) -> Score {
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
+
+    let mut score: Score = 0;
+
+    // Trapped white bishops
+    // White bishop on a7 trapped by black pawns on a6 and b6
+    if white.bishop_bitboard & bit(A7_BIT) != 0 && black.pawn_bitboard & bit(B6_BIT) != 0 {
+        score -= TRAPPED_BISHOP_PENALTY;
+    }
+    // White bishop on h7 trapped by black pawns on h6 and g6
+    if white.bishop_bitboard & bit(H7_BIT) != 0 && black.pawn_bitboard & bit(G6_BIT) != 0 {
+        score -= TRAPPED_BISHOP_PENALTY;
+    }
+
+    // Trapped black bishops
+    // Black bishop on a2 trapped by white pawns on a3 and b3
+    if black.bishop_bitboard & bit(A2_BIT) != 0 && white.pawn_bitboard & bit(B3_BIT) != 0 {
+        score += TRAPPED_BISHOP_PENALTY;
+    }
+    // Black bishop on h2 trapped by white pawns on h3 and g3
+    if black.bishop_bitboard & bit(H2_BIT) != 0 && white.pawn_bitboard & bit(G3_BIT) != 0 {
+        score += TRAPPED_BISHOP_PENALTY;
+    }
+
+    // Trapped white rooks
+    // White rook on a1/b1 with white king on b1/c1 blocking escape
+    if white.rook_bitboard & bit(A1_BIT) != 0 && (bit(white.king_square) & (bit(B1_BIT) | bit(C1_BIT))) != 0 {
+        score -= TRAPPED_ROOK_PENALTY;
+    }
+    // White rook on h1/g1 with white king on f1/g1 blocking escape
+    if white.rook_bitboard & bit(H1_BIT) != 0 && (bit(white.king_square) & (bit(F1_BIT) | bit(G1_BIT))) != 0 {
+        score -= TRAPPED_ROOK_PENALTY;
+    }
+
+    // Trapped black rooks
+    // Black rook on a8/b8 with black king on b8/c8 blocking escape
+    if black.rook_bitboard & bit(A8_BIT) != 0 && (bit(black.king_square) & (bit(B8_BIT) | bit(C8_BIT))) != 0 {
+        score += TRAPPED_ROOK_PENALTY;
+    }
+    // Black rook on h8/g8 with black king on f8/g8 blocking escape
+    if black.rook_bitboard & bit(H8_BIT) != 0 && (bit(black.king_square) & (bit(F8_BIT) | bit(G8_BIT))) != 0 {
+        score += TRAPPED_ROOK_PENALTY;
+    }
+
+    score
 }

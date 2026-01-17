@@ -181,3 +181,8 @@ pub const ENDGAME_MATERIAL_THRESHOLD: Score = ROOK_VALUE_AVERAGE * 2;
 // The bonus is per minor piece imbalance (e.g., having 2 bishops vs 2 knights)
 // At 8 pawns (average), imbalance is neutral
 pub const BISHOP_KNIGHT_IMBALANCE_BONUS: Score = 15; // Max bonus per imbalance point
+
+// Trapped piece penalties
+// Pieces that are trapped (very limited mobility) lose significant value
+pub const TRAPPED_BISHOP_PENALTY: Score = 100; // Bishop trapped on a7/h7/a2/h2 by pawns
+pub const TRAPPED_ROOK_PENALTY: Score = 50; // Rook trapped in corner by own king
