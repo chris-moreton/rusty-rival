@@ -160,7 +160,8 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 // If we found a mate in this incomplete iteration but didn't have one before, use it
                 // A mate is a forced win - better to play a slower mate than a non-mate move
                 if aspire_best.1 > MATE_START && search_state.current_best.1 <= MATE_START {
-                    return aspire_best.0[0];
+                    search_state.current_best = aspire_best;
+                    return search_state.current_best.0[0];
                 }
                 return search_state.current_best.0[0];
             }
