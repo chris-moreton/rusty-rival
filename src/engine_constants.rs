@@ -65,6 +65,12 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
 pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [128, 192, 256, 320, 384, 448, 512, 576];
 
+// Razoring: at low depths, if static eval is far below alpha, drop to quiescence
+// If quiescence confirms the position is hopeless, return early
+// Using depth 2 to be conservative - at depth 1-2 we're close to quiescence anyway
+pub const RAZOR_MAX_DEPTH: u8 = 2;
+pub const RAZOR_MARGINS: [Score; 3] = [0, 150, 300];
+
 pub const TICKER_MILLIS: u16 = 500;
 
 pub const IID_MIN_DEPTH: u8 = 3;
