@@ -32,6 +32,38 @@ SPSA solves this by:
 
 7. **Repeat** thousands of times, decreasing step size (a) over time
 
+## SPSA Tooling Location
+
+**All SPSA tooling is now consolidated in the chess-compete repository.** This includes:
+
+- Master controller
+- Worker implementation
+- Build scripts
+- Configuration files
+- Parameter definitions
+
+See: `chess-compete/compete/spsa/`
+
+The rusty-rival path is configurable in `chess-compete/compete/spsa/config.toml` (default: `../rusty-rival`).
+
+## Quick Start
+
+```bash
+# From chess-compete directory
+
+# Start the master controller (generates iterations, monitors progress)
+python -m compete.spsa.master
+
+# Start workers on same or different machines (polls DB, builds engines, runs games)
+python -m compete --spsa -c 6
+
+# Workers automatically:
+# - Poll database for pending iterations
+# - Build engine binaries from parameters stored in DB
+# - Run games between plus/minus perturbed versions
+# - Report aggregate results
+```
+
 ## Parameters to Tune
 
 ### Search Parameters
@@ -147,118 +179,65 @@ The slight per-game slowdown is vastly outweighed by throughput gains.
 
 ## Implementation Architecture
 
-### Decision: Build on chess-compete
+### Consolidated in chess-compete
 
-After evaluating options (OpenBench, cutechess-cli, custom), we're building on chess-compete because:
-- Already has parallel game execution (`-c N` flag)
-- Already has Elo tracking and database
-- Familiar codebase
-- Can customize for our specific needs
+All SPSA tooling lives in chess-compete repository:
+
+```
+chess-compete/
+├── compete/
+│   └── spsa/
+│       ├── __init__.py       # Package exports
+│       ├── master.py         # SPSA orchestration (iterations, gradients)
+│       ├── worker.py         # Worker mode (builds, runs games)
+│       ├── build.py          # Engine building with parameter injection
+│       ├── config.toml       # SPSA hyperparameters, time control, paths
+│       └── params.toml       # Current parameter values being tuned
+├── engines/
+│   └── spsa/                 # Built engines (spsa-plus, spsa-minus)
+└── migrations/
+    └── 002_spsa_iterations.sql
+```
 
 ### Key Design Decisions
 
 1. **No individual game saves** - SPSA mode does NOT write to the `games` table
-   - Only aggregate results (wins/losses/draws) stored in `spsa_iteration`
+   - Only aggregate results (wins/losses/draws) stored in `spsa_iterations`
    - Avoids polluting database with thousands of test games
    - Faster execution (no per-game DB writes)
 
 2. **No engine registration** - SPSA engines are ephemeral
    - No `--init` needed, engines not added to `engines` table
    - Binaries loaded directly from path
-   - Overwritten each iteration (or use rotating names)
+   - Overwritten each iteration
 
-3. **Random openings** - each game uses a random opening from `OPENING_BOOK`
+3. **Workers build their own engines** - supports distributed cross-platform deployment
+   - Parameters stored in database (`plus_parameters`, `minus_parameters`)
+   - Each worker builds locally if engines don't exist
+   - Works across different OSes (Windows, Linux, Mac)
+
+4. **Random openings** - each game uses a random opening from `OPENING_BOOK`
    - Prevents overfitting to specific positions
    - Same book used by other compete modes
 
-4. **Time variety** - use `timelow`/`timehigh` for random time per game
+5. **Time variety** - use `timelow`/`timehigh` for random time per game
    - Consistent naming with other compete modes
    - Helps ensure parameters work across time controls
 
-### Distributed Worker Architecture
-
-To scale across multiple machines, we use a master/worker pattern with the shared database:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              MASTER MACHINE (rusty-rival repo)                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  python -m spsa.master                                   │   │
-│  │  - Reads spsa/params.toml (current parameter values)     │   │
-│  │  - Generates perturbed engine_constants.rs               │   │
-│  │  - Builds engine binaries (cargo build --release)        │   │
-│  │  - Copies to shared location (engines/spsa-plus, etc.)   │   │
-│  │  - Creates spsa_iteration record in database             │   │
-│  │  - Monitors game count for current iteration             │   │
-│  │  - When target_games reached: calculates gradient        │   │
-│  │  - Updates spsa/params.toml with new values              │   │
-│  │  - Creates next iteration                                │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ Database (shared) + Engine binaries (shared path)
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      spsa_iteration table                        │
-│  - id, iteration_number                                          │
-│  - plus_engine_path, minus_engine_path                          │
-│  - target_games, games_played                                    │
-│  - plus_wins, minus_wins, draws                                  │
-│  - timelow_ms, timehigh_ms (for random time per game)           │
-│  - status (pending/in_progress/complete)                         │
-│  - parameter_snapshot (JSON of perturbed values)                │
-│  - created_at, completed_at                                      │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
-│  WORKER MACHINE 1 │ │  WORKER MACHINE 2 │ │  WORKER MACHINE N │
-│  (chess-compete)  │ │  (chess-compete)  │ │  (chess-compete)  │
-│                   │ │                   │ │                   │
-│  compete --spsa   │ │  compete --spsa   │ │  compete --spsa   │
-│  -c 8             │ │  -c 8             │ │  -c 8             │
-│                   │ │                   │ │                   │
-│  - Polls database │ │  - Polls database │ │  - Polls database │
-│  - Loads engines  │ │  - Loads engines  │ │  - Loads engines  │
-│    from path      │ │    from path      │ │    from path      │
-│  - Random opening │ │  - Random opening │ │  - Random opening │
-│  - Random time    │ │  - Random time    │ │  - Random time    │
-│    (timelow-high) │ │    (timelow-high) │ │    (timelow-high) │
-│  - Updates counts │ │  - Updates counts │ │  - Updates counts │
-│  - NO game saves  │ │  - NO game saves  │ │  - NO game saves  │
-└───────────────────┘ └───────────────────┘ └───────────────────┘
-```
-
-### Repo Responsibilities
-
-**rusty-rival** (master logic):
-- `spsa/master.py` - orchestration loop
-- `spsa/params.toml` - current parameter values
-- `spsa/config.toml` - SPSA hyperparameters and time controls
-- `spsa/build.py` - generates `engine_constants.rs` and builds
-- Owns the parameter definitions and tuning state
-
-**chess-compete** (worker logic):
-- `compete/spsa/worker.py` - polls and runs games
-- `--spsa` CLI flag to enter worker mode
-- Database tables (`spsa_iteration`)
-- Game execution infrastructure (already exists)
-
-### Database Schema: spsa_iteration
+### Database Schema: spsa_iterations
 
 ```sql
-CREATE TABLE spsa_iteration (
-    id INTEGER PRIMARY KEY,
+CREATE TABLE spsa_iterations (
+    id SERIAL PRIMARY KEY,
     iteration_number INTEGER NOT NULL,
 
-    -- Engine binaries (paths to shared location)
-    plus_engine_path VARCHAR(255) NOT NULL,
-    minus_engine_path VARCHAR(255) NOT NULL,
+    -- Engine binaries (paths, may be built by workers)
+    plus_engine_path VARCHAR(500) NOT NULL,
+    minus_engine_path VARCHAR(500) NOT NULL,
 
     -- Time control (consistent with other compete modes)
-    timelow_ms INTEGER NOT NULL,      -- e.g., 250 (0.25s)
-    timehigh_ms INTEGER NOT NULL,     -- e.g., 1000 (1.0s)
+    timelow_ms INTEGER NOT NULL,
+    timehigh_ms INTEGER NOT NULL,
 
     -- Game tracking
     target_games INTEGER NOT NULL DEFAULT 150,
@@ -268,17 +247,17 @@ CREATE TABLE spsa_iteration (
     draws INTEGER NOT NULL DEFAULT 0,
 
     -- Status
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',  -- pending/in_progress/complete
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
 
-    -- Parameter snapshot (for reproducibility)
-    base_parameters JSON,      -- θ values before perturbation
-    plus_parameters JSON,      -- θ + δ values
-    minus_parameters JSON,     -- θ - δ values
-    perturbation_signs JSON,   -- +1 or -1 for each parameter
+    -- Parameter snapshot (for reproducibility and worker builds)
+    base_parameters JSONB,
+    plus_parameters JSONB,
+    minus_parameters JSONB,
+    perturbation_signs JSONB,
 
     -- Results (filled when complete)
-    gradient_estimate JSON,    -- Calculated gradient
-    elo_diff REAL,            -- Plus vs minus Elo difference
+    gradient_estimate JSONB,
+    elo_diff NUMERIC(7, 2),
 
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -286,174 +265,51 @@ CREATE TABLE spsa_iteration (
 );
 ```
 
-### Worker Mode Flow
+### Configuration
 
-When `compete --spsa -c 8` runs:
-
-```python
-while True:
-    # 1. Find work
-    iteration = db.query("""
-        SELECT * FROM spsa_iteration
-        WHERE status IN ('pending', 'in_progress')
-        AND games_played < target_games
-        ORDER BY iteration_number DESC
-        LIMIT 1
-    """)
-
-    if not iteration:
-        sleep(10)  # No work, wait and retry
-        continue
-
-    # 2. Mark as in_progress if pending
-    if iteration.status == 'pending':
-        db.execute("UPDATE spsa_iteration SET status='in_progress' WHERE id=?", iteration.id)
-
-    # 3. Play a batch of games
-    plus_wins, minus_wins, draws = 0, 0, 0
-
-    for _ in range(batch_size):  # e.g., 10 games per batch
-        # Random opening
-        opening_fen, opening_name = random.choice(OPENING_BOOK)
-
-        # Random time within range
-        time = random.uniform(iteration.timelow_ms, iteration.timehigh_ms) / 1000
-
-        # Alternate colors
-        if random.choice([True, False]):
-            result = play_game(iteration.plus_engine_path, iteration.minus_engine_path, time, opening_fen)
-            if result == "1-0": plus_wins += 1
-            elif result == "0-1": minus_wins += 1
-            else: draws += 1
-        else:
-            result = play_game(iteration.minus_engine_path, iteration.plus_engine_path, time, opening_fen)
-            if result == "1-0": minus_wins += 1
-            elif result == "0-1": plus_wins += 1
-            else: draws += 1
-
-    # 4. Update results atomically (no individual game saves!)
-    db.execute("""
-        UPDATE spsa_iteration
-        SET games_played = games_played + ?,
-            plus_wins = plus_wins + ?,
-            minus_wins = minus_wins + ?,
-            draws = draws + ?
-        WHERE id = ?
-    """, batch_size, plus_wins, minus_wins, draws, iteration.id)
-
-    # 5. Continue (master will mark complete when target reached)
-```
-
-### Master Mode Flow
-
-```python
-while iteration_number < max_iterations:
-    # 1. Generate perturbed parameters
-    base_params = read_params_toml()
-    signs = {p: random.choice([-1, +1]) for p in base_params}
-
-    plus_params = {p: v + signs[p] * delta[p] for p, v in base_params.items()}
-    minus_params = {p: v - signs[p] * delta[p] for p, v in base_params.items()}
-
-    # 2. Build engines (in rusty-rival repo)
-    build_engine(plus_params, "engines/spsa-plus")
-    build_engine(minus_params, "engines/spsa-minus")
-
-    # 3. Create iteration record
-    db.execute("""
-        INSERT INTO spsa_iteration (
-            iteration_number, plus_engine_path, minus_engine_path,
-            timelow_ms, timehigh_ms, target_games,
-            base_parameters, plus_parameters, minus_parameters, perturbation_signs
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, iteration_number, plus_path, minus_path,
-         config.timelow_ms, config.timehigh_ms, config.games_per_iteration,
-         json.dumps(base_params), json.dumps(plus_params), json.dumps(minus_params), json.dumps(signs))
-
-    # 4. Wait for workers to complete games
-    while True:
-        row = db.query("SELECT * FROM spsa_iteration WHERE iteration_number = ?", iteration_number)
-        if row.games_played >= row.target_games:
-            break
-        print(f"Iteration {iteration_number}: {row.games_played}/{row.target_games} games")
-        sleep(30)
-
-    # 5. Calculate gradient and update parameters
-    score = (row.plus_wins + row.draws * 0.5) / row.games_played
-    elo_diff = -400 * log10(1/score - 1) if 0.01 < score < 0.99 else 0
-
-    gradient = {}
-    for param, sign in signs.items():
-        gradient[param] = sign * elo_diff / (2 * delta[param])
-
-    # 6. Update parameters: θ_new = θ_old + a_k * gradient
-    a_k = a / (iteration_number + A) ** alpha  # Decreasing step size
-    new_params = {p: base_params[p] + a_k * gradient[p] for p in base_params}
-
-    write_params_toml(new_params)
-
-    # 7. Mark complete and continue
-    db.execute("""
-        UPDATE spsa_iteration
-        SET status='complete', gradient_estimate=?, elo_diff=?, completed_at=NOW()
-        WHERE id=?
-    """, json.dumps(gradient), elo_diff, row.id)
-
-    iteration_number += 1
-```
-
-### Master Configuration File
+**config.toml** - SPSA hyperparameters and settings:
 
 ```toml
-# spsa/config.toml
-
 [time_control]
-timelow = 0.25       # seconds (consistent with compete CLI naming)
+timelow = 0.25       # seconds
 timehigh = 1.0       # seconds
 
 [games]
 games_per_iteration = 150
-batch_size = 10      # games per worker batch
+batch_size = 10
 
 [spsa]
 max_iterations = 500
 a = 1.0              # Step size numerator
-c = 0.5              # Perturbation size base
+c = 1.0              # Perturbation size multiplier
 A = 50               # Stability constant
 alpha = 0.602        # Step size decay exponent
 gamma = 0.101        # Perturbation decay exponent
 
 [build]
-rusty_rival_path = "../rusty-rival"
-engines_path = "../chess-compete/engines"
+rusty_rival_path = "../rusty-rival"   # Configurable path to rusty-rival source
+engines_output_path = "engines/spsa"
+
+[database]
+poll_interval_seconds = 30
 ```
 
-### File Structure
+**params.toml** - Current parameter values:
 
-```
-rusty-rival/
-├── spsa/
-│   ├── __init__.py
-│   ├── master.py          # SPSA master controller
-│   ├── build.py           # Engine building (modifies engine_constants.rs)
-│   ├── params.toml        # Current parameter values (updated each iteration)
-│   └── config.toml        # SPSA hyperparameters, time controls
-├── src/
-│   └── engine_constants.rs  # Modified by build.py
-└── ...
+```toml
+[beta_prune_margin_per_depth]
+value = 200.0
+min = 50
+max = 400
+step = 20
 
-chess-compete/
-├── compete/
-│   ├── spsa/
-│   │   ├── __init__.py
-│   │   └── worker.py      # Worker mode implementation
-│   └── cli.py             # Add --spsa flag
-├── engines/
-│   ├── spsa-plus/         # Built by master, used by workers
-│   │   └── rusty-rival
-│   └── spsa-minus/
-│       └── rusty-rival
-└── ...
+[null_move_reduce_depth_base]
+value = 3.0
+min = 2
+max = 5
+step = 1
+
+# ... more parameters
 ```
 
 ## Recommended Approach
@@ -463,12 +319,13 @@ chess-compete/
 2. ✅ Verify NPS consistency across parallel games
 3. ✅ Establish baseline game throughput
 
-### Phase 2: SPSA Infrastructure
-1. Create `spsa_iteration` database table
-2. Implement parameter definition (`params.toml`)
-3. Implement engine building with parameter injection
-4. Implement worker mode (`compete --spsa`)
-5. Implement master controller
+### Phase 2: SPSA Infrastructure (COMPLETED)
+1. ✅ Create `spsa_iterations` database table
+2. ✅ Implement parameter definition (`params.toml`)
+3. ✅ Implement engine building with parameter injection
+4. ✅ Implement worker mode (`compete --spsa`)
+5. ✅ Implement master controller
+6. ✅ Add distributed worker support (workers build locally)
 
 ### Phase 3: Focused Tuning
 1. **Start small**: 5-10 most impactful parameters
