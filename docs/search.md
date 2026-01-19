@@ -230,22 +230,15 @@ Tracks which quiet move refuted each opponent move:
 
 **Why it helps**: Complements killer moves for positional play. While killers track good moves at a given ply regardless of what led there, countermoves track good responses to specific opponent moves across the tree.
 
-### 14. Improving Detection
+### 14. ~~Improving Detection~~ (Tried - Reverted)
 
-**Location**: `search.rs:424-444`
+**What it was**: Track if eval is improving from grandparent node (ply - 2) and reduce LMR less in improving positions.
 
-Tracks whether the static evaluation is improving compared to 2 plies ago (same side to move).
+**Attempted implementation (v1.0.20-rc4)**:
+- Storage: `static_evals[MAX_DEPTH]` array in SearchState
+- When improving and reduction > 1: reduce by 1 less ply
 
-- **Storage**: `static_evals[MAX_DEPTH]` array in SearchState
-- **Calculation**: At each ply, store `static_eval` and compare to `static_evals[ply-2]`
-- **Check handling**: Use `-MATE_SCORE` as sentinel when in check (position too volatile)
-- **Ply requirement**: Requires `ply >= 3` since ply 0 isn't set by search()
-
-**Usage in LMR**:
-- When `improving` is true and reduction > 1: reduce by 1 less ply
-- This makes the search more conservative in improving positions
-
-**Why it helps**: In improving positions, late moves are more likely to be relevant (we're on the right track). Being conservative avoids missing important continuation moves.
+**Why it was reverted**: The "reduce less when improving" logic was counterproductive, possibly due to defaulting `improving=true` at ply < 3. Combined with history pruning, caused regression in engine matches. Reverted in v1.0.21.
 
 ### 15. Late Move Pruning (LMP)
 
@@ -266,33 +259,16 @@ At shallow depths, completely skip late quiet moves instead of just reducing the
 
 **Why it helps**: More aggressive than LMR - saves time by not searching obviously bad moves at all. Combined with SEE pruning, reduces total nodes by ~77%.
 
-### 16. History Pruning
+### 16. ~~History Pruning~~ (Tried - Reverted)
 
-**Location**: `search.rs:665-685`
+**What it was**: At low depths, skip quiet moves with very negative history scores.
 
-At low depths, skip quiet moves that have very negative history scores.
+**Attempted implementation (v1.0.20-rc5)**:
+- Maximum depth: 4 ply
+- Threshold: `history < -(4096 × depth²)`
+- Allowed history scores to go negative
 
-- **Maximum depth**: 4 ply
-- **Threshold formula**: `history < -(4096 × depth²)`
-  - At depth 1: prune if history < -4,096
-  - At depth 2: prune if history < -16,384
-  - At depth 4: prune if history < -65,536
-- **Conditions**:
-  - Scout (null-window) search only
-  - Not in check
-  - Not a capture or promotion
-  - At least 1 other legal move found
-  - Not a killer move
-  - Move doesn't give check
-  - Alpha not near mate scores
-
-**Implementation notes**:
-- History scores can now go negative (removed 0 floor clamp)
-- Negative scores indicate moves that consistently fail to produce cutoffs
-- Move ordering uses `max(0, history)` for bonus calculation (negative scores get 0 bonus)
-- History pruning becomes more effective as games progress and more data accumulates
-
-**Why it helps**: Moves that consistently fail to improve alpha are unlikely to be good. By tracking this in the history table, we can prune them at shallow depths. This is similar to LMP but based on move quality rather than move order.
+**Why it was reverted**: Threshold of -4096×depth² was too aggressive, pruning good moves that had temporarily negative history. Combined with improving detection, caused regression. Reverted in v1.0.21. Should revisit with more conservative thresholds or after SPSA tuning.
 
 ### 17. Static Exchange Evaluation (SEE)
 
@@ -389,13 +365,17 @@ Based on analysis of the current implementation and common chess programming tec
 
 ### High Priority
 
-#### 1. Singular Extensions
+#### 1. ~~Singular Extensions~~ (Tried - Caused Regression)
 
 **What it is**: When one move appears significantly better than all alternatives (from TT), extend its search depth.
 
-**Why it helps**: Avoids missing tactics where only one good move exists. Most strong engines use this. Currently we only extend for check.
+**Attempted implementation (v1.0.22-rc3)**:
+- Minimum depth: 8 ply
+- Singular margin: 3 centipawns per depth
+- Verification search: depth/2, captures only
+- Result: 38% win rate vs v1.0.21
 
-**Implementation complexity**: Medium. Need to do a verification search at reduced depth excluding the hash move.
+**Why it failed**: Parameters may have been suboptimal. Should revisit after implementing SPSA tuning (issue #44).
 
 #### 2. ~~More Aggressive LMR~~ (Implemented)
 
@@ -403,19 +383,13 @@ Now uses logarithmic formula: `floor(0.75 + ln(depth) * ln(move_count) / 2.5)`. 
 
 ### Medium Priority
 
-#### 3. ~~History Pruning~~ (Implemented)
+#### 3. ~~History Pruning~~ (Tried - Reverted)
 
-Now prunes quiet moves with very negative history scores. See section 19.
+Tried in v1.0.20-rc5, reverted in v1.0.21. See section 16.
 
-#### 4. ~~Improving/Worsening Detection~~ (Implemented in v1.0.20-rc4)
+#### 4. ~~Improving/Worsening Detection~~ (Tried - Reverted)
 
-**What it is**: Track if eval is improving from grandparent node (ply - 2).
-
-**Why it helps**:
-- Improving positions: be more conservative with pruning
-- Worsening positions: can prune more aggressively
-
-Used by Stockfish for null move, futility, and LMR tuning. Currently used for LMR decisions only.
+Tried in v1.0.20-rc4, reverted in v1.0.21. See section 14.
 
 #### 5. Better Move Picker (Staged Selection)
 
@@ -483,11 +457,16 @@ Now extends for pawn pushes to 7th rank. See section 18.
 
 **Why it helps**: Additional pruning when position has many good moves.
 
-#### 14. Razoring
+#### 14. ~~Razoring~~ (Tried - Caused Regression)
 
 **What it is**: At low depths, if eval is very far below alpha, drop into qsearch directly.
 
-**Current state**: We have alpha pruning which is similar but per-move. Razoring would skip the entire subtree.
+**Attempted implementation (v1.0.22-rc2)**:
+- Maximum depth: 2 ply
+- Margins: [0, 150, 300] centipawns by depth
+- Result: 43% win rate vs v1.0.21 (combined with mate priority fix)
+
+**Why it failed**: Even conservative settings caused regression. Should revisit after SPSA tuning.
 
 ### Performance/Structural
 
@@ -527,17 +506,52 @@ Based on both standard chess programming techniques and analysis of Java Rival's
 - ~~**SEE Pruning in Main Search**~~ - Done in v1.0.20-rc1, ~30% node reduction
 - ~~**Late Move Pruning**~~ - Done in v1.0.20-rc2, ~77% total node reduction
 - ~~**Countermove Heuristic**~~ - Done in v1.0.20-rc3
-- ~~**Improving Detection**~~ - Done in v1.0.20-rc4, reduces LMR in improving positions
-- ~~**History Pruning**~~ - Done in v1.0.20-rc5, prunes moves with negative history
+- ~~**Bishop vs Knight Imbalance**~~ - Done in v1.0.21
+- ~~**Space Evaluation**~~ - Done in v1.0.21
+- ~~**Pawn Hash Table**~~ - Done in v1.0.21
+- ~~**Trapped Piece Detection**~~ - Done in v1.0.21
+- ~~**King Support for Passed Pawns**~~ - Done in v1.0.21
+
+### Tried and Reverted
+- ~~**Improving Detection**~~ - Tried v1.0.20-rc4, reverted in v1.0.21
+- ~~**History Pruning**~~ - Tried v1.0.20-rc5, reverted in v1.0.21
+- ~~**Razoring**~~ - Tried v1.0.22-rc2, caused regression
+- ~~**Singular Extensions**~~ - Tried v1.0.22-rc3, caused regression
+- ~~**King Safety / Pawn Storm**~~ - Tried v1.0.22-rc1, caused regression
+- ~~**Mate Priority Fix**~~ - Tried v1.0.22-rc2, contributed to regression
 
 ### High Priority (from Java Rival analysis)
 1. **History-Based LMR** - Use history score to reduce less for good moves
 2. **Trade Bonuses** - Simple eval improvement for better endgame conversion
 
 ### High Priority (standard techniques)
-3. **Singular Extensions** - High impact, used by all top engines
+3. **SPSA Tuning** (issue #44) - Required before revisiting razoring, singular extensions, etc.
 
 ### Medium Priority
 4. **Fractional Extensions** - More nuanced extension system
 
 The Java Rival analysis suggests that **search selectivity** (knowing what to search deeply) matters more than raw NPS.
+
+---
+
+## Failed Improvements Log
+
+This section documents search improvements that were tried but caused regression.
+
+### v1.0.22 RC Series (January 2026)
+
+All v1.0.22 release candidates lost to v1.0.21 in head-to-head matches. The changes were reverted.
+
+| Version | Changes | Win Rate vs v1.0.21 |
+|---------|---------|---------------------|
+| rc1 | King safety (pawn storm) | 48% |
+| rc2 | + Razoring + Mate priority | 43% |
+| rc3 | + Singular extensions | 38% |
+| rc4 | Search only (no king safety) | 33% |
+| rc5 | Razoring + Mate priority only | Still losing |
+
+**Key Takeaways**:
+1. Hand-picked parameters don't work - SPSA tuning (issue #44) needed
+2. All attempted search improvements individually caused regression
+3. King safety changes alone caused slight regression
+4. Combining multiple untuned changes compounds negatively
