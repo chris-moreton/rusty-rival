@@ -1,0 +1,71 @@
+# SPSA Tuning Configuration
+#
+# This file contains hyperparameters for the SPSA algorithm and
+# general tuning settings. Unlike params.toml, this file is not
+# automatically updated - modify manually to change tuning behavior.
+
+# =============================================================================
+# TIME CONTROL
+# =============================================================================
+# Consistent naming with chess-compete CLI (--timelow, --timehigh)
+
+[time_control]
+timelow = 0.25       # Minimum seconds per move
+timehigh = 1.0       # Maximum seconds per move (random within range)
+
+# =============================================================================
+# GAMES PER ITERATION
+# =============================================================================
+
+[games]
+games_per_iteration = 150   # Target games before calculating gradient
+batch_size = 10             # Games per worker batch (for status updates)
+
+# =============================================================================
+# SPSA ALGORITHM HYPERPARAMETERS
+# =============================================================================
+# Standard SPSA formulas:
+#   a_k = a / (k + A)^alpha      (step size, decreases over time)
+#   c_k = c / k^gamma            (perturbation size, decreases over time)
+#
+# Where k is the iteration number (1-indexed)
+#
+# These values are based on common recommendations:
+# - alpha = 0.602 (theoretical optimal for noisy gradient)
+# - gamma = 0.101 (slower decay for perturbations)
+# - A = ~10% of max iterations (stability early on)
+
+[spsa]
+max_iterations = 500     # Stop after this many iterations
+a = 1.0                  # Step size numerator
+c = 1.0                  # Perturbation size multiplier (multiplied by param's step)
+A = 50                   # Stability constant (larger = more conservative early)
+alpha = 0.602            # Step size decay exponent
+gamma = 0.101            # Perturbation decay exponent
+
+# =============================================================================
+# BUILD CONFIGURATION
+# =============================================================================
+
+[build]
+# Path to rusty-rival source (relative to this config file's directory)
+rusty_rival_path = ".."
+
+# Where to put built engines (for workers to access)
+# Can be absolute or relative to chess-compete directory
+engines_output_path = "../../chess-compete/engines"
+
+# Engine binary names (will create spsa-plus and spsa-minus subdirectories)
+plus_engine_name = "spsa-plus"
+minus_engine_name = "spsa-minus"
+
+# =============================================================================
+# DATABASE
+# =============================================================================
+
+[database]
+# Connection is read from DATABASE_URL environment variable
+# This matches chess-compete's configuration approach
+
+# Poll interval when waiting for workers to complete games
+poll_interval_seconds = 30
