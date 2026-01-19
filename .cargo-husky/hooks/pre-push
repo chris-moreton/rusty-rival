@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# Pre-push hook to verify version tags match the engine's reported version.
+# Prevents pushing tags like v1.0.22-rc1 if the engine reports a different version.
+#
+
+# Read the refs being pushed from stdin
+while read local_ref local_sha remote_ref remote_sha; do
+    # Check if this is a version tag (refs/tags/v*)
+    if echo "$local_ref" | grep -q "^refs/tags/v"; then
+        tag_name=$(echo "$local_ref" | sed 's|refs/tags/||')
+        expected_version=$(echo "$tag_name" | sed 's|^v||')
+
+        echo "Validating tag $tag_name..."
+
+        # Build the release binary
+        echo "Building release binary..."
+        cargo build --release --quiet
+        if [ $? -ne 0 ]; then
+            echo "❌ Failed to build release binary"
+            exit 1
+        fi
+
+        # Get the version from the engine's UCI output
+        # The engine outputs "id name Rusty Rival X.Y.Z" on the uci command
+        if [ -f "target/release/rusty-rival.exe" ]; then
+            binary="target/release/rusty-rival.exe"
+        else
+            binary="target/release/rusty-rival"
+        fi
+
+        reported_version=$(echo "uci" | "$binary" 2>/dev/null | grep "^id name" | sed 's/.*Rusty Rival //')
+
+        if [ -z "$reported_version" ]; then
+            echo "❌ Could not determine engine version from UCI output"
+            exit 1
+        fi
+
+        echo "  Tag version:      $expected_version"
+        echo "  Reported version: $reported_version"
+
+        if [ "$expected_version" != "$reported_version" ]; then
+            echo ""
+            echo "❌ Version mismatch!"
+            echo "   Tag '$tag_name' expects version '$expected_version'"
+            echo "   but engine reports version '$reported_version'"
+            echo ""
+            echo "   Run: python scripts/release.py $expected_version"
+            echo ""
+            exit 1
+        fi
+
+        echo "✅ Version validated: $expected_version"
+    fi
+done
+
+exit 0

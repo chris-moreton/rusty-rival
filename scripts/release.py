@@ -5,8 +5,9 @@ Release script for Rusty Rival.
 Updates version in Cargo.toml, commits, and creates a git tag.
 
 Usage:
-    python scripts/release.py 1.0.13
-    python scripts/release.py 1.0.13 --dry-run
+    python scripts/release.py 1.0.22
+    python scripts/release.py 1.0.22-rc1
+    python scripts/release.py 1.0.22 --dry-run
 """
 
 import argparse
@@ -31,8 +32,8 @@ def run(cmd: str, check: bool = True, capture: bool = True) -> subprocess.Comple
 
 
 def validate_version(version: str) -> bool:
-    """Validate version format (e.g., 1.0.13)."""
-    pattern = r'^\d+\.\d+\.\d+$'
+    """Validate version format (e.g., 1.0.13 or 1.0.13-rc1)."""
+    pattern = r'^\d+\.\d+\.\d+(-rc\d+)?$'
     return bool(re.match(pattern, version))
 
 
@@ -81,7 +82,7 @@ def main():
 
     # Validate version format
     if not validate_version(version):
-        print(f"ERROR: Invalid version format '{version}'. Expected format: X.Y.Z (e.g., 1.0.13)")
+        print(f"ERROR: Invalid version format '{version}'. Expected format: X.Y.Z or X.Y.Z-rcN (e.g., 1.0.22 or 1.0.22-rc1)")
         sys.exit(1)
 
     current_version = get_current_version()
