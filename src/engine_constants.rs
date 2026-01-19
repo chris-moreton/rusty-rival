@@ -71,6 +71,14 @@ pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [128, 192, 256, 320, 384, 448, 512, 
 pub const RAZOR_MAX_DEPTH: u8 = 2;
 pub const RAZOR_MARGINS: [Score; 3] = [0, 150, 300];
 
+// Singular extensions: extend search when one move is clearly better than all alternatives
+// Only activate at sufficient depth where the overhead is worthwhile
+pub const SINGULAR_MIN_DEPTH: u8 = 8;
+// Margin per depth unit: hash move must score this much better than alternatives
+pub const SINGULAR_MARGIN: Score = 3;
+// Verification search uses half the current depth
+pub const SINGULAR_DEPTH_DIVISOR: u8 = 2;
+
 pub const TICKER_MILLIS: u16 = 500;
 
 pub const IID_MIN_DEPTH: u8 = 3;

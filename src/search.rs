@@ -2,7 +2,7 @@ use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
     LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH,
     NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
-    SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
+    SEE_PRUNE_MAX_DEPTH, SINGULAR_DEPTH_DIVISOR, SINGULAR_MARGIN, SINGULAR_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -383,6 +383,10 @@ pub fn search(
 
     let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
     let hash_entry = search_state.hash_table.get(index);
+    // Store hash entry fields for singular extension check (avoids borrow issues)
+    let hash_entry_score = hash_entry.score;
+    let hash_entry_height = hash_entry.height;
+    let hash_entry_bound = hash_entry.bound;
     let mut hash_move = if hash_entry.lock == position.zobrist_lock {
         // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
         // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
@@ -507,6 +511,64 @@ pub fn search(
         hash_move != 0 && verify_move(position, hash_move)
     };
 
+    // Singular extension: if hash move is significantly better than all alternatives, extend it
+    let singular_extension: u8 =
+        if verified_hash_move && depth >= SINGULAR_MIN_DEPTH && !in_check && hash_entry_height >= depth - 3 && hash_entry_bound != Upper {
+            // Calculate hash score adjusted for current ply
+            let hash_score = match hash_entry_score {
+                s if s > MATE_START => s - ply as Score,
+                s if s < -MATE_START => s + ply as Score,
+                s => s,
+            };
+            let singular_beta = hash_score - SINGULAR_MARGIN * depth as Score;
+            let verification_depth = depth / SINGULAR_DEPTH_DIVISOR;
+
+            if verification_depth > 1 {
+                // Search captures to verify hash move is singular
+                let mut singular = true;
+                let captures = generate_captures(position);
+                let old_mover = position.mover;
+
+                for m in captures {
+                    if m == hash_move {
+                        continue;
+                    }
+                    let unmake = make_move_in_place(position, m);
+                    if !is_check(position, old_mover) {
+                        search_state.history.push(position.zobrist_lock);
+                        let score = -search(
+                            position,
+                            verification_depth - 1,
+                            ply + 1,
+                            (-singular_beta, -singular_beta + 1),
+                            search_state,
+                            false,
+                        )
+                        .1;
+                        search_state.history.pop();
+                        unmake_move(position, m, &unmake);
+
+                        if score >= singular_beta {
+                            singular = false;
+                            break;
+                        }
+                    } else {
+                        unmake_move(position, m, &unmake);
+                    }
+                }
+
+                if singular {
+                    1
+                } else {
+                    0
+                }
+            } else {
+                0
+            }
+        } else {
+            0
+        };
+
     // Try hash move first if valid
     if verified_hash_move {
         let old_mover = position.mover;
@@ -515,9 +577,11 @@ pub fn search(
 
         if !is_check(position, old_mover) {
             legal_move_count += 1;
-            let path_score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), position, 0);
+            // Apply singular extension to hash move search depth
+            let hash_move_depth = real_depth + singular_extension;
+            let path_score = search_wrapper(hash_move_depth, ply, search_state, (-beta, -alpha), position, 0);
             let score = path_score.1;
-            let singular_depth = real_depth;
+            let singular_depth = hash_move_depth;
 
             unmake_move(position, hash_move, &unmake);
             check_time!(search_state);
