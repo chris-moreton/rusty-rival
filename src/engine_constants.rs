@@ -22,12 +22,12 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
 pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 200;
-pub const BETA_PRUNE_MAX_DEPTH: u8 = 3;
+pub const BETA_PRUNE_MAX_DEPTH: u8 = 4;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
 pub const NULL_MOVE_MIN_DEPTH: u8 = 4;
-pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 3;
+pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 2;
 
 // Threat extension: if null move search returns a score this much below alpha,
 // the opponent has a significant threat that warrants deeper search
@@ -37,15 +37,29 @@ pub const THREAT_EXTENSION_MARGIN: Score = 400;
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
-pub const SEE_PRUNE_MAX_DEPTH: u8 = 6;
-pub const SEE_PRUNE_MARGIN: Score = 20;
+pub const SEE_PRUNE_MAX_DEPTH: u8 = 3;
+pub const SEE_PRUNE_MARGIN: Score = 16;
+
+// Probcut: at high depth, do a shallow search with raised beta
+// If it fails high, the position is probably winning and can be cut
+// Only searches captures with SEE >= 0 to verify tactical soundness
+pub const PROBCUT_MIN_DEPTH: u8 = 5;
+pub const PROBCUT_MARGIN: Score = 100;
+pub const PROBCUT_DEPTH_REDUCTION: u8 = 4;
+
+// Multi-cut: at high depth, if multiple moves fail high at shallow depth,
+// assume the position is good and return a beta cutoff
+pub const MULTICUT_MIN_DEPTH: u8 = 8;
+pub const MULTICUT_DEPTH_REDUCTION: u8 = 4;
+pub const MULTICUT_MOVES_TO_TRY: u8 = 6;
+pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 3;
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
 // After searching N moves at depth D, skip remaining quiet moves entirely
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
 // Conservative thresholds to avoid missing important moves
 pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 8, 12, 16];
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 5, 11, 8];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -63,7 +77,8 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [128, 192, 256, 320, 384, 448, 512, 576];
+// SPSA tuned: base=130, per_depth=63
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [130, 193, 256, 319, 382, 445, 508, 571];
 
 pub const TICKER_MILLIS: u16 = 500;
 

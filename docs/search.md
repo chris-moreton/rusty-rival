@@ -337,6 +337,40 @@ Skip captures in quiescence search that can't possibly raise alpha.
 
 **Why it helps**: Reduces quiescence nodes by not searching hopeless captures.
 
+### 22. Probcut
+
+**Location**: `search.rs:477-519`
+
+At high depth, do a shallow search with raised beta. If a capture fails high, the position is probably winning and can be cut.
+
+- **Minimum depth**: 5 ply (SPSA tunable)
+- **Margin**: 100 centipawns above beta (SPSA tunable)
+- **Depth reduction**: 4 ply (SPSA tunable)
+- **Conditions**:
+  - Scout (null-window) search only
+  - Not in check
+  - Beta not near mate scores
+- **Move selection**: Only captures with SEE >= 0 (good captures)
+
+**Why it helps**: If a shallow search of good captures shows we're significantly ahead, we can skip the expensive deep search. This is more reliable than pure static pruning because it verifies the advantage with actual search.
+
+### 23. Multi-Cut
+
+**Location**: `search.rs:521-571`
+
+At high depth, if multiple moves fail high at shallow depth, assume the position is good and return a beta cutoff.
+
+- **Minimum depth**: 8 ply (SPSA tunable)
+- **Depth reduction**: 4 ply (SPSA tunable)
+- **Moves to try**: 6 best captures (SPSA tunable)
+- **Required cutoffs**: 3 (SPSA tunable)
+- **Conditions**:
+  - Scout (null-window) search only
+  - Not in check
+  - Beta not near mate scores
+
+**Why it helps**: If several good captures all fail high at reduced depth, it's very likely the position is winning. This provides aggressive pruning at high depths where it's most valuable.
+
 ## Quiescence Search
 
 **Location**: `quiesce.rs`
@@ -445,17 +479,13 @@ Now extends for pawn pushes to 7th rank. See section 18.
 
 ### Lower Priority (But Worth Considering)
 
-#### 12. Probcut
+#### 12. ~~Probcut~~ (Implemented)
 
-**What it is**: At high depth, do a shallow search with raised beta. If it fails high, the position is probably winning and can be cut.
+Now implemented in v1.0.24-rc1. See section 22.
 
-**Why it helps**: Additional forward pruning at internal nodes.
+#### 13. ~~Multi-Cut~~ (Implemented)
 
-#### 13. Multi-Cut
-
-**What it is**: At high depth, if multiple moves fail high at shallow depth, assume the position is good.
-
-**Why it helps**: Additional pruning when position has many good moves.
+Now implemented in v1.0.24-rc1. See section 23.
 
 #### 14. ~~Razoring~~ (Tried - Caused Regression)
 
@@ -495,6 +525,34 @@ Some things are already well-implemented:
 - **Check extensions**: Simple and effective
 - **SEE**: Full recursive implementation (some engines use approximations)
 
+### Considered but Not Implemented
+
+#### PEXT Bitboards
+
+**What it is**: PEXT (Parallel Bits Extract) is a BMI2 instruction available on Intel Haswell+ (2013) and AMD Zen 3+ (2020) CPUs. It extracts bits based on a mask and packs them, giving a perfect hash for sliding piece move generation without multiplication.
+
+**Comparison with Magic Bitboards**:
+
+| Aspect | Magic Bitboards | PEXT |
+|--------|-----------------|------|
+| Index calculation | `(occ * magic) >> shift` | `pext(occ, mask)` |
+| Table size | ~800KB | ~840KB |
+| Lookup speed | ~3-4 cycles | ~1-2 cycles (Intel) |
+| Portability | Works everywhere | BMI2 required |
+| AMD Zen 1-2 | Fast | **Very slow** (~18 cycles, microcoded) |
+
+**Why not implemented**:
+1. **Marginal gain**: Realistic overall NPS improvement is only 2-5% on supported hardware
+2. **AMD penalty**: Zen 1-2 CPUs have catastrophically slow PEXT (~18 cycles vs ~3 for magic multiply)
+3. **Complexity cost**: Requires either compile-time feature flags or runtime detection, meaning two code paths or two binaries
+4. **Magic bitboards are already fast**: Current implementation is well-optimized
+
+**If we did implement it**: The cleanest approach would be compile-time feature flags:
+- `cargo build --release` → portable magic bitboard version
+- `cargo build --release --features pext` → BMI2-optimized version (Intel Haswell+/AMD Zen 3+)
+
+This is what Stockfish does, shipping separate binaries. For Rusty Rival, the complexity isn't justified by the marginal performance gain.
+
 ---
 
 ## Recommended Next Steps
@@ -510,6 +568,8 @@ Based on both standard chess programming techniques and analysis of Java Rival's
 - ~~**Space Evaluation**~~ - Done in v1.0.21
 - ~~**Pawn Hash Table**~~ - Done in v1.0.21
 - ~~**Trapped Piece Detection**~~ - Done in v1.0.21
+- ~~**Probcut**~~ - Done in v1.0.24-rc1, SPSA tunable
+- ~~**Multi-Cut**~~ - Done in v1.0.24-rc1, SPSA tunable
 - ~~**King Support for Passed Pawns**~~ - Done in v1.0.21
 
 ### Tried and Reverted

@@ -194,21 +194,23 @@ fn it_recognises_a_draw() {
 
 #[test]
 fn it_calculates_the_null_move_reduced_depth() {
+    // With NULL_MOVE_REDUCE_DEPTH_BASE = 2 (SPSA tuned)
+    // Formula: when d > base+1: depth - 1 - (base + d/6), else 1
     assert_eq!(null_move_reduced_depth(0), 1);
     assert_eq!(null_move_reduced_depth(1), 1);
     assert_eq!(null_move_reduced_depth(2), 1);
     assert_eq!(null_move_reduced_depth(3), 1);
     assert_eq!(null_move_reduced_depth(4), 1);
-    assert_eq!(null_move_reduced_depth(5), 1);
-    assert_eq!(null_move_reduced_depth(6), 1);
-    assert_eq!(null_move_reduced_depth(7), 2);
-    assert_eq!(null_move_reduced_depth(8), 3);
-    assert_eq!(null_move_reduced_depth(9), 4);
-    assert_eq!(null_move_reduced_depth(10), 5);
-    assert_eq!(null_move_reduced_depth(11), 6);
-    assert_eq!(null_move_reduced_depth(12), 6);
-    assert_eq!(null_move_reduced_depth(13), 7);
-    assert_eq!(null_move_reduced_depth(14), 8);
-    assert_eq!(null_move_reduced_depth(18), 11);
-    assert_eq!(null_move_reduced_depth(24), 16);
+    assert_eq!(null_move_reduced_depth(5), 2);
+    assert_eq!(null_move_reduced_depth(6), 2);
+    assert_eq!(null_move_reduced_depth(7), 3);
+    assert_eq!(null_move_reduced_depth(8), 4);
+    assert_eq!(null_move_reduced_depth(9), 5);
+    assert_eq!(null_move_reduced_depth(10), 6);
+    assert_eq!(null_move_reduced_depth(11), 7);
+    assert_eq!(null_move_reduced_depth(12), 7);
+    assert_eq!(null_move_reduced_depth(13), 8);
+    assert_eq!(null_move_reduced_depth(14), 9);
+    assert_eq!(null_move_reduced_depth(18), 12);
+    assert_eq!(null_move_reduced_depth(24), 17);
 }

@@ -1,7 +1,9 @@
 use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
-    LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, NULL_MOVE_MIN_DEPTH,
-    NULL_MOVE_REDUCE_DEPTH_BASE, NUM_HASH_ENTRIES, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
+    LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
+    MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
+    NUM_HASH_ENTRIES, PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
+    SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -470,6 +472,91 @@ pub fn search(
         // Use higher threshold (400 = losing a piece) to be selective
         if score < alpha - THREAT_EXTENSION_MARGIN {
             threat_detected = true;
+        }
+    }
+
+    // Probcut: at high depth, do a shallow search with raised beta
+    // If a capture fails high, the position is probably winning and can be cut
+    if scouting && !in_check && depth >= PROBCUT_MIN_DEPTH && beta.abs() < MATE_START {
+        let probcut_beta = beta + PROBCUT_MARGIN;
+        let probcut_depth = depth - PROBCUT_DEPTH_REDUCTION;
+
+        // Generate captures and try them at reduced depth
+        let captures = generate_captures(position);
+        for m in captures {
+            // Only try captures with non-negative SEE
+            if static_exchange_evaluation(position, m) < 0 {
+                continue;
+            }
+
+            let old_mover = position.mover;
+            let unmake = make_move_in_place(position, m);
+
+            if !is_check(position, old_mover) {
+                let score = -search(
+                    position,
+                    probcut_depth,
+                    ply + 1,
+                    (-probcut_beta, -probcut_beta + 1),
+                    search_state,
+                    false,
+                )
+                .1;
+
+                unmake_move(position, m, &unmake);
+
+                if is_stopped(&search_state.stop) {
+                    return (pv_single(0), 0);
+                }
+
+                if score >= probcut_beta {
+                    return (pv_single(0), beta);
+                }
+            } else {
+                unmake_move(position, m, &unmake);
+            }
+        }
+    }
+
+    // Multi-cut: at high depth, if multiple moves fail high at shallow depth,
+    // the position is probably good and can be cut
+    if scouting && !in_check && depth >= MULTICUT_MIN_DEPTH && beta.abs() < MATE_START {
+        let multicut_depth = depth - MULTICUT_DEPTH_REDUCTION;
+        let mut fail_high_count: u8 = 0;
+
+        // Generate and score captures for multi-cut
+        let captures = generate_captures(position);
+        let enemy = &position.pieces[opponent!(position.mover) as usize];
+        let mut scored_captures: Vec<(Move, Score)> = captures
+            .into_iter()
+            .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
+            .collect();
+
+        // Sort by score descending to try best captures first
+        scored_captures.sort_by(|a, b| b.1.cmp(&a.1));
+
+        for (m, _) in scored_captures.iter().take(MULTICUT_MOVES_TO_TRY as usize) {
+            let old_mover = position.mover;
+            let unmake = make_move_in_place(position, *m);
+
+            if !is_check(position, old_mover) {
+                let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false).1;
+
+                unmake_move(position, *m, &unmake);
+
+                if is_stopped(&search_state.stop) {
+                    return (pv_single(0), 0);
+                }
+
+                if score >= beta {
+                    fail_high_count += 1;
+                    if fail_high_count >= MULTICUT_REQUIRED_CUTOFFS {
+                        return (pv_single(0), beta);
+                    }
+                }
+            } else {
+                unmake_move(position, *m, &unmake);
+            }
         }
     }
 
