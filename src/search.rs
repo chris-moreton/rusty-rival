@@ -203,6 +203,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
 
     for mv in legal_moves {
         let unmake = make_move_in_place(position, mv.0);
+        prefetch_hash(position, search_state); // Prefetch child position's hash entry
         search_state.history.push(position.zobrist_lock);
 
         let mut path_score = search(
@@ -329,6 +330,14 @@ pub fn null_move_reduced_depth(depth: u8) -> u8 {
         d if d > NULL_MOVE_REDUCE_DEPTH_BASE + 1 => depth - 1 - (NULL_MOVE_REDUCE_DEPTH_BASE + d / 6),
         _ => 1,
     }
+}
+
+/// Prefetch the hash entry for the current position
+/// Call this right after making a move to hide memory latency
+#[inline(always)]
+fn prefetch_hash(position: &Position, search_state: &SearchState) {
+    let index = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
+    search_state.hash_table.prefetch(index);
 }
 
 #[inline(always)]
@@ -491,6 +500,7 @@ pub fn search(
 
             let old_mover = position.mover;
             let unmake = make_move_in_place(position, m);
+            prefetch_hash(position, search_state);
 
             if !is_check(position, old_mover) {
                 let score = -search(
@@ -538,6 +548,7 @@ pub fn search(
         for (m, _) in scored_captures.iter().take(MULTICUT_MOVES_TO_TRY as usize) {
             let old_mover = position.mover;
             let unmake = make_move_in_place(position, *m);
+            prefetch_hash(position, search_state);
 
             if !is_check(position, old_mover) {
                 let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false).1;
@@ -577,6 +588,7 @@ pub fn search(
     if verified_hash_move {
         let old_mover = position.mover;
         let unmake = make_move_in_place(position, hash_move);
+        prefetch_hash(position, search_state); // Prefetch child position's hash entry
         let hash_is_capture = unmake.captured_piece != CAPTURED_NONE;
 
         if !is_check(position, old_mover) {
@@ -699,7 +711,8 @@ pub fn search(
         let move_extension = check_extension + pawn_push_ext;
 
         let unmake = make_move_in_place(position, m);
-        // Track move at this ply for countermove heuristic
+        prefetch_hash(position, search_state); // Prefetch child position's hash entry
+                                               // Track move at this ply for countermove heuristic
         search_state.ply_move[ply as usize] = m;
         // For killer moves, use actual capture detection from unmake info
         let move_is_capture = unmake.captured_piece != CAPTURED_NONE;

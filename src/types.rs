@@ -72,6 +72,33 @@ impl SharedHashTable {
         }
     }
 
+    /// Prefetch a hash entry into CPU cache
+    /// Call this after making a move to hide memory latency
+    #[inline(always)]
+    pub fn prefetch(&self, index: usize) {
+        #[cfg(target_arch = "x86_64")]
+        {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+            unsafe {
+                let ptr = &(*self.data.get())[index] as *const HashEntry as *const i8;
+                _mm_prefetch(ptr, _MM_HINT_T0);
+            }
+        }
+        #[cfg(target_arch = "x86")]
+        {
+            use std::arch::x86::{_mm_prefetch, _MM_HINT_T0};
+            unsafe {
+                let ptr = &(*self.data.get())[index] as *const HashEntry as *const i8;
+                _mm_prefetch(ptr, _MM_HINT_T0);
+            }
+        }
+        // No-op on other architectures (ARM, etc.)
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+        {
+            let _ = index;
+        }
+    }
+
     /// Clear the hash table (used by ucinewgame)
     pub fn clear(&self) {
         let empty = HashEntry {
