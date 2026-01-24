@@ -167,6 +167,11 @@ pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 4;
 // More valuable for advanced pawns (higher rank_index)
 pub const VALUE_KING_SUPPORTS_PASSED_PAWN: Score = 3;
 
+// Defending king blocking enemy passed pawn
+// Bonus for king being directly in front of an enemy passed pawn
+// This is a key endgame technique - the king is the best blockader
+pub const VALUE_KING_BLOCKS_PASSED_PAWN: Score = 40;
+
 pub const KNIGHT_FORK_THREAT_SCORE: Score = 5;
 
 pub const ROOK_OPEN_FILE_BONUS: Score = 25;
