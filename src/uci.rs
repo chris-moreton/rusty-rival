@@ -19,7 +19,7 @@ use crate::moves::{generate_moves, is_check};
 
 use crate::perft::perft;
 use crate::search::iterative_deepening;
-use crate::types::{set_stop, Position, SearchHandle, SearchState, UciState, BLACK, WHITE};
+use crate::types::{set_stop, Position, SearchHandle, SearchState, SharedHashTable, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
 
@@ -450,6 +450,7 @@ fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(format!(
         "id name Rusty Rival {}
 id author Chris Moreton
+option name Hash type spin default 128 min 1 max 16384
 option name Clear Hash type button
 option name MultiPV type spin default 1 min 1 max 20
 option name Contempt type spin default 0 min -1000 max 1000
@@ -488,6 +489,20 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<Str
     } else {
         let option = parts[2].to_lowercase();
         match option.as_str() {
+            "hash" => {
+                if parts.len() == 5 && parts[3] == "value" {
+                    match parts[4].parse::<usize>() {
+                        Ok(mb) if (1..=16384).contains(&mb) => {
+                            search_state.hash_table = Arc::new(SharedHashTable::new_with_mb(mb));
+                            search_state.hash_table_version += 1;
+                            Right(None)
+                        }
+                        _ => Left("Hash size must be between 1 and 16384 MB".parse().unwrap()),
+                    }
+                } else {
+                    Left("usage: setoption name Hash value <MB>".parse().unwrap())
+                }
+            }
             "clear" => {
                 search_state.hash_table.clear();
                 Right(None)

@@ -1,4 +1,4 @@
-use crate::engine_constants::{MAX_DEPTH, NUM_HASH_ENTRIES, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES};
+use crate::engine_constants::{HASH_ENTRY_BYTES, MAX_DEPTH, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use arrayvec::ArrayVec;
 use std::cell::UnsafeCell;
@@ -20,13 +20,12 @@ pub type Window = (Bound, Bound);
 pub type Score = i32;
 pub type HashLock = u128;
 pub type HashIndex = u32;
-pub type HashArray = [HashEntry; NUM_HASH_ENTRIES as usize];
-
 /// Thread-safe wrapper for the hash table that allows sharing between threads.
 /// Uses UnsafeCell for interior mutability - data races on individual hash entries
 /// are acceptable in chess engines (worst case is a cache miss or stale data).
 pub struct SharedHashTable {
-    data: UnsafeCell<Box<HashArray>>,
+    data: UnsafeCell<Box<[HashEntry]>>,
+    num_entries: usize,
 }
 
 // SAFETY: Hash table data races are acceptable in chess engines.
@@ -36,26 +35,48 @@ unsafe impl Send for SharedHashTable {}
 unsafe impl Sync for SharedHashTable {}
 
 impl SharedHashTable {
+    /// Create a new hash table with the default size
     pub fn new() -> Self {
+        Self::new_with_mb(128) // Default 128 MB
+    }
+
+    /// Create a new hash table with specified size in megabytes
+    pub fn new_with_mb(mb: usize) -> Self {
+        let num_entries = (mb * 1024 * 1024) / HASH_ENTRY_BYTES as usize;
+        Self::new_with_entries(num_entries)
+    }
+
+    /// Create a new hash table with specified number of entries
+    pub fn new_with_entries(num_entries: usize) -> Self {
+        let empty = HashEntry {
+            score: 0,
+            version: 0,
+            height: 0,
+            mv: 0,
+            bound: BoundType::Exact,
+            lock: 0,
+        };
         SharedHashTable {
-            data: UnsafeCell::new(
-                Box::try_from(
-                    vec![
-                        HashEntry {
-                            score: 0,
-                            version: 0,
-                            height: 0,
-                            mv: 0,
-                            bound: BoundType::Exact,
-                            lock: 0,
-                        };
-                        NUM_HASH_ENTRIES as usize
-                    ]
-                    .into_boxed_slice(),
-                )
-                .unwrap(),
-            ),
+            data: UnsafeCell::new(vec![empty; num_entries].into_boxed_slice()),
+            num_entries,
         }
+    }
+
+    /// Get the number of entries in the hash table
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        self.num_entries
+    }
+
+    /// Check if the hash table is empty
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.num_entries == 0
+    }
+
+    /// Get the size of the hash table in megabytes
+    pub fn size_mb(&self) -> usize {
+        (self.num_entries * HASH_ENTRY_BYTES as usize) / (1024 * 1024)
     }
 
     /// Get a reference to a hash entry (for reading)
@@ -109,7 +130,7 @@ impl SharedHashTable {
             bound: BoundType::Exact,
             lock: 0,
         };
-        for i in 0..NUM_HASH_ENTRIES as usize {
+        for i in 0..self.num_entries {
             self.set(i, empty);
         }
     }
@@ -123,7 +144,7 @@ impl Default for SharedHashTable {
 
 impl std::fmt::Debug for SharedHashTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "SharedHashTable({} entries)", NUM_HASH_ENTRIES)
+        write!(f, "SharedHashTable({} entries, {} MB)", self.num_entries, self.size_mb())
     }
 }
 

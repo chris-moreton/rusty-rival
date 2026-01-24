@@ -2,8 +2,8 @@ use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
     LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
     MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    NUM_HASH_ENTRIES, PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
-    SEE_PRUNE_MAX_DEPTH, THREAT_EXTENSION_MARGIN,
+    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
+    THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -265,7 +265,7 @@ pub fn store_hash_entry(
     ply: u8,
 ) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
-        let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
+        let index: usize = (position.zobrist_lock % search_state.hash_table.len() as u128) as usize;
         search_state.hash_table.set(
             index,
             HashEntry {
@@ -336,7 +336,7 @@ pub fn null_move_reduced_depth(depth: u8) -> u8 {
 /// Call this right after making a move to hide memory latency
 #[inline(always)]
 fn prefetch_hash(position: &Position, search_state: &SearchState) {
-    let index = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
+    let index = (position.zobrist_lock % search_state.hash_table.len() as u128) as usize;
     search_state.hash_table.prefetch(index);
 }
 
@@ -386,7 +386,7 @@ pub fn search(
     let mut hash_version = 0;
     let mut best_pathscore: PathScore = (pv_single(0), -MATE_SCORE);
 
-    let index: usize = (position.zobrist_lock % NUM_HASH_ENTRIES as u128) as usize;
+    let index: usize = (position.zobrist_lock % search_state.hash_table.len() as u128) as usize;
     let hash_entry = search_state.hash_table.get(index);
     let mut hash_move = if hash_entry.lock == position.zobrist_lock {
         // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored

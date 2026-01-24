@@ -354,6 +354,26 @@ pub fn it_handles_the_setoption_clear_hash_command() {
 }
 
 #[test]
+pub fn it_handles_the_setoption_hash_command() {
+    let mut search_state = default_search_state();
+    let mut uci_state = default_uci_state();
+
+    let initial_len = search_state.hash_table.len();
+
+    // Resize to 64 MB (should be roughly half the entries)
+    let result = run_command_test(&mut uci_state, &mut search_state, "setoption name Hash value 64");
+    assert_eq!(result, Right(None));
+    assert!(search_state.hash_table.len() < initial_len);
+    assert!(search_state.hash_table.len() > initial_len / 4);
+
+    // Resize to 16 MB (should be roughly 1/4 of 64 MB)
+    let len_64mb = search_state.hash_table.len();
+    let result = run_command_test(&mut uci_state, &mut search_state, "setoption name hash value 16");
+    assert_eq!(result, Right(None));
+    assert!(search_state.hash_table.len() < len_64mb);
+}
+
+#[test]
 pub fn it_handles_the_setoption_multipv_command() {
     let mut search_state = default_search_state();
     let mut uci_state = default_uci_state();
