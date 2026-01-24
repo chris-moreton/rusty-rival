@@ -166,6 +166,26 @@ pub fn it_handles_a_bad_fen() {
     );
 }
 
+#[test]
+pub fn it_handles_searchmoves() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+
+    // Set up a position where e2e4 and d2d4 are both legal
+    assert_eq!(
+        run_command_test(&mut uci_state, &mut search_state, "position startpos"),
+        Right(None)
+    );
+
+    // Search with only e2e4 allowed - best move must be e2e4
+    let result = run_command_test(&mut uci_state, &mut search_state, "go depth 4 searchmoves e2e4");
+    assert_success_message(result, |message| message.starts_with("bestmove e2e4"));
+
+    // Search with only d2d4 allowed - best move must be d2d4
+    let result = run_command_test(&mut uci_state, &mut search_state, "go depth 4 searchmoves d2d4");
+    assert_success_message(result, |message| message.starts_with("bestmove d2d4"));
+}
+
 fn assert_success_message(result: Either<String, Option<String>>, f: fn(&str) -> bool) -> bool {
     match result {
         Left(_error) => panic!("Fail"),

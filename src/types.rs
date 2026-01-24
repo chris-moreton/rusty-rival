@@ -361,6 +361,7 @@ pub struct SearchState {
     pub multi_pv: u8,
     pub contempt: Score,
     pub ignore_root_move: Move,
+    pub search_moves: Option<Vec<Move>>,
     pub stop: Arc<AtomicBool>,
     pub last_info_nodes: u64,
 }
@@ -393,6 +394,7 @@ impl Clone for SearchState {
             multi_pv: self.multi_pv,
             contempt: self.contempt,
             ignore_root_move: self.ignore_root_move,
+            search_moves: self.search_moves.clone(),
             stop: Arc::clone(&self.stop),
             last_info_nodes: self.last_info_nodes,
         }
@@ -425,6 +427,7 @@ pub fn default_search_state() -> SearchState {
         multi_pv: 1,
         contempt: 0,
         ignore_root_move: 0,
+        search_moves: None,
         stop: Arc::new(AtomicBool::new(false)),
         last_info_nodes: 0,
     }

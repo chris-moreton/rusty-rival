@@ -94,6 +94,12 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         if m == search_state.ignore_root_move {
             continue;
         }
+        // If searchmoves specified, only include those moves
+        if let Some(ref search_moves) = search_state.search_moves {
+            if !search_moves.contains(&m) {
+                continue;
+            }
+        }
         let unmake = make_move_in_place(position, m);
         let legal = !is_check(position, original_mover);
         unmake_move(position, m, &unmake);

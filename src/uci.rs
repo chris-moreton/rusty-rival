@@ -19,7 +19,7 @@ use crate::moves::{generate_moves, is_check};
 
 use crate::perft::perft;
 use crate::search::iterative_deepening;
-use crate::types::{set_stop, Position, SearchHandle, SearchState, SharedHashTable, UciState, BLACK, WHITE};
+use crate::types::{set_stop, Move, Position, SearchHandle, SearchState, SharedHashTable, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
 
@@ -145,6 +145,9 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
 
             let mut position = get_position(uci_state.fen.trim());
 
+            // Parse searchmoves if present
+            search_state.search_moves = parse_searchmoves(&line, &position);
+
             if position.mover == WHITE {
                 calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
             } else {
@@ -155,6 +158,9 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
 
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
             let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state);
+
+            // Clear search_moves after search completes
+            search_state.search_moves = None;
 
             Right(Some(format_bestmove(mv, search_state)))
         }
@@ -388,6 +394,9 @@ fn cmd_go(
     // Clone position for the search thread
     let mut position = get_position(uci_state.fen.trim());
 
+    // Parse searchmoves if present
+    let search_moves = parse_searchmoves(&line, &position);
+
     // Create a new stop flag for this search
     let stop_flag = Arc::new(AtomicBool::new(false));
 
@@ -397,6 +406,7 @@ fn cmd_go(
     thread_search_state.nodes = 0;
     thread_search_state.nodes_limit = nodes_limit;
     thread_search_state.stop = stop_flag.clone();
+    thread_search_state.search_moves = search_moves;
 
     // Spawn the search thread with a larger stack size to prevent stack overflow
     // during deep searches (default 2MB is not enough for very deep positions)
@@ -415,6 +425,51 @@ fn cmd_go(
     *search_handle = Some(SearchHandle { stop: stop_flag, handle });
 
     Right(None)
+}
+
+/// Parse searchmoves from go command line
+/// Returns None if searchmoves not specified, Some(vec) with the moves otherwise
+fn parse_searchmoves(line: &str, position: &Position) -> Option<Vec<Move>> {
+    // Find "searchmoves" keyword
+    if let Some(idx) = line.find("searchmoves") {
+        let after_keyword = &line[idx + "searchmoves".len()..];
+        let mut moves = Vec::new();
+
+        // UCI keywords that end the searchmoves list
+        let keywords = [
+            "ponder",
+            "wtime",
+            "btime",
+            "winc",
+            "binc",
+            "movestogo",
+            "depth",
+            "nodes",
+            "mate",
+            "movetime",
+            "infinite",
+        ];
+
+        for token in after_keyword.split_whitespace() {
+            // Stop if we hit another keyword
+            if keywords.contains(&token) {
+                break;
+            }
+            // Parse move and add to list
+            let mv = hydrate_move_from_algebraic_move(position, token.to_string());
+            if mv != 0 {
+                moves.push(mv);
+            }
+        }
+
+        if moves.is_empty() {
+            None
+        } else {
+            Some(moves)
+        }
+    } else {
+        None
+    }
 }
 
 fn cmd_stop(search_handle: &mut Option<SearchHandle>) -> Either<String, Option<String>> {
