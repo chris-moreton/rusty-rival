@@ -22,8 +22,8 @@ use crate::quiesce::quiesce;
 use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    is_stopped, pv_prepend, pv_single, set_stop, BoundType, HashEntry, Move, MoveScore, MoveScoreList, Mover, PathScore, Position, Score,
-    SearchState, Square, Window, BLACK, WHITE,
+    is_stopped, pv_prepend, pv_single, set_stop, BoundType, HashEntry, Move, MoveScore, MoveScoreArray, MoveScoreList, Mover, PathScore,
+    Position, Score, SearchState, Square, Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
@@ -537,7 +537,7 @@ pub fn search(
         // Generate and score captures for multi-cut
         let captures = generate_captures(position);
         let enemy = &position.pieces[opponent!(position.mover) as usize];
-        let mut scored_captures: Vec<(Move, Score)> = captures
+        let mut scored_captures: MoveScoreArray = captures
             .into_iter()
             .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
             .collect();
@@ -630,7 +630,7 @@ pub fn search(
     }
 
     // MOVE GENERATION: Use check evasions when in check, staged generation otherwise
-    let mut move_scores: Vec<(Move, Score)>;
+    let mut move_scores: MoveScoreArray;
     let mut quiets_added: bool;
 
     if in_check {
@@ -861,7 +861,7 @@ fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bo
 
 #[inline(always)]
 #[allow(clippy::needless_range_loop)]
-pub fn pick_high_score_move(move_scores: &mut Vec<(Move, Score)>) -> Move {
+pub fn pick_high_score_move(move_scores: &mut MoveScoreArray) -> Move {
     let mut best_index = 0;
     let mut best_score = move_scores[0].1;
     for j in 1..move_scores.len() {

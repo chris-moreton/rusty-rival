@@ -175,6 +175,33 @@ impl PawnHashTable {
         }
     }
 
+    #[inline(always)]
+    pub fn prefetch(&self, key: HashLock) {
+        let index = (key as usize) % NUM_PAWN_HASH_ENTRIES;
+        #[cfg(target_arch = "x86_64")]
+        {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+            // SAFETY: We're prefetching a valid address within our allocation
+            unsafe {
+                let ptr = &(*self.data.get())[index] as *const PawnHashEntry as *const i8;
+                _mm_prefetch(ptr, _MM_HINT_T0);
+            }
+        }
+        #[cfg(target_arch = "x86")]
+        {
+            use std::arch::x86::{_mm_prefetch, _MM_HINT_T0};
+            unsafe {
+                let ptr = &(*self.data.get())[index] as *const PawnHashEntry as *const i8;
+                _mm_prefetch(ptr, _MM_HINT_T0);
+            }
+        }
+        // On other architectures, prefetch is a no-op
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+        {
+            let _ = index;
+        }
+    }
+
     pub fn clear(&self) {
         // SAFETY: Called before search starts, no concurrent access expected
         unsafe {
@@ -221,6 +248,7 @@ pub fn pv_prepend(m: Move, rest: &PV) -> PV {
 
 pub type MoveScore = (Move, Score);
 pub type MoveScoreList = Vec<MoveScore>;
+pub type MoveScoreArray = ArrayVec<MoveScore, MAX_MOVES>;
 pub type PositionHistory = Vec<HashLock>;
 pub type HistoryScore = i64;
 pub type ScorePair = (Score, Score);
