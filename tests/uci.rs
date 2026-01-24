@@ -237,47 +237,57 @@ fn test_wtime_btime(fen: &str, cmd: &str, max_millis: u128) {
 }
 
 #[test]
-#[ignore] // See issue #48 - test expectations don't match current time management
 pub fn it_handles_wtime_and_btime() {
+    // Time calculation: (time / (movestogo + 1)) * 0.95 + increment - UCI_MILLIS_REDUCTION
+    // When movestogo=0, defaults to 30 moves remaining
+
+    // wtime=1000, movestogo=9: 1000/10 * 0.95 - 5 = 90ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1",
         "go wtime 1000 btime 1000 movestogo 9",
         100,
     );
+    // wtime=5000, movestogo=24: 5000/25 * 0.95 - 5 = 185ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1",
         "go wtime 5000 btime 10000 movestogo 24",
         200,
     );
+    // btime=1000, movestogo=1: 1000/2 * 0.95 - 5 = 470ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 1000 movestogo 1",
         500,
     );
+    // btime=250, movestogo=0 (→30): 250/31 * 0.95 - 5 = ~3ms → min 10ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 250 movestogo 0",
-        250,
+        15,
     );
+    // wtime=1000, movestogo=9, winc=100: 1000/10 * 0.95 + 100 - 5 = 190ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1",
         "go wtime 1000 btime 1000 movestogo 9 winc 100 binc 0",
         200,
     );
+    // wtime=5000, movestogo=24, winc=100: 5000/25 * 0.95 + 100 - 5 = 285ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1",
         "go wtime 5000 btime 10000 movestogo 24 winc 100 binc 100",
         300,
     );
+    // btime=1000, movestogo=1, binc=200: 1000/2 * 0.95 + 200 - 5 = 670ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 1000 movestogo 1 winc 200 binc 200",
         700,
     );
+    // btime=250, movestogo=0 (→30), binc=200: 250/31 * 0.95 + 200 - 5 = ~203ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 250 movestogo 0 winc 50 binc 200",
-        450,
+        220,
     );
 }
 
