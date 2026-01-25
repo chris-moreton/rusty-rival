@@ -7,6 +7,7 @@ pub mod magic_bitboards;
 pub mod magic_moves_bishop;
 pub mod magic_moves_rook;
 pub mod make_move;
+pub mod material_imbalance;
 pub mod move_constants;
 pub mod move_scores;
 pub mod moves;

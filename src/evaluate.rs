@@ -18,8 +18,9 @@ use crate::engine_constants::{
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
+use crate::material_imbalance::material_imbalance_score;
 use crate::piece_square_tables::piece_square_values;
-use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, PawnHashTable, Position, Score, Square, BLACK, WHITE};
+use crate::types::{default_evaluate_cache, Bitboard, EvaluateCache, Mover, PawnHashTable, Pieces, Position, Score, Square, BLACK, WHITE};
 use crate::utils::linear_scale;
 use crate::{get_and_unset_lsb, opponent};
 use std::cmp::{max, min};
@@ -67,6 +68,7 @@ pub fn evaluate(position: &Position) -> Score {
         + king_activity_score(position)
         + trade_bonus(position)
         + bishop_knight_imbalance_score(position)
+        + material_imbalance_score(position)
         + trapped_piece_penalty(position)
         + space_score(position);
 
@@ -127,6 +129,7 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
             + king_activity_score(position)
             + trade_bonus(position)
             + bishop_knight_imbalance_score(position)
+            + material_imbalance_score(position)
             + trapped_piece_penalty(position)
             + space_score(position);
 
@@ -1327,6 +1330,15 @@ pub fn king_activity_score(position: &Position) -> Score {
 /// This helps convert material advantages by simplifying the position.
 #[inline(always)]
 pub fn trade_bonus(position: &Position) -> Score {
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
+
+    // Don't give trade bonus in Q vs N+pawns imbalances
+    // These positions are often drawn despite the material difference
+    if is_queen_vs_knight_imbalance(white, black) || is_queen_vs_knight_imbalance(black, white) {
+        return 0;
+    }
+
     let white_pieces = piece_material(position, WHITE);
     let black_pieces = piece_material(position, BLACK);
     let material_balance = white_pieces - black_pieces;
@@ -1353,6 +1365,19 @@ pub fn trade_bonus(position: &Position) -> Score {
     } else {
         -bonus // Black is ahead, bonus for black
     }
+}
+
+/// Check if one side has Q and other has N+pawns (fortress potential)
+#[inline(always)]
+fn is_queen_vs_knight_imbalance(queen_side: &Pieces, knight_side: &Pieces) -> bool {
+    queen_side.queen_bitboard.count_ones() == 1
+        && queen_side.rook_bitboard == 0
+        && queen_side.bishop_bitboard == 0
+        && knight_side.queen_bitboard == 0
+        && knight_side.rook_bitboard == 0
+        && knight_side.bishop_bitboard == 0
+        && knight_side.knight_bitboard != 0
+        && knight_side.pawn_bitboard.count_ones() >= 1
 }
 
 /// Bishop vs Knight imbalance scoring.
