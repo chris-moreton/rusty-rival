@@ -11,9 +11,9 @@ use crate::engine_constants::{
     QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS,
     ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY,
     VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
-    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_BLOCKS_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN,
-    VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION,
-    VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST,
+    VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
@@ -978,16 +978,7 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
         black_piece_values,
     );
 
-    // King blocking enemy passed pawns bonus (endgame only)
-    let king_block_bonus = king_blocks_passed_pawn_score(
-        position,
-        white_passed_pawns,
-        black_passed_pawns,
-        white_piece_values,
-        black_piece_values,
-    );
-
-    guarded_score + connected_score + passed_score + passed_pawn_bonus + king_support_bonus + king_block_bonus
+    guarded_score + connected_score + passed_score + passed_pawn_bonus + king_support_bonus
 }
 
 #[inline(always)]
@@ -1072,64 +1063,6 @@ pub fn king_supports_passed_pawns_score(
 
         // Scale by how few pieces white has
         score -= linear_scale(white_piece_values as i64, 0, PAWN_ADJUST_MAX_MATERIAL as i64, black_score as i64, 0) as Score;
-    }
-
-    score
-}
-
-/// Bonus for a king blocking an enemy passed pawn.
-/// The king is often the best blockader of a passed pawn in endgames.
-/// A king directly in front of a passed pawn significantly slows its advance.
-#[inline(always)]
-pub fn king_blocks_passed_pawn_score(
-    position: &Position,
-    white_passed_pawns: Bitboard,
-    black_passed_pawns: Bitboard,
-    white_piece_values: Score,
-    black_piece_values: Score,
-) -> Score {
-    let mut score: Score = 0;
-
-    // White king blocking black passed pawns (only relevant when white has few pieces)
-    if white_piece_values < PAWN_ADJUST_MAX_MATERIAL && black_passed_pawns != 0 {
-        let king_sq = position.pieces[WHITE as usize].king_square;
-        let king_file = king_sq % 8;
-        let king_rank = king_sq / 8;
-
-        let mut bb = black_passed_pawns;
-        while bb != 0 {
-            let pawn_sq = get_and_unset_lsb!(bb);
-            let pawn_file = pawn_sq % 8;
-            let pawn_rank = pawn_sq / 8;
-
-            // King blocks if it's on the same file and in front of the pawn (lower rank for black pawns)
-            if king_file == pawn_file && king_rank < pawn_rank {
-                // More valuable to block more advanced pawns
-                let rank_index = (7 - pawn_rank).clamp(1, 6) as Score;
-                score += rank_index * VALUE_KING_BLOCKS_PASSED_PAWN / 3;
-            }
-        }
-    }
-
-    // Black king blocking white passed pawns (only relevant when black has few pieces)
-    if black_piece_values < PAWN_ADJUST_MAX_MATERIAL && white_passed_pawns != 0 {
-        let king_sq = position.pieces[BLACK as usize].king_square;
-        let king_file = king_sq % 8;
-        let king_rank = king_sq / 8;
-
-        let mut bb = white_passed_pawns;
-        while bb != 0 {
-            let pawn_sq = get_and_unset_lsb!(bb);
-            let pawn_file = pawn_sq % 8;
-            let pawn_rank = pawn_sq / 8;
-
-            // King blocks if it's on the same file and in front of the pawn (higher rank for white pawns)
-            if king_file == pawn_file && king_rank > pawn_rank {
-                // More valuable to block more advanced pawns
-                let rank_index = pawn_rank.clamp(1, 6) as Score;
-                score -= rank_index * VALUE_KING_BLOCKS_PASSED_PAWN / 3;
-            }
-        }
     }
 
     score
