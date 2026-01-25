@@ -8,6 +8,7 @@ perf.data*
 history.txt
 scripts/__pycache__/*
 .claude/settings.local.json
+nul
 
 engines/syzygy/
 
