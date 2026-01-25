@@ -193,6 +193,12 @@ pub const VALUE_KING_ENDGAME_CENTRALIZATION: [Score; 64] = [
 // This is roughly when no queens and at most one rook per side
 pub const ENDGAME_MATERIAL_THRESHOLD: Score = ROOK_VALUE_AVERAGE * 2;
 
+// King activity: bonus for king attacking enemy pieces in endgames
+// Attacking minor pieces (bishops/knights) is valuable as it restricts them
+pub const VALUE_KING_ATTACKS_MINOR: Score = 20;
+// Attacking rooks is also valuable
+pub const VALUE_KING_ATTACKS_ROOK: Score = 15;
+
 // Bishop vs Knight imbalance
 // Bishops are stronger in open positions (fewer pawns), knights in closed positions (more pawns)
 // With 16 pawns (max), knights get bonus; with 0 pawns, bishops get bonus

@@ -11,9 +11,10 @@ use crate::engine_constants::{
     QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS,
     ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY,
     VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
-    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST,
-    VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_ATTACKS_MINOR, VALUE_KING_ATTACKS_ROOK,
+    VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
+    VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
+    VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
@@ -63,6 +64,7 @@ pub fn evaluate(position: &Position) -> Score {
         + rook_file_score(position)
         + queen_mobility_score(position)
         + endgame_king_centralization_bonus(position)
+        + king_activity_score(position)
         + trade_bonus(position)
         + bishop_knight_imbalance_score(position)
         + trapped_piece_penalty(position)
@@ -122,6 +124,7 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
             + rook_file_score(position)
             + queen_mobility_score(position)
             + endgame_king_centralization_bonus(position)
+            + king_activity_score(position)
             + trade_bonus(position)
             + bishop_knight_imbalance_score(position)
             + trapped_piece_penalty(position)
@@ -1276,6 +1279,47 @@ pub fn endgame_king_centralization_bonus(position: &Position) -> Score {
 
     // Scale from 100% at 0 material to 0% at max_material
     linear_scale(total_piece_value as i64, 0, max_material as i64, raw_bonus as i64, 0) as Score
+}
+
+/// King activity score: bonus for king attacking enemy pieces in endgames.
+/// An active king that threatens enemy pieces restricts their mobility and
+/// can create tactical threats. This is especially important in positions
+/// where Stockfish (with NNUE) immediately sees the value but handcrafted
+/// evaluation misses it.
+#[inline(always)]
+pub fn king_activity_score(position: &Position) -> Score {
+    let white_piece_value = piece_material(position, WHITE);
+    let black_piece_value = piece_material(position, BLACK);
+
+    // Only apply in endgames when material is low
+    if white_piece_value > ENDGAME_MATERIAL_THRESHOLD || black_piece_value > ENDGAME_MATERIAL_THRESHOLD {
+        return 0;
+    }
+
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
+
+    let white_king_attacks = KING_MOVES_BITBOARDS[white.king_square as usize];
+    let black_king_attacks = KING_MOVES_BITBOARDS[black.king_square as usize];
+
+    let mut score: Score = 0;
+
+    // White king attacking black pieces
+    let white_attacks_black_minor = white_king_attacks & (black.knight_bitboard | black.bishop_bitboard);
+    let white_attacks_black_rook = white_king_attacks & black.rook_bitboard;
+    score += white_attacks_black_minor.count_ones() as Score * VALUE_KING_ATTACKS_MINOR;
+    score += white_attacks_black_rook.count_ones() as Score * VALUE_KING_ATTACKS_ROOK;
+
+    // Black king attacking white pieces
+    let black_attacks_white_minor = black_king_attacks & (white.knight_bitboard | white.bishop_bitboard);
+    let black_attacks_white_rook = black_king_attacks & white.rook_bitboard;
+    score -= black_attacks_white_minor.count_ones() as Score * VALUE_KING_ATTACKS_MINOR;
+    score -= black_attacks_white_rook.count_ones() as Score * VALUE_KING_ATTACKS_ROOK;
+
+    // Scale by how few pieces remain
+    let total_piece_value = white_piece_value + black_piece_value;
+    let max_material = ENDGAME_MATERIAL_THRESHOLD * 2;
+    linear_scale(total_piece_value as i64, 0, max_material as i64, score as i64, 0) as Score
 }
 
 /// Trade bonus: encourages piece trades when ahead in material.
