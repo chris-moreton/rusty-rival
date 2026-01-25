@@ -184,17 +184,16 @@ pub const VALUE_QUEEN_MOBILITY: [Score; 28] = [
 
 // King centralization bonus for endgames - extra bonus beyond PST when material is low
 // This encourages the king to actively participate in the endgame
-// Doubled from original values to make king activity more important in endgames
 // Indexed by king square (same layout as PST: h1=0, a8=63)
 pub const VALUE_KING_ENDGAME_CENTRALIZATION: [Score; 64] = [
-    0, 4, 8, 12, 12, 8, 4, 0, // rank 1
-    4, 8, 16, 24, 24, 16, 8, 4, // rank 2
-    8, 16, 32, 40, 40, 32, 16, 8, // rank 3
-    12, 24, 40, 48, 48, 40, 24, 12, // rank 4
-    12, 24, 40, 48, 48, 40, 24, 12, // rank 5
-    8, 16, 32, 40, 40, 32, 16, 8, // rank 6
-    4, 8, 16, 24, 24, 16, 8, 4, // rank 7
-    0, 4, 8, 12, 12, 8, 4, 0, // rank 8
+    0, 2, 4, 6, 6, 4, 2, 0, // rank 1
+    2, 4, 8, 12, 12, 8, 4, 2, // rank 2
+    4, 8, 16, 20, 20, 16, 8, 4, // rank 3
+    6, 12, 20, 24, 24, 20, 12, 6, // rank 4
+    6, 12, 20, 24, 24, 20, 12, 6, // rank 5
+    4, 8, 16, 20, 20, 16, 8, 4, // rank 6
+    2, 4, 8, 12, 12, 8, 4, 2, // rank 7
+    0, 2, 4, 6, 6, 4, 2, 0, // rank 8
 ];
 
 // Material threshold below which we apply extra king centralization bonus
