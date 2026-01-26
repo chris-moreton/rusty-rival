@@ -13,8 +13,8 @@ use crate::engine_constants::{
     SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY,
     VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN,
     VALUE_KING_ATTACKS_MINOR, VALUE_KING_ATTACKS_ROOK, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST,
-    VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_MOBILITY, VALUE_KING_SUPPORTS_PASSED_PAWN,
+    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
@@ -67,6 +67,7 @@ pub fn evaluate(position: &Position) -> Score {
         + queen_mobility_score(position)
         + endgame_king_centralization_bonus(position)
         + king_activity_score(position)
+        + king_mobility_score(position)
         + trade_bonus(position)
         + bishop_knight_imbalance_score(position)
         + material_imbalance_score(position)
@@ -129,6 +130,7 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
             + queen_mobility_score(position)
             + endgame_king_centralization_bonus(position)
             + king_activity_score(position)
+            + king_mobility_score(position)
             + trade_bonus(position)
             + bishop_knight_imbalance_score(position)
             + material_imbalance_score(position)
@@ -1447,6 +1449,47 @@ pub fn king_activity_score(position: &Position) -> Score {
     let black_attacks_white_rook = black_king_attacks & white.rook_bitboard;
     score -= black_attacks_white_minor.count_ones() as Score * VALUE_KING_ATTACKS_MINOR;
     score -= black_attacks_white_rook.count_ones() as Score * VALUE_KING_ATTACKS_ROOK;
+
+    // Scale by how few pieces remain
+    let total_piece_value = white_piece_value + black_piece_value;
+    let max_material = ENDGAME_MATERIAL_THRESHOLD * 2;
+    linear_scale(total_piece_value as i64, 0, max_material as i64, score as i64, 0) as Score
+}
+
+/// King mobility score: bonus for king having safe squares to move to in endgames.
+/// A king with more mobility is more active and can participate better in the game.
+/// Safe squares are those not attacked by enemy pawns.
+#[inline(always)]
+pub fn king_mobility_score(position: &Position) -> Score {
+    let white_piece_value = piece_material(position, WHITE);
+    let black_piece_value = piece_material(position, BLACK);
+
+    // Only apply in endgames when material is low
+    if white_piece_value > ENDGAME_MATERIAL_THRESHOLD || black_piece_value > ENDGAME_MATERIAL_THRESHOLD {
+        return 0;
+    }
+
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
+
+    // Calculate pawn attacks
+    let white_pawn_attacks = ((white.pawn_bitboard & !FILE_A_BITS) << 9) | ((white.pawn_bitboard & !FILE_H_BITS) << 7);
+    let black_pawn_attacks = ((black.pawn_bitboard & !FILE_A_BITS) >> 7) | ((black.pawn_bitboard & !FILE_H_BITS) >> 9);
+
+    // All occupied squares
+    let occupied = white.all_pieces_bitboard | black.all_pieces_bitboard;
+
+    // White king mobility: squares the king can move to that aren't attacked by black pawns
+    let white_king_moves = KING_MOVES_BITBOARDS[white.king_square as usize];
+    let white_safe_squares = white_king_moves & !black_pawn_attacks & !occupied;
+    let white_mobility = white_safe_squares.count_ones() as Score;
+
+    // Black king mobility: squares the king can move to that aren't attacked by white pawns
+    let black_king_moves = KING_MOVES_BITBOARDS[black.king_square as usize];
+    let black_safe_squares = black_king_moves & !white_pawn_attacks & !occupied;
+    let black_mobility = black_safe_squares.count_ones() as Score;
+
+    let score = (white_mobility - black_mobility) * VALUE_KING_MOBILITY;
 
     // Scale by how few pieces remain
     let total_piece_value = white_piece_value + black_piece_value;

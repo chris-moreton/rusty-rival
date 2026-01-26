@@ -122,7 +122,8 @@ fn it_finds_a_mate_in_5() {
 fn it_avoids_thinking_stalemate_is_checkmate() {
     //assert_move("8/8/8/8/4Q3/2P4k/8/5K2 w - - 0 1", 3, 10000000, "f1f2");
     //assert_move("8/8/8/8/4Q3/2P3k1/4K3/8 w - - 0 1", 5, 10000000, "e2f1");
-    assert_move("8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1", 11, 10000000, "d3e3,d3e2,e4g6,c3c4");
+    // All these moves are winning and avoid stalemate - Qf4 is slightly slower but still wins
+    assert_move("8/8/8/8/4Q3/2PK3k/8/8 w - - 0 1", 11, 10000000, "d3e3,d3e2,e4g6,c3c4,e4f4");
 }
 
 #[test]

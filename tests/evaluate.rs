@@ -441,10 +441,15 @@ fn it_gives_king_centralization_bonus_in_endgames() {
     let bonus = endgame_king_centralization_bonus(&position);
     assert!(bonus.abs() <= 4, "Both central kings should be roughly even, got {}", bonus);
 
-    // With too much material, bonus should be 0
+    // With queen + rook per side (too much material), bonus should be 0
+    let position = get_position("r2k4/8/8/8/3K4/8/8/R3Q3 w - - 0 1");
+    let bonus = endgame_king_centralization_bonus(&position);
+    assert_eq!(bonus, 0, "With Q+R on board, bonus should be 0");
+
+    // Rook endgame now applies (raised threshold to help king activity)
     let position = get_position("r2k3r/8/8/8/3K4/8/8/R6R w - - 0 1");
     let bonus = endgame_king_centralization_bonus(&position);
-    assert_eq!(bonus, 0, "With rooks on board, bonus should be 0");
+    assert!(bonus > 0, "Rook endgame should give bonus for central king, got {}", bonus);
 
     // With minor piece endgame, should still apply (material below threshold)
     let position = get_position("7k/8/8/8/3K4/5N2/8/8 w - - 0 1");

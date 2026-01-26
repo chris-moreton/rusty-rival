@@ -21,8 +21,8 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 200;
-pub const BETA_PRUNE_MAX_DEPTH: u8 = 4;
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 211;
+pub const BETA_PRUNE_MAX_DEPTH: u8 = 5;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
@@ -37,8 +37,8 @@ pub const THREAT_EXTENSION_MARGIN: Score = 400;
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
-pub const SEE_PRUNE_MAX_DEPTH: u8 = 3;
-pub const SEE_PRUNE_MARGIN: Score = 16;
+pub const SEE_PRUNE_MAX_DEPTH: u8 = 8;
+pub const SEE_PRUNE_MARGIN: Score = 14;
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
@@ -59,7 +59,7 @@ pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 3;
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
 // Conservative thresholds to avoid missing important moves
 pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 5, 11, 8];
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 2, 6, 8];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -78,7 +78,7 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
 // SPSA tuned: base=130, per_depth=63
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [130, 193, 256, 319, 382, 445, 508, 571];
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [139, 198, 257, 316, 375, 434, 493, 552];
 
 pub const TICKER_MILLIS: u16 = 500;
 
@@ -178,26 +178,33 @@ pub const VALUE_QUEEN_MOBILITY: [Score; 28] = [
 // King centralization bonus for endgames - extra bonus beyond PST when material is low
 // This encourages the king to actively participate in the endgame
 // Indexed by king square (same layout as PST: h1=0, a8=63)
+// Values increased to make king activity more impactful
 pub const VALUE_KING_ENDGAME_CENTRALIZATION: [Score; 64] = [
-    0, 2, 4, 6, 6, 4, 2, 0, // rank 1
-    2, 4, 8, 12, 12, 8, 4, 2, // rank 2
-    4, 8, 16, 20, 20, 16, 8, 4, // rank 3
-    6, 12, 20, 24, 24, 20, 12, 6, // rank 4
-    6, 12, 20, 24, 24, 20, 12, 6, // rank 5
-    4, 8, 16, 20, 20, 16, 8, 4, // rank 6
-    2, 4, 8, 12, 12, 8, 4, 2, // rank 7
-    0, 2, 4, 6, 6, 4, 2, 0, // rank 8
+    0, 4, 8, 12, 12, 8, 4, 0, // rank 1
+    4, 8, 16, 24, 24, 16, 8, 4, // rank 2
+    8, 16, 32, 40, 40, 32, 16, 8, // rank 3
+    12, 24, 40, 48, 48, 40, 24, 12, // rank 4
+    12, 24, 40, 48, 48, 40, 24, 12, // rank 5
+    8, 16, 32, 40, 40, 32, 16, 8, // rank 6
+    4, 8, 16, 24, 24, 16, 8, 4, // rank 7
+    0, 4, 8, 12, 12, 8, 4, 0, // rank 8
 ];
 
 // Material threshold below which we apply extra king centralization bonus
-// This is roughly when no queens and at most one rook per side
-pub const ENDGAME_MATERIAL_THRESHOLD: Score = ROOK_VALUE_AVERAGE * 2;
+// This triggers when queens are off or material is significantly reduced
+// Roughly no queens + at most one rook per side = ~2100, or queen + minor = ~2800
+pub const ENDGAME_MATERIAL_THRESHOLD: Score = QUEEN_VALUE_AVERAGE + KNIGHT_VALUE_AVERAGE;
 
 // King activity: bonus for king attacking enemy pieces in endgames
 // Attacking minor pieces (bishops/knights) is valuable as it restricts them
 pub const VALUE_KING_ATTACKS_MINOR: Score = 20;
 // Attacking rooks is also valuable
 pub const VALUE_KING_ATTACKS_ROOK: Score = 15;
+
+// King mobility: bonus per safe square the king can move to in endgames
+// A king with more safe squares is more active and flexible
+// This helps identify when moving the king improves its activity
+pub const VALUE_KING_MOBILITY: Score = 6;
 
 // Bishop vs Knight imbalance
 // Bishops are stronger in open positions (fewer pawns), knights in closed positions (more pawns)
