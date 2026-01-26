@@ -220,6 +220,11 @@ pub const SPACE_BONUS_PER_SQUARE: Score = 2;
 // This should be larger than the passed pawn bonus for that rank
 pub const BLOCKED_PASSED_PAWN_PENALTY: Score = 80;
 
+// Knight blockade: penalty when enemy knight controls the promotion square
+// Similar to king blockade but slightly smaller since knight can be driven away
+// Applied per blocked passed pawn
+pub const KNIGHT_BLOCKADE_PENALTY: Score = 60;
+
 // General knight activity: bonus for knights attacking enemy pawns
 // This applies in all positions, not just Q vs N+pawns
 pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 12;

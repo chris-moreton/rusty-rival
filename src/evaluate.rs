@@ -7,12 +7,12 @@ use crate::bitboards::{
 use crate::engine_constants::{
     BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, BLOCKED_PASSED_PAWN_PENALTY, DOUBLED_PAWN_PENALTY,
     ENDGAME_MATERIAL_THRESHOLD, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN,
-    KING_THREAT_BONUS_ROOK, KNIGHT_ATTACKS_PAWN_GENERAL_BONUS, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR,
-    PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS,
-    ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL,
-    TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR,
-    VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_ATTACKS_MINOR,
-    VALUE_KING_ATTACKS_ROOK, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
+    KING_THREAT_BONUS_ROOK, KNIGHT_ATTACKS_PAWN_GENERAL_BONUS, KNIGHT_BLOCKADE_PENALTY, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE,
+    KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR,
+    ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
+    SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY,
+    VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN,
+    VALUE_KING_ATTACKS_MINOR, VALUE_KING_ATTACKS_ROOK, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
     VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST,
     VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
@@ -931,6 +931,11 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
     passed_score -= blocked_passed_pawn_penalty(white_passed_pawns & RANK_7_BITS, position.pieces[BLACK as usize].king_square, true);
     passed_score += blocked_passed_pawn_penalty(black_passed_pawns & RANK_2_BITS, position.pieces[WHITE as usize].king_square, false);
 
+    // Knight blockade: penalty when enemy knight controls promotion square
+    // Similar to king blockade but knight can potentially be driven away
+    passed_score -= knight_blockade_penalty(white_passed_pawns, position.pieces[BLACK as usize].knight_bitboard, true);
+    passed_score += knight_blockade_penalty(black_passed_pawns, position.pieces[WHITE as usize].knight_bitboard, false);
+
     let white_piece_values = piece_material(position, WHITE);
     let black_piece_values = piece_material(position, BLACK);
 
@@ -1028,6 +1033,67 @@ fn blocked_passed_pawn_penalty(passed_pawns_on_promo_rank: Bitboard, enemy_king_
         // Check if enemy king guards the promotion square (is adjacent to it)
         if bit(promo_sq) & king_attacks != 0 {
             penalty += BLOCKED_PASSED_PAWN_PENALTY;
+        }
+    }
+
+    penalty
+}
+
+/// Penalty for passed pawns blocked by an enemy knight.
+/// A passed pawn is considered blocked if a knight controls any square
+/// on its path to promotion (not just the promotion square itself).
+/// Applied to advanced passed pawns (5th rank or beyond) since these
+/// are the most critical.
+#[inline(always)]
+fn knight_blockade_penalty(passed_pawns: Bitboard, enemy_knights: Bitboard, is_white: bool) -> Score {
+    if passed_pawns == 0 || enemy_knights == 0 {
+        return 0;
+    }
+
+    // Get all squares controlled by enemy knights (including knight positions themselves)
+    let mut knight_control: Bitboard = enemy_knights; // Knights themselves block squares
+    let mut knights = enemy_knights;
+    while knights != 0 {
+        let sq = get_and_unset_lsb!(knights);
+        knight_control |= KNIGHT_MOVES_BITBOARDS[sq as usize];
+    }
+
+    // Only consider advanced passed pawns (5th rank or beyond for white, 4th or below for black)
+    let advanced_pawns = if is_white {
+        passed_pawns & (RANK_5_BITS | RANK_6_BITS | RANK_7_BITS)
+    } else {
+        passed_pawns & (RANK_2_BITS | RANK_3_BITS | RANK_4_BITS)
+    };
+
+    if advanced_pawns == 0 {
+        return 0;
+    }
+
+    let mut penalty: Score = 0;
+    let mut bb = advanced_pawns;
+
+    while bb != 0 {
+        let pawn_sq = get_and_unset_lsb!(bb);
+
+        // Check all squares from current position to promotion
+        // For white: check squares from pawn_sq+8 to rank 8
+        // For black: check squares from pawn_sq-8 to rank 1
+        let mut check_sq = if is_white { pawn_sq + 8 } else { pawn_sq - 8 };
+
+        while (is_white && check_sq < 64) || (!is_white && check_sq >= 0) {
+            if bit(check_sq) & knight_control != 0 {
+                penalty += KNIGHT_BLOCKADE_PENALTY;
+                break; // Only penalize once per pawn
+            }
+            if is_white {
+                check_sq += 8;
+            } else {
+                check_sq -= 8;
+            }
+            // Stop at promotion rank
+            if (is_white && check_sq >= 64) || (!is_white && check_sq < 0) {
+                break;
+            }
         }
     }
 

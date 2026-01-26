@@ -141,10 +141,12 @@ fn test_passed_pawns(fen: &str, score: Score) {
 
 // King support bonus adds complexity to expected values.
 // These are verified computed values including all bonuses.
+// Note: Knight blockade penalty adds 60 when knight blocks enemy passed pawn path.
 #[test]
 fn it_gets_the_passed_pawn_score() {
     // Position 1: Pieces present, partial king support bonus
-    test_passed_pawns("1r5k/8/7p/1N1K4/pP6/n2R3P/8/8 w - - 0 1", 238);
+    // White Nb5 blocks black a4 pawn path (controls a3) -> +60 knight blockade penalty
+    test_passed_pawns("1r5k/8/7p/1N1K4/pP6/n2R3P/8/8 w - - 0 1", 298);
 
     // Position 2: Pure pawn endgame, full king support bonus
     test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 202);
@@ -603,6 +605,47 @@ fn test_blocked_passed_pawn_penalty() {
     assert!(
         unblocked_eval > blocked_eval,
         "Unblocked pawn ({}) should evaluate higher than blocked pawn ({})",
+        unblocked_eval,
+        blocked_eval
+    );
+}
+
+#[test]
+fn test_knight_blockade_penalty_position_9() {
+    // Position 9 from EET: Knight on c8 controls a7 promotion square
+    // FEN: 2n5/4k1p1/P6p/3PK3/7P/8/6P1/8 b - - 0 1
+    // White has passed pawns on a6 and d5, but knight controls a7 (promotion square for a6)
+    let position = get_position("2n5/4k1p1/P6p/3PK3/7P/8/6P1/8 b - - 0 1");
+    let eval = evaluate(&position);
+
+    println!("Position 9 evaluation: {}", eval);
+
+    // The evaluation should be relatively close to 0 (within ±300) due to:
+    // 1. Knight blockade penalty (knight controls a7)
+    // 2. The fortress nature of the position
+    // This position is theoretically drawn with correct play
+    assert!(eval.abs() < 300, "Position 9 should evaluate near 0 (drawn), got {}", eval);
+}
+
+#[test]
+fn test_knight_blockade_reduces_passed_pawn_value() {
+    // Position with white passed pawn on a6, black knight on c8 controlling a7
+    let blocked = get_position("2n5/8/P7/3K4/8/8/8/4k3 w - - 0 1");
+    let blocked_eval = evaluate(&blocked);
+
+    // Same position but knight moved away (doesn't control a7)
+    let unblocked = get_position("8/8/P7/n2K4/8/8/8/4k3 w - - 0 1");
+    let unblocked_eval = evaluate(&unblocked);
+
+    println!(
+        "Knight-blocked pawn eval: {}, Knight-unblocked pawn eval: {}",
+        blocked_eval, unblocked_eval
+    );
+
+    // The unblocked position should evaluate higher for white
+    assert!(
+        unblocked_eval > blocked_eval,
+        "Unblocked by knight ({}) should evaluate higher than blocked ({})",
         unblocked_eval,
         blocked_eval
     );
