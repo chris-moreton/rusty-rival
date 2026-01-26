@@ -331,9 +331,10 @@ pub fn is_pawn_push_to_7th(position: &Position, m: Move) -> bool {
     }
 }
 
-/// Check if a move is a passed pawn push (passed pawn advancing to 6th rank or beyond)
+/// Check if a move is a passed pawn push (passed pawn advancing to 5th rank or beyond)
 /// Passed pawns are critical in endgames and worth extending
-/// Only extends for advanced passed pawns (6th/7th for white, 2nd/3rd for black)
+/// Extends for advanced passed pawns (5th/6th for white, 3rd/4th for black)
+/// Note: 7th rank (white) / 2nd rank (black) already gets extension via is_pawn_push_to_7th
 #[inline(always)]
 pub fn is_passed_pawn_push(position: &Position, m: Move) -> bool {
     let piece = m & PIECE_MASK_FULL;
@@ -344,12 +345,13 @@ pub fn is_passed_pawn_push(position: &Position, m: Move) -> bool {
     let from_sq = from_square_part(m) as i8;
     let to_sq = to_square_part(m);
 
-    // Only extend for pawns reaching 6th rank (one before 7th which already gets extension)
-    // White 6th rank: squares 40-47, Black 3rd rank: squares 16-23
+    // Extend for pawns reaching 5th or 6th rank (7th already gets extension separately)
+    // White 5th rank: squares 32-39, 6th rank: 40-47
+    // Black 4th rank: squares 24-31, 3rd rank: 16-23
     let is_advanced = if position.mover == WHITE {
-        (40..=47).contains(&to_sq) // 6th rank for white
+        (32..=47).contains(&to_sq) // 5th or 6th rank for white
     } else {
-        (16..=23).contains(&to_sq) // 3rd rank for black
+        (16..=31).contains(&to_sq) // 3rd or 4th rank for black
     };
 
     if !is_advanced {

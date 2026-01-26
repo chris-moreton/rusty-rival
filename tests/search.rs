@@ -240,13 +240,23 @@ fn test_is_passed_pawn_push() {
         "e5e6 should NOT be a passed pawn push (blocked by e7)"
     );
 
-    // Position with pawn push to non-advanced rank (not extending)
+    // Position with passed pawn push to 5th rank (now extends)
     // FEN: 8/8/8/8/4P3/8/4k3/4K3 w - - 0 1 (pawn on e4, pushing to e5)
     let position = get_position("8/8/8/8/4P3/8/4k3/4K3 w - - 0 1");
     let mv_e4e5 = hydrate_move_from_algebraic_move(&position, "e4e5".to_string());
-    // e4e5 goes to 5th rank, not 6th, so no extension
+    // e4e5 goes to 5th rank - now triggers extension
     assert!(
-        !is_passed_pawn_push(&position, mv_e4e5),
-        "e4e5 should NOT trigger extension (only 5th rank)"
+        is_passed_pawn_push(&position, mv_e4e5),
+        "e4e5 SHOULD trigger extension (5th rank passed pawn)"
+    );
+
+    // Position with pawn push to 4th rank (not extending - too early)
+    // FEN: 8/8/8/8/8/4P3/4k3/4K3 w - - 0 1 (pawn on e3, pushing to e4)
+    let position = get_position("8/8/8/8/8/4P3/4k3/4K3 w - - 0 1");
+    let mv_e3e4 = hydrate_move_from_algebraic_move(&position, "e3e4".to_string());
+    // e3e4 goes to 4th rank - too early for extension
+    assert!(
+        !is_passed_pawn_push(&position, mv_e3e4),
+        "e3e4 should NOT trigger extension (only 4th rank)"
     );
 }
