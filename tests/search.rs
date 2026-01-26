@@ -1,5 +1,5 @@
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::search::{is_draw, iterative_deepening, null_move_reduced_depth, piece_index_12};
+use rusty_rival::search::{is_draw, is_passed_pawn_push, iterative_deepening, null_move_reduced_depth, piece_index_12};
 use rusty_rival::types::default_search_state;
 use rusty_rival::utils::{hydrate_move_from_algebraic_move, pawn_push};
 use std::ops::Add;
@@ -213,4 +213,40 @@ fn it_calculates_the_null_move_reduced_depth() {
     assert_eq!(null_move_reduced_depth(14), 9);
     assert_eq!(null_move_reduced_depth(18), 12);
     assert_eq!(null_move_reduced_depth(24), 17);
+}
+
+#[test]
+fn test_is_passed_pawn_push() {
+    // Position with white passed pawn on e5 (can push to e6)
+    // FEN: 8/8/8/4P3/8/8/4k3/4K3 w - - 0 1
+    let position = get_position("8/8/8/4P3/8/8/4k3/4K3 w - - 0 1");
+    // e5-e6 should be a passed pawn push (to 6th rank)
+    let mv_e5e6 = hydrate_move_from_algebraic_move(&position, "e5e6".to_string());
+    assert!(is_passed_pawn_push(&position, mv_e5e6), "e5e6 should be a passed pawn push");
+
+    // Position with black passed pawn on d4 (can push to d3)
+    // FEN: 4k3/4K3/8/8/3p4/8/8/8 b - - 0 1
+    let position = get_position("4k3/4K3/8/8/3p4/8/8/8 b - - 0 1");
+    // d4-d3 should be a passed pawn push (to 3rd rank)
+    let mv_d4d3 = hydrate_move_from_algebraic_move(&position, "d4d3".to_string());
+    assert!(is_passed_pawn_push(&position, mv_d4d3), "d4d3 should be a passed pawn push");
+
+    // Position with non-passed pawn (enemy pawn ahead on same file)
+    // FEN: 8/4p3/8/4P3/8/8/4k3/4K3 w - - 0 1 (enemy pawn on e7, our pawn on e5)
+    let position = get_position("8/4p3/8/4P3/8/8/4k3/4K3 w - - 0 1");
+    let mv_e5e6 = hydrate_move_from_algebraic_move(&position, "e5e6".to_string());
+    assert!(
+        !is_passed_pawn_push(&position, mv_e5e6),
+        "e5e6 should NOT be a passed pawn push (blocked by e7)"
+    );
+
+    // Position with pawn push to non-advanced rank (not extending)
+    // FEN: 8/8/8/8/4P3/8/4k3/4K3 w - - 0 1 (pawn on e4, pushing to e5)
+    let position = get_position("8/8/8/8/4P3/8/4k3/4K3 w - - 0 1");
+    let mv_e4e5 = hydrate_move_from_algebraic_move(&position, "e4e5".to_string());
+    // e4e5 goes to 5th rank, not 6th, so no extension
+    assert!(
+        !is_passed_pawn_push(&position, mv_e4e5),
+        "e4e5 should NOT trigger extension (only 5th rank)"
+    );
 }

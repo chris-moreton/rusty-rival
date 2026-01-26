@@ -9,6 +9,7 @@ use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_mater
 use crate::fen::algebraic_move_from_move;
 use crate::tablebase::{probe_dtz, tablebase_available, TB_MAX_PIECES};
 
+use crate::bitboards::{bit, north_fill, south_fill, FILE_A_BITS, FILE_H_BITS};
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
 use crate::move_constants::{
@@ -327,6 +328,54 @@ pub fn is_pawn_push_to_7th(position: &Position, m: Move) -> bool {
         (48..=55).contains(&to_sq) // 7th rank for white
     } else {
         (8..=15).contains(&to_sq) // 2nd rank for black
+    }
+}
+
+/// Check if a move is a passed pawn push (passed pawn advancing to 6th rank or beyond)
+/// Passed pawns are critical in endgames and worth extending
+/// Only extends for advanced passed pawns (6th/7th for white, 2nd/3rd for black)
+#[inline(always)]
+pub fn is_passed_pawn_push(position: &Position, m: Move) -> bool {
+    let piece = m & PIECE_MASK_FULL;
+    if piece != PIECE_MASK_PAWN {
+        return false;
+    }
+
+    let from_sq = from_square_part(m) as i8;
+    let to_sq = to_square_part(m);
+
+    // Only extend for pawns reaching 6th rank (one before 7th which already gets extension)
+    // White 6th rank: squares 40-47, Black 3rd rank: squares 16-23
+    let is_advanced = if position.mover == WHITE {
+        (40..=47).contains(&to_sq) // 6th rank for white
+    } else {
+        (16..=23).contains(&to_sq) // 3rd rank for black
+    };
+
+    if !is_advanced {
+        return false;
+    }
+
+    // Check if this pawn is passed
+    // A pawn is passed if there are no enemy pawns on the same file or adjacent files ahead of it
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+
+    // Calculate pawn attacks for blocking detection
+    let white_pawn_attacks = ((white_pawns & !FILE_A_BITS) << 9) | ((white_pawns & !FILE_H_BITS) << 7);
+    let black_pawn_attacks = ((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9);
+
+    let pawn_bit = bit(from_sq);
+
+    if position.mover == WHITE {
+        // Check if this white pawn is passed
+        // Passed = no black pawns or attacks ahead on same/adjacent files
+        let blockers = south_fill(black_pawns | black_pawn_attacks | (white_pawns >> 8));
+        (pawn_bit & !blockers) != 0
+    } else {
+        // Check if this black pawn is passed
+        let blockers = north_fill(white_pawns | white_pawn_attacks | (black_pawns << 8));
+        (pawn_bit & !blockers) != 0
     }
 }
 
@@ -714,7 +763,18 @@ pub fn search(
         } else {
             0
         };
-        let move_extension = check_extension + pawn_push_ext;
+
+        // Passed pawn push extension: extend by 1 ply for passed pawn reaching 6th rank
+        // Only if no other extension already applied (avoid over-extending)
+        // This helps the engine see through critical passed pawn endgames
+        let passed_pawn_ext: u8 =
+            if check_extension == 0 && pawn_push_ext == 0 && is_passed_pawn_push(position, m) && ply < search_state.iterative_depth * 2 {
+                1
+            } else {
+                0
+            };
+
+        let move_extension = check_extension + pawn_push_ext + passed_pawn_ext;
 
         let unmake = make_move_in_place(position, m);
         prefetch_hash(position, search_state); // Prefetch child position's hash entry
