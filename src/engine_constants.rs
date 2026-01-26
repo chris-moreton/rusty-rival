@@ -214,3 +214,12 @@ pub const TRAPPED_ROOK_PENALTY: Score = 50; // Rook trapped in corner by own kin
 // Space evaluation: bonus per safe square controlled in opponent's territory
 // More important in closed positions with many pawns
 pub const SPACE_BONUS_PER_SQUARE: Score = 2;
+
+// Blocked passed pawn: penalty when enemy king guards the promotion square
+// A passed pawn that can never promote should lose most of its bonus
+// This should be larger than the passed pawn bonus for that rank
+pub const BLOCKED_PASSED_PAWN_PENALTY: Score = 80;
+
+// General knight activity: bonus for knights attacking enemy pawns
+// This applies in all positions, not just Q vs N+pawns
+pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 12;

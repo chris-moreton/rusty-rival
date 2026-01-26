@@ -5,16 +5,16 @@ use crate::bitboards::{
     RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
-    BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD,
-    ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK,
-    KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR,
-    QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS,
-    ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY,
-    VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
-    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_ATTACKS_MINOR, VALUE_KING_ATTACKS_ROOK,
-    VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
-    VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
-    VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, BLOCKED_PASSED_PAWN_PENALTY, DOUBLED_PAWN_PENALTY,
+    ENDGAME_MATERIAL_THRESHOLD, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN,
+    KING_THREAT_BONUS_ROOK, KNIGHT_ATTACKS_PAWN_GENERAL_BONUS, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR,
+    PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS,
+    ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL,
+    TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR,
+    VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_ATTACKS_MINOR,
+    VALUE_KING_ATTACKS_ROOK, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
+    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST,
+    VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
@@ -50,6 +50,7 @@ pub fn evaluate(position: &Position) -> Score {
         + rook_eval(position)
         + passed_pawn_score(position, &mut cache)
         + knight_outpost_scores(position, &mut cache)
+        + knight_activity_score(position)
         + doubled_and_isolated_pawn_score(position, &mut cache)
         + bishop_mobility_score(position)
         + backward_pawn_score(position)
@@ -114,6 +115,7 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
         + rook_eval(position)
         + passed_pawn_score(position, &mut cache)
         + knight_outpost_scores(position, &mut cache)
+        + knight_activity_score(position)
         + pawn_structure // Use cached pawn structure score
         + bishop_mobility_score(position)
         + bishop_pair_bonus(
@@ -924,6 +926,11 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
     passed_score -= (black_passed_pawns & RANK_6_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[1];
     passed_score -= (black_passed_pawns & RANK_7_BITS).count_ones() as Score * VALUE_PASSED_PAWN_BONUS[0];
 
+    // Penalty for blocked passed pawns: when enemy king guards the promotion square
+    // A pawn that can never promote should lose most of its bonus
+    passed_score -= blocked_passed_pawn_penalty(white_passed_pawns & RANK_7_BITS, position.pieces[BLACK as usize].king_square, true);
+    passed_score += blocked_passed_pawn_penalty(black_passed_pawns & RANK_2_BITS, position.pieces[WHITE as usize].king_square, false);
+
     let white_piece_values = piece_material(position, WHITE);
     let black_piece_values = piece_material(position, BLACK);
 
@@ -998,6 +1005,62 @@ pub fn guarded_passed_pawn_score(
     let black_guarded_passed_pawns = black_passed_pawns & (((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9));
 
     (white_guarded_passed_pawns.count_ones() as Score - black_guarded_passed_pawns.count_ones() as Score) * VALUE_GUARDED_PASSED_PAWN
+}
+
+/// Penalty for passed pawns blocked by the enemy king.
+/// A passed pawn on the 7th/2nd rank whose promotion square is guarded by the enemy king
+/// can never promote and should lose most of its value.
+#[inline(always)]
+fn blocked_passed_pawn_penalty(passed_pawns_on_promo_rank: Bitboard, enemy_king_sq: Square, is_white: bool) -> Score {
+    if passed_pawns_on_promo_rank == 0 {
+        return 0;
+    }
+
+    let mut penalty: Score = 0;
+    let mut bb = passed_pawns_on_promo_rank;
+    let king_attacks = KING_MOVES_BITBOARDS[enemy_king_sq as usize];
+
+    while bb != 0 {
+        let pawn_sq = get_and_unset_lsb!(bb);
+        // Calculate the promotion square
+        let promo_sq = if is_white { pawn_sq + 8 } else { pawn_sq - 8 };
+
+        // Check if enemy king guards the promotion square (is adjacent to it)
+        if bit(promo_sq) & king_attacks != 0 {
+            penalty += BLOCKED_PASSED_PAWN_PENALTY;
+        }
+    }
+
+    penalty
+}
+
+/// General knight activity score: bonus for knights attacking enemy pawns.
+/// This applies in all positions, encouraging active knight play.
+#[inline(always)]
+fn knight_activity_score(position: &Position) -> Score {
+    let mut score: Score = 0;
+
+    // White knights attacking black pawns
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+    let mut white_knights = position.pieces[WHITE as usize].knight_bitboard;
+    while white_knights != 0 {
+        let sq = get_and_unset_lsb!(white_knights);
+        let knight_attacks = KNIGHT_MOVES_BITBOARDS[sq as usize];
+        let attacked_pawns = (knight_attacks & black_pawns).count_ones();
+        score += attacked_pawns as Score * KNIGHT_ATTACKS_PAWN_GENERAL_BONUS;
+    }
+
+    // Black knights attacking white pawns
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let mut black_knights = position.pieces[BLACK as usize].knight_bitboard;
+    while black_knights != 0 {
+        let sq = get_and_unset_lsb!(black_knights);
+        let knight_attacks = KNIGHT_MOVES_BITBOARDS[sq as usize];
+        let attacked_pawns = (knight_attacks & white_pawns).count_ones();
+        score -= attacked_pawns as Score * KNIGHT_ATTACKS_PAWN_GENERAL_BONUS;
+    }
+
+    score
 }
 
 /// Bonus for a king supporting its own passed pawns in the endgame.
@@ -1339,6 +1402,12 @@ pub fn trade_bonus(position: &Position) -> Score {
         return 0;
     }
 
+    // Don't give trade bonus in K+minor vs K+pawns positions
+    // These are typically very drawish, especially with blocked pawns
+    if is_minor_vs_pawns_endgame(white, black) || is_minor_vs_pawns_endgame(black, white) {
+        return 0;
+    }
+
     let white_pieces = piece_material(position, WHITE);
     let black_pieces = piece_material(position, BLACK);
     let material_balance = white_pieces - black_pieces;
@@ -1378,6 +1447,22 @@ fn is_queen_vs_knight_imbalance(queen_side: &Pieces, knight_side: &Pieces) -> bo
         && knight_side.bishop_bitboard == 0
         && knight_side.knight_bitboard != 0
         && knight_side.pawn_bitboard.count_ones() >= 1
+}
+
+/// Check if this is a minor piece vs pawns endgame (typically very drawish)
+/// One side has only minor pieces (bishops/knights), other has only pawns
+#[inline(always)]
+fn is_minor_vs_pawns_endgame(minor_side: &Pieces, pawn_side: &Pieces) -> bool {
+    // Minor side has at least one minor piece
+    let has_minors = minor_side.knight_bitboard != 0 || minor_side.bishop_bitboard != 0;
+    // Minor side has no major pieces
+    let no_majors = minor_side.queen_bitboard == 0 && minor_side.rook_bitboard == 0;
+
+    // Pawn side has no pieces at all (just king + pawns)
+    let pawn_side_no_pieces =
+        pawn_side.queen_bitboard == 0 && pawn_side.rook_bitboard == 0 && pawn_side.bishop_bitboard == 0 && pawn_side.knight_bitboard == 0;
+
+    has_minors && no_majors && pawn_side_no_pieces && pawn_side.pawn_bitboard != 0
 }
 
 /// Bishop vs Knight imbalance scoring.

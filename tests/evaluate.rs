@@ -566,3 +566,44 @@ fn it_scores_connected_passed_pawns() {
         VALUE_CONNECTED_PASSED_PAWNS[3] * 2, // e-d pair and d-c pair
     );
 }
+
+#[test]
+fn test_issue_58_position_evaluation() {
+    // Position from issue 58: 8/1Pk2Kpp/8/8/4nPP1/7P/8/8 b - - 0 1
+    // White has a passed pawn on b7 but black king on c7 guards b8
+    // Black has an active knight on e4
+    // After Nf2, the knight attacks g4 and h3, leading to a draw
+    let position = get_position("8/1Pk2Kpp/8/8/4nPP1/7P/8/8 b - - 0 1");
+    let eval = evaluate(&position);
+
+    // The evaluation should be reasonable (within a few hundred centipawns of 0)
+    // given that:
+    // 1. The b7 pawn is blocked (can never promote)
+    // 2. The position is essentially drawn with correct play
+    // Previously this was evaluating at +630, now should be lower due to:
+    // - Blocked pawn penalty
+    // - Disabled trade bonus in minor vs pawns endgames
+    assert!(eval < 350, "Expected evaluation < 350, got {}", eval);
+}
+
+#[test]
+fn test_blocked_passed_pawn_penalty() {
+    // White pawn on b7, black king on c7 blocks b8
+    // This pawn can never promote
+    let blocked = get_position("8/1Pk2K2/8/8/8/8/8/8 w - - 0 1");
+    let blocked_eval = evaluate(&blocked);
+
+    // White pawn on b7, black king far away (can't block)
+    let unblocked = get_position("8/1P3K2/8/8/8/8/8/4k3 w - - 0 1");
+    let unblocked_eval = evaluate(&unblocked);
+
+    println!("Blocked pawn eval: {}, Unblocked pawn eval: {}", blocked_eval, unblocked_eval);
+
+    // The unblocked position should evaluate higher for white
+    assert!(
+        unblocked_eval > blocked_eval,
+        "Unblocked pawn ({}) should evaluate higher than blocked pawn ({})",
+        unblocked_eval,
+        blocked_eval
+    );
+}
