@@ -766,15 +766,19 @@ pub fn search(
             0
         };
 
-        // Passed pawn push extension: extend by 1 ply for passed pawn reaching 6th rank
+        // Passed pawn push extension: extend by 1 ply for passed pawn reaching 5th/6th rank
+        // Only apply in endgames to avoid search explosion in complex middlegames
         // Only if no other extension already applied (avoid over-extending)
-        // This helps the engine see through critical passed pawn endgames
-        let passed_pawn_ext: u8 =
-            if check_extension == 0 && pawn_push_ext == 0 && is_passed_pawn_push(position, m) && ply < search_state.iterative_depth * 2 {
-                1
-            } else {
-                0
-            };
+        let passed_pawn_ext: u8 = if check_extension == 0
+            && pawn_push_ext == 0
+            && is_end_game(position)
+            && is_passed_pawn_push(position, m)
+            && ply < search_state.iterative_depth * 2
+        {
+            1
+        } else {
+            0
+        };
 
         let move_extension = check_extension + pawn_push_ext + passed_pawn_ext;
 
