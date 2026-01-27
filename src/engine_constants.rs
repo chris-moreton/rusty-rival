@@ -138,6 +138,9 @@ pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8,
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
 pub const VALUE_BISHOP_PAIR: Score = 10;
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 30;
+// Rook behind passed pawn (Tarrasch rule): rooks are strongest supporting passed pawns from behind
+// As the pawn advances, the rook's scope increases; and it protects the pawn's advance
+pub const VALUE_ROOK_BEHIND_PASSED_PAWN: Score = 20;
 pub const VALUE_KNIGHT_OUTPOST: Score = 7;
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24, 26, 30, 36, 44, 56];
 // Bonus for connected passed pawns (two passed pawns on adjacent files)
@@ -235,9 +238,3 @@ pub const KNIGHT_BLOCKADE_PENALTY: Score = 60;
 // General knight activity: bonus for knights attacking enemy pawns
 // This applies in all positions, not just Q vs N+pawns
 pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 12;
-
-// Central pawn mobility: bonus for d/e pawns that can safely advance
-// Mobile central pawns control key squares and can create threats
-// Indexed by rank: [rank2, rank3, rank4, rank5, rank6] for white
-// More advanced pawns get larger bonus for being able to push further
-pub const CENTRAL_PAWN_MOBILITY_BONUS: [Score; 5] = [4, 8, 15, 25, 35];

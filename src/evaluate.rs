@@ -1,20 +1,20 @@
 use crate::bitboards::{
     bit, north_fill, south_fill, A1_BIT, A2_BIT, A7_BIT, A8_BIT, B1_BIT, B3_BIT, B6_BIT, B8_BIT, BISHOP_RAYS, C1_BIT, C8_BIT,
-    DARK_SQUARES_BITS, F1_BIT, F8_BIT, FILE_A_BITS, FILE_D_BITS, FILE_E_BITS, FILE_H_BITS, G1_BIT, G3_BIT, G6_BIT, G8_BIT, H1_BIT, H2_BIT,
-    H7_BIT, H8_BIT, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS,
-    RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
+    DARK_SQUARES_BITS, F1_BIT, F8_BIT, FILE_A_BITS, FILE_B_BITS, FILE_C_BITS, FILE_D_BITS, FILE_E_BITS, FILE_F_BITS, FILE_G_BITS,
+    FILE_H_BITS, G1_BIT, G3_BIT, G6_BIT, G8_BIT, H1_BIT, H2_BIT, H7_BIT, H8_BIT, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
+    LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
-    BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, BLOCKED_PASSED_PAWN_PENALTY, CENTRAL_PAWN_MOBILITY_BONUS,
-    DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
-    KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_ATTACKS_PAWN_GENERAL_BONUS, KNIGHT_BLOCKADE_PENALTY, KNIGHT_FORK_THREAT_SCORE,
-    KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE,
-    QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
+    BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, BLOCKED_PASSED_PAWN_PENALTY, DOUBLED_PAWN_PENALTY,
+    ENDGAME_MATERIAL_THRESHOLD, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN,
+    KING_THREAT_BONUS_ROOK, KNIGHT_ATTACKS_PAWN_GENERAL_BONUS, KNIGHT_BLOCKADE_PENALTY, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE,
+    KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR,
+    ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
     SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY,
     VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN,
     VALUE_KING_ATTACKS_MINOR, VALUE_KING_ATTACKS_ROOK, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
     VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_MOBILITY, VALUE_KING_SUPPORTS_PASSED_PAWN,
-    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE, VALUE_ROOK_BEHIND_PASSED_PAWN,
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
@@ -68,7 +68,6 @@ pub fn evaluate(position: &Position) -> Score {
         + endgame_king_centralization_bonus(position)
         + king_activity_score(position)
         + king_mobility_score(position)
-        + central_pawn_mobility_score(position)
         + trade_bonus(position)
         + bishop_knight_imbalance_score(position)
         + material_imbalance_score(position)
@@ -132,7 +131,6 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
             + endgame_king_centralization_bonus(position)
             + king_activity_score(position)
             + king_mobility_score(position)
-            + central_pawn_mobility_score(position)
             + trade_bonus(position)
             + bishop_knight_imbalance_score(position)
             + material_imbalance_score(position)
@@ -1000,7 +998,10 @@ pub fn passed_pawn_score(position: &Position, cache: &mut EvaluateCache) -> Scor
         black_piece_values,
     );
 
-    guarded_score + connected_score + passed_score + passed_pawn_bonus + king_support_bonus
+    // Rook behind passed pawn bonus (Tarrasch rule)
+    let rook_behind_bonus = rook_behind_passed_pawn_score(position, white_passed_pawns, black_passed_pawns);
+
+    guarded_score + connected_score + passed_score + passed_pawn_bonus + king_support_bonus + rook_behind_bonus
 }
 
 #[inline(always)]
@@ -1014,6 +1015,55 @@ pub fn guarded_passed_pawn_score(
     let black_guarded_passed_pawns = black_passed_pawns & (((black_pawns & !FILE_A_BITS) >> 7) | ((black_pawns & !FILE_H_BITS) >> 9));
 
     (white_guarded_passed_pawns.count_ones() as Score - black_guarded_passed_pawns.count_ones() as Score) * VALUE_GUARDED_PASSED_PAWN
+}
+
+/// Rook behind passed pawn bonus (Tarrasch rule).
+/// Rooks are most effective when placed behind passed pawns - their own or the enemy's.
+/// As the pawn advances, the rook's scope increases, and it can support the pawn's advance.
+#[inline(always)]
+pub fn rook_behind_passed_pawn_score(position: &Position, white_passed_pawns: Bitboard, black_passed_pawns: Bitboard) -> Score {
+    let mut score: Score = 0;
+
+    let white_rooks = position.pieces[WHITE as usize].rook_bitboard;
+    let black_rooks = position.pieces[BLACK as usize].rook_bitboard;
+
+    // For each white passed pawn, check if a white rook is behind it on the same file
+    let mut pawns = white_passed_pawns;
+    while pawns != 0 {
+        let sq = get_and_unset_lsb!(pawns);
+        let file = sq % 8;
+        let rank = sq / 8;
+
+        // Get rooks on the same file
+        let file_mask = FILE_MASKS[file as usize];
+        // Squares behind the pawn (lower ranks for white)
+        let behind_mask = (1u64 << (rank * 8)) - 1;
+        let rooks_behind = white_rooks & file_mask & behind_mask;
+
+        if rooks_behind != 0 {
+            score += VALUE_ROOK_BEHIND_PASSED_PAWN;
+        }
+    }
+
+    // For each black passed pawn, check if a black rook is behind it on the same file
+    let mut pawns = black_passed_pawns;
+    while pawns != 0 {
+        let sq = get_and_unset_lsb!(pawns);
+        let file = sq % 8;
+        let rank = sq / 8;
+
+        // Get rooks on the same file
+        let file_mask = FILE_MASKS[file as usize];
+        // Squares behind the pawn (higher ranks for black)
+        let behind_mask = !((1u64 << ((rank + 1) * 8)) - 1);
+        let rooks_behind = black_rooks & file_mask & behind_mask;
+
+        if rooks_behind != 0 {
+            score -= VALUE_ROOK_BEHIND_PASSED_PAWN;
+        }
+    }
+
+    score
 }
 
 /// Penalty for passed pawns blocked by the enemy king.
@@ -1339,16 +1389,17 @@ pub fn backward_pawn_score(position: &Position) -> Score {
     (black_backward.count_ones() as Score - white_backward.count_ones() as Score) * VALUE_BACKWARD_PAWN_PENALTY
 }
 
-/// File masks for each file (indexed by file number 0-7)
+/// File masks indexed by file number from square (sq % 8)
+/// Note: Square numbering has H=0, G=1, ..., A=7 within each rank
 const FILE_MASKS: [Bitboard; 8] = [
-    FILE_A_BITS,
-    FILE_A_BITS << 1,
-    FILE_A_BITS << 2,
-    FILE_A_BITS << 3,
-    FILE_A_BITS << 4,
-    FILE_A_BITS << 5,
-    FILE_A_BITS << 6,
-    FILE_A_BITS << 7,
+    FILE_H_BITS, // sq % 8 = 0 -> H-file
+    FILE_G_BITS, // sq % 8 = 1 -> G-file
+    FILE_F_BITS, // sq % 8 = 2 -> F-file
+    FILE_E_BITS, // sq % 8 = 3 -> E-file
+    FILE_D_BITS, // sq % 8 = 4 -> D-file
+    FILE_C_BITS, // sq % 8 = 5 -> C-file
+    FILE_B_BITS, // sq % 8 = 6 -> B-file
+    FILE_A_BITS, // sq % 8 = 7 -> A-file
 ];
 
 #[inline(always)]
@@ -1747,64 +1798,4 @@ pub fn space_score(position: &Position) -> Score {
     let scale = pawn_count.min(16) / 2; // 0-8 scale based on pawns
 
     (white_space as Score - black_space as Score) * SPACE_BONUS_PER_SQUARE * scale / 8
-}
-
-/// Central pawn mobility: bonus for d/e file pawns that can safely advance.
-/// Central pawns that can push forward control key squares and create threats.
-/// A pawn is "mobile" if the square in front is empty and not attacked by enemy pawns.
-#[inline(always)]
-pub fn central_pawn_mobility_score(position: &Position) -> Score {
-    let white = &position.pieces[WHITE as usize];
-    let black = &position.pieces[BLACK as usize];
-
-    let occupied = white.all_pieces_bitboard | black.all_pieces_bitboard;
-
-    // Calculate pawn attacks for both sides
-    let white_pawn_attacks = ((white.pawn_bitboard & !FILE_A_BITS) << 9) | ((white.pawn_bitboard & !FILE_H_BITS) << 7);
-    let black_pawn_attacks = ((black.pawn_bitboard & !FILE_A_BITS) >> 7) | ((black.pawn_bitboard & !FILE_H_BITS) >> 9);
-
-    // Central files mask (d and e files)
-    let central_files = FILE_D_BITS | FILE_E_BITS;
-
-    let mut score: Score = 0;
-
-    // White central pawns
-    let white_central_pawns = white.pawn_bitboard & central_files;
-    let mut pawns = white_central_pawns;
-    while pawns != 0 {
-        let sq = get_and_unset_lsb!(pawns);
-        let advance_sq = sq + 8;
-
-        // Check if the pawn can advance (square in front is empty and not attacked by black pawns)
-        if advance_sq < 64 {
-            let advance_bit = bit(advance_sq);
-            if (advance_bit & occupied) == 0 && (advance_bit & black_pawn_attacks) == 0 {
-                // Pawn can safely advance - give bonus based on rank
-                // Rank 2 = sq/8 = 1, Rank 6 = sq/8 = 5
-                let rank_index = ((sq / 8) as usize).saturating_sub(1).min(4);
-                score += CENTRAL_PAWN_MOBILITY_BONUS[rank_index];
-            }
-        }
-    }
-
-    // Black central pawns
-    let black_central_pawns = black.pawn_bitboard & central_files;
-    let mut pawns = black_central_pawns;
-    while pawns != 0 {
-        let sq = get_and_unset_lsb!(pawns);
-        if sq >= 8 {
-            let advance_sq = sq - 8;
-            let advance_bit = bit(advance_sq);
-
-            // Check if the pawn can advance (square in front is empty and not attacked by white pawns)
-            if (advance_bit & occupied) == 0 && (advance_bit & white_pawn_attacks) == 0 {
-                // Pawn can safely advance - give bonus based on rank
-                // For black: Rank 7 = sq/8 = 6 -> index 0, Rank 3 = sq/8 = 2 -> index 4
-                let rank_index = (6 - (sq / 8) as usize).min(4);
-                score -= CENTRAL_PAWN_MOBILITY_BONUS[rank_index];
-            }
-        }
-    }
-
-    score
 }

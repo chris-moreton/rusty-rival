@@ -167,6 +167,42 @@ fn it_gets_the_passed_pawn_score() {
     test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/7K b - - 0 1", -332);
 }
 
+#[test]
+fn it_gives_rook_behind_passed_pawn_bonus() {
+    use rusty_rival::engine_constants::VALUE_ROOK_BEHIND_PASSED_PAWN;
+
+    // Position with white rook on b1 behind white passed pawn on b5
+    // vs same position with rook on d1 (not behind the pawn)
+    let rook_behind = get_position("8/8/8/1P6/8/8/8/1R2k1K1 w - - 0 1");
+    let rook_not_behind = get_position("8/8/8/1P6/8/8/8/3Rk1K1 w - - 0 1");
+
+    let score_behind = passed_pawn_score(&rook_behind, &mut default_evaluate_cache());
+    let score_not_behind = passed_pawn_score(&rook_not_behind, &mut default_evaluate_cache());
+
+    // The position with rook behind should score higher by VALUE_ROOK_BEHIND_PASSED_PAWN
+    assert_eq!(
+        score_behind - score_not_behind,
+        VALUE_ROOK_BEHIND_PASSED_PAWN,
+        "Rook behind passed pawn should give {} bonus",
+        VALUE_ROOK_BEHIND_PASSED_PAWN
+    );
+
+    // Test for black: rook on b8 behind black passed pawn on b4
+    let black_rook_behind = get_position("1r6/8/8/8/1p6/8/8/4K1k1 b - - 0 1");
+    let black_rook_not_behind = get_position("3r4/8/8/8/1p6/8/8/4K1k1 b - - 0 1");
+
+    let black_score_behind = passed_pawn_score(&black_rook_behind, &mut default_evaluate_cache());
+    let black_score_not_behind = passed_pawn_score(&black_rook_not_behind, &mut default_evaluate_cache());
+
+    // Black rook behind black passed pawn should decrease score (favor black) by VALUE_ROOK_BEHIND_PASSED_PAWN
+    assert_eq!(
+        black_score_not_behind - black_score_behind,
+        VALUE_ROOK_BEHIND_PASSED_PAWN,
+        "Black rook behind black passed pawn should give {} bonus to black",
+        VALUE_ROOK_BEHIND_PASSED_PAWN
+    );
+}
+
 fn test_knight_outposts(fen: &str, score: Score) {
     let position = get_position(fen);
     assert_eq!(knight_outpost_scores(&position, &mut default_evaluate_cache()), score);
