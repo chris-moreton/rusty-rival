@@ -1,15 +1,15 @@
 use crate::bitboards::{
     bit, north_fill, south_fill, A1_BIT, A2_BIT, A7_BIT, A8_BIT, B1_BIT, B3_BIT, B6_BIT, B8_BIT, BISHOP_RAYS, C1_BIT, C8_BIT,
-    DARK_SQUARES_BITS, F1_BIT, F8_BIT, FILE_A_BITS, FILE_H_BITS, G1_BIT, G3_BIT, G6_BIT, G8_BIT, H1_BIT, H2_BIT, H7_BIT, H8_BIT,
-    KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS,
-    RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
+    DARK_SQUARES_BITS, F1_BIT, F8_BIT, FILE_A_BITS, FILE_D_BITS, FILE_E_BITS, FILE_H_BITS, G1_BIT, G3_BIT, G6_BIT, G8_BIT, H1_BIT, H2_BIT,
+    H7_BIT, H8_BIT, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS,
+    RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
-    BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, BLOCKED_PASSED_PAWN_PENALTY, DOUBLED_PAWN_PENALTY,
-    ENDGAME_MATERIAL_THRESHOLD, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN,
-    KING_THREAT_BONUS_ROOK, KNIGHT_ATTACKS_PAWN_GENERAL_BONUS, KNIGHT_BLOCKADE_PENALTY, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE,
-    KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR,
-    ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
+    BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, BLOCKED_PASSED_PAWN_PENALTY, CENTRAL_PAWN_MOBILITY_BONUS,
+    DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
+    KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_ATTACKS_PAWN_GENERAL_BONUS, KNIGHT_BLOCKADE_PENALTY, KNIGHT_FORK_THREAT_SCORE,
+    KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE,
+    QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
     SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY,
     VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN,
     VALUE_KING_ATTACKS_MINOR, VALUE_KING_ATTACKS_ROOK, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
@@ -68,6 +68,7 @@ pub fn evaluate(position: &Position) -> Score {
         + endgame_king_centralization_bonus(position)
         + king_activity_score(position)
         + king_mobility_score(position)
+        + central_pawn_mobility_score(position)
         + trade_bonus(position)
         + bishop_knight_imbalance_score(position)
         + material_imbalance_score(position)
@@ -131,6 +132,7 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
             + endgame_king_centralization_bonus(position)
             + king_activity_score(position)
             + king_mobility_score(position)
+            + central_pawn_mobility_score(position)
             + trade_bonus(position)
             + bishop_knight_imbalance_score(position)
             + material_imbalance_score(position)
@@ -1745,4 +1747,64 @@ pub fn space_score(position: &Position) -> Score {
     let scale = pawn_count.min(16) / 2; // 0-8 scale based on pawns
 
     (white_space as Score - black_space as Score) * SPACE_BONUS_PER_SQUARE * scale / 8
+}
+
+/// Central pawn mobility: bonus for d/e file pawns that can safely advance.
+/// Central pawns that can push forward control key squares and create threats.
+/// A pawn is "mobile" if the square in front is empty and not attacked by enemy pawns.
+#[inline(always)]
+pub fn central_pawn_mobility_score(position: &Position) -> Score {
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
+
+    let occupied = white.all_pieces_bitboard | black.all_pieces_bitboard;
+
+    // Calculate pawn attacks for both sides
+    let white_pawn_attacks = ((white.pawn_bitboard & !FILE_A_BITS) << 9) | ((white.pawn_bitboard & !FILE_H_BITS) << 7);
+    let black_pawn_attacks = ((black.pawn_bitboard & !FILE_A_BITS) >> 7) | ((black.pawn_bitboard & !FILE_H_BITS) >> 9);
+
+    // Central files mask (d and e files)
+    let central_files = FILE_D_BITS | FILE_E_BITS;
+
+    let mut score: Score = 0;
+
+    // White central pawns
+    let white_central_pawns = white.pawn_bitboard & central_files;
+    let mut pawns = white_central_pawns;
+    while pawns != 0 {
+        let sq = get_and_unset_lsb!(pawns);
+        let advance_sq = sq + 8;
+
+        // Check if the pawn can advance (square in front is empty and not attacked by black pawns)
+        if advance_sq < 64 {
+            let advance_bit = bit(advance_sq);
+            if (advance_bit & occupied) == 0 && (advance_bit & black_pawn_attacks) == 0 {
+                // Pawn can safely advance - give bonus based on rank
+                // Rank 2 = sq/8 = 1, Rank 6 = sq/8 = 5
+                let rank_index = ((sq / 8) as usize).saturating_sub(1).min(4);
+                score += CENTRAL_PAWN_MOBILITY_BONUS[rank_index];
+            }
+        }
+    }
+
+    // Black central pawns
+    let black_central_pawns = black.pawn_bitboard & central_files;
+    let mut pawns = black_central_pawns;
+    while pawns != 0 {
+        let sq = get_and_unset_lsb!(pawns);
+        if sq >= 8 {
+            let advance_sq = sq - 8;
+            let advance_bit = bit(advance_sq);
+
+            // Check if the pawn can advance (square in front is empty and not attacked by white pawns)
+            if (advance_bit & occupied) == 0 && (advance_bit & white_pawn_attacks) == 0 {
+                // Pawn can safely advance - give bonus based on rank
+                // For black: Rank 7 = sq/8 = 6 -> index 0, Rank 3 = sq/8 = 2 -> index 4
+                let rank_index = (6 - (sq / 8) as usize).min(4);
+                score -= CENTRAL_PAWN_MOBILITY_BONUS[rank_index];
+            }
+        }
+    }
+
+    score
 }

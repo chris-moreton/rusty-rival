@@ -21,8 +21,8 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 211;
-pub const BETA_PRUNE_MAX_DEPTH: u8 = 5;
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 200;
+pub const BETA_PRUNE_MAX_DEPTH: u8 = 4;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
@@ -37,8 +37,8 @@ pub const THREAT_EXTENSION_MARGIN: Score = 400;
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
-pub const SEE_PRUNE_MAX_DEPTH: u8 = 8;
-pub const SEE_PRUNE_MARGIN: Score = 14;
+pub const SEE_PRUNE_MAX_DEPTH: u8 = 3;
+pub const SEE_PRUNE_MARGIN: Score = 16;
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
@@ -59,7 +59,7 @@ pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 3;
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
 // Conservative thresholds to avoid missing important moves
 pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 2, 6, 8];
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 5, 11, 8];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -78,7 +78,7 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
 // SPSA tuned: base=130, per_depth=63
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [139, 198, 257, 316, 375, 434, 493, 552];
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [130, 193, 256, 319, 382, 445, 508, 571];
 
 pub const TICKER_MILLIS: u16 = 500;
 
@@ -235,3 +235,9 @@ pub const KNIGHT_BLOCKADE_PENALTY: Score = 60;
 // General knight activity: bonus for knights attacking enemy pawns
 // This applies in all positions, not just Q vs N+pawns
 pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 12;
+
+// Central pawn mobility: bonus for d/e pawns that can safely advance
+// Mobile central pawns control key squares and can create threats
+// Indexed by rank: [rank2, rank3, rank4, rank5, rank6] for white
+// More advanced pawns get larger bonus for being able to push further
+pub const CENTRAL_PAWN_MOBILITY_BONUS: [Score; 5] = [4, 8, 15, 25, 35];
