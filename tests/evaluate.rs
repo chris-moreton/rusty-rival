@@ -2,12 +2,13 @@ use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{
     BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
     KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE,
-    QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE, VALUE_CONNECTED_PASSED_PAWNS, VALUE_KNIGHT_OUTPOST,
+    QUEEN_VALUE_AVERAGE, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, VALUE_CONNECTED_PASSED_PAWNS,
+    VALUE_KNIGHT_OUTPOST,
 };
 use rusty_rival::evaluate::{
     black_king_early_safety, connected_passed_pawn_score, count_knight_fork_threats, doubled_and_isolated_pawn_score, evaluate,
     insufficient_material, is_wrong_colored_bishop_draw, isolated_pawn_count, king_threat_score, knight_fork_threat_score,
-    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, white_king_early_safety,
+    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, rook_file_score, white_king_early_safety,
 };
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
@@ -200,6 +201,103 @@ fn it_gives_rook_behind_passed_pawn_bonus() {
         VALUE_ROOK_BEHIND_PASSED_PAWN,
         "Black rook behind black passed pawn should give {} bonus to black",
         VALUE_ROOK_BEHIND_PASSED_PAWN
+    );
+}
+
+/// Test that rook file detection correctly identifies open and semi-open files.
+/// This test was added after discovering a bug in FILE_MASKS where the file
+/// indices were mapped incorrectly due to the H1=0 square numbering convention.
+#[test]
+fn it_detects_rook_open_and_semi_open_files() {
+    // Test each file individually to ensure correct file mapping
+    // All positions have both kings and are legal
+
+    // A-file: white rook on a1, no pawns on a-file = open file
+    let pos = get_position("4k3/1p1p1p1p/8/8/8/8/1P1P1P1P/R3K3 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        ROOK_OPEN_FILE_BONUS,
+        "Rook on a1 with no pawns on a-file should get open file bonus"
+    );
+
+    // B-file: white rook on b1, no pawns on b-file = open file
+    let pos = get_position("4k3/p1p1p1p1/8/8/8/8/P1P1P1P1/1R2K3 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        ROOK_OPEN_FILE_BONUS,
+        "Rook on b1 with no pawns on b-file should get open file bonus"
+    );
+
+    // C-file: white rook on c1, no pawns on c-file = open file
+    let pos = get_position("4k3/pp1pp1pp/8/8/8/8/PP1PP1PP/2R1K3 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        ROOK_OPEN_FILE_BONUS,
+        "Rook on c1 with no pawns on c-file should get open file bonus"
+    );
+
+    // D-file: white rook on d1, no pawns on d-file = open file
+    let pos = get_position("4k3/ppp1p1pp/8/8/8/8/PPP1P1PP/3RK3 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        ROOK_OPEN_FILE_BONUS,
+        "Rook on d1 with no pawns on d-file should get open file bonus"
+    );
+
+    // E-file: white rook on e1, no pawns on e-file = open file
+    let pos = get_position("3k4/pppp1ppp/8/8/8/8/PPPP1PPP/4RK2 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        ROOK_OPEN_FILE_BONUS,
+        "Rook on e1 with no pawns on e-file should get open file bonus"
+    );
+
+    // F-file: white rook on f1, no pawns on f-file = open file
+    let pos = get_position("3k4/ppppp1pp/8/8/8/8/PPPPP1PP/4KR2 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        ROOK_OPEN_FILE_BONUS,
+        "Rook on f1 with no pawns on f-file should get open file bonus"
+    );
+
+    // G-file: white rook on g1, no pawns on g-file = open file
+    let pos = get_position("3k4/pppppp1p/8/8/8/8/PPPPPP1P/4K1R1 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        ROOK_OPEN_FILE_BONUS,
+        "Rook on g1 with no pawns on g-file should get open file bonus"
+    );
+
+    // H-file: white rook on h1, no pawns on h-file = open file
+    let pos = get_position("3k4/ppppppp1/8/8/8/8/PPPPPPP1/4K2R w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        ROOK_OPEN_FILE_BONUS,
+        "Rook on h1 with no pawns on h-file should get open file bonus"
+    );
+
+    // Semi-open file: white rook on b1, black pawn on b7, no white pawn on b-file
+    let pos = get_position("4k3/pp1p1p1p/8/8/8/8/P1P1P1P1/1R2K3 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        ROOK_SEMI_OPEN_FILE_BONUS,
+        "Rook on b1 with only enemy pawn on b-file should get semi-open file bonus"
+    );
+
+    // Closed file: white rook on b1, both white and black pawns on b-file
+    let pos = get_position("4k3/1p1p1p1p/8/8/8/8/PP1P1P1P/1R2K3 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        0,
+        "Rook on b1 with friendly pawn on b-file should get no file bonus"
+    );
+
+    // Black rook on open file (should give negative score for white)
+    let pos = get_position("1r2k3/p1p1p1p1/8/8/8/8/P1P1P1P1/4K3 w - - 0 1");
+    assert_eq!(
+        rook_file_score(&pos),
+        -ROOK_OPEN_FILE_BONUS,
+        "Black rook on open b-file should give negative score"
     );
 }
 
