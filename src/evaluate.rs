@@ -14,7 +14,8 @@ use crate::engine_constants::{
     VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN,
     VALUE_KING_ATTACKS_MINOR, VALUE_KING_ATTACKS_ROOK, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
     VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_MOBILITY, VALUE_KING_SUPPORTS_PASSED_PAWN,
-    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE, VALUE_ROOK_BEHIND_PASSED_PAWN,
+    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEENSIDE_PAWN_MAJORITY, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
+    VALUE_ROOK_BEHIND_PASSED_PAWN,
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
@@ -72,7 +73,8 @@ pub fn evaluate(position: &Position) -> Score {
         + bishop_knight_imbalance_score(position)
         + material_imbalance_score(position)
         + trapped_piece_penalty(position)
-        + space_score(position);
+        + space_score(position)
+        + queenside_pawn_majority_score(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -135,7 +137,8 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
             + bishop_knight_imbalance_score(position)
             + material_imbalance_score(position)
             + trapped_piece_penalty(position)
-            + space_score(position);
+            + space_score(position)
+            + queenside_pawn_majority_score(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -1064,6 +1067,23 @@ pub fn rook_behind_passed_pawn_score(position: &Position, white_passed_pawns: Bi
     }
 
     score
+}
+
+/// Queenside pawn majority bonus.
+/// Having more pawns on the queenside (a-d files) is strategically valuable because:
+/// 1. The king typically castles kingside, so queenside pawns are "distant" passed pawn candidates
+/// 2. A queenside majority can create a passed pawn while the king defends kingside
+#[inline(always)]
+pub fn queenside_pawn_majority_score(position: &Position) -> Score {
+    const QUEENSIDE_MASK: Bitboard = FILE_A_BITS | FILE_B_BITS | FILE_C_BITS | FILE_D_BITS;
+
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+
+    let white_queenside_pawns = (white_pawns & QUEENSIDE_MASK).count_ones() as Score;
+    let black_queenside_pawns = (black_pawns & QUEENSIDE_MASK).count_ones() as Score;
+
+    (white_queenside_pawns - black_queenside_pawns) * VALUE_QUEENSIDE_PAWN_MAJORITY
 }
 
 /// Penalty for passed pawns blocked by the enemy king.

@@ -3,12 +3,13 @@ use rusty_rival::engine_constants::{
     BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
     KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE,
     QUEEN_VALUE_AVERAGE, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, VALUE_CONNECTED_PASSED_PAWNS,
-    VALUE_KNIGHT_OUTPOST,
+    VALUE_KNIGHT_OUTPOST, VALUE_QUEENSIDE_PAWN_MAJORITY,
 };
 use rusty_rival::evaluate::{
     black_king_early_safety, connected_passed_pawn_score, count_knight_fork_threats, doubled_and_isolated_pawn_score, evaluate,
     insufficient_material, is_wrong_colored_bishop_draw, isolated_pawn_count, king_threat_score, knight_fork_threat_score,
-    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, rook_file_score, white_king_early_safety,
+    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, queenside_pawn_majority_score, rook_file_score,
+    white_king_early_safety,
 };
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
@@ -788,4 +789,31 @@ fn test_knight_blockade_reduces_passed_pawn_value() {
         unblocked_eval,
         blocked_eval
     );
+}
+
+#[test]
+fn it_scores_queenside_pawn_majority() {
+    // Equal pawns on queenside = 0
+    let position = get_position("4k3/pppp4/8/8/8/8/PPPP4/4K3 w - - 0 1");
+    assert_eq!(queenside_pawn_majority_score(&position), 0);
+
+    // White has 4 queenside pawns vs 3 black = +10
+    let position = get_position("4k3/ppp5/8/8/8/8/PPPP4/4K3 w - - 0 1");
+    assert_eq!(queenside_pawn_majority_score(&position), VALUE_QUEENSIDE_PAWN_MAJORITY);
+
+    // White has 4 queenside pawns vs 2 black = +20
+    let position = get_position("4k3/pp6/8/8/8/8/PPPP4/4K3 w - - 0 1");
+    assert_eq!(queenside_pawn_majority_score(&position), VALUE_QUEENSIDE_PAWN_MAJORITY * 2);
+
+    // Black has more queenside pawns (3 vs 2) = -10
+    let position = get_position("4k3/ppp5/8/8/8/8/PP6/4K3 w - - 0 1");
+    assert_eq!(queenside_pawn_majority_score(&position), -VALUE_QUEENSIDE_PAWN_MAJORITY);
+
+    // Kingside pawns don't count (only a-d files)
+    let position = get_position("4k3/4pppp/8/8/8/8/4PPPP/4K3 w - - 0 1");
+    assert_eq!(queenside_pawn_majority_score(&position), 0);
+
+    // Mixed: white has queenside majority, pawns also on kingside
+    let position = get_position("4k3/pp2pppp/8/8/8/8/PPP1PPPP/4K3 w - - 0 1");
+    assert_eq!(queenside_pawn_majority_score(&position), VALUE_QUEENSIDE_PAWN_MAJORITY);
 }

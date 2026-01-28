@@ -149,6 +149,13 @@ pub const VALUE_CONNECTED_PASSED_PAWNS: [Score; 6] = [12, 18, 28, 42, 60, 80];
 pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 15;
 pub const DOUBLED_PAWN_PENALTY: Score = 15;
 pub const ISOLATED_PAWN_PENALTY: Score = 10;
+
+// Queenside pawn majority: bonus per extra pawn on queenside (a-d files)
+// Having more pawns on the queenside is strategically valuable because:
+// 1. The king typically castles kingside, so queenside pawns are "distant"
+// 2. A queenside majority can create a passed pawn while the king defends kingside
+// Bonus scales with material - more valuable in endgames
+pub const VALUE_QUEENSIDE_PAWN_MAJORITY: Score = 10;
 pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
 pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
 pub const KING_THREAT_BONUS_KNIGHT: Score = 16;
