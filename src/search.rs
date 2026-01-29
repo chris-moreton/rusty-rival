@@ -3,7 +3,7 @@ use crate::engine_constants::{
     LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
     MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
     PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
-    THREAT_EXTENSION_MARGIN,
+    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -220,6 +220,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
             (-window.1, -current_best.1),
             search_state,
             false,
+            0,
         );
         path_score.1 = -path_score.1;
 
@@ -405,6 +406,7 @@ pub fn search(
     window: Window,
     search_state: &mut SearchState,
     on_null_move: bool,
+    excluded_move: Move, // For singular extension search: skip this move (0 = no exclusion)
 ) -> PathScore {
     // Check stop flag at TOP before any moves are made - safe to return here
     if is_stopped(&search_state.stop) {
@@ -445,6 +447,17 @@ pub fn search(
 
     let index: usize = (position.zobrist_lock % search_state.hash_table.len() as u128) as usize;
     let hash_entry = search_state.hash_table.get(index);
+    // Track hash entry info for singular extension (needed even if depth isn't sufficient for cutoff)
+    let hash_entry_height = if hash_entry.lock == position.zobrist_lock {
+        hash_entry.height
+    } else {
+        0
+    };
+    let hash_entry_bound = if hash_entry.lock == position.zobrist_lock {
+        hash_entry.bound
+    } else {
+        Upper
+    };
     let mut hash_move = if hash_entry.lock == position.zobrist_lock {
         // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
         // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
@@ -460,7 +473,9 @@ pub fn search(
             s => s,
         };
 
-        if hash_entry.height >= depth {
+        // Skip hash cutoffs during singular extension search - the hash entry's score
+        // includes the excluded move's contribution, so we can't use it for cutoffs
+        if excluded_move == 0 && hash_entry.height >= depth {
             hash_height = hash_entry.height;
             hash_version = hash_entry.version;
             if hash_entry.bound == Exact {
@@ -521,6 +536,7 @@ pub fn search(
             (-beta, (-beta) + 1),
             search_state,
             true,
+            0,
         )
         .1;
 
@@ -567,6 +583,7 @@ pub fn search(
                     (-probcut_beta, -probcut_beta + 1),
                     search_state,
                     false,
+                    0,
                 )
                 .1;
 
@@ -608,7 +625,7 @@ pub fn search(
             prefetch_hash(position, search_state);
 
             if !is_check(position, old_mover) {
-                let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false).1;
+                let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0).1;
 
                 unmake_move(position, *m, &unmake);
 
@@ -635,13 +652,63 @@ pub fn search(
     let real_depth = depth + check_extension;
 
     let verified_hash_move = if !scouting && hash_move == 0 && depth + check_extension > IID_MIN_DEPTH {
-        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0).0[0];
+        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0, 0).0[0];
         hash_move != 0
     } else {
         hash_move != 0 && verify_move(position, hash_move)
     };
 
     // Try hash move first if valid
+    // Singular extension: determine if hash move is much better than alternatives
+    // Only apply when:
+    // - Hash move is valid
+    // - Not in check (check extension handles that)
+    // - Depth is sufficient (overhead of singular search not worth it at low depth)
+    // - Hash entry has sufficient depth (reliable information)
+    // - Hash entry has Lower bound (hash move caused a fail-high, so it's proven good)
+    // - Not already in a singular search (excluded_move == 0)
+    // - Not searching for mate (mate lines need full exploration)
+    let singular_extension: u8 = if verified_hash_move
+        && !in_check
+        && depth >= SINGULAR_EXTENSION_MIN_DEPTH
+        && hash_entry_height >= depth.saturating_sub(SINGULAR_EXTENSION_DEPTH_MARGIN)
+        && hash_entry_bound == Lower // Only extend if hash move caused a fail-high
+        && excluded_move == 0 // Don't do singular search within singular search
+        && alpha.abs() < MATE_START
+    // Don't interfere with mate searches
+    {
+        // Do a reduced search excluding the hash move
+        // If all alternatives fail low, the hash move is singular
+        let singular_beta = alpha - (depth as Score * 3); // Conservative margin
+        let singular_depth = (depth - SINGULAR_EXTENSION_DEPTH_REDUCTION).max(1);
+
+        // Note: no history push/pop needed here - we're searching from the current position
+        // and search() handles history internally for each move it tries
+        let singular_score = search(
+            position,
+            singular_depth,
+            ply,
+            (singular_beta - 1, singular_beta),
+            search_state,
+            false,
+            hash_move, // Exclude hash move from this search
+        )
+        .1;
+
+        if is_stopped(&search_state.stop) {
+            return (pv_single(0), 0);
+        }
+
+        // If all alternatives fail low, extend the hash move
+        if singular_score < singular_beta {
+            1
+        } else {
+            0
+        }
+    } else {
+        0
+    };
+
     if verified_hash_move {
         let old_mover = position.mover;
         let unmake = make_move_in_place(position, hash_move);
@@ -650,9 +717,10 @@ pub fn search(
 
         if !is_check(position, old_mover) {
             legal_move_count += 1;
-            let path_score = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), position, 0);
+            let hash_search_depth = real_depth + singular_extension;
+            let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0);
             let score = path_score.1;
-            let singular_depth = real_depth;
+            let singular_depth = hash_search_depth;
 
             unmake_move(position, hash_move, &unmake);
             check_time!(search_state);
@@ -696,6 +764,10 @@ pub fn search(
         if verified_hash_move {
             evasions.retain(|m| *m != hash_move);
         }
+        // Also exclude the singular extension search move if set
+        if excluded_move != 0 {
+            evasions.retain(|m| *m != excluded_move);
+        }
         move_scores = {
             let enemy = &position.pieces[opponent!(position.mover) as usize];
             evasions
@@ -709,6 +781,10 @@ pub fn search(
         let mut captures = generate_captures(position);
         if verified_hash_move {
             captures.retain(|m| *m != hash_move);
+        }
+        // Also exclude the singular extension search move if set
+        if excluded_move != 0 {
+            captures.retain(|m| *m != excluded_move);
         }
         move_scores = {
             let enemy = &position.pieces[opponent!(position.mover) as usize];
@@ -731,6 +807,10 @@ pub fn search(
             let mut quiets = generate_quiet_moves(position);
             if verified_hash_move {
                 quiets.retain(|m| *m != hash_move);
+            }
+            // Also exclude the singular extension search move if set
+            if excluded_move != 0 {
+                quiets.retain(|m| *m != excluded_move);
             }
             let enemy = &position.pieces[opponent!(position.mover) as usize];
             for m in quiets {
@@ -842,7 +922,7 @@ pub fn search(
             let path_score = if scout_search {
                 lmr_scout_search(lmr, ply, search_state, (alpha, beta), search_depth, position)
             } else {
-                search_wrapper(search_depth, ply, search_state, (-beta, -alpha), position, 0)
+                search_wrapper(search_depth, ply, search_state, (-beta, -alpha), position, 0, 0)
             };
 
             let score = path_score.1;
@@ -957,18 +1037,18 @@ fn lmr_scout_search(
 ) -> PathScore {
     let alpha = window.0;
     let beta = window.1;
-    let mut scout_path = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr);
+    let mut scout_path = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr, 0);
 
     if scout_path.1 > alpha && lmr > 0 {
         // We are in an LMR search and we Need to research with full window. but still with late move reduction
-        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr);
+        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr, 0);
         if scout_path.1 > alpha {
             // Need to research with full window and no reduction
-            scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0)
+            scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0)
         }
     } else if scout_path.1 > alpha && scout_path.1 < beta {
         // Not doing a LMR search, but still need to research with a full window
-        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0)
+        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0)
     }
 
     scout_path
@@ -997,9 +1077,17 @@ fn unmake_null_move(position: &mut Position, old_ep: Square) {
 }
 
 #[inline(always)]
-fn search_wrapper(depth: u8, ply: u8, search_state: &mut SearchState, window: Window, position: &mut Position, lmr: u8) -> PathScore {
+fn search_wrapper(
+    depth: u8,
+    ply: u8,
+    search_state: &mut SearchState,
+    window: Window,
+    position: &mut Position,
+    lmr: u8,
+    excluded_move: Move,
+) -> PathScore {
     search_state.history.push(position.zobrist_lock);
-    let path_score = search(position, depth - 1 - lmr, ply + 1, window, search_state, false);
+    let path_score = search(position, depth - 1 - lmr, ply + 1, window, search_state, false, excluded_move);
     search_state.history.pop();
     (path_score.0, -path_score.1)
 }

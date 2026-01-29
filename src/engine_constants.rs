@@ -54,6 +54,15 @@ pub const MULTICUT_DEPTH_REDUCTION: u8 = 4;
 pub const MULTICUT_MOVES_TO_TRY: u8 = 6;
 pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 3;
 
+// Singular extension: if the hash move is significantly better than all alternatives,
+// extend its search by 1 ply. This catches critical forcing sequences.
+// We do a reduced search excluding the hash move; if all alternatives fail low
+// by SINGULAR_MARGIN below alpha, the hash move is "singular" and gets extended.
+// Conservative settings to avoid over-extending
+pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 8; // Higher threshold for more selective extension
+pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 2; // Hash entry must have depth >= current_depth - this (more strict)
+pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 4; // Deeper reduction for faster singular search
+
 // Late Move Pruning (LMP): skip late quiet moves at low depths
 // After searching N moves at depth D, skip remaining quiet moves entirely
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
