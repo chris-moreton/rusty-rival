@@ -62,6 +62,7 @@ pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 3;
 pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 8; // Higher threshold for more selective extension
 pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 2; // Hash entry must have depth >= current_depth - this (more strict)
 pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 4; // Deeper reduction for faster singular search
+pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 3; // Margin = depth * this value
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
 // After searching N moves at depth D, skip remaining quiet moves entirely

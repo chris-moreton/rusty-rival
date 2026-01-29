@@ -3,7 +3,8 @@ use crate::engine_constants::{
     LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
     MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
     PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
-    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
+    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
+    SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -679,7 +680,7 @@ pub fn search(
     {
         // Do a reduced search excluding the hash move
         // If all alternatives fail low, the hash move is singular
-        let singular_beta = alpha - (depth as Score * 3); // Conservative margin
+        let singular_beta = alpha - (depth as Score * SINGULAR_EXTENSION_MARGIN_MULTIPLIER);
         let singular_depth = (depth - SINGULAR_EXTENSION_DEPTH_REDUCTION).max(1);
 
         // Note: no history push/pop needed here - we're searching from the current position
