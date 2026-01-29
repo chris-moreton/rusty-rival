@@ -245,3 +245,27 @@ pub const KNIGHT_BLOCKADE_PENALTY: Score = 60;
 // General knight activity: bonus for knights attacking enemy pawns
 // This applies in all positions, not just Q vs N+pawns
 pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 12;
+
+// Bad bishop penalty: penalty per own pawn on same color squares as bishop
+// A bishop blocked by its own pawns is significantly weaker
+// Applied when 4+ pawns are on the bishop's color
+pub const BAD_BISHOP_PENALTY_PER_PAWN: Score = 8;
+pub const BAD_BISHOP_PAWN_THRESHOLD: u32 = 4;
+
+// King pawn shield: penalty for missing pawns in front of castled king
+// Missing f/g/h pawns (kingside) or a/b/c pawns (queenside) weakens the king
+pub const KING_SHIELD_MISSING_PAWN_PENALTY: Score = 15;
+// Extra penalty for missing g-pawn (or b-pawn for queenside) - most critical
+pub const KING_SHIELD_MISSING_CENTER_PAWN_PENALTY: Score = 10;
+
+// Rook on 7th with enemy king on 8th: extra bonus beyond normal 7th rank bonus
+// This configuration is especially powerful as it restricts the king
+pub const ROOK_7TH_KING_8TH_BONUS: Score = 30;
+
+// Knight on rim penalty: knights on a/h files have reduced mobility
+// "A knight on the rim is dim"
+pub const KNIGHT_ON_RIM_PENALTY: Score = 10;
+
+// Fianchettoed bishop bonus: bishop on g2/b2 (or g7/b7) with supporting pawns
+// This is a strong positional setup that controls long diagonal
+pub const FIANCHETTO_BISHOP_BONUS: Score = 15;

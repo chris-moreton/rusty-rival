@@ -1,21 +1,23 @@
 use crate::bitboards::{
-    bit, north_fill, south_fill, A1_BIT, A2_BIT, A7_BIT, A8_BIT, B1_BIT, B3_BIT, B6_BIT, B8_BIT, BISHOP_RAYS, C1_BIT, C8_BIT,
-    DARK_SQUARES_BITS, F1_BIT, F8_BIT, FILE_A_BITS, FILE_B_BITS, FILE_C_BITS, FILE_D_BITS, FILE_E_BITS, FILE_F_BITS, FILE_G_BITS,
-    FILE_H_BITS, G1_BIT, G3_BIT, G6_BIT, G8_BIT, H1_BIT, H2_BIT, H7_BIT, H8_BIT, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
-    LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS, RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
+    bit, north_fill, south_fill, A1_BIT, A2_BIT, A7_BIT, A8_BIT, B1_BIT, B2_BIT, B3_BIT, B6_BIT, B7_BIT, B8_BIT, BISHOP_RAYS, C1_BIT,
+    C2_BIT, C7_BIT, C8_BIT, DARK_SQUARES_BITS, F1_BIT, F2_BIT, F7_BIT, F8_BIT, FILE_A_BITS, FILE_B_BITS, FILE_C_BITS, FILE_D_BITS,
+    FILE_E_BITS, FILE_F_BITS, FILE_G_BITS, FILE_H_BITS, G1_BIT, G2_BIT, G3_BIT, G6_BIT, G7_BIT, G8_BIT, H1_BIT, H2_BIT, H7_BIT, H8_BIT,
+    KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, LIGHT_SQUARES_BITS, RANK_1_BITS, RANK_2_BITS, RANK_3_BITS, RANK_4_BITS, RANK_5_BITS,
+    RANK_6_BITS, RANK_7_BITS, RANK_8_BITS, ROOK_RAYS,
 };
 use crate::engine_constants::{
-    BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR, BLOCKED_PASSED_PAWN_PENALTY, DOUBLED_PAWN_PENALTY,
-    ENDGAME_MATERIAL_THRESHOLD, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT, KING_THREAT_BONUS_QUEEN,
-    KING_THREAT_BONUS_ROOK, KNIGHT_ATTACKS_PAWN_GENERAL_BONUS, KNIGHT_BLOCKADE_PENALTY, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE,
-    KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR, QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR,
-    ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR,
-    SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY, TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY,
-    VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS, VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN,
-    VALUE_KING_ATTACKS_MINOR, VALUE_KING_ATTACKS_ROOK, VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN,
-    VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER, VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_MOBILITY, VALUE_KING_SUPPORTS_PASSED_PAWN,
-    VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS, VALUE_QUEENSIDE_PAWN_MAJORITY, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE,
-    VALUE_ROOK_BEHIND_PASSED_PAWN,
+    BAD_BISHOP_PAWN_THRESHOLD, BAD_BISHOP_PENALTY_PER_PAWN, BISHOP_KNIGHT_IMBALANCE_BONUS, BISHOP_VALUE_AVERAGE, BISHOP_VALUE_PAIR,
+    BLOCKED_PASSED_PAWN_PENALTY, DOUBLED_PAWN_PENALTY, ENDGAME_MATERIAL_THRESHOLD, FIANCHETTO_BISHOP_BONUS, ISOLATED_PAWN_PENALTY,
+    KING_SHIELD_MISSING_CENTER_PAWN_PENALTY, KING_SHIELD_MISSING_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
+    KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_ATTACKS_PAWN_GENERAL_BONUS, KNIGHT_BLOCKADE_PENALTY, KNIGHT_FORK_THREAT_SCORE,
+    KNIGHT_ON_RIM_PENALTY, KNIGHT_VALUE_AVERAGE, KNIGHT_VALUE_PAIR, PAWN_ADJUST_MAX_MATERIAL, PAWN_VALUE_AVERAGE, PAWN_VALUE_PAIR,
+    QUEEN_VALUE_AVERAGE, QUEEN_VALUE_PAIR, ROOKS_ON_SEVENTH_RANK_BONUS, ROOK_7TH_KING_8TH_BONUS, ROOK_OPEN_FILE_BONUS,
+    ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, ROOK_VALUE_PAIR, SPACE_BONUS_PER_SQUARE, STARTING_MATERIAL, TRAPPED_BISHOP_PENALTY,
+    TRAPPED_ROOK_PENALTY, VALUE_BACKWARD_PAWN_PENALTY, VALUE_BISHOP_MOBILITY, VALUE_BISHOP_PAIR, VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS,
+    VALUE_CONNECTED_PASSED_PAWNS, VALUE_GUARDED_PASSED_PAWN, VALUE_KING_ATTACKS_MINOR, VALUE_KING_ATTACKS_ROOK,
+    VALUE_KING_CANNOT_CATCH_PAWN, VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN, VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER,
+    VALUE_KING_ENDGAME_CENTRALIZATION, VALUE_KING_MOBILITY, VALUE_KING_SUPPORTS_PASSED_PAWN, VALUE_KNIGHT_OUTPOST, VALUE_PASSED_PAWN_BONUS,
+    VALUE_QUEENSIDE_PAWN_MAJORITY, VALUE_QUEEN_MOBILITY, VALUE_ROOKS_ON_SAME_FILE, VALUE_ROOK_BEHIND_PASSED_PAWN,
 };
 use crate::hash::pawn_zobrist_key;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
@@ -74,7 +76,12 @@ pub fn evaluate(position: &Position) -> Score {
         + material_imbalance_score(position)
         + trapped_piece_penalty(position)
         + space_score(position)
-        + queenside_pawn_majority_score(position);
+        + queenside_pawn_majority_score(position)
+        + bad_bishop_penalty(position)
+        + king_pawn_shield_score(position)
+        + rook_7th_king_8th_bonus(position)
+        + knight_on_rim_penalty(position)
+        + fianchetto_bishop_bonus(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -138,7 +145,12 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
             + material_imbalance_score(position)
             + trapped_piece_penalty(position)
             + space_score(position)
-            + queenside_pawn_majority_score(position);
+            + queenside_pawn_majority_score(position)
+            + bad_bishop_penalty(position)
+            + king_pawn_shield_score(position)
+            + rook_7th_king_8th_bonus(position)
+            + knight_on_rim_penalty(position)
+            + fianchetto_bishop_bonus(position);
 
     10 + if position.mover == WHITE { score } else { -score }
 }
@@ -1084,6 +1096,182 @@ pub fn queenside_pawn_majority_score(position: &Position) -> Score {
     let black_queenside_pawns = (black_pawns & QUEENSIDE_MASK).count_ones() as Score;
 
     (white_queenside_pawns - black_queenside_pawns) * VALUE_QUEENSIDE_PAWN_MAJORITY
+}
+
+/// Bad bishop penalty: penalize bishops blocked by their own pawns.
+/// A bishop with many friendly pawns on the same color squares is "bad".
+#[inline(always)]
+pub fn bad_bishop_penalty(position: &Position) -> Score {
+    let mut score: Score = 0;
+
+    let white_bishops = position.pieces[WHITE as usize].bishop_bitboard;
+    let black_bishops = position.pieces[BLACK as usize].bishop_bitboard;
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+
+    // White bishops
+    if white_bishops & LIGHT_SQUARES_BITS != 0 {
+        let pawns_on_light = (white_pawns & LIGHT_SQUARES_BITS).count_ones();
+        if pawns_on_light >= BAD_BISHOP_PAWN_THRESHOLD {
+            score -= (pawns_on_light as Score - BAD_BISHOP_PAWN_THRESHOLD as Score + 1) * BAD_BISHOP_PENALTY_PER_PAWN;
+        }
+    }
+    if white_bishops & DARK_SQUARES_BITS != 0 {
+        let pawns_on_dark = (white_pawns & DARK_SQUARES_BITS).count_ones();
+        if pawns_on_dark >= BAD_BISHOP_PAWN_THRESHOLD {
+            score -= (pawns_on_dark as Score - BAD_BISHOP_PAWN_THRESHOLD as Score + 1) * BAD_BISHOP_PENALTY_PER_PAWN;
+        }
+    }
+
+    // Black bishops
+    if black_bishops & LIGHT_SQUARES_BITS != 0 {
+        let pawns_on_light = (black_pawns & LIGHT_SQUARES_BITS).count_ones();
+        if pawns_on_light >= BAD_BISHOP_PAWN_THRESHOLD {
+            score += (pawns_on_light as Score - BAD_BISHOP_PAWN_THRESHOLD as Score + 1) * BAD_BISHOP_PENALTY_PER_PAWN;
+        }
+    }
+    if black_bishops & DARK_SQUARES_BITS != 0 {
+        let pawns_on_dark = (black_pawns & DARK_SQUARES_BITS).count_ones();
+        if pawns_on_dark >= BAD_BISHOP_PAWN_THRESHOLD {
+            score += (pawns_on_dark as Score - BAD_BISHOP_PAWN_THRESHOLD as Score + 1) * BAD_BISHOP_PENALTY_PER_PAWN;
+        }
+    }
+
+    score
+}
+
+/// King pawn shield: evaluate the pawn structure in front of the castled king.
+/// Missing pawns in front of the king create weaknesses.
+#[inline(always)]
+pub fn king_pawn_shield_score(position: &Position) -> Score {
+    let mut score: Score = 0;
+
+    let white_king_sq = position.pieces[WHITE as usize].king_square;
+    let black_king_sq = position.pieces[BLACK as usize].king_square;
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+
+    // White king - check if castled kingside (on g1 or h1) or queenside (on a1, b1, c1)
+    if white_king_sq == G1_BIT || white_king_sq == H1_BIT {
+        // Kingside castle - check f2, g2, h2 pawns
+        if white_pawns & bit(F2_BIT) == 0 {
+            score -= KING_SHIELD_MISSING_PAWN_PENALTY;
+        }
+        if white_pawns & bit(G2_BIT) == 0 {
+            score -= KING_SHIELD_MISSING_PAWN_PENALTY + KING_SHIELD_MISSING_CENTER_PAWN_PENALTY;
+        }
+        if white_pawns & bit(H2_BIT) == 0 {
+            score -= KING_SHIELD_MISSING_PAWN_PENALTY;
+        }
+    } else if white_king_sq == A1_BIT || white_king_sq == B1_BIT || white_king_sq == C1_BIT {
+        // Queenside castle - check a2, b2, c2 pawns
+        if white_pawns & bit(A2_BIT) == 0 {
+            score -= KING_SHIELD_MISSING_PAWN_PENALTY;
+        }
+        if white_pawns & bit(B2_BIT) == 0 {
+            score -= KING_SHIELD_MISSING_PAWN_PENALTY + KING_SHIELD_MISSING_CENTER_PAWN_PENALTY;
+        }
+        if white_pawns & bit(C2_BIT) == 0 {
+            score -= KING_SHIELD_MISSING_PAWN_PENALTY;
+        }
+    }
+
+    // Black king - check if castled kingside (on g8 or h8) or queenside (on a8, b8, c8)
+    if black_king_sq == G8_BIT || black_king_sq == H8_BIT {
+        // Kingside castle - check f7, g7, h7 pawns
+        if black_pawns & bit(F7_BIT) == 0 {
+            score += KING_SHIELD_MISSING_PAWN_PENALTY;
+        }
+        if black_pawns & bit(G7_BIT) == 0 {
+            score += KING_SHIELD_MISSING_PAWN_PENALTY + KING_SHIELD_MISSING_CENTER_PAWN_PENALTY;
+        }
+        if black_pawns & bit(H7_BIT) == 0 {
+            score += KING_SHIELD_MISSING_PAWN_PENALTY;
+        }
+    } else if black_king_sq == A8_BIT || black_king_sq == B8_BIT || black_king_sq == C8_BIT {
+        // Queenside castle - check a7, b7, c7 pawns
+        if black_pawns & bit(A7_BIT) == 0 {
+            score += KING_SHIELD_MISSING_PAWN_PENALTY;
+        }
+        if black_pawns & bit(B7_BIT) == 0 {
+            score += KING_SHIELD_MISSING_PAWN_PENALTY + KING_SHIELD_MISSING_CENTER_PAWN_PENALTY;
+        }
+        if black_pawns & bit(C7_BIT) == 0 {
+            score += KING_SHIELD_MISSING_PAWN_PENALTY;
+        }
+    }
+
+    score
+}
+
+/// Rook on 7th rank with enemy king on 8th: extra bonus for this powerful configuration.
+#[inline(always)]
+pub fn rook_7th_king_8th_bonus(position: &Position) -> Score {
+    let mut score: Score = 0;
+
+    let white_rooks = position.pieces[WHITE as usize].rook_bitboard;
+    let black_rooks = position.pieces[BLACK as usize].rook_bitboard;
+    let black_king_sq = position.pieces[BLACK as usize].king_square;
+    let white_king_sq = position.pieces[WHITE as usize].king_square;
+
+    // White rook on 7th rank, black king on 8th rank
+    if white_rooks & RANK_7_BITS != 0 && black_king_sq / 8 == 7 {
+        score += (white_rooks & RANK_7_BITS).count_ones() as Score * ROOK_7TH_KING_8TH_BONUS;
+    }
+
+    // Black rook on 2nd rank, white king on 1st rank
+    if black_rooks & RANK_2_BITS != 0 && white_king_sq / 8 == 0 {
+        score -= (black_rooks & RANK_2_BITS).count_ones() as Score * ROOK_7TH_KING_8TH_BONUS;
+    }
+
+    score
+}
+
+/// Knight on rim penalty: knights on a/h files have reduced mobility.
+#[inline(always)]
+pub fn knight_on_rim_penalty(position: &Position) -> Score {
+    let white_knights = position.pieces[WHITE as usize].knight_bitboard;
+    let black_knights = position.pieces[BLACK as usize].knight_bitboard;
+
+    let rim_mask = FILE_A_BITS | FILE_H_BITS;
+
+    let white_rim_knights = (white_knights & rim_mask).count_ones() as Score;
+    let black_rim_knights = (black_knights & rim_mask).count_ones() as Score;
+
+    (black_rim_knights - white_rim_knights) * KNIGHT_ON_RIM_PENALTY
+}
+
+/// Fianchetto bishop bonus: bonus for bishop on g2/b2 (or g7/b7) with supporting pawns.
+#[inline(always)]
+pub fn fianchetto_bishop_bonus(position: &Position) -> Score {
+    let mut score: Score = 0;
+
+    let white_bishops = position.pieces[WHITE as usize].bishop_bitboard;
+    let black_bishops = position.pieces[BLACK as usize].bishop_bitboard;
+    let white_pawns = position.pieces[WHITE as usize].pawn_bitboard;
+    let black_pawns = position.pieces[BLACK as usize].pawn_bitboard;
+
+    // White fianchetto on g2 (kingside) - check for f2 and h2 pawns
+    if white_bishops & bit(G2_BIT) != 0 && white_pawns & bit(F2_BIT) != 0 && white_pawns & bit(H2_BIT) != 0 {
+        score += FIANCHETTO_BISHOP_BONUS;
+    }
+
+    // White fianchetto on b2 (queenside) - check for a2 and c2 pawns
+    if white_bishops & bit(B2_BIT) != 0 && white_pawns & bit(A2_BIT) != 0 && white_pawns & bit(C2_BIT) != 0 {
+        score += FIANCHETTO_BISHOP_BONUS;
+    }
+
+    // Black fianchetto on g7 (kingside) - check for f7 and h7 pawns
+    if black_bishops & bit(G7_BIT) != 0 && black_pawns & bit(F7_BIT) != 0 && black_pawns & bit(H7_BIT) != 0 {
+        score -= FIANCHETTO_BISHOP_BONUS;
+    }
+
+    // Black fianchetto on b7 (queenside) - check for a7 and c7 pawns
+    if black_bishops & bit(B7_BIT) != 0 && black_pawns & bit(A7_BIT) != 0 && black_pawns & bit(C7_BIT) != 0 {
+        score -= FIANCHETTO_BISHOP_BONUS;
+    }
+
+    score
 }
 
 /// Penalty for passed pawns blocked by the enemy king.

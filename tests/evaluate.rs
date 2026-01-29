@@ -1,15 +1,16 @@
 use rusty_rival::bitboards::south_fill;
 use rusty_rival::engine_constants::{
-    BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, ISOLATED_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
-    KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE,
-    QUEEN_VALUE_AVERAGE, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE, VALUE_CONNECTED_PASSED_PAWNS,
-    VALUE_KNIGHT_OUTPOST, VALUE_QUEENSIDE_PAWN_MAJORITY,
+    BAD_BISHOP_PENALTY_PER_PAWN, BISHOP_VALUE_AVERAGE, DOUBLED_PAWN_PENALTY, FIANCHETTO_BISHOP_BONUS, ISOLATED_PAWN_PENALTY,
+    KING_SHIELD_MISSING_CENTER_PAWN_PENALTY, KING_SHIELD_MISSING_PAWN_PENALTY, KING_THREAT_BONUS_BISHOP, KING_THREAT_BONUS_KNIGHT,
+    KING_THREAT_BONUS_QUEEN, KING_THREAT_BONUS_ROOK, KNIGHT_FORK_THREAT_SCORE, KNIGHT_ON_RIM_PENALTY, KNIGHT_VALUE_AVERAGE,
+    PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_7TH_KING_8TH_BONUS, ROOK_OPEN_FILE_BONUS, ROOK_SEMI_OPEN_FILE_BONUS, ROOK_VALUE_AVERAGE,
+    VALUE_CONNECTED_PASSED_PAWNS, VALUE_KNIGHT_OUTPOST, VALUE_QUEENSIDE_PAWN_MAJORITY,
 };
 use rusty_rival::evaluate::{
-    black_king_early_safety, connected_passed_pawn_score, count_knight_fork_threats, doubled_and_isolated_pawn_score, evaluate,
-    insufficient_material, is_wrong_colored_bishop_draw, isolated_pawn_count, king_threat_score, knight_fork_threat_score,
-    knight_outpost_scores, material_score, on_same_file_count, passed_pawn_score, queenside_pawn_majority_score, rook_file_score,
-    white_king_early_safety,
+    bad_bishop_penalty, black_king_early_safety, connected_passed_pawn_score, count_knight_fork_threats, doubled_and_isolated_pawn_score,
+    evaluate, fianchetto_bishop_bonus, insufficient_material, is_wrong_colored_bishop_draw, isolated_pawn_count, king_pawn_shield_score,
+    king_threat_score, knight_fork_threat_score, knight_on_rim_penalty, knight_outpost_scores, material_score, on_same_file_count,
+    passed_pawn_score, queenside_pawn_majority_score, rook_7th_king_8th_bonus, rook_file_score, white_king_early_safety,
 };
 use rusty_rival::fen::get_position;
 use rusty_rival::types::{default_evaluate_cache, Score, BLACK, WHITE};
@@ -816,4 +817,123 @@ fn it_scores_queenside_pawn_majority() {
     // Mixed: white has queenside majority, pawns also on kingside
     let position = get_position("4k3/pp2pppp/8/8/8/8/PPP1PPPP/4K3 w - - 0 1");
     assert_eq!(queenside_pawn_majority_score(&position), VALUE_QUEENSIDE_PAWN_MAJORITY);
+}
+
+#[test]
+fn it_penalizes_bad_bishops() {
+    // White bishop on light square with 4 pawns on light squares = penalty
+    // Light squares: a2, c2, e2, g2 are light (and so is the bishop on f1 equivalent)
+    // Position with white light-square bishop and 4 pawns on light squares
+    let position = get_position("4k3/8/8/8/8/8/P1P1P1P1/4KB2 w - - 0 1");
+    assert_eq!(bad_bishop_penalty(&position), -BAD_BISHOP_PENALTY_PER_PAWN);
+
+    // More pawns on same color = higher penalty
+    let position = get_position("4k3/8/8/8/P1P5/8/P1P1P1P1/4KB2 w - - 0 1");
+    assert!(bad_bishop_penalty(&position) < -BAD_BISHOP_PENALTY_PER_PAWN);
+
+    // Black bishop with bad structure = positive score (white's favor)
+    let position = get_position("4kb2/p1p1p1p1/8/8/8/8/8/4K3 w - - 0 1");
+    assert_eq!(bad_bishop_penalty(&position), BAD_BISHOP_PENALTY_PER_PAWN);
+
+    // No bad bishop (fewer than 4 pawns on bishop's color)
+    let position = get_position("4k3/8/8/8/8/8/P1P1P3/4KB2 w - - 0 1");
+    assert_eq!(bad_bishop_penalty(&position), 0);
+}
+
+#[test]
+fn it_evaluates_king_pawn_shield() {
+    // White kingside castled with all shield pawns = 0
+    let position = get_position("4k3/8/8/8/8/8/5PPP/5RK1 w - - 0 1");
+    assert_eq!(king_pawn_shield_score(&position), 0);
+
+    // White kingside castled missing g2 pawn = worst penalty
+    let position = get_position("4k3/8/8/8/8/8/5P1P/5RK1 w - - 0 1");
+    assert_eq!(
+        king_pawn_shield_score(&position),
+        -(KING_SHIELD_MISSING_PAWN_PENALTY + KING_SHIELD_MISSING_CENTER_PAWN_PENALTY)
+    );
+
+    // White kingside castled missing f2 pawn = standard penalty
+    let position = get_position("4k3/8/8/8/8/8/6PP/5RK1 w - - 0 1");
+    assert_eq!(king_pawn_shield_score(&position), -KING_SHIELD_MISSING_PAWN_PENALTY);
+
+    // Black kingside castled with all shield pawns
+    let position = get_position("5rk1/5ppp/8/8/8/8/8/4K3 w - - 0 1");
+    assert_eq!(king_pawn_shield_score(&position), 0);
+
+    // Black kingside castled missing g7 pawn
+    let position = get_position("5rk1/5p1p/8/8/8/8/8/4K3 w - - 0 1");
+    assert_eq!(
+        king_pawn_shield_score(&position),
+        KING_SHIELD_MISSING_PAWN_PENALTY + KING_SHIELD_MISSING_CENTER_PAWN_PENALTY
+    );
+
+    // King not on castled square = no penalty
+    let position = get_position("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
+    assert_eq!(king_pawn_shield_score(&position), 0);
+}
+
+#[test]
+fn it_gives_rook_7th_king_8th_bonus() {
+    // White rook on 7th, black king on 8th = bonus
+    let position = get_position("4k3/4R3/8/8/8/8/8/4K3 w - - 0 1");
+    assert_eq!(rook_7th_king_8th_bonus(&position), ROOK_7TH_KING_8TH_BONUS);
+
+    // Two white rooks on 7th, black king on 8th = double bonus
+    let position = get_position("4k3/3RR3/8/8/8/8/8/4K3 w - - 0 1");
+    assert_eq!(rook_7th_king_8th_bonus(&position), ROOK_7TH_KING_8TH_BONUS * 2);
+
+    // White rook on 7th but black king not on 8th = no bonus
+    let position = get_position("8/3Rk3/8/8/8/8/8/4K3 w - - 0 1");
+    assert_eq!(rook_7th_king_8th_bonus(&position), 0);
+
+    // Black rook on 2nd, white king on 1st = penalty (black's favor)
+    let position = get_position("4k3/8/8/8/8/8/4r3/4K3 w - - 0 1");
+    assert_eq!(rook_7th_king_8th_bonus(&position), -ROOK_7TH_KING_8TH_BONUS);
+}
+
+#[test]
+fn it_penalizes_knight_on_rim() {
+    // White knight on a-file = penalty
+    let position = get_position("4k3/8/8/8/N7/8/8/4K3 w - - 0 1");
+    assert_eq!(knight_on_rim_penalty(&position), -KNIGHT_ON_RIM_PENALTY);
+
+    // White knight on h-file = penalty
+    let position = get_position("4k3/8/8/8/7N/8/8/4K3 w - - 0 1");
+    assert_eq!(knight_on_rim_penalty(&position), -KNIGHT_ON_RIM_PENALTY);
+
+    // Black knight on rim = bonus for white
+    let position = get_position("4k3/8/8/8/n7/8/8/4K3 w - - 0 1");
+    assert_eq!(knight_on_rim_penalty(&position), KNIGHT_ON_RIM_PENALTY);
+
+    // Knight not on rim = no penalty
+    let position = get_position("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1");
+    assert_eq!(knight_on_rim_penalty(&position), 0);
+
+    // Both sides have knights on rim = cancel out
+    let position = get_position("4k3/8/8/8/N6n/8/8/4K3 w - - 0 1");
+    assert_eq!(knight_on_rim_penalty(&position), 0);
+}
+
+#[test]
+fn it_gives_fianchetto_bishop_bonus() {
+    // White fianchetto on g2 with f2 and h2 pawns = bonus
+    let position = get_position("4k3/8/8/8/8/8/5PBP/4K3 w - - 0 1");
+    assert_eq!(fianchetto_bishop_bonus(&position), FIANCHETTO_BISHOP_BONUS);
+
+    // White fianchetto on g2 but missing h2 pawn = no bonus
+    let position = get_position("4k3/8/8/8/8/8/5PB1/4K3 w - - 0 1");
+    assert_eq!(fianchetto_bishop_bonus(&position), 0);
+
+    // White fianchetto on b2 with a2 and c2 pawns = bonus
+    let position = get_position("4k3/8/8/8/8/8/PBP5/4K3 w - - 0 1");
+    assert_eq!(fianchetto_bishop_bonus(&position), FIANCHETTO_BISHOP_BONUS);
+
+    // Black fianchetto on g7 with f7 and h7 pawns = penalty (black's favor)
+    let position = get_position("4k3/5pbp/8/8/8/8/8/4K3 w - - 0 1");
+    assert_eq!(fianchetto_bishop_bonus(&position), -FIANCHETTO_BISHOP_BONUS);
+
+    // Both sides have fianchetto = cancel out
+    let position = get_position("4k3/5pbp/8/8/8/8/5PBP/4K3 w - - 0 1");
+    assert_eq!(fianchetto_bishop_bonus(&position), 0);
 }

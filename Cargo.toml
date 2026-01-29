@@ -1,6 +1,6 @@
 [package]
 name = "rusty-rival"
-version = "1.0.24-rc13"
+version = "1.0.24-rc14"
 edition = "2021"
 
 [profile.dev]
