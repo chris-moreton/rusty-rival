@@ -1,5 +1,10 @@
 use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
-use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
+use crate::engine_constants::{
+    BISHOP_VALUE_AVERAGE, CAPTURE_HISTORY_DIVISOR, COUNTERMOVE_HISTORY_DIVISOR, FOLLOWUP_HISTORY_DIVISOR, KNIGHT_VALUE_AVERAGE,
+    MOVE_SCORE_COUNTERMOVE, MOVE_SCORE_DISTANT_KILLER_1, MOVE_SCORE_DISTANT_KILLER_2, MOVE_SCORE_HISTORY_MAX, MOVE_SCORE_KILLER_1,
+    MOVE_SCORE_KILLER_2, MOVE_SCORE_MATE_KILLER, MOVE_SCORE_PAWN_PUSH_6TH, MOVE_SCORE_PAWN_PUSH_7TH, PAWN_VALUE_AVERAGE,
+    QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE,
+};
 
 use crate::move_constants::{
     PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
@@ -28,19 +33,7 @@ pub const TOTAL_PIECE_VALUE_PER_SIDE_AT_START: Score =
 pub const PAWN_ATTACKER_BONUS: Score = 300;
 
 const GOOD_CAPTURE_START: Score = 3000;
-const MATE_KILLER_SCORE: Score = 1000;
-const CURRENT_PLY_KILLER_1: Score = 750;
-const CURRENT_PLY_KILLER_2: Score = 400;
-const HISTORY_TOP: Score = 500;
-const DISTANT_KILLER_1: Score = 300;
-const DISTANT_KILLER_2: Score = 200;
-const COUNTERMOVE_BONUS: Score = 150;
-const COUNTERMOVE_HISTORY_DIVISOR: i32 = 128; // Scale i16 history to reasonable range
-const FOLLOWUP_HISTORY_DIVISOR: i32 = 128; // Scale i16 history to reasonable range
-const CAPTURE_HISTORY_DIVISOR: i32 = 128; // Scale i16 capture history to reasonable range
 const HISTORY_START: Score = 0;
-const PAWN_PUSH_1: Score = 250;
-const PAWN_PUSH_2: Score = 50;
 
 #[inline(always)]
 pub fn attacker_bonus(piece: Move) -> Score {
@@ -90,19 +83,19 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     } else if to_square == position.en_passant_square {
         GOOD_CAPTURE_START + PAWN_VALUE_AVERAGE + PAWN_ATTACKER_BONUS
     } else if m == search_state.mate_killer[ply] {
-        MATE_KILLER_SCORE
+        MOVE_SCORE_MATE_KILLER
     } else {
         let killer_moves = search_state.killer_moves[ply];
         if m == killer_moves[0] {
-            CURRENT_PLY_KILLER_1
+            MOVE_SCORE_KILLER_1
         } else if m == killer_moves[1] {
-            CURRENT_PLY_KILLER_2
+            MOVE_SCORE_KILLER_2
         } else if ply > 2 {
             let killer_moves = search_state.killer_moves[ply - 2];
             if m == killer_moves[0] {
-                DISTANT_KILLER_1
+                MOVE_SCORE_DISTANT_KILLER_1
             } else if m == killer_moves[1] {
-                DISTANT_KILLER_2
+                MOVE_SCORE_DISTANT_KILLER_2
             } else {
                 countermove_score(position, ply, m, search_state)
             }
@@ -114,19 +107,19 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     let pawn_push_score = if m & PIECE_MASK_FULL == PIECE_MASK_PAWN {
         // Use to_square from line 74 - no need to recompute
         if to_square >= 48 || to_square <= 15 {
-            PAWN_PUSH_1
+            MOVE_SCORE_PAWN_PUSH_7TH
         } else if position.mover == WHITE {
             if (40..=47).contains(&to_square)
                 && position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0
             {
-                PAWN_PUSH_2
+                MOVE_SCORE_PAWN_PUSH_6TH
             } else {
                 0
             }
         } else if (16..=23).contains(&to_square)
             && position.pieces[WHITE as usize].pawn_bitboard & BLACK_PASSED_PAWN_MASK[to_square as usize] == 0
         {
-            PAWN_PUSH_2
+            MOVE_SCORE_PAWN_PUSH_6TH
         } else {
             0
         }
@@ -144,7 +137,7 @@ pub fn history_score(position: &Position, m: Move, search_state: &SearchState, t
         0,
         search_state.highest_history_score,
         HISTORY_START as i64,
-        HISTORY_TOP as i64,
+        MOVE_SCORE_HISTORY_MAX as i64,
     ) as Score
 }
 
@@ -241,7 +234,7 @@ fn countermove_score(position: &Position, ply: usize, m: Move, search_state: &Se
 
     // Bonus for being THE countermove
     let exact_bonus = if search_state.countermoves[prev_piece][prev_to] == m {
-        COUNTERMOVE_BONUS
+        MOVE_SCORE_COUNTERMOVE
     } else {
         0
     };

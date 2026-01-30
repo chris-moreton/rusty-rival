@@ -90,6 +90,26 @@ pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
 // SPSA tuned: base=129, per_depth=62
 pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [129, 191, 253, 315, 377, 439, 501, 563];
 
+// =============================================================================
+// MOVE ORDERING CONSTANTS (SPSA tunable)
+// =============================================================================
+
+// Score thresholds for different move types
+pub const MOVE_SCORE_MATE_KILLER: Score = 1000;
+pub const MOVE_SCORE_KILLER_1: Score = 750;
+pub const MOVE_SCORE_KILLER_2: Score = 400;
+pub const MOVE_SCORE_HISTORY_MAX: Score = 500;
+pub const MOVE_SCORE_DISTANT_KILLER_1: Score = 300;
+pub const MOVE_SCORE_DISTANT_KILLER_2: Score = 200;
+pub const MOVE_SCORE_COUNTERMOVE: Score = 150;
+pub const MOVE_SCORE_PAWN_PUSH_7TH: Score = 250;
+pub const MOVE_SCORE_PAWN_PUSH_6TH: Score = 50;
+
+// History table divisors (scale i16 history to score range)
+pub const COUNTERMOVE_HISTORY_DIVISOR: i32 = 128;
+pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 128;
+pub const CAPTURE_HISTORY_DIVISOR: i32 = 128;
+
 pub const TICKER_MILLIS: u16 = 500;
 
 pub const IID_MIN_DEPTH: u8 = 3;
