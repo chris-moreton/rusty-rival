@@ -890,7 +890,7 @@ pub fn search(
                 && !in_check
                 && !is_tactical
                 && !is_promotion
-                && !is_end_game(position)
+                && !current_is_end_game
                 && legal_move_count > LMP_MOVE_THRESHOLDS[depth as usize]
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
