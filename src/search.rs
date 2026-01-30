@@ -1,9 +1,9 @@
 use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
-    LMP_MOVE_THRESHOLDS, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
-    MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
-    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
+    LMP_MOVE_THRESHOLDS, LMR_HISTORY_BAD_DIVISOR, LMR_HISTORY_GOOD_DIVISOR, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH,
+    MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH,
+    NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
+    SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
     SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
@@ -937,6 +937,18 @@ pub fn search(
                 // This ensures we don't miss tactical replies to threats
                 if threat_detected && reduction > 0 {
                     reduction -= 1;
+                }
+                // History-based LMR: adjust reduction based on move's historical performance
+                // Moves that have worked well before get searched deeper (less reduction)
+                // Moves that have failed often get searched shallower (more reduction)
+                let hist =
+                    search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square_part(m) as usize];
+                let good_threshold = search_state.highest_history_score / LMR_HISTORY_GOOD_DIVISOR as i64;
+                let bad_threshold = -(search_state.highest_history_score / LMR_HISTORY_BAD_DIVISOR as i64);
+                if hist > good_threshold && reduction > 0 {
+                    reduction -= 1;
+                } else if hist < bad_threshold {
+                    reduction += 1;
                 }
                 reduction
             } else {

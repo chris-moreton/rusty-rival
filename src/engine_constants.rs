@@ -119,6 +119,13 @@ pub const IID_REDUCE_DEPTH: u8 = 2;
 pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 4;
 pub const LMR_MIN_DEPTH: u8 = 3;
 
+// History-based LMR thresholds
+// If history score is above good threshold, reduce by 1 less (move has been successful)
+// If history score is below bad threshold, reduce by 1 more (move has failed often)
+// Thresholds are relative to highest_history_score (as a percentage * 100)
+pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 4; // Reduce less if history > highest/4
+pub const LMR_HISTORY_BAD_DIVISOR: i32 = 8; // Reduce more if history < -highest/8
+
 // LMR reduction table: indexed by [depth][move_count]
 // Formula: floor(0.75 + ln(depth) * ln(move_count) / 2.5)
 // More conservative than Stockfish's formula to avoid over-pruning
