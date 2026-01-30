@@ -992,15 +992,19 @@ pub fn search(
 
 #[inline(always)]
 pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> bool {
-    is_repeat_position(position, search_state) || position.half_moves >= 100 || {
-        ply > 6
+    // Order checks from cheapest to most expensive (short-circuit evaluation)
+    // 1. 50-move rule: single comparison
+    // 2. Repetition: iterates history but usually short
+    // 3. Insufficient material: piece counting, only at ply > 6
+    position.half_moves >= 100
+        || is_repeat_position(position, search_state)
+        || (ply > 6
             && insufficient_material(
                 position,
                 (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
                     + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8,
                 true,
-            )
-    }
+            ))
 }
 
 #[inline(always)]
