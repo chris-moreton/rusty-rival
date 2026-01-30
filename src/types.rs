@@ -347,8 +347,9 @@ pub struct SearchState {
     pub pawn_hash_table: Arc<PawnHashTable>,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
     pub mate_killer: [Move; MAX_DEPTH as usize],
-    pub countermoves: [[Move; 64]; 12],       // [piece_12][to_square] -> best countermove
-    pub ply_move: [Move; MAX_DEPTH as usize], // Track move at each ply for countermove lookup
+    pub countermoves: [[Move; 64]; 12],                  // [piece_12][to_square] -> best countermove
+    pub countermove_history: [[[[i16; 64]; 6]; 64]; 12], // [prev_piece_12][prev_to][curr_piece_6][curr_to]
+    pub ply_move: [Move; MAX_DEPTH as usize],            // Track move at each ply for countermove lookup
     pub history_moves: [[[HistoryScore; 64]; 64]; 12],
     pub highest_history_score: HistoryScore,
     pub nodes: u64,
@@ -381,6 +382,7 @@ impl Clone for SearchState {
             killer_moves: self.killer_moves,
             mate_killer: self.mate_killer,
             countermoves: self.countermoves,
+            countermove_history: self.countermove_history,
             ply_move: self.ply_move,
             history_moves: self.history_moves,
             highest_history_score: self.highest_history_score,
@@ -414,6 +416,7 @@ pub fn default_search_state() -> SearchState {
         killer_moves: [[0, 0]; MAX_DEPTH as usize],
         mate_killer: [0; MAX_DEPTH as usize],
         countermoves: [[0; 64]; 12],
+        countermove_history: [[[[0; 64]; 6]; 64]; 12],
         ply_move: [0; MAX_DEPTH as usize],
         history_moves: [[[0; 64]; 64]; 12],
         highest_history_score: 0,

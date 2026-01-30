@@ -259,6 +259,15 @@ fn clear_history_table(search_state: &mut SearchState) {
         }
     }
     search_state.highest_history_score = 0;
+
+    // Clear countermove history table
+    for prev_piece in &mut search_state.countermove_history {
+        for prev_to in prev_piece {
+            for curr_piece in prev_to {
+                curr_piece.fill(0);
+            }
+        }
+    }
 }
 
 #[inline(always)]
@@ -937,7 +946,9 @@ pub fn search(
             }
 
             if score < beta {
-                update_history(position, search_state, m, -(real_depth as i64) * if score < alpha { 2 } else { 1 });
+                let penalty = -(real_depth as i32) * if score < alpha { 2 } else { 1 };
+                update_history(position, search_state, m, penalty as i64);
+                update_countermove_history_for_move(position, ply, search_state, m, penalty);
             }
 
             if score > best_pathscore.1 {
@@ -1123,13 +1134,14 @@ fn cutoff_unmake(
     );
     update_history(position, search_state, m, depth as i64 * depth as i64);
     update_killers(ply, search_state, m, best_pathscore.1, is_capture);
-    update_countermove(position, ply, search_state, m, is_capture);
+    update_countermove(position, ply, search_state, m, is_capture, depth);
     best_pathscore
 }
 
 /// Update countermove table: store move m as a good response to the previous opponent's move
+/// Also update countermove history with depth-based bonus
 #[inline(always)]
-fn update_countermove(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, is_capture: bool) {
+fn update_countermove(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, is_capture: bool, depth: u8) {
     // Only store quiet moves as countermoves (captures are handled by MVV-LVA)
     if is_capture || (m & PROMOTION_FULL_MOVE_MASK != 0) {
         return;
@@ -1147,7 +1159,58 @@ fn update_countermove(position: &Position, ply: u8, search_state: &mut SearchSta
     let opponent_side = position.mover ^ 1;
     let prev_piece = piece_type_to_index(prev_move) + (opponent_side as usize * 6);
     let prev_to = to_square_part(prev_move) as usize;
+
+    // Store as THE countermove
     search_state.countermoves[prev_piece][prev_to] = m;
+
+    // Update countermove history with gravity formula
+    let curr_piece = piece_type_to_index(m);
+    let curr_to = to_square_part(m) as usize;
+    let bonus = (depth as i32) * (depth as i32);
+    update_countermove_history(search_state, prev_piece, prev_to, curr_piece, curr_to, bonus);
+}
+
+/// Update countermove history using gravity formula: history += bonus - history * |bonus| / 16384
+/// This keeps values bounded without explicit clamping
+#[inline(always)]
+fn update_countermove_history(
+    search_state: &mut SearchState,
+    prev_piece: usize,
+    prev_to: usize,
+    curr_piece: usize,
+    curr_to: usize,
+    bonus: i32,
+) {
+    let entry = &mut search_state.countermove_history[prev_piece][prev_to][curr_piece][curr_to];
+    let current = *entry as i32;
+    // Gravity formula: new = current + bonus - current * |bonus| / 16384
+    let abs_bonus = bonus.abs();
+    let new_value = current + bonus - current * abs_bonus / 16384;
+    // Clamp to i16 range
+    *entry = new_value.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+}
+
+/// Update countermove history for a move that failed to cause cutoff (negative bonus)
+/// Called when a quiet move doesn't improve alpha
+#[inline(always)]
+fn update_countermove_history_for_move(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, bonus: i32) {
+    // Only for quiet moves
+    if captured_piece_value(position, m) != 0 || (m & PROMOTION_FULL_MOVE_MASK != 0) {
+        return;
+    }
+    if ply == 0 {
+        return;
+    }
+    let prev_move = search_state.ply_move[(ply - 1) as usize];
+    if prev_move == 0 {
+        return;
+    }
+    let opponent_side = position.mover ^ 1;
+    let prev_piece = piece_type_to_index(prev_move) + (opponent_side as usize * 6);
+    let prev_to = to_square_part(prev_move) as usize;
+    let curr_piece = piece_type_to_index(m);
+    let curr_to = to_square_part(m) as usize;
+    update_countermove_history(search_state, prev_piece, prev_to, curr_piece, curr_to, bonus);
 }
 
 /// Convert move's piece mask to index 0-5

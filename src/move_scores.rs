@@ -34,7 +34,8 @@ const CURRENT_PLY_KILLER_2: Score = 400;
 const HISTORY_TOP: Score = 500;
 const DISTANT_KILLER_1: Score = 300;
 const DISTANT_KILLER_2: Score = 200;
-const COUNTERMOVE_SCORE: Score = 150;
+const COUNTERMOVE_BONUS: Score = 150;
+const COUNTERMOVE_HISTORY_DIVISOR: i32 = 128; // Scale i16 history to reasonable range
 const HISTORY_START: Score = 0;
 const PAWN_PUSH_1: Score = 250;
 const PAWN_PUSH_2: Score = 50;
@@ -164,7 +165,7 @@ pub fn piece_value(pieces: &Pieces, sq: Square) -> Score {
     0
 }
 
-/// Check if move is a countermove to the previous opponent move
+/// Get countermove score: bonus for matching the stored countermove + history bonus
 #[inline(always)]
 fn countermove_score(position: &Position, ply: usize, m: Move, search_state: &SearchState) -> Score {
     if ply == 0 {
@@ -179,11 +180,21 @@ fn countermove_score(position: &Position, ply: usize, m: Move, search_state: &Se
     let opponent_side = position.mover ^ 1;
     let prev_piece = piece_type_to_index(prev_move) + (opponent_side as usize * 6);
     let prev_to = to_square_part(prev_move) as usize;
-    if search_state.countermoves[prev_piece][prev_to] == m {
-        COUNTERMOVE_SCORE
+
+    // Bonus for being THE countermove
+    let exact_bonus = if search_state.countermoves[prev_piece][prev_to] == m {
+        COUNTERMOVE_BONUS
     } else {
         0
-    }
+    };
+
+    // Countermove history bonus: how well does this move work against the previous move?
+    let curr_piece = piece_type_to_index(m);
+    let curr_to = to_square_part(m) as usize;
+    let history = search_state.countermove_history[prev_piece][prev_to][curr_piece][curr_to];
+    let history_bonus = (history as i32 / COUNTERMOVE_HISTORY_DIVISOR) as Score;
+
+    exact_bonus + history_bonus
 }
 
 /// Convert move's piece mask to index 0-5
