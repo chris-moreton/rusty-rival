@@ -448,18 +448,12 @@ pub fn search(
 
     let index: usize = (position.zobrist_lock % search_state.hash_table.len() as u128) as usize;
     let hash_entry = search_state.hash_table.get(index);
+    // Cache hash hit check to avoid repeated 128-bit comparisons
+    let hash_hit = hash_entry.lock == position.zobrist_lock;
     // Track hash entry info for singular extension (needed even if depth isn't sufficient for cutoff)
-    let hash_entry_height = if hash_entry.lock == position.zobrist_lock {
-        hash_entry.height
-    } else {
-        0
-    };
-    let hash_entry_bound = if hash_entry.lock == position.zobrist_lock {
-        hash_entry.bound
-    } else {
-        Upper
-    };
-    let mut hash_move = if hash_entry.lock == position.zobrist_lock {
+    let hash_entry_height = if hash_hit { hash_entry.height } else { 0 };
+    let hash_entry_bound = if hash_hit { hash_entry.bound } else { Upper };
+    let mut hash_move = if hash_hit {
         // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
         // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
         // adjusted it again such that it represented the distance from the root at which it was stored - e.g. we found it at ply 7, and wound
