@@ -535,89 +535,82 @@ pub fn knight_fork_threat_score(position: &Position) -> Score {
 
 #[inline(always)]
 pub fn king_threat_score(position: &Position) -> Score {
-    let wks = position.pieces[WHITE as usize].king_square;
-    let bks = position.pieces[BLACK as usize].king_square;
+    let white = &position.pieces[WHITE as usize];
+    let black = &position.pieces[BLACK as usize];
 
-    let white_king_danger_zone = bit(wks) | KING_MOVES_BITBOARDS[wks as usize] | (KING_MOVES_BITBOARDS[wks as usize] << 8);
-    let black_king_danger_zone = bit(bks) | KING_MOVES_BITBOARDS[bks as usize] | (KING_MOVES_BITBOARDS[bks as usize] >> 8);
+    let all_pieces = white.all_pieces_bitboard | black.all_pieces_bitboard;
 
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+    // Compute danger zones: king square + adjacent squares + one rank towards enemy
+    let wk_zone =
+        bit(white.king_square) | KING_MOVES_BITBOARDS[white.king_square as usize] | (KING_MOVES_BITBOARDS[white.king_square as usize] << 8);
+    let bk_zone =
+        bit(black.king_square) | KING_MOVES_BITBOARDS[black.king_square as usize] | (KING_MOVES_BITBOARDS[black.king_square as usize] >> 8);
 
     let mut score: Score = 0;
 
-    let mut bb = position.pieces[BLACK as usize].knight_bitboard;
+    // Knights - simple lookup, no ray check needed
+    let mut bb = black.knight_bitboard;
     while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        score -= (KNIGHT_MOVES_BITBOARDS[from_square as usize] & white_king_danger_zone).count_ones() as Score
-            * KING_THREAT_BONUS_KNIGHT as Score;
+        let sq = get_and_unset_lsb!(bb);
+        score -= (KNIGHT_MOVES_BITBOARDS[sq as usize] & wk_zone).count_ones() as Score * KING_THREAT_BONUS_KNIGHT;
+    }
+    let mut bb = white.knight_bitboard;
+    while bb != 0 {
+        let sq = get_and_unset_lsb!(bb);
+        score += (KNIGHT_MOVES_BITBOARDS[sq as usize] & bk_zone).count_ones() as Score * KING_THREAT_BONUS_KNIGHT;
     }
 
-    let mut bb = position.pieces[WHITE as usize].knight_bitboard;
+    // Bishops - ray check before magic lookup
+    let mut bb = black.bishop_bitboard;
     while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        score += (KNIGHT_MOVES_BITBOARDS[from_square as usize] & black_king_danger_zone).count_ones() as Score
-            * KING_THREAT_BONUS_KNIGHT as Score;
+        let sq = get_and_unset_lsb!(bb);
+        if BISHOP_RAYS[sq as usize] & wk_zone != 0 {
+            score -= (magic_moves_bishop(sq, all_pieces) & wk_zone).count_ones() as Score * KING_THREAT_BONUS_BISHOP;
+        }
     }
-
-    let mut bb = position.pieces[BLACK as usize].bishop_bitboard;
+    let mut bb = white.bishop_bitboard;
     while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        if BISHOP_RAYS[from_square as usize] & white_king_danger_zone != 0 {
-            score -= (magic_moves_bishop(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
-                * KING_THREAT_BONUS_BISHOP as Score;
+        let sq = get_and_unset_lsb!(bb);
+        if BISHOP_RAYS[sq as usize] & bk_zone != 0 {
+            score += (magic_moves_bishop(sq, all_pieces) & bk_zone).count_ones() as Score * KING_THREAT_BONUS_BISHOP;
         }
     }
 
-    let mut bb = position.pieces[WHITE as usize].bishop_bitboard;
+    // Rooks - ray check before magic lookup
+    let mut bb = black.rook_bitboard;
     while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
-            score += (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
-                * KING_THREAT_BONUS_BISHOP as Score;
+        let sq = get_and_unset_lsb!(bb);
+        if ROOK_RAYS[sq as usize] & wk_zone != 0 {
+            score -= (magic_moves_rook(sq, all_pieces) & wk_zone).count_ones() as Score * KING_THREAT_BONUS_ROOK;
+        }
+    }
+    let mut bb = white.rook_bitboard;
+    while bb != 0 {
+        let sq = get_and_unset_lsb!(bb);
+        if ROOK_RAYS[sq as usize] & bk_zone != 0 {
+            score += (magic_moves_rook(sq, all_pieces) & bk_zone).count_ones() as Score * KING_THREAT_BONUS_ROOK;
         }
     }
 
-    let mut bb = position.pieces[BLACK as usize].rook_bitboard;
+    // Queens - check both ray types
+    let mut bb = black.queen_bitboard;
     while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        if ROOK_RAYS[from_square as usize] & white_king_danger_zone != 0 {
-            score -= (magic_moves_rook(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
-                * KING_THREAT_BONUS_ROOK as Score;
+        let sq = get_and_unset_lsb!(bb);
+        if ROOK_RAYS[sq as usize] & wk_zone != 0 {
+            score -= (magic_moves_rook(sq, all_pieces) & wk_zone).count_ones() as Score * KING_THREAT_BONUS_QUEEN;
+        }
+        if BISHOP_RAYS[sq as usize] & wk_zone != 0 {
+            score -= (magic_moves_bishop(sq, all_pieces) & wk_zone).count_ones() as Score * KING_THREAT_BONUS_QUEEN;
         }
     }
-
-    let mut bb = position.pieces[WHITE as usize].rook_bitboard;
+    let mut bb = white.queen_bitboard;
     while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        if ROOK_RAYS[from_square as usize] & black_king_danger_zone != 0 {
-            score += (magic_moves_rook(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
-                * KING_THREAT_BONUS_ROOK as Score;
+        let sq = get_and_unset_lsb!(bb);
+        if ROOK_RAYS[sq as usize] & bk_zone != 0 {
+            score += (magic_moves_rook(sq, all_pieces) & bk_zone).count_ones() as Score * KING_THREAT_BONUS_QUEEN;
         }
-    }
-
-    let mut bb = position.pieces[BLACK as usize].queen_bitboard;
-    while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        if ROOK_RAYS[from_square as usize] & white_king_danger_zone != 0 {
-            score -= (magic_moves_rook(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
-                * KING_THREAT_BONUS_QUEEN as Score;
-        }
-        if BISHOP_RAYS[from_square as usize] & white_king_danger_zone != 0 {
-            score -= (magic_moves_bishop(from_square, all_pieces) & white_king_danger_zone).count_ones() as Score
-                * KING_THREAT_BONUS_QUEEN as Score;
-        }
-    }
-
-    let mut bb = position.pieces[WHITE as usize].queen_bitboard;
-    while bb != 0 {
-        let from_square = get_and_unset_lsb!(bb);
-        if ROOK_RAYS[from_square as usize] & black_king_danger_zone != 0 {
-            score += (magic_moves_rook(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
-                * KING_THREAT_BONUS_QUEEN as Score;
-        }
-        if BISHOP_RAYS[from_square as usize] & black_king_danger_zone != 0 {
-            score += (magic_moves_bishop(from_square, all_pieces) & black_king_danger_zone).count_ones() as Score
-                * KING_THREAT_BONUS_QUEEN as Score;
+        if BISHOP_RAYS[sq as usize] & bk_zone != 0 {
+            score += (magic_moves_bishop(sq, all_pieces) & bk_zone).count_ones() as Score * KING_THREAT_BONUS_QUEEN;
         }
     }
 
