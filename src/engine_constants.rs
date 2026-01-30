@@ -126,6 +126,11 @@ pub const LMR_MIN_DEPTH: u8 = 3;
 pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 4; // Reduce less if history > highest/4
 pub const LMR_HISTORY_BAD_DIVISOR: i32 = 8; // Reduce more if history < -highest/8
 
+// Continuation history threshold for LMR (countermove_history + followup_history)
+// These are i16 values, so threshold is raw score (not scaled)
+pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 2000; // Reduce less if combined > this
+pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -4000; // Reduce more if combined < this
+
 // LMR reduction table: indexed by [depth][move_count]
 // Formula: floor(0.75 + ln(depth) * ln(move_count) / 2.5)
 // More conservative than Stockfish's formula to avoid over-pruning

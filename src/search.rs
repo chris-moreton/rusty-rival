@@ -1,9 +1,10 @@
 use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
-    LMP_MOVE_THRESHOLDS, LMR_HISTORY_BAD_DIVISOR, LMR_HISTORY_GOOD_DIVISOR, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH,
-    MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH,
-    NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
-    SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
+    LMP_MOVE_THRESHOLDS, LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_DIVISOR,
+    LMR_HISTORY_GOOD_DIVISOR, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
+    MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
+    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
+    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
     SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
@@ -966,6 +967,35 @@ pub fn search(
                 if hist > good_threshold && reduction > 0 {
                     reduction -= 1;
                 } else if hist < bad_threshold {
+                    reduction += 1;
+                }
+                // Continuation history: use countermove_history and followup_history for additional adjustment
+                // These capture context-specific move quality (what works after certain moves)
+                let curr_piece = piece_type_to_index(m);
+                let curr_to = to_square_part(m) as usize;
+                let mut continuation_score: i32 = 0;
+                // Add countermove history contribution
+                if ply > 0 {
+                    let prev_move = search_state.ply_move[ply as usize - 1];
+                    if prev_move != 0 {
+                        let opponent_side = position.mover ^ 1;
+                        let prev_piece = piece_type_to_index(prev_move) + (opponent_side as usize * 6);
+                        let prev_to = to_square_part(prev_move) as usize;
+                        continuation_score += search_state.countermove_history[prev_piece][prev_to][curr_piece][curr_to] as i32;
+                    }
+                }
+                // Add followup history contribution
+                if ply >= 2 {
+                    let our_prev_move = search_state.ply_move[ply as usize - 2];
+                    if our_prev_move != 0 {
+                        let our_prev_piece = piece_type_to_index(our_prev_move);
+                        let our_prev_to = to_square_part(our_prev_move) as usize;
+                        continuation_score += search_state.followup_history[our_prev_piece][our_prev_to][curr_piece][curr_to] as i32;
+                    }
+                }
+                if continuation_score > LMR_CONTINUATION_GOOD_THRESHOLD && reduction > 0 {
+                    reduction -= 1;
+                } else if continuation_score < LMR_CONTINUATION_BAD_THRESHOLD {
                     reduction += 1;
                 }
                 reduction
