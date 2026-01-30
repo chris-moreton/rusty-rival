@@ -877,7 +877,11 @@ pub fn search(
         if !is_check(position, old_mover) {
             legal_move_count += 1;
 
-            if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !is_check(position, position.mover) {
+            // Cache whether this move gives check (opponent's king in check)
+            // Used for pruning decisions - moves that give check should not be pruned/reduced
+            let gives_check = is_check(position, position.mover);
+
+            if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !gives_check {
                 unmake_move(position, m, &unmake);
                 continue;
             }
@@ -894,7 +898,7 @@ pub fn search(
                 && legal_move_count > LMP_MOVE_THRESHOLDS[depth as usize]
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
-                && !is_check(position, position.mover)
+                && !gives_check
                 && alpha.abs() < MATE_START
             {
                 unmake_move(position, m, &unmake);
@@ -907,7 +911,7 @@ pub fn search(
                 && !is_tactical
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
-                && !is_check(position, position.mover)
+                && !gives_check
             {
                 let mut reduction = lmr_reduction(real_depth, legal_move_count);
                 // Threat-based LMR: reduce less when opponent has a detected threat
