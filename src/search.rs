@@ -797,6 +797,9 @@ pub fn search(
         quiets_added = false;
     }
 
+    // Cache endgame status for current position - used in extension decisions
+    let current_is_end_game = is_end_game(position);
+
     loop {
         // If we've exhausted the current move list, add quiet moves if we haven't yet
         if move_scores.is_empty() {
@@ -852,7 +855,7 @@ pub fn search(
         // Only if no other extension already applied (avoid over-extending)
         let passed_pawn_ext: u8 = if check_extension == 0
             && pawn_push_ext == 0
-            && is_end_game(position)
+            && current_is_end_game
             && is_passed_pawn_push(position, m)
             && ply < search_state.iterative_depth * 2
         {

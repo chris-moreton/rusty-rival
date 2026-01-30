@@ -10,7 +10,7 @@ use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
 use crate::see::{captured_piece_value_see, see};
 use crate::types::{
-    is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreList, PathScore, Pieces, Position, Score, SearchState, Square,
+    is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
     Window, BLACK, WHITE,
 };
 use crate::utils::{from_square_mask, send_info, to_square_part};
@@ -139,7 +139,7 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
         return (pv_single(0), eval);
     }
 
-    let mut move_scores: MoveScoreList = vec![];
+    let mut move_scores: MoveScoreArray = MoveScoreArray::new();
 
     for &m in &ms {
         let score = score_quiesce_move(position, m, &position.pieces[opponent!(position.mover) as usize], search_state);
