@@ -36,6 +36,7 @@ const DISTANT_KILLER_1: Score = 300;
 const DISTANT_KILLER_2: Score = 200;
 const COUNTERMOVE_BONUS: Score = 150;
 const COUNTERMOVE_HISTORY_DIVISOR: i32 = 128; // Scale i16 history to reasonable range
+const FOLLOWUP_HISTORY_DIVISOR: i32 = 128; // Scale i16 history to reasonable range
 const HISTORY_START: Score = 0;
 const PAWN_PUSH_1: Score = 250;
 const PAWN_PUSH_2: Score = 50;
@@ -130,7 +131,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         0
     };
 
-    score + pawn_push_score + history_score(position, m, search_state, to_square)
+    score + pawn_push_score + history_score(position, m, search_state, to_square) + followup_history_score(ply, m, search_state)
 }
 
 #[inline(always)]
@@ -142,6 +143,28 @@ pub fn history_score(position: &Position, m: Move, search_state: &SearchState, t
         HISTORY_START as i64,
         HISTORY_TOP as i64,
     ) as Score
+}
+
+/// Follow-up history: bonus based on what worked after our move 2 plies ago
+/// This captures "after I played Nf3, Bg5 tends to work well"
+#[inline(always)]
+fn followup_history_score(ply: usize, m: Move, search_state: &SearchState) -> Score {
+    // Need at least 2 plies of history
+    if ply < 2 {
+        return 0;
+    }
+    let our_prev_move = search_state.ply_move[ply - 2];
+    if our_prev_move == 0 {
+        return 0;
+    }
+    // Index by our previous move's piece (0-5) and to_square
+    let our_prev_piece = piece_type_to_index(our_prev_move);
+    let our_prev_to = to_square_part(our_prev_move) as usize;
+    let curr_piece = piece_type_to_index(m);
+    let curr_to = to_square_part(m) as usize;
+
+    let history = search_state.followup_history[our_prev_piece][our_prev_to][curr_piece][curr_to];
+    (history as i32 / FOLLOWUP_HISTORY_DIVISOR) as Score
 }
 
 #[inline(always)]

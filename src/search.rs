@@ -253,17 +253,26 @@ fn clear_killers(search_state: &mut SearchState) {
 }
 
 fn clear_history_table(search_state: &mut SearchState) {
-    for piece in &mut search_state.history_moves {
-        for from_sq in piece {
+    for piece in search_state.history_moves.iter_mut() {
+        for from_sq in piece.iter_mut() {
             from_sq.fill(0);
         }
     }
     search_state.highest_history_score = 0;
 
     // Clear countermove history table
-    for prev_piece in &mut search_state.countermove_history {
-        for prev_to in prev_piece {
-            for curr_piece in prev_to {
+    for prev_piece in search_state.countermove_history.iter_mut() {
+        for prev_to in prev_piece.iter_mut() {
+            for curr_piece in prev_to.iter_mut() {
+                curr_piece.fill(0);
+            }
+        }
+    }
+
+    // Clear followup history table
+    for prev_piece in search_state.followup_history.iter_mut() {
+        for prev_to in prev_piece.iter_mut() {
+            for curr_piece in prev_to.iter_mut() {
                 curr_piece.fill(0);
             }
         }
@@ -949,6 +958,7 @@ pub fn search(
                 let penalty = -(real_depth as i32) * if score < alpha { 2 } else { 1 };
                 update_history(position, search_state, m, penalty as i64);
                 update_countermove_history_for_move(position, ply, search_state, m, penalty);
+                update_followup_history_for_move(position, ply, search_state, m, penalty);
             }
 
             if score > best_pathscore.1 {
@@ -1135,6 +1145,9 @@ fn cutoff_unmake(
     update_history(position, search_state, m, depth as i64 * depth as i64);
     update_killers(ply, search_state, m, best_pathscore.1, is_capture);
     update_countermove(position, ply, search_state, m, is_capture, depth);
+    // Update followup history with positive bonus
+    let bonus = (depth as i32) * (depth as i32);
+    update_followup_history_for_move(position, ply, search_state, m, bonus);
     best_pathscore
 }
 
@@ -1211,6 +1224,34 @@ fn update_countermove_history_for_move(position: &Position, ply: u8, search_stat
     let curr_piece = piece_type_to_index(m);
     let curr_to = to_square_part(m) as usize;
     update_countermove_history(search_state, prev_piece, prev_to, curr_piece, curr_to, bonus);
+}
+
+/// Update followup history: tracks what works after our own move from 2 plies ago
+#[inline(always)]
+fn update_followup_history_for_move(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, bonus: i32) {
+    // Only for quiet moves
+    if captured_piece_value(position, m) != 0 || (m & PROMOTION_FULL_MOVE_MASK != 0) {
+        return;
+    }
+    if ply < 2 {
+        return;
+    }
+    let our_prev_move = search_state.ply_move[(ply - 2) as usize];
+    if our_prev_move == 0 {
+        return;
+    }
+    // Index by our move's piece (0-5) - we know it's our piece so no color offset needed
+    let our_prev_piece = piece_type_to_index(our_prev_move);
+    let our_prev_to = to_square_part(our_prev_move) as usize;
+    let curr_piece = piece_type_to_index(m);
+    let curr_to = to_square_part(m) as usize;
+
+    let entry = &mut search_state.followup_history[our_prev_piece][our_prev_to][curr_piece][curr_to];
+    let current = *entry as i32;
+    // Gravity formula
+    let abs_bonus = bonus.abs();
+    let new_value = current + bonus - current * abs_bonus / 16384;
+    *entry = new_value.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
 }
 
 /// Convert move's piece mask to index 0-5
