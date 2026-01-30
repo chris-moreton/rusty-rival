@@ -68,6 +68,8 @@ pub fn attacker_value(piece: Move) -> Score {
 #[inline(always)]
 pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
     let to_square = to_square_part(m);
+    // Cap ply to avoid array out of bounds (arrays are sized MAX_DEPTH = 250)
+    let ply = ply.min(249);
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
         let see_score = static_exchange_evaluation(position, m);

@@ -450,6 +450,11 @@ pub fn search(
         return (pv_single(0), draw_value(position, search_state));
     }
 
+    // Prevent stack overflow and array out of bounds at extreme depths
+    if ply >= MAX_DEPTH {
+        return (pv_single(0), evaluate_with_pawn_hash(position, &search_state.pawn_hash_table));
+    }
+
     // NOTE: Tablebase probing during search is disabled for performance.
     // The position_to_chess() conversion is too expensive to call at every node.
     // Instead, we probe DTZ at the root level in iterative_deepening to select
