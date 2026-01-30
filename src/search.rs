@@ -938,6 +938,24 @@ pub fn search(
                 if threat_detected && reduction > 0 {
                     reduction -= 1;
                 }
+                // PV-node LMR: reduce less at principal variation nodes
+                // PV nodes are more likely to contain the best line
+                if !scout_search && reduction > 0 {
+                    reduction -= 1;
+                }
+                // Countermove bonus: reduce less for the stored countermove
+                // The countermove has historically been a good response to the previous move
+                if ply > 0 && reduction > 0 {
+                    let prev_move = search_state.ply_move[ply as usize - 1];
+                    if prev_move != 0 {
+                        let opponent_side = position.mover ^ 1;
+                        let prev_piece = piece_type_to_index(prev_move) + (opponent_side as usize * 6);
+                        let prev_to = to_square_part(prev_move) as usize;
+                        if search_state.countermoves[prev_piece][prev_to] == m {
+                            reduction -= 1;
+                        }
+                    }
+                }
                 // History-based LMR: adjust reduction based on move's historical performance
                 // Moves that have worked well before get searched deeper (less reduction)
                 // Moves that have failed often get searched shallower (more reduction)
