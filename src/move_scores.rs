@@ -37,6 +37,7 @@ const DISTANT_KILLER_2: Score = 200;
 const COUNTERMOVE_BONUS: Score = 150;
 const COUNTERMOVE_HISTORY_DIVISOR: i32 = 128; // Scale i16 history to reasonable range
 const FOLLOWUP_HISTORY_DIVISOR: i32 = 128; // Scale i16 history to reasonable range
+const CAPTURE_HISTORY_DIVISOR: i32 = 128; // Scale i16 capture history to reasonable range
 const HISTORY_START: Score = 0;
 const PAWN_PUSH_1: Score = 250;
 const PAWN_PUSH_2: Score = 50;
@@ -76,7 +77,9 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     let to_square = to_square_part(m);
 
     let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
-        GOOD_CAPTURE_START + static_exchange_evaluation(position, m)
+        let see_score = static_exchange_evaluation(position, m);
+        let capture_hist = capture_history_score(m, to_square, enemy, search_state);
+        GOOD_CAPTURE_START + see_score + capture_hist
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         match m & PROMOTION_FULL_MOVE_MASK {
             PROMOTION_ROOK_MOVE_MASK => 3,
@@ -165,6 +168,38 @@ fn followup_history_score(ply: usize, m: Move, search_state: &SearchState) -> Sc
 
     let history = search_state.followup_history[our_prev_piece][our_prev_to][curr_piece][curr_to];
     (history as i32 / FOLLOWUP_HISTORY_DIVISOR) as Score
+}
+
+/// Capture history: bonus based on how well this capture has performed historically
+/// Indexed by [attacker_piece][victim_piece][to_square]
+#[inline(always)]
+fn capture_history_score(m: Move, to_square: Square, enemy: &Pieces, search_state: &SearchState) -> Score {
+    let attacker = piece_type_to_index(m);
+    let victim = victim_piece_index(to_square, enemy);
+    let history = search_state.capture_history[attacker][victim][to_square as usize];
+    (history as i32 / CAPTURE_HISTORY_DIVISOR) as Score
+}
+
+/// Get the piece type index (0-5) of the victim at the given square
+#[inline(always)]
+fn victim_piece_index(sq: Square, pieces: &Pieces) -> usize {
+    let bb = bit(sq);
+    if pieces.pawn_bitboard & bb != 0 {
+        return 0; // Pawn
+    }
+    if pieces.knight_bitboard & bb != 0 {
+        return 1; // Knight
+    }
+    if pieces.bishop_bitboard & bb != 0 {
+        return 2; // Bishop
+    }
+    if pieces.rook_bitboard & bb != 0 {
+        return 3; // Rook
+    }
+    if pieces.queen_bitboard & bb != 0 {
+        return 4; // Queen
+    }
+    5 // King (shouldn't happen in normal play)
 }
 
 #[inline(always)]

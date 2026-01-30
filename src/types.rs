@@ -350,6 +350,7 @@ pub struct SearchState {
     pub countermoves: [[Move; 64]; 12],                       // [piece_12][to_square] -> best countermove
     pub countermove_history: Box<[[[[i16; 64]; 6]; 64]; 12]>, // [prev_piece_12][prev_to][curr_piece_6][curr_to]
     pub followup_history: Box<[[[[i16; 64]; 6]; 64]; 6]>,     // [our_prev_piece_6][our_prev_to][curr_piece_6][curr_to]
+    pub capture_history: [[[i16; 64]; 6]; 6],                 // [attacker_piece_6][victim_piece_6][to_square]
     pub ply_move: [Move; MAX_DEPTH as usize],                 // Track move at each ply for countermove lookup
     pub history_moves: Box<[[[HistoryScore; 64]; 64]; 12]>,
     pub highest_history_score: HistoryScore,
@@ -385,6 +386,7 @@ impl Clone for SearchState {
             countermoves: self.countermoves,
             countermove_history: self.countermove_history.clone(),
             followup_history: self.followup_history.clone(),
+            capture_history: self.capture_history,
             ply_move: self.ply_move,
             history_moves: self.history_moves.clone(),
             highest_history_score: self.highest_history_score,
@@ -420,6 +422,7 @@ pub fn default_search_state() -> SearchState {
         countermoves: [[0; 64]; 12],
         countermove_history: Box::new([[[[0; 64]; 6]; 64]; 12]),
         followup_history: Box::new([[[[0; 64]; 6]; 64]; 6]),
+        capture_history: [[[0; 64]; 6]; 6],
         ply_move: [0; MAX_DEPTH as usize],
         history_moves: Box::new([[[0; 64]; 64]; 12]),
         highest_history_score: 0,

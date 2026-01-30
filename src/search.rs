@@ -277,6 +277,13 @@ fn clear_history_table(search_state: &mut SearchState) {
             }
         }
     }
+
+    // Clear capture history table
+    for attacker in &mut search_state.capture_history {
+        for victim in attacker {
+            victim.fill(0);
+        }
+    }
 }
 
 #[inline(always)]
@@ -959,6 +966,7 @@ pub fn search(
                 update_history(position, search_state, m, penalty as i64);
                 update_countermove_history_for_move(position, ply, search_state, m, penalty);
                 update_followup_history_for_move(position, ply, search_state, m, penalty);
+                update_capture_history_for_move(position, search_state, m, penalty);
             }
 
             if score > best_pathscore.1 {
@@ -1142,12 +1150,14 @@ fn cutoff_unmake(
         search_state,
         ply,
     );
-    update_history(position, search_state, m, depth as i64 * depth as i64);
+    let bonus = (depth as i32) * (depth as i32);
+    update_history(position, search_state, m, bonus as i64);
     update_killers(ply, search_state, m, best_pathscore.1, is_capture);
     update_countermove(position, ply, search_state, m, is_capture, depth);
-    // Update followup history with positive bonus
-    let bonus = (depth as i32) * (depth as i32);
+    // Update followup history with positive bonus (quiet moves only)
     update_followup_history_for_move(position, ply, search_state, m, bonus);
+    // Update capture history with positive bonus (captures only)
+    update_capture_history_for_move(position, search_state, m, bonus);
     best_pathscore
 }
 
@@ -1252,6 +1262,46 @@ fn update_followup_history_for_move(position: &Position, ply: u8, search_state: 
     let abs_bonus = bonus.abs();
     let new_value = current + bonus - current * abs_bonus / 16384;
     *entry = new_value.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+}
+
+/// Update capture history: tracks how well captures perform
+/// Indexed by [attacker_piece][victim_piece][to_square]
+#[inline(always)]
+fn update_capture_history_for_move(position: &Position, search_state: &mut SearchState, m: Move, bonus: i32) {
+    let captured = captured_piece_value(position, m);
+    if captured == 0 {
+        return; // Not a capture
+    }
+
+    let attacker = piece_type_to_index(m);
+    let victim = captured_piece_to_index(captured);
+    let to_sq = to_square_part(m) as usize;
+
+    let entry = &mut search_state.capture_history[attacker][victim][to_sq];
+    let current = *entry as i32;
+    // Gravity formula
+    let abs_bonus = bonus.abs();
+    let new_value = current + bonus - current * abs_bonus / 16384;
+    *entry = new_value.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+}
+
+/// Convert captured piece value to index 0-5
+#[inline(always)]
+fn captured_piece_to_index(value: Score) -> usize {
+    use crate::engine_constants::*;
+    if value == PAWN_VALUE_AVERAGE {
+        0
+    } else if value == KNIGHT_VALUE_AVERAGE {
+        1
+    } else if value == BISHOP_VALUE_AVERAGE {
+        2
+    } else if value == ROOK_VALUE_AVERAGE {
+        3
+    } else if value == QUEEN_VALUE_AVERAGE {
+        4
+    } else {
+        5 // King (shouldn't happen)
+    }
 }
 
 /// Convert move's piece mask to index 0-5
