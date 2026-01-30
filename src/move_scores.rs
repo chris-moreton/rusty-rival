@@ -107,7 +107,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     };
 
     let pawn_push_score = if m & PIECE_MASK_FULL == PIECE_MASK_PAWN {
-        let to_square = to_square_part(m);
+        // Use to_square from line 74 - no need to recompute
         if to_square >= 48 || to_square <= 15 {
             PAWN_PUSH_1
         } else if position.mover == WHITE {
