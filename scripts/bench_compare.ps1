@@ -38,6 +38,7 @@ function Run-Depth {
     $proc.StandardInput.WriteLine("go depth $Depth")
     $proc.StandardInput.Flush()
 
+    $lastInfoLine = $null
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     while ($true) {
         if (-not $proc.StandardOutput.EndOfStream) {
@@ -47,36 +48,40 @@ function Run-Depth {
             $line = $null
         }
 
+        # Capture info lines that contain node counts
+        if ($line -and $line.StartsWith("info") -and $line -match "nodes") {
+            $lastInfoLine = $line
+        }
+
         if ($line -and $line.StartsWith("bestmove")) {
             break
         }
     }
+    $sw.Stop()
 
-    $proc.StandardInput.WriteLine("state")
     $proc.StandardInput.WriteLine("quit")
     $proc.StandardInput.Flush()
     $proc.StandardInput.Close()
-
-    $nodesLine = $null
-    while (-not $proc.StandardOutput.EndOfStream) {
-        $line = $proc.StandardOutput.ReadLine()
-        if ($line -and $line.StartsWith("Nodes")) {
-            $nodesLine = $line
-            break
-        }
-    }
-
     $proc.WaitForExit(5000) | Out-Null
-    $sw.Stop()
 
-    if (-not $nodesLine) {
-        throw "No Nodes line found for depth $Depth and FEN: $Fen"
+    if (-not $lastInfoLine) {
+        throw "No info line with nodes found for depth $Depth and FEN: $Fen"
     }
 
-    $nodes = [int64]([regex]::Match($nodesLine, "Nodes\s+(\d+)").Groups[1].Value)
-    $ms = [int64]$sw.ElapsedMilliseconds
+    # Parse nodes and nps from info line: "info depth 17 nodes 1234567 nps 2000000 ..."
+    $nodesMatch = [regex]::Match($lastInfoLine, "nodes\s+(\d+)")
+    $npsMatch = [regex]::Match($lastInfoLine, "nps\s+(\d+)")
+    $timeMatch = [regex]::Match($lastInfoLine, "time\s+(\d+)")
+
+    if (-not $nodesMatch.Success) {
+        throw "Could not parse nodes from info line: $lastInfoLine"
+    }
+
+    $nodes = [int64]$nodesMatch.Groups[1].Value
+    $nps = if ($npsMatch.Success) { [int64]$npsMatch.Groups[1].Value } else { 0 }
+    $ms = if ($timeMatch.Success) { [int64]$timeMatch.Groups[1].Value } else { [int64]$sw.ElapsedMilliseconds }
     if ($ms -le 0) { $ms = 1 }
-    $nps = [int64]([math]::Round($nodes / ($ms / 1000.0)))
+    if ($nps -eq 0) { $nps = [int64]([math]::Round($nodes / ($ms / 1000.0))) }
 
     [pscustomobject]@{
         Exe = $Exe
@@ -85,7 +90,7 @@ function Run-Depth {
         Nodes = $nodes
         Nps = $nps
         TimeMs = $ms
-        Line = $nodesLine
+        Line = $lastInfoLine
     }
 }
 
