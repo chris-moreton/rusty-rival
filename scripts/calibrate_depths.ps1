@@ -29,8 +29,10 @@ function Run-Depth {
         "quit"
     )
 
+    $exePath = (Resolve-Path $Exe).Path
     $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $Exe
+    $psi.FileName = $exePath
+    $psi.WorkingDirectory = Split-Path $exePath -Parent
     $psi.RedirectStandardInput = $true
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
