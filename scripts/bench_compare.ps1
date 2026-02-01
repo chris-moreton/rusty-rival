@@ -61,12 +61,31 @@ if (-not (Test-Path $DepthsJson)) {
 $depths = Get-Content $DepthsJson | ConvertFrom-Json
 
 $rows = @()
+$total = $depths.Count
+$idx = 0
+$afterTotalNodes = 0
+$beforeTotalNodes = 0
+$afterTotalNps = 0
+$beforeTotalNps = 0
 foreach ($entry in $depths) {
+    $idx += 1
     $fen = $entry.Fen
     $depth = [int]$entry.Depth
 
     $after = Run-Depth -Exe $AfterExe -Fen $fen -Depth $depth -Hash $Hash
     $before = Run-Depth -Exe $BeforeExe -Fen $fen -Depth $depth -Hash $Hash
+
+    $afterTotalNodes += $after.Nodes
+    $beforeTotalNodes += $before.Nodes
+    $afterTotalNps += $after.Nps
+    $beforeTotalNps += $before.Nps
+    $afterAvgNps = [int64]($afterTotalNps / $idx)
+    $beforeAvgNps = [int64]($beforeTotalNps / $idx)
+
+    Write-Host "[$idx/$total] depth $depth"
+    Write-Host "  after  nodes=$($after.Nodes) nps=$($after.Nps) time=${($after.TimeMs)}ms"
+    Write-Host "  before nodes=$($before.Nodes) nps=$($before.Nps) time=${($before.TimeMs)}ms"
+    Write-Host "  totals after nodes=$afterTotalNodes avg_nps=$afterAvgNps | before nodes=$beforeTotalNodes avg_nps=$beforeAvgNps"
 
     $rows += [pscustomobject]@{
         Fen = $fen
@@ -82,11 +101,6 @@ foreach ($entry in $depths) {
 
 $rows | Export-Csv -NoTypeInformation -Path $CsvOut
 Write-Host "Wrote results to $CsvOut"
-
-$afterTotalNodes = ($rows | Measure-Object -Property AfterNodes -Sum).Sum
-$beforeTotalNodes = ($rows | Measure-Object -Property BeforeNodes -Sum).Sum
-$afterAvgNps = [int64](($rows | Measure-Object -Property AfterNps -Average).Average)
-$beforeAvgNps = [int64](($rows | Measure-Object -Property BeforeNps -Average).Average)
 
 Write-Host "After total nodes:  $afterTotalNodes"
 Write-Host "Before total nodes: $beforeTotalNodes"
