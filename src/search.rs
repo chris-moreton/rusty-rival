@@ -210,10 +210,11 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 
 pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, window: Window) -> PathScore {
     let mut current_best: PathScore = (pv_single(legal_moves[0].0), window.0);
+    let hash_len_u128 = search_state.hash_table.len() as u128;
 
     for mv in legal_moves {
         let unmake = make_move_in_place(position, mv.0);
-        prefetch_hash(position, search_state); // Prefetch child position's hash entry
+        prefetch_hash(position, search_state, hash_len_u128); // Prefetch child position's hash entry
         search_state.history.push(position.zobrist_lock);
 
         let mut path_score = search(
@@ -299,9 +300,10 @@ pub fn store_hash_entry(
     movescore: MoveScore,
     search_state: &mut SearchState,
     ply: u8,
+    hash_len_u128: u128,
 ) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
-        let index: usize = (position.zobrist_lock % search_state.hash_table.len() as u128) as usize;
+        let index: usize = (position.zobrist_lock % hash_len_u128) as usize;
         search_state.hash_table.set(
             index,
             HashEntry {
@@ -421,8 +423,8 @@ pub fn null_move_reduced_depth(depth: u8) -> u8 {
 /// Prefetch the hash entry for the current position
 /// Call this right after making a move to hide memory latency
 #[inline(always)]
-fn prefetch_hash(position: &Position, search_state: &SearchState) {
-    let index = (position.zobrist_lock % search_state.hash_table.len() as u128) as usize;
+fn prefetch_hash(position: &Position, search_state: &SearchState, hash_len_u128: u128) {
+    let index = (position.zobrist_lock % hash_len_u128) as usize;
     search_state.hash_table.prefetch(index);
 }
 
@@ -478,7 +480,8 @@ pub fn search(
     let mut hash_version = 0;
     let mut best_pathscore: PathScore = (pv_single(0), -MATE_SCORE);
 
-    let index: usize = (position.zobrist_lock % search_state.hash_table.len() as u128) as usize;
+    let hash_len_u128 = search_state.hash_table.len() as u128;
+    let index: usize = (position.zobrist_lock % hash_len_u128) as usize;
     let hash_entry = search_state.hash_table.get(index);
     // Cache hash hit check to avoid repeated 128-bit comparisons
     let hash_hit = hash_entry.lock == position.zobrist_lock;
@@ -600,7 +603,7 @@ pub fn search(
 
             let old_mover = position.mover;
             let unmake = make_move_in_place(position, m);
-            prefetch_hash(position, search_state);
+            prefetch_hash(position, search_state, hash_len_u128);
 
             if !is_check(position, old_mover) {
                 let score = -search(
@@ -649,7 +652,7 @@ pub fn search(
         for (m, _) in scored_captures.iter().take(MULTICUT_MOVES_TO_TRY as usize) {
             let old_mover = position.mover;
             let unmake = make_move_in_place(position, *m);
-            prefetch_hash(position, search_state);
+            prefetch_hash(position, search_state, hash_len_u128);
 
             if !is_check(position, old_mover) {
                 let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0).1;
@@ -740,7 +743,7 @@ pub fn search(
         let hash_captured_value = captured_piece_value(position, hash_move);
         let old_mover = position.mover;
         let unmake = make_move_in_place(position, hash_move);
-        prefetch_hash(position, search_state); // Prefetch child position's hash entry
+        prefetch_hash(position, search_state, hash_len_u128); // Prefetch child position's hash entry
         let hash_is_capture = unmake.captured_piece != CAPTURED_NONE;
 
         if !is_check(position, old_mover) {
@@ -772,6 +775,7 @@ pub fn search(
                             hash_move,
                             hash_is_capture,
                             hash_captured_value,
+                            hash_len_u128,
                         );
                     }
                     hash_flag = Exact;
@@ -896,8 +900,8 @@ pub fn search(
         let move_extension = check_extension + pawn_push_ext + passed_pawn_ext;
 
         let unmake = make_move_in_place(position, m);
-        prefetch_hash(position, search_state); // Prefetch child position's hash entry
-                                               // Track move at this ply for countermove heuristic
+        prefetch_hash(position, search_state, hash_len_u128); // Prefetch child position's hash entry
+                                                              // Track move at this ply for countermove heuristic
         search_state.ply_move[ply as usize] = m;
         // For killer moves, use actual capture detection from unmake info
         let move_is_capture = unmake.captured_piece != CAPTURED_NONE;
@@ -1054,6 +1058,7 @@ pub fn search(
                             m,
                             move_is_capture,
                             captured_value,
+                            hash_len_u128,
                         );
                     }
                     hash_flag = Exact;
@@ -1082,6 +1087,7 @@ pub fn search(
         (best_pathscore.0[0], best_pathscore.1),
         search_state,
         ply,
+        hash_len_u128,
     );
 
     best_pathscore
@@ -1212,6 +1218,7 @@ fn cutoff_unmake(
     m: Move,
     is_capture: bool,
     captured_value: Score,
+    hash_len_u128: u128,
 ) -> PathScore {
     store_hash_entry(
         position,
@@ -1222,6 +1229,7 @@ fn cutoff_unmake(
         (m, best_pathscore.1),
         search_state,
         ply,
+        hash_len_u128,
     );
     let bonus = (depth as i32) * (depth as i32);
     update_history(position, search_state, m, bonus as i64, captured_value);
