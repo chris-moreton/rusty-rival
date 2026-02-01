@@ -45,12 +45,20 @@ function Run-Depth {
         $proc.StandardInput.WriteLine($cmd)
     }
     $proc.StandardInput.Flush()
-    $proc.StandardInput.Close()
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $exited = $proc.WaitForExit($TimeoutMs)
     if (-not $exited) {
-        try { $proc.Kill() } catch {}
+        try {
+            $proc.StandardInput.WriteLine("stop")
+            $proc.StandardInput.WriteLine("quit")
+            $proc.StandardInput.Flush()
+            $proc.StandardInput.Close()
+        } catch {}
+        $exited = $proc.WaitForExit(5000)
+        if (-not $exited) {
+            try { $proc.Kill() } catch {}
+        }
         $sw.Stop()
         return [pscustomobject]@{
             Fen = $Fen
@@ -60,6 +68,7 @@ function Run-Depth {
             Line = ""
         }
     }
+    $proc.StandardInput.Close()
     $sw.Stop()
     $out = $proc.StandardOutput.ReadToEnd() -split "`r?`n"
 
