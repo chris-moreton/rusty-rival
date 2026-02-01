@@ -238,13 +238,18 @@ pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
     let multi_pv = if show_multi_pv { search_state.multi_pv } else { 1 };
     // Limit multi_pv to actual number of root moves to avoid index out of bounds
     let multi_pv = multi_pv.min(search_state.root_moves.len() as u8);
-    if search_state.start_time.elapsed().as_millis() > 0 {
-        search_state.root_moves.sort_by(|(ma, _), (mb, _)| {
-            let sa = search_state.pv.get(ma).unwrap().1;
-            let sb = search_state.pv.get(mb).unwrap().1;
-            sb.cmp(&sa)
-        });
-        let nps = (search_state.nodes as f64 / search_state.start_time.elapsed().as_millis() as f64) * 1000.0;
+    let elapsed_ms = search_state.start_time.elapsed().as_millis();
+    if elapsed_ms > 0 {
+        let mut scored_moves: Vec<(Move, Score)> = search_state
+            .root_moves
+            .iter()
+            .map(|(m, _)| (*m, search_state.pv.get(m).unwrap().1))
+            .collect();
+        scored_moves.sort_by(|(_, a), (_, b)| b.cmp(a));
+        for (i, (m, score)) in scored_moves.iter().enumerate() {
+            search_state.root_moves[i] = (*m, *score);
+        }
+        let nps = (search_state.nodes as f64 / elapsed_ms as f64) * 1000.0;
         for pv in 1..=multi_pv {
             let multi_pv_move = search_state.root_moves[pv as usize - 1];
             let pv_path_score = search_state.pv.get(multi_pv_move.0.borrow()).unwrap();
@@ -253,7 +258,7 @@ pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
                 + &*" depth ".to_string()
                 + &*search_state.iterative_depth.to_string()
                 + &*" time ".to_string()
-                + &*search_state.start_time.elapsed().as_millis().to_string()
+                + &*elapsed_ms.to_string()
                 + &*" nodes ".to_string()
                 + &*search_state.nodes.to_string()
                 + &*" nps ".to_string()
