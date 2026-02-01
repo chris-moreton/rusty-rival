@@ -293,17 +293,13 @@ fn generate_pawn_quiet_moves(
     colour_index: usize,
     mut from_squares: Bitboard,
 ) {
+    let is_white = position.mover == WHITE;
     while from_squares != 0 {
         let from_square = get_and_unset_lsb!(from_squares);
         let pawn_moves = PAWN_MOVES_FORWARD[colour_index][from_square as usize] & empty_squares;
 
         // If you can move one square, maybe you can move two
-        let shifted = if position.mover == WHITE {
-            pawn_moves << 8
-        } else {
-            pawn_moves >> 8
-        } & DOUBLE_MOVE_RANK_BITS[colour_index]
-            & empty_squares;
+        let shifted = if is_white { pawn_moves << 8 } else { pawn_moves >> 8 } & DOUBLE_MOVE_RANK_BITS[colour_index] & empty_squares;
 
         let mut to_bitboard = pawn_moves | shifted;
 
@@ -329,20 +325,15 @@ fn generate_pawn_moves(
     colour_index: usize,
     mut from_squares: Bitboard,
 ) {
+    let is_white = position.mover == WHITE;
+    let enemy_pawns_capture_bitboard =
+        position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | epsbit(position.en_passant_square);
     while from_squares != 0 {
         let from_square = get_and_unset_lsb!(from_squares);
         let pawn_moves = PAWN_MOVES_FORWARD[colour_index][from_square as usize] & empty_squares;
 
         // If you can move one square, maybe you can move two
-        let shifted = if position.mover == WHITE {
-            pawn_moves << 8
-        } else {
-            pawn_moves >> 8
-        } & DOUBLE_MOVE_RANK_BITS[colour_index]
-            & empty_squares;
-
-        let enemy_pawns_capture_bitboard =
-            position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard | epsbit(position.en_passant_square);
+        let shifted = if is_white { pawn_moves << 8 } else { pawn_moves >> 8 } & DOUBLE_MOVE_RANK_BITS[colour_index] & empty_squares;
 
         let mut to_bitboard = PAWN_MOVES_CAPTURE[colour_index][from_square as usize] & enemy_pawns_capture_bitboard | pawn_moves | shifted;
 
@@ -701,17 +692,13 @@ fn generate_pawn_evasion_blocks(
     mut from_squares: Bitboard,
     block_squares: Bitboard,
 ) {
+    let is_white = position.mover == WHITE;
     while from_squares != 0 {
         let from_square = get_and_unset_lsb!(from_squares);
         let pawn_moves = PAWN_MOVES_FORWARD[colour_index][from_square as usize] & empty_squares;
 
         // If you can move one square, maybe you can move two
-        let shifted = if position.mover == WHITE {
-            pawn_moves << 8
-        } else {
-            pawn_moves >> 8
-        } & DOUBLE_MOVE_RANK_BITS[colour_index]
-            & empty_squares;
+        let shifted = if is_white { pawn_moves << 8 } else { pawn_moves >> 8 } & DOUBLE_MOVE_RANK_BITS[colour_index] & empty_squares;
 
         let mut to_bitboard = (pawn_moves | shifted) & block_squares;
 

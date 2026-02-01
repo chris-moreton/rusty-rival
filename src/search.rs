@@ -190,9 +190,10 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         }
 
         legal_moves.sort_by(|(_, a), (_, b)| b.cmp(a));
-
-        legal_moves = legal_moves.into_iter().map(|m| (m.0, -MATE_SCORE)).collect();
-        search_state.root_moves = legal_moves.clone();
+        for mv in legal_moves.iter_mut() {
+            mv.1 = -MATE_SCORE;
+        }
+        search_state.root_moves.clone_from(&legal_moves);
 
         if search_state.multi_pv == 1 {
             aspiration_window = (
@@ -736,6 +737,7 @@ pub fn search(
     };
 
     if verified_hash_move {
+        let hash_captured_value = captured_piece_value(position, hash_move);
         let old_mover = position.mover;
         let unmake = make_move_in_place(position, hash_move);
         prefetch_hash(position, search_state); // Prefetch child position's hash entry
@@ -769,6 +771,7 @@ pub fn search(
                             hash_version,
                             hash_move,
                             hash_is_capture,
+                            hash_captured_value,
                         );
                     }
                     hash_flag = Exact;
@@ -851,9 +854,10 @@ pub fn search(
         }
 
         let m = pick_high_score_move(&mut move_scores);
+        let captured_value = captured_piece_value(position, m);
         let old_mover = position.mover;
         // For alpha pruning and LMR, treat promotions like captures (don't prune/reduce them)
-        let is_tactical = captured_piece_value(position, m) > 0;
+        let is_tactical = captured_value > 0;
         let is_promotion = m & PROMOTION_FULL_MOVE_MASK != 0;
 
         // SEE pruning: skip bad captures at low depths
@@ -1028,10 +1032,10 @@ pub fn search(
 
             if score < beta {
                 let penalty = -(real_depth as i32) * if score < alpha { 2 } else { 1 };
-                update_history(position, search_state, m, penalty as i64);
-                update_countermove_history_for_move(position, ply, search_state, m, penalty);
-                update_followup_history_for_move(position, ply, search_state, m, penalty);
-                update_capture_history_for_move(position, search_state, m, penalty);
+                update_history(position, search_state, m, penalty as i64, captured_value);
+                update_countermove_history_for_move(position, ply, search_state, m, penalty, captured_value, is_promotion);
+                update_followup_history_for_move(position, ply, search_state, m, penalty, captured_value, is_promotion);
+                update_capture_history_for_move(position, search_state, m, penalty, captured_value);
             }
 
             if score > best_pathscore.1 {
@@ -1049,6 +1053,7 @@ pub fn search(
                             hash_version,
                             m,
                             move_is_capture,
+                            captured_value,
                         );
                     }
                     hash_flag = Exact;
@@ -1101,14 +1106,16 @@ pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> 
 
 #[inline(always)]
 fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bool {
-    search_state
-        .history
-        .iter()
-        .rev()
-        .take(position.half_moves as usize)
-        .filter(|p| position.zobrist_lock == **p)
-        .count()
-        > 1
+    let mut repeats = 0;
+    for lock in search_state.history.iter().rev().take(position.half_moves as usize) {
+        if position.zobrist_lock == *lock {
+            repeats += 1;
+            if repeats > 1 {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 #[inline(always)]
@@ -1204,6 +1211,7 @@ fn cutoff_unmake(
     hash_version: u32,
     m: Move,
     is_capture: bool,
+    captured_value: Score,
 ) -> PathScore {
     store_hash_entry(
         position,
@@ -1216,13 +1224,21 @@ fn cutoff_unmake(
         ply,
     );
     let bonus = (depth as i32) * (depth as i32);
-    update_history(position, search_state, m, bonus as i64);
+    update_history(position, search_state, m, bonus as i64, captured_value);
     update_killers(ply, search_state, m, best_pathscore.1, is_capture);
     update_countermove(position, ply, search_state, m, is_capture, depth);
     // Update followup history with positive bonus (quiet moves only)
-    update_followup_history_for_move(position, ply, search_state, m, bonus);
+    update_followup_history_for_move(
+        position,
+        ply,
+        search_state,
+        m,
+        bonus,
+        captured_value,
+        m & PROMOTION_FULL_MOVE_MASK != 0,
+    );
     // Update capture history with positive bonus (captures only)
-    update_capture_history_for_move(position, search_state, m, bonus);
+    update_capture_history_for_move(position, search_state, m, bonus, captured_value);
     best_pathscore
 }
 
@@ -1281,9 +1297,17 @@ fn update_countermove_history(
 /// Update countermove history for a move that failed to cause cutoff (negative bonus)
 /// Called when a quiet move doesn't improve alpha
 #[inline(always)]
-fn update_countermove_history_for_move(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, bonus: i32) {
+fn update_countermove_history_for_move(
+    position: &Position,
+    ply: u8,
+    search_state: &mut SearchState,
+    m: Move,
+    bonus: i32,
+    captured_value: Score,
+    is_promotion: bool,
+) {
     // Only for quiet moves
-    if captured_piece_value(position, m) != 0 || (m & PROMOTION_FULL_MOVE_MASK != 0) {
+    if captured_value != 0 || is_promotion {
         return;
     }
     if ply == 0 {
@@ -1303,9 +1327,17 @@ fn update_countermove_history_for_move(position: &Position, ply: u8, search_stat
 
 /// Update followup history: tracks what works after our own move from 2 plies ago
 #[inline(always)]
-fn update_followup_history_for_move(position: &Position, ply: u8, search_state: &mut SearchState, m: Move, bonus: i32) {
+fn update_followup_history_for_move(
+    _position: &Position,
+    ply: u8,
+    search_state: &mut SearchState,
+    m: Move,
+    bonus: i32,
+    captured_value: Score,
+    is_promotion: bool,
+) {
     // Only for quiet moves
-    if captured_piece_value(position, m) != 0 || (m & PROMOTION_FULL_MOVE_MASK != 0) {
+    if captured_value != 0 || is_promotion {
         return;
     }
     if ply < 2 {
@@ -1332,14 +1364,13 @@ fn update_followup_history_for_move(position: &Position, ply: u8, search_state: 
 /// Update capture history: tracks how well captures perform
 /// Indexed by [attacker_piece][victim_piece][to_square]
 #[inline(always)]
-fn update_capture_history_for_move(position: &Position, search_state: &mut SearchState, m: Move, bonus: i32) {
-    let captured = captured_piece_value(position, m);
-    if captured == 0 {
+fn update_capture_history_for_move(_position: &Position, search_state: &mut SearchState, m: Move, bonus: i32, captured_value: Score) {
+    if captured_value == 0 {
         return; // Not a capture
     }
 
     let attacker = piece_type_to_index(m);
-    let victim = captured_piece_to_index(captured);
+    let victim = captured_piece_to_index(captured_value);
     let to_sq = to_square_part(m) as usize;
 
     let entry = &mut search_state.capture_history[attacker][victim][to_sq];
@@ -1384,8 +1415,8 @@ fn piece_type_to_index(m: Move) -> usize {
 }
 
 #[inline(always)]
-fn update_history(position: &Position, search_state: &mut SearchState, m: Move, score: i64) {
-    if captured_piece_value(position, m) == 0 {
+fn update_history(position: &Position, search_state: &mut SearchState, m: Move, score: i64, captured_value: Score) {
+    if captured_value == 0 {
         let f = from_square_part(m) as usize;
         let t = to_square_part(m) as usize;
 
