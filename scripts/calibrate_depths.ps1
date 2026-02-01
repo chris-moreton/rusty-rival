@@ -30,7 +30,7 @@ function Run-Depth {
     )
 
     $out = $cmds | & $Exe
-    $pattern = "info score cp .* depth $Depth .* nodes .* nps .* multipv 1"
+    $pattern = "info .* depth $Depth .* nodes .* nps .*"
     $line = $out | Select-String -Pattern $pattern | Select-Object -Last 1
     if (-not $line) {
         throw "No matching info line found for depth $Depth and FEN: $Fen"
