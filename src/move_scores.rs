@@ -72,10 +72,12 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     let curr_to = to_square as usize;
     let from_sq = from_square_part(m) as usize;
     let piece_index = piece_index_12(position, m);
+    let enemy_pieces = enemy.all_pieces_bitboard;
+    let mover = position.mover;
     // Cap ply to avoid array out of bounds (arrays are sized MAX_DEPTH = 250)
     let ply = ply.min(249);
 
-    let score = if enemy.all_pieces_bitboard & bit(to_square) != 0 {
+    let score = if enemy_pieces & bit(to_square) != 0 {
         let see_score = static_exchange_evaluation(position, m);
         let capture_hist = capture_history_score(m, to_square, enemy, search_state);
         GOOD_CAPTURE_START + see_score + capture_hist
@@ -114,7 +116,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         // Use to_square from line 74 - no need to recompute
         if to_square >= 48 || to_square <= 15 {
             MOVE_SCORE_PAWN_PUSH_7TH
-        } else if position.mover == WHITE {
+        } else if mover == WHITE {
             if (40..=47).contains(&to_square)
                 && position.pieces[BLACK as usize].pawn_bitboard & WHITE_PASSED_PAWN_MASK[to_square as usize] == 0
             {
