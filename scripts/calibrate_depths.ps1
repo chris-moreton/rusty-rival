@@ -14,7 +14,8 @@ function Run-Depth {
         [string]$Exe,
         [string]$Fen,
         [int]$Depth,
-        [int]$Hash
+        [int]$Hash,
+        [int]$TimeoutMs
     )
 
     $cmds = @(
@@ -28,9 +29,39 @@ function Run-Depth {
         "quit"
     )
 
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $Exe
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+    [void]$proc.Start()
+
+    foreach ($cmd in $cmds) {
+        $proc.StandardInput.WriteLine($cmd)
+    }
+    $proc.StandardInput.Flush()
+    $proc.StandardInput.Close()
+
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    $out = $cmds | & $Exe
+    $exited = $proc.WaitForExit($TimeoutMs)
+    if (-not $exited) {
+        try { $proc.Kill() } catch {}
+        $sw.Stop()
+        return [pscustomobject]@{
+            Fen = $Fen
+            Depth = $Depth
+            TimeMs = $sw.ElapsedMilliseconds
+            Overrun = $true
+            Line = ""
+        }
+    }
     $sw.Stop()
+    $out = $proc.StandardOutput.ReadToEnd() -split "`r?`n"
 
     $nodesLine = $out | Select-String -Pattern "^Nodes\s+(\d+)" | Select-Object -Last 1
     if (-not $nodesLine) {
@@ -46,6 +77,7 @@ function Run-Depth {
         Fen = $Fen
         Depth = $Depth
         TimeMs = $ms
+        Overrun = $false
         Line = $nodesLine.Line
     }
 }
@@ -61,13 +93,15 @@ foreach ($fen in $fens) {
     $depth = 4
     $prevRes = $null
     while ($true) {
-        $res = Run-Depth -Exe $Exe -Fen $fen -Depth $depth -Hash $Hash
+        Write-Host "Testing depth $depth for FEN: $fen"
+        $timeoutMs = [int]([math]::Ceiling($TargetSeconds * 1.5 * 1000))
+        $res = Run-Depth -Exe $Exe -Fen $fen -Depth $depth -Hash $Hash -TimeoutMs $timeoutMs
         $seconds = $res.TimeMs / 1000.0
 
-        if ($seconds -ge $TargetSeconds -or $depth -ge $MaxDepth) {
+        if ($res.Overrun -or $seconds -ge $TargetSeconds -or $depth -ge $MaxDepth) {
             $chosen = $depth
             $chosenMs = $res.TimeMs
-            if ($seconds -gt ($TargetSeconds * 1.5) -and $prevRes -ne $null) {
+            if (($res.Overrun -or $seconds -gt ($TargetSeconds * 1.5)) -and $prevRes -ne $null) {
                 $chosen = $prevRes.Depth
                 $chosenMs = $prevRes.TimeMs
             }
