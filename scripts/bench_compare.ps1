@@ -16,29 +16,64 @@ function Run-Depth {
         [int]$Hash
     )
 
-    $cmds = @(
-        "uci"
-        "isready"
-        "setoption name Hash value $Hash"
-        "ucinewgame"
-        "position fen $Fen"
-        "go depth $Depth"
-        "state"
-        "quit"
-    )
+    $exePath = (Resolve-Path $Exe).Path
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $exePath
+    $psi.WorkingDirectory = Split-Path $exePath -Parent
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+    [void]$proc.Start()
+
+    $proc.StandardInput.WriteLine("uci")
+    $proc.StandardInput.WriteLine("isready")
+    $proc.StandardInput.WriteLine("setoption name Hash value $Hash")
+    $proc.StandardInput.WriteLine("setoption name Clear Hash")
+    $proc.StandardInput.WriteLine("position fen $Fen")
+    $proc.StandardInput.WriteLine("go depth $Depth")
+    $proc.StandardInput.Flush()
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    $out = $cmds | & $Exe
+    while ($true) {
+        if (-not $proc.StandardOutput.EndOfStream) {
+            $line = $proc.StandardOutput.ReadLine()
+        } else {
+            Start-Sleep -Milliseconds 10
+            $line = $null
+        }
+
+        if ($line -and $line.StartsWith("bestmove")) {
+            break
+        }
+    }
+
+    $proc.StandardInput.WriteLine("state")
+    $proc.StandardInput.WriteLine("quit")
+    $proc.StandardInput.Flush()
+    $proc.StandardInput.Close()
+
+    $nodesLine = $null
+    while (-not $proc.StandardOutput.EndOfStream) {
+        $line = $proc.StandardOutput.ReadLine()
+        if ($line -and $line.StartsWith("Nodes")) {
+            $nodesLine = $line
+            break
+        }
+    }
+
+    $proc.WaitForExit(5000) | Out-Null
     $sw.Stop()
 
-    $nodesLine = $out | Select-String -Pattern "^Nodes\s+(\d+)" | Select-Object -Last 1
     if (-not $nodesLine) {
-        $tail = $out | Select-Object -Last 20
-        $tail | ForEach-Object { Write-Host $_ }
         throw "No Nodes line found for depth $Depth and FEN: $Fen"
     }
 
-    $nodes = [int64]([regex]::Match($nodesLine.Line, "Nodes\s+(\d+)").Groups[1].Value)
+    $nodes = [int64]([regex]::Match($nodesLine, "Nodes\s+(\d+)").Groups[1].Value)
     $ms = [int64]$sw.ElapsedMilliseconds
     if ($ms -le 0) { $ms = 1 }
     $nps = [int64]([math]::Round($nodes / ($ms / 1000.0)))
@@ -50,7 +85,7 @@ function Run-Depth {
         Nodes = $nodes
         Nps = $nps
         TimeMs = $ms
-        Line = $nodesLine.Line
+        Line = $nodesLine
     }
 }
 

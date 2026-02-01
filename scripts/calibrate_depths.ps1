@@ -18,17 +18,6 @@ function Run-Depth {
         [int]$TimeoutMs
     )
 
-    $cmds = @(
-        "uci"
-        "isready"
-        "setoption name Hash value $Hash"
-        "setoption name Clear Hash"
-        "position fen $Fen"
-        "go depth $Depth"
-        "state"
-        "quit"
-    )
-
     $exePath = (Resolve-Path $Exe).Path
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $exePath
@@ -43,41 +32,55 @@ function Run-Depth {
     $proc.StartInfo = $psi
     [void]$proc.Start()
 
-    foreach ($cmd in $cmds) {
-        $proc.StandardInput.WriteLine($cmd)
-    }
+    $proc.StandardInput.WriteLine("uci")
+    $proc.StandardInput.WriteLine("isready")
+    $proc.StandardInput.WriteLine("setoption name Hash value $Hash")
+    $proc.StandardInput.WriteLine("setoption name Clear Hash")
+    $proc.StandardInput.WriteLine("position fen $Fen")
+    $proc.StandardInput.WriteLine("go depth $Depth")
     $proc.StandardInput.Flush()
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    $exited = $proc.WaitForExit($TimeoutMs)
-    if (-not $exited) {
-        try {
-            $proc.StandardInput.WriteLine("stop")
-            $proc.StandardInput.WriteLine("quit")
-            $proc.StandardInput.Flush()
-            $proc.StandardInput.Close()
-        } catch {}
-        $exited = $proc.WaitForExit(5000)
-        if (-not $exited) {
-            try { $proc.Kill() } catch {}
+    $timedOut = $false
+    while ($true) {
+        if (-not $proc.StandardOutput.EndOfStream) {
+            $line = $proc.StandardOutput.ReadLine()
+        } else {
+            Start-Sleep -Milliseconds 10
+            $line = $null
         }
-        $sw.Stop()
-        return [pscustomobject]@{
-            Fen = $Fen
-            Depth = $Depth
-            TimeMs = $sw.ElapsedMilliseconds
-            Overrun = $true
-            Line = ""
+
+        if ($line -and $line.StartsWith("bestmove")) {
+            break
+        }
+
+        if (-not $timedOut -and $sw.ElapsedMilliseconds -ge $TimeoutMs) {
+            $timedOut = $true
+            try {
+                $proc.StandardInput.WriteLine("stop")
+                $proc.StandardInput.Flush()
+            } catch {}
         }
     }
-    $proc.StandardInput.Close()
-    $sw.Stop()
-    $out = $proc.StandardOutput.ReadToEnd() -split "`r?`n"
 
-    $nodesLine = $out | Select-String -Pattern "^Nodes\s+(\d+)" | Select-Object -Last 1
+    $proc.StandardInput.WriteLine("state")
+    $proc.StandardInput.WriteLine("quit")
+    $proc.StandardInput.Flush()
+    $proc.StandardInput.Close()
+
+    $nodesLine = $null
+    while (-not $proc.StandardOutput.EndOfStream) {
+        $line = $proc.StandardOutput.ReadLine()
+        if ($line -and $line.StartsWith("Nodes")) {
+            $nodesLine = $line
+            break
+        }
+    }
+
+    $proc.WaitForExit(5000) | Out-Null
+    $sw.Stop()
+
     if (-not $nodesLine) {
-        $tail = $out | Select-Object -Last 20
-        $tail | ForEach-Object { Write-Host $_ }
         throw "No Nodes line found for depth $Depth and FEN: $Fen"
     }
 
@@ -88,8 +91,8 @@ function Run-Depth {
         Fen = $Fen
         Depth = $Depth
         TimeMs = $ms
-        Overrun = $false
-        Line = $nodesLine.Line
+        Overrun = $timedOut
+        Line = $nodesLine
     }
 }
 
