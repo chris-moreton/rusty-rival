@@ -2,7 +2,7 @@ param(
     [string]$Exe = ".\target-after12\release\rusty-rival.exe",
     [int]$TargetSeconds = 3,
     [int]$Hash = 128,
-    [int]$MaxTries = 4,
+    [int]$MaxDepth = 30,
     [string]$FensJson = ".\scripts\perft_fens.json",
     [string]$DepthsJson = ".\scripts\perft_depths.json"
 )
@@ -59,27 +59,29 @@ $fens = Get-Content $FensJson | ConvertFrom-Json
 $results = @()
 foreach ($fen in $fens) {
     $depth = 4
-    $tries = 0
+    $prevRes = $null
     while ($true) {
-        $tries += 1
         $res = Run-Depth -Exe $Exe -Fen $fen -Depth $depth -Hash $Hash
         $seconds = $res.TimeMs / 1000.0
-        if ($seconds -ge $TargetSeconds -or $depth -ge 30 -or $tries -ge $MaxTries) {
+
+        if ($seconds -ge $TargetSeconds -or $depth -ge $MaxDepth) {
+            $chosen = $depth
+            $chosenMs = $res.TimeMs
+            if ($seconds -gt ($TargetSeconds * 1.5) -and $prevRes -ne $null) {
+                $chosen = $prevRes.Depth
+                $chosenMs = $prevRes.TimeMs
+            }
             $results += [pscustomobject]@{
                 Fen = $fen
-                Depth = $depth
-                TimeMs = $res.TimeMs
+                Depth = $chosen
+                TimeMs = $chosenMs
             }
-            Write-Host "Calibrated $depth ply in $($res.TimeMs) ms for FEN: $fen"
+            Write-Host "Calibrated $chosen ply in $($chosenMs) ms for FEN: $fen"
             break
         }
-        if ($seconds -gt 0.0) {
-            $ratio = $TargetSeconds / $seconds
-            $delta = [int]([math]::Max(2, [math]::Ceiling([math]::Log($ratio, 2))))
-            $depth += $delta
-        } else {
-            $depth += 2
-        }
+
+        $prevRes = $res
+        $depth += 1
     }
 }
 
