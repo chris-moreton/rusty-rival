@@ -70,6 +70,8 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     let to_square = to_square_part(m);
     let curr_piece = piece_type_to_index(m);
     let curr_to = to_square as usize;
+    let from_sq = from_square_part(m) as usize;
+    let piece_index = piece_index_12(position, m);
     // Cap ply to avoid array out of bounds (arrays are sized MAX_DEPTH = 250)
     let ply = ply.min(249);
 
@@ -133,7 +135,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
 
     score
         + pawn_push_score
-        + history_score(position, m, search_state, to_square)
+        + history_score_cached(search_state, piece_index, from_sq, curr_to)
         + followup_history_score_cached(ply, curr_piece, curr_to, search_state)
 }
 
@@ -141,6 +143,17 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
 pub fn history_score(position: &Position, m: Move, search_state: &SearchState, to_square: Square) -> Score {
     linear_scale(
         search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize],
+        0,
+        search_state.highest_history_score,
+        HISTORY_START as i64,
+        MOVE_SCORE_HISTORY_MAX as i64,
+    ) as Score
+}
+
+#[inline(always)]
+fn history_score_cached(search_state: &SearchState, piece_index: usize, from_sq: usize, to_sq: usize) -> Score {
+    linear_scale(
+        search_state.history_moves[piece_index][from_sq][to_sq],
         0,
         search_state.highest_history_score,
         HISTORY_START as i64,
