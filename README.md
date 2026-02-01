@@ -26,6 +26,7 @@ set RUSTFLAGS=-C target-cpu=native
 set RUST_MIN_STACK=4097152
 cargo build --release
 ```
+Note: `.cargo/config.toml` sets `-C target-cpu=native` for local builds by default to maximize performance. This makes the binaries non-portable across different CPUs. The release workflow overrides this to keep published binaries portable.
 2. Store the executable in engines directory:
 ```bash
 mkdir -p engines/v020-my-feature
