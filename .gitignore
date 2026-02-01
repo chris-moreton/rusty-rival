@@ -1,4 +1,6 @@
 /target
+/target-after*/
+/target-before*/
 .idea/*
 .idea
 perf.data*
