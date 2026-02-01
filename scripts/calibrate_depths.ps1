@@ -2,6 +2,7 @@ param(
     [string]$Exe = ".\target-after12\release\rusty-rival.exe",
     [int]$TargetSeconds = 3,
     [int]$Hash = 128,
+    [int]$MaxTries = 4,
     [string]$FensJson = ".\scripts\perft_fens.json",
     [string]$DepthsJson = ".\scripts\perft_depths.json"
 )
@@ -20,7 +21,7 @@ function Run-Depth {
         "uci"
         "isready"
         "setoption name Hash value $Hash"
-        "ucinewgame"
+        "setoption name Clear Hash"
         "position fen $Fen"
         "go depth $Depth"
         "state"
@@ -57,19 +58,28 @@ $fens = Get-Content $FensJson | ConvertFrom-Json
 
 $results = @()
 foreach ($fen in $fens) {
-    $depth = 6
+    $depth = 4
+    $tries = 0
     while ($true) {
+        $tries += 1
         $res = Run-Depth -Exe $Exe -Fen $fen -Depth $depth -Hash $Hash
         $seconds = $res.TimeMs / 1000.0
-        if ($seconds -ge $TargetSeconds -or $depth -ge 30) {
+        if ($seconds -ge $TargetSeconds -or $depth -ge 30 -or $tries -ge $MaxTries) {
             $results += [pscustomobject]@{
                 Fen = $fen
                 Depth = $depth
                 TimeMs = $res.TimeMs
             }
+            Write-Host "Calibrated $depth ply in $($res.TimeMs) ms for FEN: $fen"
             break
         }
-        $depth += 1
+        if ($seconds -gt 0.0) {
+            $ratio = $TargetSeconds / $seconds
+            $delta = [int]([math]::Max(2, [math]::Ceiling([math]::Log($ratio, 2))))
+            $depth += $delta
+        } else {
+            $depth += 2
+        }
     }
 }
 
