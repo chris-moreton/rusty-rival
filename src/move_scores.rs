@@ -93,13 +93,13 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     } else if m == search_state.mate_killer[ply] {
         MOVE_SCORE_MATE_KILLER
     } else {
-        let killer_moves = search_state.killer_moves[ply];
+        let killer_moves = &search_state.killer_moves[ply];
         if m == killer_moves[0] {
             MOVE_SCORE_KILLER_1
         } else if m == killer_moves[1] {
             MOVE_SCORE_KILLER_2
         } else if ply > 2 {
-            let killer_moves = search_state.killer_moves[ply - 2];
+            let killer_moves = &search_state.killer_moves[ply - 2];
             if m == killer_moves[0] {
                 MOVE_SCORE_DISTANT_KILLER_1
             } else if m == killer_moves[1] {
