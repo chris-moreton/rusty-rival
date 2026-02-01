@@ -79,7 +79,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
 
     let score = if enemy_pieces & bit(to_square) != 0 {
         let see_score = static_exchange_evaluation(position, m);
-        let capture_hist = capture_history_score(m, to_square, enemy, search_state);
+        let capture_hist = capture_history_score_cached(curr_piece, to_square, enemy, search_state);
         GOOD_CAPTURE_START + see_score + capture_hist
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
         match m & PROMOTION_FULL_MOVE_MASK {
@@ -184,8 +184,7 @@ fn followup_history_score_cached(ply: usize, curr_piece: usize, curr_to: usize, 
 /// Capture history: bonus based on how well this capture has performed historically
 /// Indexed by [attacker_piece][victim_piece][to_square]
 #[inline(always)]
-fn capture_history_score(m: Move, to_square: Square, enemy: &Pieces, search_state: &SearchState) -> Score {
-    let attacker = piece_type_to_index(m);
+fn capture_history_score_cached(attacker: usize, to_square: Square, enemy: &Pieces, search_state: &SearchState) -> Score {
     let victim = victim_piece_index(to_square, enemy);
     let history = search_state.capture_history[attacker][victim][to_square as usize];
     (history as i32 / CAPTURE_HISTORY_DIVISOR) as Score
