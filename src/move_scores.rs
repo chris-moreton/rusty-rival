@@ -68,6 +68,8 @@ pub fn attacker_value(piece: Move) -> Score {
 #[inline(always)]
 pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
     let to_square = to_square_part(m);
+    let curr_piece = piece_type_to_index(m);
+    let curr_to = to_square as usize;
     // Cap ply to avoid array out of bounds (arrays are sized MAX_DEPTH = 250)
     let ply = ply.min(249);
 
@@ -129,7 +131,10 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         0
     };
 
-    score + pawn_push_score + history_score(position, m, search_state, to_square) + followup_history_score(ply, m, search_state)
+    score
+        + pawn_push_score
+        + history_score(position, m, search_state, to_square)
+        + followup_history_score_cached(ply, curr_piece, curr_to, search_state)
 }
 
 #[inline(always)]
@@ -146,8 +151,7 @@ pub fn history_score(position: &Position, m: Move, search_state: &SearchState, t
 /// Follow-up history: bonus based on what worked after our move 2 plies ago
 /// This captures "after I played Nf3, Bg5 tends to work well"
 #[inline(always)]
-fn followup_history_score(ply: usize, m: Move, search_state: &SearchState) -> Score {
-    // Need at least 2 plies of history
+fn followup_history_score_cached(ply: usize, curr_piece: usize, curr_to: usize, search_state: &SearchState) -> Score {
     if ply < 2 {
         return 0;
     }
@@ -155,11 +159,8 @@ fn followup_history_score(ply: usize, m: Move, search_state: &SearchState) -> Sc
     if our_prev_move == 0 {
         return 0;
     }
-    // Index by our previous move's piece (0-5) and to_square
     let our_prev_piece = piece_type_to_index(our_prev_move);
     let our_prev_to = to_square_part(our_prev_move) as usize;
-    let curr_piece = piece_type_to_index(m);
-    let curr_to = to_square_part(m) as usize;
 
     let history = search_state.followup_history[our_prev_piece][our_prev_to][curr_piece][curr_to];
     (history as i32 / FOLLOWUP_HISTORY_DIVISOR) as Score
