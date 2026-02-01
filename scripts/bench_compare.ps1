@@ -1,0 +1,91 @@
+param(
+    [string]$AfterExe = ".\target-after12\release\rusty-rival.exe",
+    [string]$BeforeExe = ".\target-before\release\rusty-rival.exe",
+    [int]$Threads = 1,
+    [int]$Hash = 128,
+    [string]$DepthsJson = ".\scripts\perft_depths.json",
+    [string]$CsvOut = ".\scripts\perft_compare.csv"
+)
+
+$ErrorActionPreference = "Stop"
+
+function Run-Depth {
+    param(
+        [string]$Exe,
+        [string]$Fen,
+        [int]$Depth,
+        [int]$Threads,
+        [int]$Hash
+    )
+
+    $cmds = @(
+        "uci"
+        "isready"
+        "setoption name Threads value $Threads"
+        "setoption name Hash value $Hash"
+        "ucinewgame"
+        "position fen $Fen"
+        "go depth $Depth"
+        "quit"
+    )
+
+    $out = $cmds | & $Exe
+    $pattern = "info score cp .* depth $Depth .* nodes .* nps .* multipv 1"
+    $line = $out | Select-String -Pattern $pattern | Select-Object -Last 1
+    if (-not $line) {
+        throw "No matching info line found for depth $Depth and FEN: $Fen"
+    }
+
+    $nodes = [int64]([regex]::Match($line.Line, "nodes\s+(\d+)").Groups[1].Value)
+    $nps = [int64]([regex]::Match($line.Line, "nps\s+(\d+)").Groups[1].Value)
+    $ms = [int64]([regex]::Match($line.Line, "time\s+(\d+)").Groups[1].Value)
+
+    [pscustomobject]@{
+        Exe = $Exe
+        Fen = $Fen
+        Depth = $Depth
+        Nodes = $nodes
+        Nps = $nps
+        TimeMs = $ms
+        Line = $line.Line
+    }
+}
+
+if (-not (Test-Path $DepthsJson)) {
+    throw "Missing depths file: $DepthsJson. Run scripts/calibrate_depths.ps1 first."
+}
+
+$depths = Get-Content $DepthsJson | ConvertFrom-Json
+
+$rows = @()
+foreach ($entry in $depths) {
+    $fen = $entry.Fen
+    $depth = [int]$entry.Depth
+
+    $after = Run-Depth -Exe $AfterExe -Fen $fen -Depth $depth -Threads $Threads -Hash $Hash
+    $before = Run-Depth -Exe $BeforeExe -Fen $fen -Depth $depth -Threads $Threads -Hash $Hash
+
+    $rows += [pscustomobject]@{
+        Fen = $fen
+        Depth = $depth
+        AfterNodes = $after.Nodes
+        AfterNps = $after.Nps
+        AfterTimeMs = $after.TimeMs
+        BeforeNodes = $before.Nodes
+        BeforeNps = $before.Nps
+        BeforeTimeMs = $before.TimeMs
+    }
+}
+
+$rows | Export-Csv -NoTypeInformation -Path $CsvOut
+Write-Host "Wrote results to $CsvOut"
+
+$afterTotalNodes = ($rows | Measure-Object -Property AfterNodes -Sum).Sum
+$beforeTotalNodes = ($rows | Measure-Object -Property BeforeNodes -Sum).Sum
+$afterAvgNps = [int64](($rows | Measure-Object -Property AfterNps -Average).Average)
+$beforeAvgNps = [int64](($rows | Measure-Object -Property BeforeNps -Average).Average)
+
+Write-Host "After total nodes:  $afterTotalNodes"
+Write-Host "Before total nodes: $beforeTotalNodes"
+Write-Host "After avg nps:      $afterAvgNps"
+Write-Host "Before avg nps:     $beforeAvgNps"
