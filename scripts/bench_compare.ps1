@@ -23,19 +23,25 @@ function Run-Depth {
         "ucinewgame"
         "position fen $Fen"
         "go depth $Depth"
+        "state"
         "quit"
     )
 
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $out = $cmds | & $Exe
-    $pattern = "info .* depth $Depth .* nodes .* nps .*"
-    $line = $out | Select-String -Pattern $pattern | Select-Object -Last 1
-    if (-not $line) {
-        throw "No matching info line found for depth $Depth and FEN: $Fen"
+    $sw.Stop()
+
+    $nodesLine = $out | Select-String -Pattern "^Nodes\s+(\d+)" | Select-Object -Last 1
+    if (-not $nodesLine) {
+        $tail = $out | Select-Object -Last 20
+        $tail | ForEach-Object { Write-Host $_ }
+        throw "No Nodes line found for depth $Depth and FEN: $Fen"
     }
 
-    $nodes = [int64]([regex]::Match($line.Line, "nodes\s+(\d+)").Groups[1].Value)
-    $nps = [int64]([regex]::Match($line.Line, "nps\s+(\d+)").Groups[1].Value)
-    $ms = [int64]([regex]::Match($line.Line, "time\s+(\d+)").Groups[1].Value)
+    $nodes = [int64]([regex]::Match($nodesLine.Line, "Nodes\s+(\d+)").Groups[1].Value)
+    $ms = [int64]$sw.ElapsedMilliseconds
+    if ($ms -le 0) { $ms = 1 }
+    $nps = [int64]([math]::Round($nodes / ($ms / 1000.0)))
 
     [pscustomobject]@{
         Exe = $Exe
@@ -44,7 +50,7 @@ function Run-Depth {
         Nodes = $nodes
         Nps = $nps
         TimeMs = $ms
-        Line = $line.Line
+        Line = $nodesLine.Line
     }
 }
 

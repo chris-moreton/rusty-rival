@@ -23,28 +23,29 @@ function Run-Depth {
         "ucinewgame"
         "position fen $Fen"
         "go depth $Depth"
+        "state"
         "quit"
     )
 
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $out = $cmds | & $Exe
-    $pattern = "info .* depth $Depth .* nodes .* nps .*"
-    $line = $out | Select-String -Pattern $pattern | Select-Object -Last 1
-    if (-not $line) {
+    $sw.Stop()
+
+    $nodesLine = $out | Select-String -Pattern "^Nodes\s+(\d+)" | Select-Object -Last 1
+    if (-not $nodesLine) {
         $tail = $out | Select-Object -Last 20
         $tail | ForEach-Object { Write-Host $_ }
-        throw "No matching info line found for depth $Depth and FEN: $Fen"
+        throw "No Nodes line found for depth $Depth and FEN: $Fen"
     }
 
-    $ms = [int64]([regex]::Match($line.Line, "time\s+(\d+)").Groups[1].Value)
-    if ($ms -le 0) {
-        $ms = 1
-    }
+    $ms = [int64]$sw.ElapsedMilliseconds
+    if ($ms -le 0) { $ms = 1 }
 
     [pscustomobject]@{
         Fen = $Fen
         Depth = $Depth
         TimeMs = $ms
-        Line = $line.Line
+        Line = $nodesLine.Line
     }
 }
 
