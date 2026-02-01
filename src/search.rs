@@ -300,12 +300,11 @@ pub fn store_hash_entry(
     movescore: MoveScore,
     search_state: &mut SearchState,
     ply: u8,
-    hash_len_u128: u128,
+    hash_index: usize,
 ) {
     if height >= existing_height || search_state.hash_table_version > existing_version {
-        let index: usize = (position.zobrist_lock % hash_len_u128) as usize;
         search_state.hash_table.set(
-            index,
+            hash_index,
             HashEntry {
                 // adjust any mate score so that the score appears calculated as if this ply were the root
                 score: match movescore.1 {
@@ -481,8 +480,8 @@ pub fn search(
     let mut best_pathscore: PathScore = (pv_single(0), -MATE_SCORE);
 
     let hash_len_u128 = search_state.hash_table.len() as u128;
-    let index: usize = (position.zobrist_lock % hash_len_u128) as usize;
-    let hash_entry = search_state.hash_table.get(index);
+    let hash_index: usize = (position.zobrist_lock % hash_len_u128) as usize;
+    let hash_entry = search_state.hash_table.get(hash_index);
     // Cache hash hit check to avoid repeated 128-bit comparisons
     let hash_hit = hash_entry.lock == position.zobrist_lock;
     // Track hash entry info for singular extension (needed even if depth isn't sufficient for cutoff)
@@ -775,7 +774,7 @@ pub fn search(
                             hash_move,
                             hash_is_capture,
                             hash_captured_value,
-                            hash_len_u128,
+                            hash_index,
                         );
                     }
                     hash_flag = Exact;
@@ -1058,7 +1057,7 @@ pub fn search(
                             m,
                             move_is_capture,
                             captured_value,
-                            hash_len_u128,
+                            hash_index,
                         );
                     }
                     hash_flag = Exact;
@@ -1087,7 +1086,7 @@ pub fn search(
         (best_pathscore.0[0], best_pathscore.1),
         search_state,
         ply,
-        hash_len_u128,
+        hash_index,
     );
 
     best_pathscore
@@ -1218,7 +1217,7 @@ fn cutoff_unmake(
     m: Move,
     is_capture: bool,
     captured_value: Score,
-    hash_len_u128: u128,
+    hash_index: usize,
 ) -> PathScore {
     store_hash_entry(
         position,
@@ -1229,7 +1228,7 @@ fn cutoff_unmake(
         (m, best_pathscore.1),
         search_state,
         ply,
-        hash_len_u128,
+        hash_index,
     );
     let bonus = (depth as i32) * (depth as i32);
     update_history(position, search_state, m, bonus as i64, captured_value);
