@@ -950,24 +950,39 @@ pub fn search(
                 if !scout_search && reduction > 0 {
                     reduction -= 1;
                 }
-                // Countermove bonus: reduce less for the stored countermove
-                // The countermove has historically been a good response to the previous move
-                if ply > 0 && reduction > 0 {
+                // Cache move parts once for all LMR adjustments
+                let curr_piece = piece_type_to_index(m);
+                let curr_to = to_square_part(m) as usize;
+                let curr_from = from_square_part(m) as usize;
+
+                // Cache previous move info (used for countermove and continuation history)
+                let (has_prev_move, prev_piece_12, prev_to) = if ply > 0 {
                     let prev_move = search_state.ply_move[ply as usize - 1];
                     if prev_move != 0 {
                         let opponent_side = position.mover ^ 1;
-                        let prev_piece = piece_type_to_index(prev_move) + (opponent_side as usize * 6);
-                        let prev_to = to_square_part(prev_move) as usize;
-                        if search_state.countermoves[prev_piece][prev_to] == m {
-                            reduction -= 1;
-                        }
+                        (
+                            true,
+                            piece_type_to_index(prev_move) + (opponent_side as usize * 6),
+                            to_square_part(prev_move) as usize,
+                        )
+                    } else {
+                        (false, 0, 0)
                     }
+                } else {
+                    (false, 0, 0)
+                };
+
+                // Countermove bonus: reduce less for the stored countermove
+                // The countermove has historically been a good response to the previous move
+                if has_prev_move && reduction > 0 && search_state.countermoves[prev_piece_12][prev_to] == m {
+                    reduction -= 1;
                 }
+
                 // History-based LMR: adjust reduction based on move's historical performance
                 // Moves that have worked well before get searched deeper (less reduction)
                 // Moves that have failed often get searched shallower (more reduction)
-                let hist =
-                    search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square_part(m) as usize];
+                let piece_12 = piece_index_12(position, m);
+                let hist = search_state.history_moves[piece_12][curr_from][curr_to];
                 let good_threshold = search_state.highest_history_score / LMR_HISTORY_GOOD_DIVISOR as i64;
                 let bad_threshold = -(search_state.highest_history_score / LMR_HISTORY_BAD_DIVISOR as i64);
                 if hist > good_threshold && reduction > 0 {
@@ -975,20 +990,14 @@ pub fn search(
                 } else if hist < bad_threshold {
                     reduction += 1;
                 }
+
                 // Continuation history: use countermove_history and followup_history for additional adjustment
                 // These capture context-specific move quality (what works after certain moves)
-                let curr_piece = piece_type_to_index(m);
-                let curr_to = to_square_part(m) as usize;
                 let mut continuation_score: i32 = 0;
-                // Add countermove history contribution
-                if ply > 0 {
-                    let prev_move = search_state.ply_move[ply as usize - 1];
-                    if prev_move != 0 {
-                        let opponent_side = position.mover ^ 1;
-                        let prev_piece = piece_type_to_index(prev_move) + (opponent_side as usize * 6);
-                        let prev_to = to_square_part(prev_move) as usize;
-                        continuation_score += search_state.countermove_history[prev_piece][prev_to][curr_piece][curr_to] as i32;
-                    }
+
+                // Add countermove history contribution (reuse cached prev_piece_12/prev_to)
+                if has_prev_move {
+                    continuation_score += search_state.countermove_history[prev_piece_12][prev_to][curr_piece][curr_to] as i32;
                 }
                 // Add followup history contribution
                 if ply >= 2 {

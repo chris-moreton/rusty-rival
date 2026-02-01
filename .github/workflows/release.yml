@@ -72,7 +72,24 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        shell: bash
+        run: |
+          # Override config.toml's target-cpu=native for portable release binaries
+          case "${{ matrix.target }}" in
+            *-linux-*)
+              export RUSTFLAGS="-C link-args=-Wl,-z,stack-size=8388608"
+              ;;
+            *-windows-msvc)
+              export RUSTFLAGS="-C link-args=/STACK:8388608"
+              ;;
+            *-windows-gnu)
+              export RUSTFLAGS="-C link-args=-Wl,--stack,8388608"
+              ;;
+            *-apple-*)
+              export RUSTFLAGS=""
+              ;;
+          esac
+          cargo build --release --target ${{ matrix.target }}
 
       - name: Rename binary (Unix)
         if: matrix.os != 'windows-latest'

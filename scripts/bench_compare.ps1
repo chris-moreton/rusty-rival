@@ -3,7 +3,8 @@ param(
     [string]$BeforeExe = ".\target-before\release\rusty-rival.exe",
     [int]$Hash = 128,
     [string]$DepthsJson = ".\scripts\perft_depths.json",
-    [string]$CsvOut = ".\scripts\perft_compare.csv"
+    [string]$CsvOut = ".\scripts\perft_compare.csv",
+    [int]$MaxPositions = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -100,6 +101,11 @@ if (-not (Test-Path $DepthsJson)) {
 
 $depths = Get-Content $DepthsJson | ConvertFrom-Json
 
+# Limit positions if MaxPositions is specified
+if ($MaxPositions -gt 0 -and $MaxPositions -lt $depths.Count) {
+    $depths = $depths | Select-Object -First $MaxPositions
+}
+
 $rows = @()
 $total = $depths.Count
 $idx = 0
@@ -142,7 +148,22 @@ foreach ($entry in $depths) {
 $rows | Export-Csv -NoTypeInformation -Path $CsvOut
 Write-Host "Wrote results to $CsvOut"
 
+Write-Host ""
+Write-Host "=== Final Summary ==="
 Write-Host "After total nodes:  $afterTotalNodes"
 Write-Host "Before total nodes: $beforeTotalNodes"
 Write-Host "After avg nps:      $afterAvgNps"
 Write-Host "Before avg nps:     $beforeAvgNps"
+
+if ($beforeAvgNps -gt 0) {
+    $speedChange = (($afterAvgNps - $beforeAvgNps) / $beforeAvgNps) * 100
+    $sign = if ($speedChange -ge 0) { "+" } else { "" }
+    Write-Host ("Speed change:       {0}{1:F2}%" -f $sign, $speedChange)
+    if ($speedChange -gt 0) {
+        Write-Host "Result: FASTER" -ForegroundColor Green
+    } elseif ($speedChange -lt 0) {
+        Write-Host "Result: SLOWER" -ForegroundColor Red
+    } else {
+        Write-Host "Result: NO CHANGE" -ForegroundColor Yellow
+    }
+}
