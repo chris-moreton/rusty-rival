@@ -22,12 +22,12 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
 pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 199;
-pub const BETA_PRUNE_MAX_DEPTH: u8 = 5;
+pub const BETA_PRUNE_MAX_DEPTH: u8 = 6;
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
-pub const NULL_MOVE_MIN_DEPTH: u8 = 6;
-pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 3;
+pub const NULL_MOVE_MIN_DEPTH: u8 = 8;
+pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 2;
 
 // Threat extension: if null move search returns a score this much below alpha,
 // the opponent has a significant threat that warrants deeper search
@@ -37,39 +37,39 @@ pub const THREAT_EXTENSION_MARGIN: Score = 400;
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
-pub const SEE_PRUNE_MAX_DEPTH: u8 = 9;
-pub const SEE_PRUNE_MARGIN: Score = 17;
+pub const SEE_PRUNE_MAX_DEPTH: u8 = 7;
+pub const SEE_PRUNE_MARGIN: Score = 22;
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
 // Only searches captures with SEE >= 0 to verify tactical soundness
-pub const PROBCUT_MIN_DEPTH: u8 = 3;
-pub const PROBCUT_MARGIN: Score = 100;
+pub const PROBCUT_MIN_DEPTH: u8 = 10;
+pub const PROBCUT_MARGIN: Score = 101;
 pub const PROBCUT_DEPTH_REDUCTION: u8 = 3;
 
 // Multi-cut: at high depth, if multiple moves fail high at shallow depth,
 // assume the position is good and return a beta cutoff
-pub const MULTICUT_MIN_DEPTH: u8 = 13;
-pub const MULTICUT_DEPTH_REDUCTION: u8 = 7;
-pub const MULTICUT_MOVES_TO_TRY: u8 = 6;
-pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 1;
+pub const MULTICUT_MIN_DEPTH: u8 = 19;
+pub const MULTICUT_DEPTH_REDUCTION: u8 = 13;
+pub const MULTICUT_MOVES_TO_TRY: u8 = 10;
+pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 5;
 
 // Singular extension: if the hash move is significantly better than all alternatives,
 // extend its search by 1 ply. This catches critical forcing sequences.
 // We do a reduced search excluding the hash move; if all alternatives fail low
 // by SINGULAR_MARGIN below alpha, the hash move is "singular" and gets extended.
 // Conservative settings to avoid over-extending
-pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 8; // Higher threshold for more selective extension
-pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 3; // Hash entry must have depth >= current_depth - this (more strict)
+pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 10; // Higher threshold for more selective extension
+pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 2; // Hash entry must have depth >= current_depth - this (more strict)
 pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 6; // Deeper reduction for faster singular search
-pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 2; // Margin = depth * this value
+pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 1; // Margin = depth * this value
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
 // After searching N moves at depth D, skip remaining quiet moves entirely
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
 // Conservative thresholds to avoid missing important moves
 pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 4, 3, 6];
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 7, 3, 7];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -87,8 +87,8 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
-// SPSA tuned: base=129, per_depth=62
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [129, 191, 253, 315, 377, 439, 501, 563];
+// SPSA tuned: base=130, per_depth=61
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [130, 191, 252, 313, 374, 435, 496, 557];
 
 // =============================================================================
 // MOVE ORDERING CONSTANTS (SPSA tunable)
@@ -100,14 +100,14 @@ pub const MOVE_SCORE_KILLER_1: Score = 750;
 pub const MOVE_SCORE_KILLER_2: Score = 400;
 pub const MOVE_SCORE_HISTORY_MAX: Score = 500;
 pub const MOVE_SCORE_DISTANT_KILLER_1: Score = 300;
-pub const MOVE_SCORE_DISTANT_KILLER_2: Score = 200;
-pub const MOVE_SCORE_COUNTERMOVE: Score = 150;
+pub const MOVE_SCORE_DISTANT_KILLER_2: Score = 199;
+pub const MOVE_SCORE_COUNTERMOVE: Score = 149;
 pub const MOVE_SCORE_PAWN_PUSH_7TH: Score = 250;
-pub const MOVE_SCORE_PAWN_PUSH_6TH: Score = 50;
+pub const MOVE_SCORE_PAWN_PUSH_6TH: Score = 51;
 
 // History table divisors (scale i16 history to score range)
 pub const COUNTERMOVE_HISTORY_DIVISOR: i32 = 128;
-pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 128;
+pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 129;
 pub const CAPTURE_HISTORY_DIVISOR: i32 = 128;
 
 pub const TICKER_MILLIS: u16 = 500;
@@ -123,7 +123,7 @@ pub const LMR_MIN_DEPTH: u8 = 3;
 // If history score is above good threshold, reduce by 1 less (move has been successful)
 // If history score is below bad threshold, reduce by 1 more (move has failed often)
 // Thresholds are relative to highest_history_score (as a percentage * 100)
-pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 4; // Reduce less if history > highest/4
+pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 12; // Reduce less if history > highest/12
 pub const LMR_HISTORY_BAD_DIVISOR: i32 = 8; // Reduce more if history < -highest/8
 
 // Continuation history threshold for LMR (countermove_history + followup_history)
@@ -178,19 +178,19 @@ pub const SCOUT_MINIMUM_DISTANCE_FROM_LEAF: u8 = 2;
 
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8, 9, 10, 11, 12, 12];
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
-pub const VALUE_BISHOP_PAIR: Score = 11;
-pub const VALUE_GUARDED_PASSED_PAWN: Score = 30;
+pub const VALUE_BISHOP_PAIR: Score = 7;
+pub const VALUE_GUARDED_PASSED_PAWN: Score = 31;
 // Rook behind passed pawn (Tarrasch rule): rooks are strongest supporting passed pawns from behind
 // As the pawn advances, the rook's scope increases; and it protects the pawn's advance
-pub const VALUE_ROOK_BEHIND_PASSED_PAWN: Score = 20;
-pub const VALUE_KNIGHT_OUTPOST: Score = 7;
+pub const VALUE_ROOK_BEHIND_PASSED_PAWN: Score = 29;
+pub const VALUE_KNIGHT_OUTPOST: Score = 15;
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24, 26, 30, 36, 44, 56];
 // Bonus for connected passed pawns (two passed pawns on adjacent files)
 // They're very dangerous as they support each other toward promotion
 pub const VALUE_CONNECTED_PASSED_PAWNS: [Score; 6] = [12, 18, 28, 42, 60, 80];
-pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 16;
-pub const DOUBLED_PAWN_PENALTY: Score = 14;
-pub const ISOLATED_PAWN_PENALTY: Score = 11;
+pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 17;
+pub const DOUBLED_PAWN_PENALTY: Score = 19;
+pub const ISOLATED_PAWN_PENALTY: Score = 12;
 
 pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
 pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
@@ -214,7 +214,7 @@ pub const VALUE_KING_SUPPORTS_PASSED_PAWN: Score = 3;
 pub const KNIGHT_FORK_THREAT_SCORE: Score = 5;
 
 pub const ROOK_OPEN_FILE_BONUS: Score = 26;
-pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 12;
+pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 6;
 
 // Queen mobility bonus based on number of squares available (0-27)
 pub const VALUE_QUEEN_MOBILITY: [Score; 28] = [
@@ -266,7 +266,7 @@ pub const TRAPPED_ROOK_PENALTY: Score = 50; // Rook trapped in corner by own kin
 
 // Space evaluation: bonus per safe square controlled in opponent's territory
 // More important in closed positions with many pawns
-pub const SPACE_BONUS_PER_SQUARE: Score = 3;
+pub const SPACE_BONUS_PER_SQUARE: Score = 7;
 
 // Blocked passed pawn: penalty when enemy king guards the promotion square
 // A passed pawn that can never promote should lose most of its bonus

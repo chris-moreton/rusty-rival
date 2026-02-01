@@ -150,22 +150,22 @@ fn it_gets_the_passed_pawn_score() {
     test_passed_pawns("1r5k/8/7p/1N1K4/pP6/n2R3P/8/8 w - - 0 1", 298);
 
     // Position 2: Pure pawn endgame, full king support bonus
-    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 202);
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 204);
 
     // Position 3: King can't catch pawn bonus
-    test_passed_pawns("k7/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 710);
+    test_passed_pawns("k7/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 712);
 
     // Position 4: Black bishop reduces king support scaling
-    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/b7/4K3 w - - 0 1", 193);
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/b7/4K3 w - - 0 1", 195);
 
     // Position 5: White bishop reduces king support scaling
-    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/4K3 w - - 0 1", 203);
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/4K3 w - - 0 1", 205);
 
     // Position 6: Black rook + white bishop, mixed king support
-    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/7K w - - 0 1", 172);
+    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/7K w - - 0 1", 174);
 
     // Position 7: Black to move, king can't catch pawn
-    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/7K b - - 0 1", -332);
+    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/7K b - - 0 1", -330);
 }
 
 #[test]
