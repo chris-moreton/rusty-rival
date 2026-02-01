@@ -154,6 +154,9 @@ pub fn history_score(position: &Position, m: Move, search_state: &SearchState, t
 
 #[inline(always)]
 fn history_score_cached(search_state: &SearchState, piece_index: usize, from_sq: usize, to_sq: usize) -> Score {
+    if search_state.highest_history_score == 0 {
+        return 0;
+    }
     linear_scale(
         search_state.history_moves[piece_index][from_sq][to_sq],
         0,
