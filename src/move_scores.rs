@@ -101,10 +101,10 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
             } else if m == killer_moves[1] {
                 MOVE_SCORE_DISTANT_KILLER_2
             } else {
-                countermove_score(position, ply, m, search_state)
+                countermove_score_cached(position, ply, m, curr_piece, curr_to, search_state)
             }
         } else {
-            countermove_score(position, ply, m, search_state)
+            countermove_score_cached(position, ply, m, curr_piece, curr_to, search_state)
         }
     };
 
@@ -219,9 +219,15 @@ pub fn piece_value(pieces: &Pieces, sq: Square) -> Score {
     0
 }
 
-/// Get countermove score: bonus for matching the stored countermove + history bonus
 #[inline(always)]
-fn countermove_score(position: &Position, ply: usize, m: Move, search_state: &SearchState) -> Score {
+fn countermove_score_cached(
+    position: &Position,
+    ply: usize,
+    m: Move,
+    curr_piece: usize,
+    curr_to: usize,
+    search_state: &SearchState,
+) -> Score {
     if ply == 0 {
         return 0;
     }
@@ -243,8 +249,6 @@ fn countermove_score(position: &Position, ply: usize, m: Move, search_state: &Se
     };
 
     // Countermove history bonus: how well does this move work against the previous move?
-    let curr_piece = piece_type_to_index(m);
-    let curr_to = to_square_part(m) as usize;
     let history = search_state.countermove_history[prev_piece][prev_to][curr_piece][curr_to];
     let history_bonus = (history as i32 / COUNTERMOVE_HISTORY_DIVISOR) as Score;
 
