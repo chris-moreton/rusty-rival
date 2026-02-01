@@ -33,6 +33,8 @@ function Run-Depth {
     $pattern = "info .* depth $Depth .* nodes .* nps .*"
     $line = $out | Select-String -Pattern $pattern | Select-Object -Last 1
     if (-not $line) {
+        $tail = $out | Select-Object -Last 20
+        $tail | ForEach-Object { Write-Host $_ }
         throw "No matching info line found for depth $Depth and FEN: $Fen"
     }
 
