@@ -787,6 +787,7 @@ pub fn search(
     }
 
     // MOVE GENERATION: Use check evasions when in check, staged generation otherwise
+    let enemy = position.pieces[opponent!(position.mover) as usize];
     let mut move_scores: MoveScoreArray;
     let mut quiets_added: bool;
 
@@ -800,13 +801,10 @@ pub fn search(
         if excluded_move != 0 {
             evasions.retain(|m| *m != excluded_move);
         }
-        move_scores = {
-            let enemy = &position.pieces[opponent!(position.mover) as usize];
-            evasions
-                .into_iter()
-                .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
-                .collect()
-        };
+        move_scores = evasions
+            .into_iter()
+            .map(|m| (m, score_move(position, m, search_state, ply as usize, &enemy)))
+            .collect();
         quiets_added = true; // No staged generation when in check
     } else {
         // Normal staged move generation: captures first, then quiets
@@ -818,13 +816,10 @@ pub fn search(
         if excluded_move != 0 {
             captures.retain(|m| *m != excluded_move);
         }
-        move_scores = {
-            let enemy = &position.pieces[opponent!(position.mover) as usize];
-            captures
-                .into_iter()
-                .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
-                .collect()
-        };
+        move_scores = captures
+            .into_iter()
+            .map(|m| (m, score_move(position, m, search_state, ply as usize, &enemy)))
+            .collect();
         quiets_added = false;
     }
 
@@ -847,9 +842,8 @@ pub fn search(
             if excluded_move != 0 {
                 quiets.retain(|m| *m != excluded_move);
             }
-            let enemy = &position.pieces[opponent!(position.mover) as usize];
             for m in quiets {
-                move_scores.push((m, score_move(position, m, search_state, ply as usize, enemy)));
+                move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
             }
             if move_scores.is_empty() {
                 break; // No quiet moves either
