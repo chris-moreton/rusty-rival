@@ -1,7 +1,6 @@
 param(
     [string]$Exe = ".\target-after12\release\rusty-rival.exe",
     [int]$TargetSeconds = 3,
-    [int]$Threads = 1,
     [int]$Hash = 128,
     [string]$FensJson = ".\scripts\perft_fens.json",
     [string]$DepthsJson = ".\scripts\perft_depths.json"
@@ -14,14 +13,12 @@ function Run-Depth {
         [string]$Exe,
         [string]$Fen,
         [int]$Depth,
-        [int]$Threads,
         [int]$Hash
     )
 
     $cmds = @(
         "uci"
         "isready"
-        "setoption name Threads value $Threads"
         "setoption name Hash value $Hash"
         "ucinewgame"
         "position fen $Fen"
@@ -61,7 +58,7 @@ $results = @()
 foreach ($fen in $fens) {
     $depth = 6
     while ($true) {
-        $res = Run-Depth -Exe $Exe -Fen $fen -Depth $depth -Threads $Threads -Hash $Hash
+        $res = Run-Depth -Exe $Exe -Fen $fen -Depth $depth -Hash $Hash
         $seconds = $res.TimeMs / 1000.0
         if ($seconds -ge $TargetSeconds -or $depth -ge 30) {
             $results += [pscustomobject]@{
