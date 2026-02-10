@@ -1,3 +1,4 @@
+use rusty_rival::engine_constants::NULL_MOVE_REDUCE_DEPTH_BASE;
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
 use rusty_rival::search::{is_draw, is_passed_pawn_push, iterative_deepening, null_move_reduced_depth, piece_index_12};
 use rusty_rival::types::default_search_state;
@@ -195,29 +196,17 @@ fn it_recognises_a_draw() {
 
 #[test]
 fn it_calculates_the_null_move_reduced_depth() {
-    // With NULL_MOVE_REDUCE_DEPTH_BASE = 4 (SPSA tuned)
-    // Formula: when d > base+1 (d > 5): depth - 1 - (base + d/6), else 1
-    // d=6:  6-1-(4+1)=0, d=7: 7-1-(4+1)=1, d=8: 8-1-(4+1)=2
-    // d=9:  9-1-(4+1)=3, d=10: 10-1-(4+1)=4, d=11: 11-1-(4+1)=5
-    // d=12: 12-1-(4+2)=5, d=13: 13-1-(4+2)=6, d=14: 14-1-(4+2)=7
-    // d=18: 18-1-(4+3)=10, d=24: 24-1-(4+4)=15
-    assert_eq!(null_move_reduced_depth(0), 1);
-    assert_eq!(null_move_reduced_depth(1), 1);
-    assert_eq!(null_move_reduced_depth(2), 1);
-    assert_eq!(null_move_reduced_depth(3), 1);
-    assert_eq!(null_move_reduced_depth(4), 1);
-    assert_eq!(null_move_reduced_depth(5), 1);
-    assert_eq!(null_move_reduced_depth(6), 0);
-    assert_eq!(null_move_reduced_depth(7), 1);
-    assert_eq!(null_move_reduced_depth(8), 2);
-    assert_eq!(null_move_reduced_depth(9), 3);
-    assert_eq!(null_move_reduced_depth(10), 4);
-    assert_eq!(null_move_reduced_depth(11), 5);
-    assert_eq!(null_move_reduced_depth(12), 5);
-    assert_eq!(null_move_reduced_depth(13), 6);
-    assert_eq!(null_move_reduced_depth(14), 7);
-    assert_eq!(null_move_reduced_depth(18), 10);
-    assert_eq!(null_move_reduced_depth(24), 15);
+    fn expected(depth: u8) -> u8 {
+        let base = NULL_MOVE_REDUCE_DEPTH_BASE;
+        match depth {
+            d if d > base + 1 => depth - 1 - (base + d / 6),
+            _ => 1,
+        }
+    }
+
+    for depth in 0..=24 {
+        assert_eq!(null_move_reduced_depth(depth), expected(depth), "mismatch at depth {depth}");
+    }
 }
 
 #[test]
