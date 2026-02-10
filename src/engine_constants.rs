@@ -21,7 +21,7 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 118;
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 133;
 pub const BETA_PRUNE_MAX_DEPTH: u8 = 10;
 
 pub const NUM_KILLER_MOVES: usize = 2;
@@ -38,7 +38,7 @@ pub const THREAT_EXTENSION_MARGIN: Score = 400;
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
 pub const SEE_PRUNE_MAX_DEPTH: u8 = 9;
-pub const SEE_PRUNE_MARGIN: Score = 30;
+pub const SEE_PRUNE_MARGIN: Score = 26;
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
@@ -69,7 +69,7 @@ pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 5; // Margin = depth * t
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
 // Conservative thresholds to avoid missing important moves
 pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 4, 10, 16];
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 3, 6, 12];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -87,8 +87,8 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
-// SPSA tuned: base=130, per_depth=61
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [119, 198, 277, 356, 435, 514, 593, 672];
+// SPSA tuned: base=98, per_depth=78
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [98, 176, 254, 332, 410, 488, 566, 644];
 
 // =============================================================================
 // MOVE ORDERING CONSTANTS (SPSA tunable)
@@ -128,8 +128,8 @@ pub const LMR_HISTORY_BAD_DIVISOR: i32 = 26; // Reduce more if history < -highes
 
 // Continuation history threshold for LMR (countermove_history + followup_history)
 // These are i16 values, so threshold is raw score (not scaled)
-pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8033; // Reduce less if combined > this
-pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8335; // Reduce more if combined < this
+pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 7865; // Reduce less if combined > this
+pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8020; // Reduce more if combined < this
 
 // LMR reduction table: indexed by [depth][move_count]
 // Formula: floor(0.75 + ln(depth) * ln(move_count) / 2.5)
