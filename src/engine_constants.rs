@@ -2,11 +2,11 @@ use crate::types::{HistoryScore, Score, ScorePair};
 
 pub const DEBUG: bool = false;
 
-pub const PAWN_VALUE_PAIR: ScorePair = (109, 215);
-pub const KNIGHT_VALUE_PAIR: ScorePair = (581, 659);
-pub const BISHOP_VALUE_PAIR: ScorePair = (657, 698);
-pub const ROOK_VALUE_PAIR: ScorePair = (993, 1134);
-pub const QUEEN_VALUE_PAIR: ScorePair = (1982, 2367);
+pub const PAWN_VALUE_PAIR: ScorePair = (117, 233);
+pub const KNIGHT_VALUE_PAIR: ScorePair = (590, 636);
+pub const BISHOP_VALUE_PAIR: ScorePair = (666, 673);
+pub const ROOK_VALUE_PAIR: ScorePair = (1035, 1152);
+pub const QUEEN_VALUE_PAIR: ScorePair = (2049, 2357);
 
 pub const PAWN_VALUE_AVERAGE: Score = (PAWN_VALUE_PAIR.0 + PAWN_VALUE_PAIR.1) / 2;
 pub const KNIGHT_VALUE_AVERAGE: Score = (KNIGHT_VALUE_PAIR.0 + KNIGHT_VALUE_PAIR.1) / 2;
