@@ -94,21 +94,21 @@ pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [98, 176, 254, 332, 410, 488, 566, 6
 // MOVE ORDERING CONSTANTS (SPSA tunable)
 // =============================================================================
 
-// Score thresholds for different move types
-pub const MOVE_SCORE_MATE_KILLER: Score = 1554;
-pub const MOVE_SCORE_KILLER_1: Score = 1254;
-pub const MOVE_SCORE_KILLER_2: Score = 544;
-pub const MOVE_SCORE_HISTORY_MAX: Score = 556;
-pub const MOVE_SCORE_DISTANT_KILLER_1: Score = 248;
-pub const MOVE_SCORE_DISTANT_KILLER_2: Score = 245;
-pub const MOVE_SCORE_COUNTERMOVE: Score = 253;
-pub const MOVE_SCORE_PAWN_PUSH_7TH: Score = 316;
-pub const MOVE_SCORE_PAWN_PUSH_6TH: Score = 131;
+// Score thresholds for different move types (SPSA tuned, Run 7 iter 66)
+pub const MOVE_SCORE_MATE_KILLER: Score = 1763;
+pub const MOVE_SCORE_KILLER_1: Score = 1169;
+pub const MOVE_SCORE_KILLER_2: Score = 566;
+pub const MOVE_SCORE_HISTORY_MAX: Score = 624;
+pub const MOVE_SCORE_DISTANT_KILLER_1: Score = 303;
+pub const MOVE_SCORE_DISTANT_KILLER_2: Score = 239;
+pub const MOVE_SCORE_COUNTERMOVE: Score = 263;
+pub const MOVE_SCORE_PAWN_PUSH_7TH: Score = 291;
+pub const MOVE_SCORE_PAWN_PUSH_6TH: Score = 105;
 
-// History table divisors (scale i16 history to score range)
-pub const COUNTERMOVE_HISTORY_DIVISOR: i32 = 254;
-pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 534;
-pub const CAPTURE_HISTORY_DIVISOR: i32 = 1091;
+// History table divisors (scale i16 history to score range) (SPSA tuned, Run 7 iter 66)
+pub const COUNTERMOVE_HISTORY_DIVISOR: i32 = 235;
+pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 538;
+pub const CAPTURE_HISTORY_DIVISOR: i32 = 1120;
 
 pub const TICKER_MILLIS: u16 = 500;
 
