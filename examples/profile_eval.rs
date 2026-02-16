@@ -83,12 +83,8 @@ fn main() {
     // Initialize timers for each component
     let mut t_material = ComponentTimer::new("material_score");
     let mut t_piece_square = ComponentTimer::new("piece_square_values");
-    let mut t_king_score = ComponentTimer::new("king_score");
     let mut t_king_threat = ComponentTimer::new("king_threat_score");
     let mut t_rook_eval = ComponentTimer::new("rook_eval");
-    let mut t_passed_pawn = ComponentTimer::new("passed_pawn_score");
-    let mut t_knight_outpost = ComponentTimer::new("knight_outpost_scores");
-    let mut t_doubled_isolated = ComponentTimer::new("doubled_and_isolated_pawn");
     let mut t_bishop_mobility = ComponentTimer::new("bishop_mobility_score");
     let mut t_backward_pawn = ComponentTimer::new("backward_pawn_score");
     let mut t_bishop_pair = ComponentTimer::new("bishop_pair_bonus");
