@@ -21,7 +21,7 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 133;
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 152;
 pub const BETA_PRUNE_MAX_DEPTH: u8 = 10;
 
 pub const NUM_KILLER_MOVES: usize = 2;
@@ -37,8 +37,8 @@ pub const THREAT_EXTENSION_MARGIN: Score = 400;
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
-pub const SEE_PRUNE_MAX_DEPTH: u8 = 9;
-pub const SEE_PRUNE_MARGIN: Score = 26;
+pub const SEE_PRUNE_MAX_DEPTH: u8 = 10;
+pub const SEE_PRUNE_MARGIN: Score = 25;
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
@@ -69,7 +69,7 @@ pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 5; // Margin = depth * t
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
 // Conservative thresholds to avoid missing important moves
 pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 3, 6, 12];
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 7, 6, 7];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -87,8 +87,8 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
-// SPSA tuned: base=98, per_depth=78
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [98, 176, 254, 332, 410, 488, 566, 644];
+// SPSA tuned: base=54, per_depth=66 (Run 8 iter 114)
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [54, 120, 186, 252, 318, 384, 450, 516];
 
 // =============================================================================
 // MOVE ORDERING CONSTANTS (SPSA tunable)
