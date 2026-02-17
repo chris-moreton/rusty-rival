@@ -131,6 +131,15 @@ pub const LMR_HISTORY_BAD_DIVISOR: i32 = 26; // Reduce more if history < -highes
 pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 7865; // Reduce less if combined > this
 pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8020; // Reduce more if combined < this
 
+// Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
+// ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
+// Used by both LMR table and mobility table generation.
+const LN_TABLE: [u32; 64] = [
+    0, 0, 693, 1099, 1386, 1609, 1792, 1946, 2079, 2197, 2303, 2398, 2485, 2565, 2639, 2708, 2773, 2833, 2890, 2944, 2996, 3045, 3091,
+    3135, 3178, 3219, 3258, 3296, 3332, 3367, 3401, 3434, 3466, 3497, 3526, 3555, 3584, 3611, 3638, 3664, 3689, 3714, 3738, 3761, 3784,
+    3807, 3829, 3850, 3871, 3892, 3912, 3932, 3951, 3970, 3989, 4007, 4025, 4043, 4060, 4078, 4094, 4111, 4127, 4143,
+];
+
 // LMR reduction table: indexed by [depth][move_count]
 // Formula: floor(0.75 + ln(depth) * ln(move_count) / 2.5)
 // More conservative than Stockfish's formula to avoid over-pruning
@@ -138,14 +147,6 @@ pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8020; // Reduce more if combine
 pub const LMR_TABLE: [[u8; 64]; 64] = generate_lmr_table();
 
 const fn generate_lmr_table() -> [[u8; 64]; 64] {
-    // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
-    // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
-    const LN_TABLE: [u32; 64] = [
-        0, 0, 693, 1099, 1386, 1609, 1792, 1946, 2079, 2197, 2303, 2398, 2485, 2565, 2639, 2708, 2773, 2833, 2890, 2944, 2996, 3045, 3091,
-        3135, 3178, 3219, 3258, 3296, 3332, 3367, 3401, 3434, 3466, 3497, 3526, 3555, 3584, 3611, 3638, 3664, 3689, 3714, 3738, 3761, 3784,
-        3807, 3829, 3850, 3871, 3892, 3912, 3932, 3951, 3970, 3989, 4007, 4025, 4043, 4060, 4078, 4094, 4111, 4127, 4143,
-    ];
-
     let mut table = [[0u8; 64]; 64];
     let mut depth = 0usize;
     while depth < 64 {
@@ -174,9 +175,32 @@ pub fn lmr_reduction(depth: u8, move_count: u8) -> u8 {
     LMR_TABLE[d][m]
 }
 
+/// Generate a mobility bonus table using logarithmic curve: f(x) = base + scale/100 * ln(1+x)
+/// Uses LN_TABLE (ln values * 1000) for const fn compatibility.
+const fn generate_mobility_table<const N: usize>(base: Score, scale_x100: i32) -> [Score; N] {
+    let mut table = [0i32; N];
+    let mut i = 0;
+    while i < N {
+        let ln_val = LN_TABLE[i + 1] as i32; // ln(i+1) * 1000
+        let scaled = scale_x100 * ln_val; // scale_x100 * ln_val (units: 100_000)
+        table[i] = base
+            + if scaled >= 0 {
+                (scaled + 50000) / 100000
+            } else {
+                (scaled - 50000) / 100000
+            };
+        i += 1;
+    }
+    table
+}
+
 pub const SCOUT_MINIMUM_DISTANCE_FROM_LEAF: u8 = 2;
 
-pub const VALUE_BISHOP_MOBILITY: [Score; 14] = [-15, -10, -6, -2, 1, 3, 5, 6, 8, 9, 10, 11, 12, 12];
+// Mobility curve parameters: f(x) = base + scale/100 * ln(1+x)
+// Generated via generate_mobility_table const fn from LN_TABLE
+pub const BISHOP_MOBILITY_BASE: Score = -15;
+pub const BISHOP_MOBILITY_SCALE_X100: i32 = 1023;
+pub const VALUE_BISHOP_MOBILITY: [Score; 14] = generate_mobility_table::<14>(BISHOP_MOBILITY_BASE, BISHOP_MOBILITY_SCALE_X100);
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
 pub const VALUE_BISHOP_PAIR: Score = 5;
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 25;
@@ -217,9 +241,9 @@ pub const ROOK_OPEN_FILE_BONUS: Score = 28;
 pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 22;
 
 // Queen mobility bonus based on number of squares available (0-27)
-pub const VALUE_QUEEN_MOBILITY: [Score; 28] = [
-    -12, -8, -5, -2, 0, 1, 2, 3, 4, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 12, 12,
-];
+pub const QUEEN_MOBILITY_BASE: Score = -12;
+pub const QUEEN_MOBILITY_SCALE_X100: i32 = 720;
+pub const VALUE_QUEEN_MOBILITY: [Score; 28] = generate_mobility_table::<28>(QUEEN_MOBILITY_BASE, QUEEN_MOBILITY_SCALE_X100);
 
 // King centralization bonus for endgames - extra bonus beyond PST when material is low
 // This encourages the king to actively participate in the endgame
