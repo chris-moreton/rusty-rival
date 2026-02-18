@@ -22,7 +22,7 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
 pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 152;
-pub const BETA_PRUNE_MAX_DEPTH: u8 = 10;
+pub const BETA_PRUNE_MAX_DEPTH: u8 = 10; // SPSA 9.70 -> 10
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
@@ -37,21 +37,21 @@ pub const THREAT_EXTENSION_MARGIN: Score = 400;
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
-pub const SEE_PRUNE_MAX_DEPTH: u8 = 10;
-pub const SEE_PRUNE_MARGIN: Score = 25;
+pub const SEE_PRUNE_MAX_DEPTH: u8 = 10; // SPSA 9.89 -> 10
+pub const SEE_PRUNE_MARGIN: Score = 25; // SPSA 25.37 -> 25
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
 // Only searches captures with SEE >= 0 to verify tactical soundness
-pub const PROBCUT_MIN_DEPTH: u8 = 13;
-pub const PROBCUT_MARGIN: Score = 126;
-pub const PROBCUT_DEPTH_REDUCTION: u8 = 4;
+pub const PROBCUT_MIN_DEPTH: u8 = 13; // SPSA 12.69 -> 13
+pub const PROBCUT_MARGIN: Score = 33;
+pub const PROBCUT_DEPTH_REDUCTION: u8 = 4; // SPSA 3.69 -> 4
 
 // Multi-cut: at high depth, if multiple moves fail high at shallow depth,
 // assume the position is good and return a beta cutoff
-pub const MULTICUT_MIN_DEPTH: u8 = 20;
-pub const MULTICUT_DEPTH_REDUCTION: u8 = 7;
-pub const MULTICUT_MOVES_TO_TRY: u8 = 9;
+pub const MULTICUT_MIN_DEPTH: u8 = 21;
+pub const MULTICUT_DEPTH_REDUCTION: u8 = 9;
+pub const MULTICUT_MOVES_TO_TRY: u8 = 11;
 pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 7;
 
 // Singular extension: if the hash move is significantly better than all alternatives,
@@ -59,10 +59,10 @@ pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 7;
 // We do a reduced search excluding the hash move; if all alternatives fail low
 // by SINGULAR_MARGIN below alpha, the hash move is "singular" and gets extended.
 // Conservative settings to avoid over-extending
-pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 10; // Higher threshold for more selective extension
-pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 6; // Hash entry must have depth >= current_depth - this (more strict)
-pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 5; // Deeper reduction for faster singular search
-pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 5; // Margin = depth * this value
+pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 12;
+pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 5;
+pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 6;
+pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 5;
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
 // After searching N moves at depth D, skip remaining quiet moves entirely
@@ -87,14 +87,14 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
-// SPSA tuned: base=54, per_depth=66 (Run 8 iter 114)
+// SPSA tuned: base=54, per_depth=66 (Run 9 iter 116)
 pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [54, 120, 186, 252, 318, 384, 450, 516];
 
 // =============================================================================
 // MOVE ORDERING CONSTANTS (SPSA tunable)
 // =============================================================================
 
-// Score thresholds for different move types (SPSA tuned, Run 7 iter 66)
+// Score thresholds for different move types (SPSA tuned, Run 9 iter 116)
 pub const MOVE_SCORE_MATE_KILLER: Score = 1763;
 pub const MOVE_SCORE_KILLER_1: Score = 1169;
 pub const MOVE_SCORE_KILLER_2: Score = 566;
@@ -105,9 +105,9 @@ pub const MOVE_SCORE_COUNTERMOVE: Score = 263;
 pub const MOVE_SCORE_PAWN_PUSH_7TH: Score = 291;
 pub const MOVE_SCORE_PAWN_PUSH_6TH: Score = 105;
 
-// History table divisors (scale i16 history to score range) (SPSA tuned, Run 7 iter 66)
+// History table divisors (scale i16 history to score range) (SPSA tuned, Run 9 iter 116)
 pub const COUNTERMOVE_HISTORY_DIVISOR: i32 = 235;
-pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 538;
+pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 537;
 pub const CAPTURE_HISTORY_DIVISOR: i32 = 1120;
 
 pub const TICKER_MILLIS: u16 = 500;
@@ -123,13 +123,13 @@ pub const LMR_MIN_DEPTH: u8 = 3;
 // If history score is above good threshold, reduce by 1 less (move has been successful)
 // If history score is below bad threshold, reduce by 1 more (move has failed often)
 // Thresholds are relative to highest_history_score (as a percentage * 100)
-pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 24; // Reduce less if history > highest/12
-pub const LMR_HISTORY_BAD_DIVISOR: i32 = 26; // Reduce more if history < -highest/8
+pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 23;
+pub const LMR_HISTORY_BAD_DIVISOR: i32 = 25;
 
 // Continuation history threshold for LMR (countermove_history + followup_history)
 // These are i16 values, so threshold is raw score (not scaled)
-pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 7865; // Reduce less if combined > this
-pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8020; // Reduce more if combined < this
+pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8100;
+pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8236;
 
 // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
 // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
@@ -207,7 +207,7 @@ pub const VALUE_GUARDED_PASSED_PAWN: Score = 25;
 // Rook behind passed pawn (Tarrasch rule): rooks are strongest supporting passed pawns from behind
 // As the pawn advances, the rook's scope increases; and it protects the pawn's advance
 pub const VALUE_ROOK_BEHIND_PASSED_PAWN: Score = 37;
-pub const VALUE_KNIGHT_OUTPOST: Score = 18;
+pub const VALUE_KNIGHT_OUTPOST: Score = 18; // SPSA 17.75 -> 18
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24, 26, 30, 36, 44, 56];
 // Bonus for connected passed pawns (two passed pawns on adjacent files)
 // They're very dangerous as they support each other toward promotion
