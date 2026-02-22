@@ -202,22 +202,22 @@ pub const BISHOP_MOBILITY_BASE: Score = -15;
 pub const BISHOP_MOBILITY_SCALE_X100: i32 = 1023;
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = generate_mobility_table::<14>(BISHOP_MOBILITY_BASE, BISHOP_MOBILITY_SCALE_X100);
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
-pub const VALUE_BISHOP_PAIR: Score = 5;
+pub const VALUE_BISHOP_PAIR: Score = 10;
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 25;
 // Rook behind passed pawn (Tarrasch rule): rooks are strongest supporting passed pawns from behind
 // As the pawn advances, the rook's scope increases; and it protects the pawn's advance
-pub const VALUE_ROOK_BEHIND_PASSED_PAWN: Score = 37;
-pub const VALUE_KNIGHT_OUTPOST: Score = 18; // SPSA 17.75 -> 18
+pub const VALUE_ROOK_BEHIND_PASSED_PAWN: Score = 28;
+pub const VALUE_KNIGHT_OUTPOST: Score = 22;
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24, 26, 30, 36, 44, 56];
 // Bonus for connected passed pawns (two passed pawns on adjacent files)
 // They're very dangerous as they support each other toward promotion
 pub const VALUE_CONNECTED_PASSED_PAWNS: [Score; 6] = [12, 18, 28, 42, 60, 80];
-pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 27;
-pub const DOUBLED_PAWN_PENALTY: Score = 26;
-pub const ISOLATED_PAWN_PENALTY: Score = 11;
+pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 20;
+pub const DOUBLED_PAWN_PENALTY: Score = 27;
+pub const ISOLATED_PAWN_PENALTY: Score = 14;
 
-pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8;
-pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20;
+pub const VALUE_ROOKS_ON_SAME_FILE: Score = 9;
+pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 16;
 pub const KING_THREAT_BONUS_KNIGHT: Score = 16;
 pub const KING_THREAT_BONUS_QUEEN: Score = 12;
 pub const KING_THREAT_BONUS_BISHOP: Score = 12;
@@ -237,8 +237,8 @@ pub const VALUE_KING_SUPPORTS_PASSED_PAWN: Score = 3;
 
 pub const KNIGHT_FORK_THREAT_SCORE: Score = 5;
 
-pub const ROOK_OPEN_FILE_BONUS: Score = 28;
-pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 22;
+pub const ROOK_OPEN_FILE_BONUS: Score = 38;
+pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 26;
 
 // Queen mobility bonus based on number of squares available (0-27)
 pub const QUEEN_MOBILITY_BASE: Score = -12;
@@ -285,12 +285,12 @@ pub const BISHOP_KNIGHT_IMBALANCE_BONUS: Score = 15; // Max bonus per imbalance 
 
 // Trapped piece penalties
 // Pieces that are trapped (very limited mobility) lose significant value
-pub const TRAPPED_BISHOP_PENALTY: Score = 100; // Bishop trapped on a7/h7/a2/h2 by pawns
-pub const TRAPPED_ROOK_PENALTY: Score = 50; // Rook trapped in corner by own king
+pub const TRAPPED_BISHOP_PENALTY: Score = 79;
+pub const TRAPPED_ROOK_PENALTY: Score = 53;
 
 // Space evaluation: bonus per safe square controlled in opponent's territory
 // More important in closed positions with many pawns
-pub const SPACE_BONUS_PER_SQUARE: Score = 14;
+pub const SPACE_BONUS_PER_SQUARE: Score = 13;
 
 // Blocked passed pawn: penalty when enemy king guards the promotion square
 // A passed pawn that can never promote should lose most of its bonus
