@@ -208,32 +208,32 @@ pub const VALUE_GUARDED_PASSED_PAWN: Score = 25;
 // As the pawn advances, the rook's scope increases; and it protects the pawn's advance
 pub const VALUE_ROOK_BEHIND_PASSED_PAWN: Score = 28;
 pub const VALUE_KNIGHT_OUTPOST: Score = 22;
-pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [24, 26, 30, 36, 44, 56];
-// Bonus for connected passed pawns (two passed pawns on adjacent files)
-// They're very dangerous as they support each other toward promotion
-pub const VALUE_CONNECTED_PASSED_PAWNS: [Score; 6] = [12, 18, 28, 42, 60, 80];
+pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [18, 14, 14, 39, 70, 88]; // SPSA tuned, Run 12
+                                                                          // Bonus for connected passed pawns (two passed pawns on adjacent files)
+                                                                          // They're very dangerous as they support each other toward promotion
+pub const VALUE_CONNECTED_PASSED_PAWNS: [Score; 6] = [10, 22, 27, 39, 76, 87]; // SPSA tuned, Run 12
 pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 20;
 pub const DOUBLED_PAWN_PENALTY: Score = 27;
 pub const ISOLATED_PAWN_PENALTY: Score = 14;
 
 pub const VALUE_ROOKS_ON_SAME_FILE: Score = 9;
 pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 16;
-pub const KING_THREAT_BONUS_KNIGHT: Score = 16;
-pub const KING_THREAT_BONUS_QUEEN: Score = 12;
+pub const KING_THREAT_BONUS_KNIGHT: Score = 10; // SPSA tuned, Run 12
+pub const KING_THREAT_BONUS_QUEEN: Score = 14; // SPSA tuned, Run 12
 pub const KING_THREAT_BONUS_BISHOP: Score = 12;
-pub const KING_THREAT_BONUS_ROOK: Score = 10;
+pub const KING_THREAT_BONUS_ROOK: Score = 9; // SPSA tuned, Run 12
 
 pub const PAWN_ADJUST_MAX_MATERIAL: Score = (QUEEN_VALUE_AVERAGE + ROOK_VALUE_AVERAGE) as Score;
-pub const VALUE_KING_CANNOT_CATCH_PAWN: Score = 500;
-pub const VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN: Score = 500;
+pub const VALUE_KING_CANNOT_CATCH_PAWN: Score = 418; // SPSA tuned, Run 12
+pub const VALUE_KING_CANNOT_CATCH_PAWN_PIECES_REMAIN: Score = 425; // SPSA tuned, Run 12
 
-pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 4;
+pub const VALUE_KING_DISTANCE_PASSED_PAWN_MULTIPLIER: Score = 2; // SPSA tuned, Run 12
 
 // King supporting own passed pawns in endgame
 // Bonus for friendly king being close to its own passed pawns
 // Formula: (7 - distance) * rank_index * multiplier / 4
 // More valuable for advanced pawns (higher rank_index)
-pub const VALUE_KING_SUPPORTS_PASSED_PAWN: Score = 3;
+pub const VALUE_KING_SUPPORTS_PASSED_PAWN: Score = 6; // SPSA tuned, Run 12
 
 pub const KNIGHT_FORK_THREAT_SCORE: Score = 5;
 
@@ -267,14 +267,14 @@ pub const ENDGAME_MATERIAL_THRESHOLD: Score = QUEEN_VALUE_AVERAGE + KNIGHT_VALUE
 
 // King activity: bonus for king attacking enemy pieces in endgames
 // Attacking minor pieces (bishops/knights) is valuable as it restricts them
-pub const VALUE_KING_ATTACKS_MINOR: Score = 20;
-// Attacking rooks is also valuable
-pub const VALUE_KING_ATTACKS_ROOK: Score = 15;
+pub const VALUE_KING_ATTACKS_MINOR: Score = 28; // SPSA tuned, Run 12
+                                                // Attacking rooks is also valuable
+pub const VALUE_KING_ATTACKS_ROOK: Score = 9; // SPSA tuned, Run 12
 
 // King mobility: bonus per safe square the king can move to in endgames
 // A king with more safe squares is more active and flexible
 // This helps identify when moving the king improves its activity
-pub const VALUE_KING_MOBILITY: Score = 6;
+pub const VALUE_KING_MOBILITY: Score = 9; // SPSA tuned, Run 12
 
 // Bishop vs Knight imbalance
 // Bishops are stronger in open positions (fewer pawns), knights in closed positions (more pawns)
@@ -295,12 +295,12 @@ pub const SPACE_BONUS_PER_SQUARE: Score = 13;
 // Blocked passed pawn: penalty when enemy king guards the promotion square
 // A passed pawn that can never promote should lose most of its bonus
 // This should be larger than the passed pawn bonus for that rank
-pub const BLOCKED_PASSED_PAWN_PENALTY: Score = 80;
+pub const BLOCKED_PASSED_PAWN_PENALTY: Score = 54; // SPSA tuned, Run 12
 
 // Knight blockade: penalty when enemy knight controls the promotion square
 // Similar to king blockade but slightly smaller since knight can be driven away
 // Applied per blocked passed pawn
-pub const KNIGHT_BLOCKADE_PENALTY: Score = 60;
+pub const KNIGHT_BLOCKADE_PENALTY: Score = 51; // SPSA tuned, Run 12
 
 // General knight activity: bonus for knights attacking enemy pawns
 // This applies in all positions, not just Q vs N+pawns
