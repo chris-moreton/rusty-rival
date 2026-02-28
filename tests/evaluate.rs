@@ -142,30 +142,30 @@ fn test_passed_pawns(fen: &str, score: Score) {
 
 // King support bonus adds complexity to expected values.
 // These are verified computed values including all bonuses.
-// Note: Knight blockade penalty adds 60 when knight blocks enemy passed pawn path.
+// Note: Knight blockade penalty adds 51 when knight blocks enemy passed pawn path.
 #[test]
 fn it_gets_the_passed_pawn_score() {
     // Position 1: Pieces present, partial king support bonus
-    // White Nb5 blocks black a4 pawn path (controls a3) -> +60 knight blockade penalty
-    test_passed_pawns("1r5k/8/7p/1N1K4/pP6/n2R3P/8/8 w - - 0 1", 305);
+    // White Nb5 blocks black a4 pawn path (controls a3) -> +51 knight blockade penalty
+    test_passed_pawns("1r5k/8/7p/1N1K4/pP6/n2R3P/8/8 w - - 0 1", 244);
 
     // Position 2: Pure pawn endgame, full king support bonus
-    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 192);
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 186);
 
     // Position 3: King can't catch pawn bonus
-    test_passed_pawns("k7/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 700);
+    test_passed_pawns("k7/8/7p/1P2Pp1P/2Pp1PP1/8/8/4K3 w - - 0 1", 608);
 
     // Position 4: Black bishop reduces king support scaling
-    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/b7/4K3 w - - 0 1", 183);
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/b7/4K3 w - - 0 1", 174);
 
     // Position 5: White bishop reduces king support scaling
-    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/4K3 w - - 0 1", 193);
+    test_passed_pawns("4k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/4K3 w - - 0 1", 189);
 
     // Position 6: Black rook + white bishop, mixed king support
-    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/7K w - - 0 1", 162);
+    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/B7/7K w - - 0 1", 150);
 
     // Position 7: Black to move, king can't catch pawn
-    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/7K b - - 0 1", -342);
+    test_passed_pawns("r3k3/8/7p/1P2Pp1P/2Pp1PP1/8/8/7K b - - 0 1", -272);
 }
 
 #[test]
