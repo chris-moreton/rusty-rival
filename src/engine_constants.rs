@@ -32,7 +32,7 @@ pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 4;
 // Threat extension: if null move search returns a score this much below alpha,
 // the opponent has a significant threat that warrants deeper search
 // Using 400 to be more selective - only trigger for major threats (like losing a piece)
-pub const THREAT_EXTENSION_MARGIN: Score = 400;
+pub const THREAT_EXTENSION_MARGIN: Score = 449; // SPSA tuned, Run 13
 
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
@@ -43,25 +43,25 @@ pub const SEE_PRUNE_MARGIN: Score = 25; // SPSA 25.37 -> 25
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
 // Only searches captures with SEE >= 0 to verify tactical soundness
-pub const PROBCUT_MIN_DEPTH: u8 = 13; // SPSA 12.69 -> 13
-pub const PROBCUT_MARGIN: Score = 33;
-pub const PROBCUT_DEPTH_REDUCTION: u8 = 4; // SPSA 3.69 -> 4
+pub const PROBCUT_MIN_DEPTH: u8 = 11; // SPSA tuned, Run 13
+pub const PROBCUT_MARGIN: Score = 39; // SPSA tuned, Run 13
+pub const PROBCUT_DEPTH_REDUCTION: u8 = 4;
 
 // Multi-cut: at high depth, if multiple moves fail high at shallow depth,
 // assume the position is good and return a beta cutoff
-pub const MULTICUT_MIN_DEPTH: u8 = 21;
+pub const MULTICUT_MIN_DEPTH: u8 = 19; // SPSA tuned, Run 13
 pub const MULTICUT_DEPTH_REDUCTION: u8 = 9;
-pub const MULTICUT_MOVES_TO_TRY: u8 = 11;
-pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 7;
+pub const MULTICUT_MOVES_TO_TRY: u8 = 13; // SPSA tuned, Run 13
+pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 6; // SPSA tuned, Run 13
 
 // Singular extension: if the hash move is significantly better than all alternatives,
 // extend its search by 1 ply. This catches critical forcing sequences.
 // We do a reduced search excluding the hash move; if all alternatives fail low
 // by SINGULAR_MARGIN below alpha, the hash move is "singular" and gets extended.
 // Conservative settings to avoid over-extending
-pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 12;
+pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 13; // SPSA tuned, Run 13
 pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 5;
-pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 6;
+pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 5; // SPSA tuned, Run 13
 pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 5;
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
@@ -124,12 +124,12 @@ pub const LMR_MIN_DEPTH: u8 = 3;
 // If history score is below bad threshold, reduce by 1 more (move has failed often)
 // Thresholds are relative to highest_history_score (as a percentage * 100)
 pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 23;
-pub const LMR_HISTORY_BAD_DIVISOR: i32 = 25;
+pub const LMR_HISTORY_BAD_DIVISOR: i32 = 26; // SPSA tuned, Run 13
 
 // Continuation history threshold for LMR (countermove_history + followup_history)
 // These are i16 values, so threshold is raw score (not scaled)
-pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8100;
-pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8236;
+pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8487; // SPSA tuned, Run 13
+pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8726; // SPSA tuned, Run 13
 
 // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
 // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
