@@ -523,7 +523,7 @@ dependencies = [
 
 [[package]]
 name = "rusty-rival"
-version = "1.0.30-rc7"
+version = "1.0.30-rc8"
 dependencies = [
  "ansi_term",
  "arrayvec",
