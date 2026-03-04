@@ -199,9 +199,9 @@ pub const SCOUT_MINIMUM_DISTANCE_FROM_LEAF: u8 = 2;
 // Mobility curve parameters: f(x) = base + scale/100 * ln(1+x)
 // Generated via generate_mobility_table const fn from LN_TABLE
 pub const BISHOP_MOBILITY_BASE: Score = -15;
-pub const BISHOP_MOBILITY_SCALE_X100: i32 = 1023;
+pub const BISHOP_MOBILITY_SCALE_X100: i32 = 1059; // SPSA tuned, Run 14
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = generate_mobility_table::<14>(BISHOP_MOBILITY_BASE, BISHOP_MOBILITY_SCALE_X100);
-pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 3;
+pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 4; // SPSA tuned, Run 14
 pub const VALUE_BISHOP_PAIR: Score = 10;
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 25;
 // Rook behind passed pawn (Tarrasch rule): rooks are strongest supporting passed pawns from behind
@@ -241,8 +241,8 @@ pub const ROOK_OPEN_FILE_BONUS: Score = 38;
 pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 26;
 
 // Queen mobility bonus based on number of squares available (0-27)
-pub const QUEEN_MOBILITY_BASE: Score = -12;
-pub const QUEEN_MOBILITY_SCALE_X100: i32 = 720;
+pub const QUEEN_MOBILITY_BASE: Score = -10; // SPSA tuned, Run 14
+pub const QUEEN_MOBILITY_SCALE_X100: i32 = 743; // SPSA tuned, Run 14
 pub const VALUE_QUEEN_MOBILITY: [Score; 28] = generate_mobility_table::<28>(QUEEN_MOBILITY_BASE, QUEEN_MOBILITY_SCALE_X100);
 
 // King centralization bonus for endgames - extra bonus beyond PST when material is low
@@ -281,7 +281,7 @@ pub const VALUE_KING_MOBILITY: Score = 9; // SPSA tuned, Run 12
 // With 16 pawns (max), knights get bonus; with 0 pawns, bishops get bonus
 // The bonus is per minor piece imbalance (e.g., having 2 bishops vs 2 knights)
 // At 8 pawns (average), imbalance is neutral
-pub const BISHOP_KNIGHT_IMBALANCE_BONUS: Score = 15; // Max bonus per imbalance point
+pub const BISHOP_KNIGHT_IMBALANCE_BONUS: Score = 20; // SPSA tuned, Run 14
 
 // Trapped piece penalties
 // Pieces that are trapped (very limited mobility) lose significant value
@@ -304,4 +304,4 @@ pub const KNIGHT_BLOCKADE_PENALTY: Score = 51; // SPSA tuned, Run 12
 
 // General knight activity: bonus for knights attacking enemy pawns
 // This applies in all positions, not just Q vs N+pawns
-pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 12;
+pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 3; // SPSA tuned, Run 14
