@@ -9,6 +9,7 @@ use crate::move_constants::{
 use crate::opponent;
 use crate::types::{Bitboard, Move, Position, Score, SearchState, Square, BLACK, WHITE};
 use std::borrow::Borrow;
+use std::sync::atomic::Ordering;
 
 #[inline(always)]
 pub const fn from_square_mask(square: Square) -> Move {
@@ -249,7 +250,10 @@ pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
         for (i, (m, score)) in scored_moves.iter().enumerate() {
             search_state.root_moves[i] = (*m, *score);
         }
-        let nps = (search_state.nodes as f64 / elapsed_ms as f64) * 1000.0;
+        // Use shared node count from all threads for NPS display
+        // max() ensures single-threaded mode still works (shared_nodes may be 0 if not yet synced)
+        let total_nodes = std::cmp::max(search_state.nodes, search_state.shared_nodes.load(Ordering::Relaxed));
+        let nps = (total_nodes as f64 / elapsed_ms as f64) * 1000.0;
         for pv in 1..=multi_pv {
             let multi_pv_move = search_state.root_moves[pv as usize - 1];
             let pv_path_score = search_state.pv.get(multi_pv_move.0.borrow()).unwrap();
@@ -260,7 +264,7 @@ pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
                 + &*" time ".to_string()
                 + &*elapsed_ms.to_string()
                 + &*" nodes ".to_string()
-                + &*search_state.nodes.to_string()
+                + &*total_nodes.to_string()
                 + &*" nps ".to_string()
                 + &*(nps as u64).to_string()
                 + &*" multipv ".to_string()

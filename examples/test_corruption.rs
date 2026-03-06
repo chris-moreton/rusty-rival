@@ -19,7 +19,7 @@ fn main() {
         println!("  Before: {}", get_fen(&position));
 
         search_state.end_time = Instant::now().add(Duration::from_millis(100));
-        let mv = iterative_deepening(&mut position, 20, &mut search_state);
+        let mv = iterative_deepening(&mut position, 20, &mut search_state, 1);
 
         let after_fen = get_fen(&position);
         println!("  After:  {}", after_fen);

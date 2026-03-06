@@ -7,7 +7,7 @@ use regex::Regex;
 use std::cmp::{max, min};
 use std::ops::Add;
 use std::process::exit;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -120,14 +120,14 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
         "infinite" => {
             let mut position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
-            let mv = iterative_deepening(&mut position, 200, search_state);
+            let mv = iterative_deepening(&mut position, 200, search_state, 1);
             Right(Some(format_bestmove(mv, search_state)))
         }
         "mate" => {
             let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
             let mut position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
-            let mv = iterative_deepening(&mut position, mate_depth.saturating_mul(2), search_state);
+            let mv = iterative_deepening(&mut position, mate_depth.saturating_mul(2), search_state, 1);
             Right(Some(format_bestmove(mv, search_state)))
         }
         _ => {
@@ -157,7 +157,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
             uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
 
             search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
-            let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state);
+            let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state, 1);
 
             // Clear search_moves after search completes
             search_state.search_moves = None;
@@ -186,7 +186,7 @@ pub fn run_command(
         "state" => cmd_state(uci_state, search_state),
         "go" => cmd_go(uci_state, search_state, search_handle, parts),
         "stop" => cmd_stop(search_handle),
-        "setoption" => cmd_setoption(parts, search_state),
+        "setoption" => cmd_setoption(parts, search_state, uci_state),
         "register" => cmd_register(),
         "ucinewgame" => cmd_ucinewgame(uci_state, search_state, search_handle),
         "debug" => cmd_debug(uci_state, parts),
@@ -309,7 +309,7 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
         let mut position = get_position(START_POS);
         let final_position = loop {
             search_state.end_time = Instant::now().add(Duration::from_millis(millis));
-            let mv = iterative_deepening(&mut position, 100_u8, search_state);
+            let mv = iterative_deepening(&mut position, 100_u8, search_state, 1);
             let mut new_position = position;
             make_move(&position, mv, &mut new_position);
 
@@ -401,35 +401,58 @@ fn cmd_go(
     };
 
     // Clone position for the search thread
-    let mut position = get_position(uci_state.fen.trim());
+    let position = get_position(uci_state.fen.trim());
 
     // Parse searchmoves if present
     let search_moves = parse_searchmoves(&line, &position);
 
-    // Create a new stop flag for this search
+    // Create a new stop flag and shared node counter for this search
     let stop_flag = Arc::new(AtomicBool::new(false));
+    let shared_nodes = Arc::new(AtomicU64::new(0));
 
-    // Clone search_state for the thread, but use the new stop flag
-    // Note: hash_table is shared via Arc (no 128MB copy!)
-    let mut thread_search_state = search_state.clone();
-    thread_search_state.nodes = 0;
-    thread_search_state.nodes_limit = nodes_limit;
-    thread_search_state.end_time = end_time;
-    thread_search_state.stop = stop_flag.clone();
-    thread_search_state.search_moves = search_moves;
+    let num_threads = uci_state.threads;
+    let mut handles = Vec::with_capacity(num_threads);
 
-    // Spawn the search thread with a larger stack size to prevent stack overflow
-    // during deep searches (default 2MB is not enough for very deep positions)
-    let handle = thread::Builder::new()
-        .stack_size(16 * 1024 * 1024) // 16 MB stack (matches RUST_MIN_STACK recommendation)
-        .spawn(move || {
-            let mv = iterative_deepening(&mut position, max_depth, &mut thread_search_state);
-            println!("{}", format_bestmove(mv, &thread_search_state));
-        })
-        .expect("Failed to spawn search thread");
+    for thread_id in 0..num_threads {
+        // Clone search_state for each thread, sharing hash tables and stop flag
+        let mut thread_search_state = search_state.clone();
+        thread_search_state.nodes = 0;
+        thread_search_state.nodes_limit = nodes_limit;
+        thread_search_state.end_time = end_time;
+        thread_search_state.stop = stop_flag.clone();
+        thread_search_state.shared_nodes = shared_nodes.clone();
+        thread_search_state.thread_id = thread_id;
+
+        if thread_id == 0 {
+            // Main thread: shows info and prints bestmove
+            thread_search_state.show_info = true;
+            thread_search_state.search_moves = search_moves.clone();
+        } else {
+            // Helper threads: only populate TT, no UCI output
+            thread_search_state.show_info = false;
+            thread_search_state.search_moves = None;
+        }
+
+        let mut thread_position = position;
+
+        // Helper threads start at offset depths to explore different tree parts
+        let start_depth: u8 = if thread_id == 0 { 1 } else { ((thread_id % 255) + 1) as u8 };
+
+        let handle = thread::Builder::new()
+            .stack_size(16 * 1024 * 1024)
+            .spawn(move || {
+                let mv = iterative_deepening(&mut thread_position, max_depth, &mut thread_search_state, start_depth);
+                if thread_id == 0 {
+                    println!("{}", format_bestmove(mv, &thread_search_state));
+                }
+            })
+            .expect("Failed to spawn search thread");
+
+        handles.push(handle);
+    }
 
     // Store the search handle
-    *search_handle = Some(SearchHandle { stop: stop_flag, handle });
+    *search_handle = Some(SearchHandle { stop: stop_flag, handles });
 
     Right(None)
 }
@@ -481,8 +504,7 @@ fn parse_searchmoves(line: &str, position: &Position) -> Option<Vec<Move>> {
 
 fn cmd_stop(search_handle: &mut Option<SearchHandle>) -> Either<String, Option<String>> {
     if let Some(handle) = search_handle.take() {
-        set_stop(&handle.stop, true);
-        let _ = handle.handle.join();
+        handle.stop_and_wait();
     }
     Right(None)
 }
@@ -517,6 +539,7 @@ option name Clear Hash type button
 option name MultiPV type spin default 1 min 1 max 20
 option name Contempt type spin default 0 min -1000 max 1000
 option name SyzygyPath type string default <empty>
+option name Threads type spin default 1 min 1 max 256
 uciok",
         env!("CARGO_PKG_VERSION")
     )))
@@ -545,7 +568,7 @@ fn cmd_perft(depth: u8, uci_state: &UciState) -> Either<String, Option<String>> 
     Right(None)
 }
 
-fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<String, Option<String>> {
+fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &mut UciState) -> Either<String, Option<String>> {
     if parts.len() < 3 || parts[1] != "name" {
         Left("usage: setoption name <name> [value <value>]".parse().unwrap())
     } else {
@@ -583,6 +606,19 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState) -> Either<Str
                     Right(None)
                 } else {
                     Left("Invalid option command".parse().unwrap())
+                }
+            }
+            "threads" => {
+                if parts.len() == 5 && parts[3] == "value" {
+                    match parts[4].parse::<usize>() {
+                        Ok(threads) if (1..=256).contains(&threads) => {
+                            uci_state.threads = threads;
+                            Right(None)
+                        }
+                        _ => Left("Threads must be between 1 and 256".parse().unwrap()),
+                    }
+                } else {
+                    Left("usage: setoption name Threads value <N>".parse().unwrap())
                 }
             }
             "syzygypath" => {

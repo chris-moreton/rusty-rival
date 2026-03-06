@@ -30,6 +30,7 @@ use crate::types::{
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
+use std::sync::atomic::Ordering;
 use std::time::Instant;
 
 pub const MAX_WINDOW: Score = 20000;
@@ -84,7 +85,7 @@ macro_rules! debug_out {
     };
 }
 
-pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState) -> Move {
+pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
     search_state.start_time = Instant::now();
     set_stop(&search_state.stop, false);
     search_state.hash_table_version += 1;
@@ -138,7 +139,9 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 
         // If we found a valid TB move, return it immediately
         if best_move != 0 {
-            println!("info depth 1 score cp {} pv {}", best_score, algebraic_move_from_move(best_move));
+            if search_state.thread_id == 0 {
+                println!("info depth 1 score cp {} pv {}", best_score, algebraic_move_from_move(best_move));
+            }
             return best_move;
         }
     }
@@ -158,7 +161,9 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 
     const ASPIRATION_RADIUS: [Score; 6] = [25, 50, 100, 200, 400, 800];
 
-    for iterative_depth in 1..=max_depth {
+    let mut prev_synced_nodes: u64 = 0;
+
+    for iterative_depth in start_depth..=max_depth {
         //println!("Iterative depth {}", iterative_depth);
         let mut c = 0;
         search_state.iterative_depth = iterative_depth;
@@ -203,6 +208,19 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         }
 
         send_info(search_state, true);
+
+        // Sync local node count to the shared counter
+        let new_nodes = search_state.nodes - prev_synced_nodes;
+        if new_nodes > 0 {
+            search_state.shared_nodes.fetch_add(new_nodes, Ordering::Relaxed);
+            prev_synced_nodes = search_state.nodes;
+        }
+    }
+
+    // Final sync of any remaining nodes
+    let remaining = search_state.nodes - prev_synced_nodes;
+    if remaining > 0 {
+        search_state.shared_nodes.fetch_add(remaining, Ordering::Relaxed);
     }
 
     legal_moves[0].0

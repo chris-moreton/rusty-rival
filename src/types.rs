@@ -3,7 +3,7 @@ use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTL
 use arrayvec::ArrayVec;
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Instant;
@@ -300,6 +300,7 @@ pub struct UciState {
     pub move_time: u64,
     pub infinite: bool,
     pub quit: bool,
+    pub threads: usize,
 }
 
 pub fn default_uci_state() -> UciState {
@@ -318,20 +319,23 @@ pub fn default_uci_state() -> UciState {
         move_time: u64::MAX,
         infinite: false,
         quit: false,
+        threads: 1,
     }
 }
 
-/// Holds the handle to a running search thread
+/// Holds handles to running search threads
 pub struct SearchHandle {
     pub stop: Arc<AtomicBool>,
-    pub handle: JoinHandle<()>,
+    pub handles: Vec<JoinHandle<()>>,
 }
 
 impl SearchHandle {
-    /// Signal the search to stop and wait for it to finish
+    /// Signal the search to stop and wait for all threads to finish
     pub fn stop_and_wait(self) {
         set_stop(&self.stop, true);
-        let _ = self.handle.join();
+        for handle in self.handles {
+            let _ = handle.join();
+        }
     }
 }
 
@@ -367,6 +371,8 @@ pub struct SearchState {
     pub search_moves: Option<Vec<Move>>,
     pub stop: Arc<AtomicBool>,
     pub last_info_nodes: u64,
+    pub shared_nodes: Arc<AtomicU64>,
+    pub thread_id: usize,
 }
 
 impl Clone for SearchState {
@@ -403,6 +409,8 @@ impl Clone for SearchState {
             search_moves: self.search_moves.clone(),
             stop: Arc::clone(&self.stop),
             last_info_nodes: self.last_info_nodes,
+            shared_nodes: Arc::clone(&self.shared_nodes),
+            thread_id: self.thread_id,
         }
     }
 }
@@ -439,6 +447,8 @@ pub fn default_search_state() -> SearchState {
         search_moves: None,
         stop: Arc::new(AtomicBool::new(false)),
         last_info_nodes: 0,
+        shared_nodes: Arc::new(AtomicU64::new(0)),
+        thread_id: 0,
     }
 }
 
