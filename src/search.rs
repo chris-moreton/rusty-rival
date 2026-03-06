@@ -1,10 +1,10 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
-    LMP_MOVE_THRESHOLDS, LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_DIVISOR,
-    LMR_HISTORY_GOOD_DIVISOR, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
-    MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
-    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH,
+    IMPROVING_RFP_DIVISOR, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS, LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD,
+    LMR_HISTORY_BAD_DIVISOR, LMR_HISTORY_GOOD_DIVISOR, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH,
+    MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH,
+    NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
+    SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
     SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
@@ -553,10 +553,6 @@ pub fn search(
 
     if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
         lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
-        let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
-        if lazy_eval - margin as Score >= beta {
-            return (pv_single(0), lazy_eval - margin);
-        }
     }
 
     let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
@@ -568,6 +564,25 @@ pub fn search(
     } else {
         false
     };
+
+    // Compute lazy_eval if not yet done (needed for improving heuristic)
+    if !in_check && lazy_eval == -Score::MAX {
+        lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
+    }
+
+    // Store static eval and compute improving flag
+    search_state.static_eval[ply as usize] = if in_check { -Score::MAX } else { lazy_eval };
+
+    let improving = !in_check && ply >= 2 && search_state.static_eval[ply as usize] > search_state.static_eval[ply as usize - 2];
+
+    // Reverse Futility Pruning (with improving adjustment)
+    if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
+        let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
+        let adjusted_margin = if improving { margin / IMPROVING_RFP_DIVISOR } else { margin };
+        if lazy_eval - adjusted_margin >= beta {
+            return (pv_single(0), lazy_eval - adjusted_margin);
+        }
+    }
 
     // Threat detection: when null move fails badly, opponent has a dangerous threat
     // We'll use this to reduce LMR aggressiveness rather than extending
@@ -939,7 +954,12 @@ pub fn search(
                 && !is_tactical
                 && !is_promotion
                 && !current_is_end_game
-                && legal_move_count > LMP_MOVE_THRESHOLDS[depth as usize]
+                && legal_move_count
+                    > if improving {
+                        LMP_MOVE_THRESHOLDS[depth as usize] + LMP_MOVE_THRESHOLDS[depth as usize] / 2
+                    } else {
+                        LMP_MOVE_THRESHOLDS[depth as usize]
+                    }
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
                 && !gives_check
@@ -958,6 +978,12 @@ pub fn search(
                 && !gives_check
             {
                 let mut reduction = lmr_reduction(real_depth, legal_move_count);
+                // Not improving: reduce more when our eval is getting worse
+                // Only apply when base reduction is already significant (depth >= 6)
+                // to avoid over-reducing at shallow depths
+                if !improving && real_depth >= 6 {
+                    reduction += 1;
+                }
                 // Threat-based LMR: reduce less when opponent has a detected threat
                 // This ensures we don't miss tactical replies to threats
                 if threat_detected && reduction > 0 {

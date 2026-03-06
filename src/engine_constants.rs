@@ -22,6 +22,7 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
 pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 152;
+pub const IMPROVING_RFP_DIVISOR: Score = 2;
 pub const BETA_PRUNE_MAX_DEPTH: u8 = 10; // SPSA 9.70 -> 10
 
 pub const NUM_KILLER_MOVES: usize = 2;
