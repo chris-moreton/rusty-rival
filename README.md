@@ -4,6 +4,16 @@ A [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) chess engine wr
 
 Binaries for Windows, Mac OS and Linux are available on the [releases](https://github.com/chris-moreton/rusty-rival/releases) page.
 
+## Features
+
+- Alpha-beta search with iterative deepening and aspiration windows
+- Lazy SMP multi-threaded search (configurable via UCI `Threads` option)
+- Transposition table, killer moves, history heuristic, countermove heuristic
+- Null move pruning, late move reductions, late move pruning, reverse futility pruning
+- Singular extensions, probcut, multi-cut, SEE pruning
+- Quiescence search with static exchange evaluation
+- SPSA-tuned evaluation and search parameters
+
 ## Building and Storing Engine Versions for Local Strength Testing
 
 1. Build the engine:
