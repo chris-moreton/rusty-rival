@@ -565,15 +565,17 @@ pub fn search(
         false
     };
 
-    // Compute lazy_eval if not yet done (needed for improving heuristic)
-    if !in_check && lazy_eval == -Score::MAX {
-        lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
-    }
+    // Store static eval and compute improving flag (only when eval was already computed)
+    search_state.static_eval[ply as usize] = if in_check || lazy_eval == -Score::MAX {
+        -Score::MAX
+    } else {
+        lazy_eval
+    };
 
-    // Store static eval and compute improving flag
-    search_state.static_eval[ply as usize] = if in_check { -Score::MAX } else { lazy_eval };
-
-    let improving = !in_check && ply >= 2 && search_state.static_eval[ply as usize] > search_state.static_eval[ply as usize - 2];
+    let improving = !in_check
+        && lazy_eval != -Score::MAX
+        && ply >= 2
+        && search_state.static_eval[ply as usize] > search_state.static_eval[ply as usize - 2];
 
     // Reverse Futility Pruning (with improving adjustment)
     if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
