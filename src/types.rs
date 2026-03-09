@@ -301,6 +301,7 @@ pub struct UciState {
     pub infinite: bool,
     pub quit: bool,
     pub threads: usize,
+    pub ponder_enabled: bool,
 }
 
 pub fn default_uci_state() -> UciState {
@@ -320,12 +321,16 @@ pub fn default_uci_state() -> UciState {
         infinite: false,
         quit: false,
         threads: 1,
+        ponder_enabled: false,
     }
 }
 
 /// Holds handles to running search threads
 pub struct SearchHandle {
     pub stop: Arc<AtomicBool>,
+    pub pondering: Arc<AtomicBool>,
+    pub ponder_soft_ms: Arc<AtomicU64>,
+    pub ponder_hard_ms: Arc<AtomicU64>,
     pub handles: Vec<JoinHandle<()>>,
 }
 
@@ -378,6 +383,11 @@ pub struct SearchState {
     pub prev_best_move: Move,
     pub prev_score: Score,
     pub time_management_active: bool,
+    pub pondering: Arc<AtomicBool>,
+    pub ponder_soft_ms: Arc<AtomicU64>,
+    pub ponder_hard_ms: Arc<AtomicU64>,
+    pub is_ponder_search: bool,
+    pub ponder_applied: bool,
 }
 
 impl Clone for SearchState {
@@ -421,6 +431,11 @@ impl Clone for SearchState {
             prev_best_move: self.prev_best_move,
             prev_score: self.prev_score,
             time_management_active: self.time_management_active,
+            pondering: Arc::clone(&self.pondering),
+            ponder_soft_ms: Arc::clone(&self.ponder_soft_ms),
+            ponder_hard_ms: Arc::clone(&self.ponder_hard_ms),
+            is_ponder_search: self.is_ponder_search,
+            ponder_applied: self.ponder_applied,
         }
     }
 }
@@ -464,6 +479,11 @@ pub fn default_search_state() -> SearchState {
         prev_best_move: 0,
         prev_score: 0,
         time_management_active: false,
+        pondering: Arc::new(AtomicBool::new(false)),
+        ponder_soft_ms: Arc::new(AtomicU64::new(0)),
+        ponder_hard_ms: Arc::new(AtomicU64::new(0)),
+        is_ponder_search: false,
+        ponder_applied: false,
     }
 }
 

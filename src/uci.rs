@@ -7,7 +7,7 @@ use regex::Regex;
 use std::cmp::{max, min};
 use std::ops::Add;
 use std::process::exit;
-use std::sync::atomic::{AtomicBool, AtomicU64};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -214,6 +214,7 @@ pub fn run_command(
         "state" => cmd_state(uci_state, search_state),
         "go" => cmd_go(uci_state, search_state, search_handle, parts),
         "stop" => cmd_stop(search_handle),
+        "ponderhit" => cmd_ponderhit(search_handle),
         "setoption" => cmd_setoption(parts, search_state, uci_state),
         "register" => cmd_register(),
         "ucinewgame" => cmd_ucinewgame(uci_state, search_state, search_handle),
@@ -393,13 +394,15 @@ fn cmd_go(
     // exceed tournament time limits. The clone is now fast (Arc-based hash table)
     // so the overhead is minimal.
     let line = parts.join(" ");
-    let (max_depth, end_time, soft_time_limit, nodes_limit, tm_active) = if *t == "infinite" {
+    let is_ponder = parts.contains(&"ponder");
+
+    let (max_depth, end_time, soft_time_limit, nodes_limit, tm_active, ponder_soft, ponder_hard) = if *t == "infinite" || *t == "ponder" {
         let end = Instant::now().add(Duration::from_secs(86400));
-        (200u8, end, end, u64::MAX, false)
+        (200u8, end, end, u64::MAX, false, 0u64, 0u64)
     } else if *t == "mate" {
         let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
         let end = Instant::now().add(Duration::from_secs(86400));
-        (mate_depth.saturating_mul(2), end, end, u64::MAX, false)
+        (mate_depth.saturating_mul(2), end, end, u64::MAX, false, 0u64, 0u64)
     } else {
         uci_state.wtime = extract_go_param("wtime", &line, 0);
         uci_state.btime = extract_go_param("btime", &line, 0);
@@ -437,18 +440,25 @@ fn cmd_go(
                 ),
             );
 
-            let now = Instant::now();
-            (
-                uci_state.depth as u8,
-                now.add(Duration::from_millis(hard_ms)),
-                now.add(Duration::from_millis(soft_ms)),
-                uci_state.nodes,
-                true,
-            )
+            if is_ponder {
+                let end = Instant::now().add(Duration::from_secs(86400));
+                (uci_state.depth as u8, end, end, uci_state.nodes, false, soft_ms, hard_ms)
+            } else {
+                let now = Instant::now();
+                (
+                    uci_state.depth as u8,
+                    now.add(Duration::from_millis(hard_ms)),
+                    now.add(Duration::from_millis(soft_ms)),
+                    uci_state.nodes,
+                    true,
+                    0u64,
+                    0u64,
+                )
+            }
         } else {
             let now = Instant::now();
             let end = now.add(Duration::from_millis(uci_state.move_time));
-            (uci_state.depth as u8, end, end, uci_state.nodes, false)
+            (uci_state.depth as u8, end, end, uci_state.nodes, false, 0u64, 0u64)
         }
     };
 
@@ -458,9 +468,12 @@ fn cmd_go(
     // Parse searchmoves if present
     let search_moves = parse_searchmoves(&line, &position);
 
-    // Create a new stop flag and shared node counter for this search
+    // Create shared flags for this search
     let stop_flag = Arc::new(AtomicBool::new(false));
     let shared_nodes = Arc::new(AtomicU64::new(0));
+    let pondering = Arc::new(AtomicBool::new(is_ponder));
+    let ponder_soft_ms = Arc::new(AtomicU64::new(ponder_soft));
+    let ponder_hard_ms = Arc::new(AtomicU64::new(ponder_hard));
 
     let num_threads = uci_state.threads;
     let mut handles = Vec::with_capacity(num_threads);
@@ -476,6 +489,11 @@ fn cmd_go(
         thread_search_state.stop = stop_flag.clone();
         thread_search_state.shared_nodes = shared_nodes.clone();
         thread_search_state.thread_id = thread_id;
+        thread_search_state.pondering = pondering.clone();
+        thread_search_state.ponder_soft_ms = ponder_soft_ms.clone();
+        thread_search_state.ponder_hard_ms = ponder_hard_ms.clone();
+        thread_search_state.is_ponder_search = is_ponder;
+        thread_search_state.ponder_applied = false;
 
         if thread_id == 0 {
             // Main thread: shows info and prints bestmove
@@ -506,7 +524,13 @@ fn cmd_go(
     }
 
     // Store the search handle
-    *search_handle = Some(SearchHandle { stop: stop_flag, handles });
+    *search_handle = Some(SearchHandle {
+        stop: stop_flag,
+        pondering,
+        ponder_soft_ms,
+        ponder_hard_ms,
+        handles,
+    });
 
     Right(None)
 }
@@ -563,6 +587,13 @@ fn cmd_stop(search_handle: &mut Option<SearchHandle>) -> Either<String, Option<S
     Right(None)
 }
 
+fn cmd_ponderhit(search_handle: &mut Option<SearchHandle>) -> Either<String, Option<String>> {
+    if let Some(ref handle) = search_handle {
+        handle.pondering.store(false, Ordering::Relaxed);
+    }
+    Right(None)
+}
+
 fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
     let bestmove = algebraic_move_from_move(mv);
     // Include ponder move if we have a second move in the PV
@@ -594,6 +625,7 @@ option name MultiPV type spin default 1 min 1 max 20
 option name Contempt type spin default 0 min -1000 max 1000
 option name SyzygyPath type string default <empty>
 option name Threads type spin default 1 min 1 max 256
+option name Ponder type check default false
 uciok",
         env!("CARGO_PKG_VERSION")
     )))
@@ -689,6 +721,12 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &m
                 } else {
                     Left("usage: setoption name SyzygyPath value <path>".parse().unwrap())
                 }
+            }
+            "ponder" => {
+                if parts.len() == 5 && parts[3] == "value" {
+                    uci_state.ponder_enabled = parts[4].eq_ignore_ascii_case("true");
+                }
+                Right(None)
             }
             _ => Left("Unknown option".parse().unwrap()),
         }

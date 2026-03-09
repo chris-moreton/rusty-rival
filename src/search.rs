@@ -69,6 +69,19 @@ macro_rules! time_expired {
 macro_rules! check_time {
     ($search_state:expr) => {
         if !is_stopped(&$search_state.stop) && $search_state.nodes % 1000 == 0 {
+            if $search_state.is_ponder_search && !$search_state.ponder_applied {
+                if !$search_state.pondering.load(std::sync::atomic::Ordering::Relaxed) {
+                    let hard_ms = $search_state.ponder_hard_ms.load(std::sync::atomic::Ordering::Relaxed);
+                    let soft_ms = $search_state.ponder_soft_ms.load(std::sync::atomic::Ordering::Relaxed);
+                    if hard_ms > 0 {
+                        let now = std::time::Instant::now();
+                        $search_state.end_time = now + std::time::Duration::from_millis(hard_ms);
+                        $search_state.soft_time_limit = now + std::time::Duration::from_millis(soft_ms);
+                        $search_state.time_management_active = true;
+                    }
+                    $search_state.ponder_applied = true;
+                }
+            }
             if $search_state.end_time < Instant::now() || $search_state.nodes >= $search_state.nodes_limit {
                 set_stop(&$search_state.stop, true);
                 send_info($search_state, false);
