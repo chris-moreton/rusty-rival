@@ -1,4 +1,4 @@
-use crate::engine_constants::UCI_MILLIS_REDUCTION;
+use crate::engine_constants::{TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_SOFT_FACTOR, UCI_MILLIS_REDUCTION};
 use crate::tablebase::init_tablebase;
 
 use either::{Either, Left, Right};
@@ -120,6 +120,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
         "infinite" => {
             let mut position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            search_state.time_management_active = false;
             let mv = iterative_deepening(&mut position, 200, search_state, 1);
             Right(Some(format_bestmove(mv, search_state)))
         }
@@ -127,6 +128,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
             let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
             let mut position = get_position(uci_state.fen.trim());
             search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            search_state.time_management_active = false;
             let mv = iterative_deepening(&mut position, mate_depth.saturating_mul(2), search_state, 1);
             Right(Some(format_bestmove(mv, search_state)))
         }
@@ -156,7 +158,33 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
 
             uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
 
-            search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
+            let base_time_ms = uci_state.move_time;
+            let time_remaining = if position.mover == WHITE {
+                uci_state.wtime
+            } else {
+                uci_state.btime
+            };
+
+            let has_clock = time_remaining > 0;
+            if has_clock {
+                let soft_ms = max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64);
+                let hard_ms = max(
+                    10,
+                    min(
+                        (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
+                        (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
+                    ),
+                );
+
+                let now = Instant::now();
+                search_state.end_time = now.add(Duration::from_millis(hard_ms));
+                search_state.soft_time_limit = now.add(Duration::from_millis(soft_ms));
+                search_state.time_management_active = true;
+            } else {
+                search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
+                search_state.time_management_active = false;
+            }
+
             let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state, 1);
 
             // Clear search_moves after search completes
@@ -365,15 +393,13 @@ fn cmd_go(
     // exceed tournament time limits. The clone is now fast (Arc-based hash table)
     // so the overhead is minimal.
     let line = parts.join(" ");
-    let (max_depth, end_time, nodes_limit) = if *t == "infinite" {
-        (200u8, Instant::now().add(Duration::from_secs(86400)), u64::MAX)
+    let (max_depth, end_time, soft_time_limit, nodes_limit, tm_active) = if *t == "infinite" {
+        let end = Instant::now().add(Duration::from_secs(86400));
+        (200u8, end, end, u64::MAX, false)
     } else if *t == "mate" {
         let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
-        (
-            mate_depth.saturating_mul(2),
-            Instant::now().add(Duration::from_secs(86400)),
-            u64::MAX,
-        )
+        let end = Instant::now().add(Duration::from_secs(86400));
+        (mate_depth.saturating_mul(2), end, end, u64::MAX, false)
     } else {
         uci_state.wtime = extract_go_param("wtime", &line, 0);
         uci_state.btime = extract_go_param("btime", &line, 0);
@@ -393,11 +419,37 @@ fn cmd_go(
 
         uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
 
-        (
-            uci_state.depth as u8,
-            Instant::now().add(Duration::from_millis(uci_state.move_time)),
-            uci_state.nodes,
-        )
+        let base_time_ms = uci_state.move_time;
+        let time_remaining = if position.mover == WHITE {
+            uci_state.wtime
+        } else {
+            uci_state.btime
+        };
+
+        let has_clock = time_remaining > 0;
+        if has_clock {
+            let soft_ms = max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64);
+            let hard_ms = max(
+                10,
+                min(
+                    (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
+                    (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
+                ),
+            );
+
+            let now = Instant::now();
+            (
+                uci_state.depth as u8,
+                now.add(Duration::from_millis(hard_ms)),
+                now.add(Duration::from_millis(soft_ms)),
+                uci_state.nodes,
+                true,
+            )
+        } else {
+            let now = Instant::now();
+            let end = now.add(Duration::from_millis(uci_state.move_time));
+            (uci_state.depth as u8, end, end, uci_state.nodes, false)
+        }
     };
 
     // Clone position for the search thread
@@ -419,6 +471,8 @@ fn cmd_go(
         thread_search_state.nodes = 0;
         thread_search_state.nodes_limit = nodes_limit;
         thread_search_state.end_time = end_time;
+        thread_search_state.soft_time_limit = soft_time_limit;
+        thread_search_state.time_management_active = tm_active;
         thread_search_state.stop = stop_flag.clone();
         thread_search_state.shared_nodes = shared_nodes.clone();
         thread_search_state.thread_id = thread_id;

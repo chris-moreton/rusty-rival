@@ -305,3 +305,13 @@ pub const KNIGHT_BLOCKADE_PENALTY: Score = 51; // SPSA tuned, Run 12
 // General knight activity: bonus for knights attacking enemy pawns
 // This applies in all positions, not just Q vs N+pawns
 pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 3; // SPSA tuned, Run 14
+
+// Time management constants
+pub const TM_SOFT_FACTOR: f64 = 0.6;
+pub const TM_HARD_FACTOR: f64 = 2.5;
+pub const TM_HARD_MAX_FRACTION: f64 = 0.25;
+pub const TM_STABILITY_THRESHOLD: u8 = 4;
+pub const TM_SCORE_DROP_THRESHOLD: Score = 50;
+pub const TM_SCORE_DROP_EXTEND: f64 = 1.5;
+pub const TM_INSTABILITY_EXTEND: f64 = 1.3;
+pub const TM_MIN_DEPTH_FOR_TM: u8 = 5;

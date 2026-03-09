@@ -373,6 +373,11 @@ pub struct SearchState {
     pub last_info_nodes: u64,
     pub shared_nodes: Arc<AtomicU64>,
     pub thread_id: usize,
+    pub soft_time_limit: Instant,
+    pub best_move_stability: u8,
+    pub prev_best_move: Move,
+    pub prev_score: Score,
+    pub time_management_active: bool,
 }
 
 impl Clone for SearchState {
@@ -411,6 +416,11 @@ impl Clone for SearchState {
             last_info_nodes: self.last_info_nodes,
             shared_nodes: Arc::clone(&self.shared_nodes),
             thread_id: self.thread_id,
+            soft_time_limit: self.soft_time_limit,
+            best_move_stability: self.best_move_stability,
+            prev_best_move: self.prev_best_move,
+            prev_score: self.prev_score,
+            time_management_active: self.time_management_active,
         }
     }
 }
@@ -449,6 +459,11 @@ pub fn default_search_state() -> SearchState {
         last_info_nodes: 0,
         shared_nodes: Arc::new(AtomicU64::new(0)),
         thread_id: 0,
+        soft_time_limit: Instant::now(),
+        best_move_stability: 0,
+        prev_best_move: 0,
+        prev_score: 0,
+        time_management_active: false,
     }
 }
 

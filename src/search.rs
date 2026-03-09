@@ -5,7 +5,8 @@ use crate::engine_constants::{
     MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
     PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
     SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
-    SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
+    SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND,
+    TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
@@ -89,6 +90,9 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     search_state.start_time = Instant::now();
     set_stop(&search_state.stop, false);
     search_state.hash_table_version += 1;
+    search_state.best_move_stability = 0;
+    search_state.prev_best_move = 0;
+    search_state.prev_score = 0;
 
     let original_mover = position.mover;
     let all_moves = generate_moves(position);
@@ -115,6 +119,11 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     // No legal moves = checkmate or stalemate, return null move
     if legal_moves.is_empty() {
         return 0;
+    }
+
+    // Single legal move: return immediately, no need to search
+    if legal_moves.len() == 1 && search_state.time_management_active {
+        return legal_moves[0].0;
     }
 
     // Tablebase probe at root: if ≤6 pieces, return best move immediately
@@ -208,6 +217,57 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         }
 
         send_info(search_state, true);
+
+        // Time management decisions (thread 0 only)
+        if search_state.time_management_active && search_state.thread_id == 0 && iterative_depth >= TM_MIN_DEPTH_FOR_TM {
+            let current_move = search_state.current_best.0[0];
+            let current_score = search_state.current_best.1;
+
+            // Track best move stability
+            if current_move == search_state.prev_best_move {
+                search_state.best_move_stability = search_state.best_move_stability.saturating_add(1);
+            } else {
+                search_state.best_move_stability = 0;
+            }
+
+            // Track score drop
+            let score_dropped = search_state.prev_score - current_score > TM_SCORE_DROP_THRESHOLD && search_state.prev_score != 0;
+
+            let best_move_changed = search_state.prev_best_move != 0 && current_move != search_state.prev_best_move;
+
+            search_state.prev_best_move = current_move;
+            search_state.prev_score = current_score;
+
+            let now = Instant::now();
+
+            // Early stop: stable best move and past soft limit
+            if search_state.best_move_stability >= TM_STABILITY_THRESHOLD && now >= search_state.soft_time_limit {
+                set_stop(&search_state.stop, true);
+                break;
+            }
+
+            // Extend soft limit when best move changed
+            if best_move_changed && now < search_state.end_time {
+                let remaining_soft = search_state.soft_time_limit.saturating_duration_since(now);
+                let extension = remaining_soft.mul_f64(TM_INSTABILITY_EXTEND - 1.0);
+                let extended = search_state.soft_time_limit + extension;
+                search_state.soft_time_limit = min(extended, search_state.end_time);
+            }
+
+            // Extend soft limit on score drop
+            if score_dropped && now < search_state.end_time {
+                let remaining_soft = search_state.soft_time_limit.saturating_duration_since(now);
+                let extension = remaining_soft.mul_f64(TM_SCORE_DROP_EXTEND - 1.0);
+                let extended = search_state.soft_time_limit + extension;
+                search_state.soft_time_limit = min(extended, search_state.end_time);
+            }
+
+            // Past soft limit (possibly extended) — stop
+            if now >= search_state.soft_time_limit {
+                set_stop(&search_state.stop, true);
+                break;
+            }
+        }
 
         // Sync local node count to the shared counter
         let new_nodes = search_state.nodes - prev_synced_nodes;

@@ -1,10 +1,8 @@
 use either::{Either, Left, Right};
-use rusty_rival::engine_constants::UCI_MILLIS_REDUCTION;
 use rusty_rival::fen::get_position;
 use rusty_rival::move_constants::START_POS;
 use rusty_rival::types::{default_search_state, default_uci_state, BoundType, HashEntry, SearchState, UciState};
 use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
-use std::cmp::max;
 use std::time::Instant;
 
 #[test]
@@ -239,7 +237,7 @@ pub fn it_returns_a_best_move() {
     });
 }
 
-fn test_wtime_btime(fen: &str, cmd: &str, max_millis: u128) {
+fn test_wtime_btime(fen: &str, cmd: &str, hard_limit_millis: u128) {
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
 
@@ -250,64 +248,72 @@ fn test_wtime_btime(fen: &str, cmd: &str, max_millis: u128) {
     let start = Instant::now();
     let result = run_command_test(&mut uci_state, &mut search_state, cmd);
     let millis = (Instant::now() - start).as_millis();
-    let adjusted_max_millis: u128 = max(10, max_millis - UCI_MILLIS_REDUCTION);
     println!("{}", millis);
-    assert!(millis as f64 > adjusted_max_millis as f64 * 0.9 && millis <= max_millis);
+    // With time management, engine uses soft/hard limits dynamically
+    // Just verify it doesn't exceed the hard limit (with some tolerance for overhead)
+    assert!(
+        millis <= hard_limit_millis,
+        "took {}ms, hard limit was {}ms",
+        millis,
+        hard_limit_millis
+    );
     assert_success_message(result, |message| message.contains("bestmove"));
 }
 
 #[test]
 pub fn it_handles_wtime_and_btime() {
-    // Time calculation: (time / (movestogo + 1)) * 0.95 + increment - UCI_MILLIS_REDUCTION
-    // When movestogo=0, defaults to 30 moves remaining
+    // Time management uses soft/hard limits:
+    //   base_time = (time / (movestogo + 1)) * 0.95 + increment - UCI_MILLIS_REDUCTION
+    //   soft = base_time * 0.6
+    //   hard = min(base_time * 2.5, remaining * 0.25)
 
-    // wtime=1000, movestogo=9: 1000/10 * 0.95 - 5 = 90ms
+    // wtime=1000, movestogo=9: base=90ms, hard=min(225, 250)=225ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1",
         "go wtime 1000 btime 1000 movestogo 9",
-        100,
+        260,
     );
-    // wtime=5000, movestogo=24: 5000/25 * 0.95 - 5 = 185ms
+    // wtime=5000, movestogo=24: base=185ms, hard=min(462, 1250)=462ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1",
         "go wtime 5000 btime 10000 movestogo 24",
-        200,
+        500,
     );
-    // btime=1000, movestogo=1: 1000/2 * 0.95 - 5 = 470ms
+    // btime=1000, movestogo=1: base=470ms, hard=min(1175, 250)=250ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 1000 movestogo 1",
-        500,
+        300,
     );
-    // btime=250, movestogo=0 (→30): 250/31 * 0.95 - 5 = ~3ms → min 10ms
+    // btime=250, movestogo=0 (→30): base=~3ms→10ms, hard=min(25, 62)=25ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 250 movestogo 0",
-        15,
+        60,
     );
-    // wtime=1000, movestogo=9, winc=100: 1000/10 * 0.95 + 100 - 5 = 190ms
+    // wtime=1000, movestogo=9, winc=100: base=190ms, hard=min(475, 250)=250ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1",
         "go wtime 1000 btime 1000 movestogo 9 winc 100 binc 0",
-        200,
+        300,
     );
-    // wtime=5000, movestogo=24, winc=100: 5000/25 * 0.95 + 100 - 5 = 285ms
+    // wtime=5000, movestogo=24, winc=100: base=285ms, hard=min(712, 1250)=712ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR w KQkq - 0 1",
         "go wtime 5000 btime 10000 movestogo 24 winc 100 binc 100",
-        300,
+        750,
     );
-    // btime=1000, movestogo=1, binc=200: 1000/2 * 0.95 + 200 - 5 = 670ms
+    // btime=1000, movestogo=1, binc=200: base=670ms, hard=min(1675, 250)=250ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 1000 movestogo 1 winc 200 binc 200",
-        700,
+        300,
     );
-    // btime=250, movestogo=0 (→30), binc=200: 250/31 * 0.95 + 200 - 5 = ~203ms
+    // btime=250, movestogo=0 (→30), binc=200: base=~203ms, hard=min(507, 62)=62ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 250 movestogo 0 winc 50 binc 200",
-        220,
+        100,
     );
 }
 
