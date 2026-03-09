@@ -373,7 +373,6 @@ pub struct SearchState {
     pub last_info_nodes: u64,
     pub shared_nodes: Arc<AtomicU64>,
     pub thread_id: usize,
-    pub static_eval: [Score; MAX_DEPTH as usize],
 }
 
 impl Clone for SearchState {
@@ -412,7 +411,6 @@ impl Clone for SearchState {
             last_info_nodes: self.last_info_nodes,
             shared_nodes: Arc::clone(&self.shared_nodes),
             thread_id: self.thread_id,
-            static_eval: self.static_eval,
         }
     }
 }
@@ -451,7 +449,6 @@ pub fn default_search_state() -> SearchState {
         last_info_nodes: 0,
         shared_nodes: Arc::new(AtomicU64::new(0)),
         thread_id: 0,
-        static_eval: [0; MAX_DEPTH as usize],
     }
 }
 
