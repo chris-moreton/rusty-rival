@@ -168,7 +168,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         }
     }
 
-    clear_history_table(search_state);
+    age_history_table(search_state);
     clear_killers(search_state);
 
     if search_state.history.is_empty() {
@@ -346,36 +346,44 @@ fn clear_killers(search_state: &mut SearchState) {
     }
 }
 
-fn clear_history_table(search_state: &mut SearchState) {
+fn age_history_table(search_state: &mut SearchState) {
     for piece in search_state.history_moves.iter_mut() {
         for from_sq in piece.iter_mut() {
-            from_sq.fill(0);
+            for val in from_sq.iter_mut() {
+                *val /= 2;
+            }
         }
     }
-    search_state.highest_history_score = 0;
+    search_state.highest_history_score /= 2;
 
-    // Clear countermove history table
+    // Age countermove history table
     for prev_piece in search_state.countermove_history.iter_mut() {
         for prev_to in prev_piece.iter_mut() {
             for curr_piece in prev_to.iter_mut() {
-                curr_piece.fill(0);
+                for val in curr_piece.iter_mut() {
+                    *val /= 2;
+                }
             }
         }
     }
 
-    // Clear followup history table
+    // Age followup history table
     for prev_piece in search_state.followup_history.iter_mut() {
         for prev_to in prev_piece.iter_mut() {
             for curr_piece in prev_to.iter_mut() {
-                curr_piece.fill(0);
+                for val in curr_piece.iter_mut() {
+                    *val /= 2;
+                }
             }
         }
     }
 
-    // Clear capture history table
+    // Age capture history table
     for attacker in &mut search_state.capture_history {
         for victim in attacker {
-            victim.fill(0);
+            for val in victim.iter_mut() {
+                *val /= 2;
+            }
         }
     }
 }
