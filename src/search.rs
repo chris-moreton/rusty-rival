@@ -564,6 +564,13 @@ pub fn search(
     let mut alpha = window.0;
     let mut beta = window.1;
 
+    // Mate distance pruning: tighten bounds based on ply
+    alpha = max(alpha, -MATE_SCORE + ply as Score);
+    beta = min(beta, MATE_SCORE - ply as Score - 1);
+    if alpha >= beta {
+        return (pv_single(0), alpha);
+    }
+
     let mut legal_move_count = 0;
     let mut hash_flag = Upper;
     let mut hash_height = 0;
