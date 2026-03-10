@@ -8,7 +8,9 @@ use crate::move_constants::{
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
+use crate::search::{store_hash_entry, MATE_START};
 use crate::see::{captured_piece_value_see, see};
+use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
     Window, BLACK, WHITE,
@@ -123,14 +125,42 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
     }
     search_state.nodes += 1;
 
+    let mut alpha = window.0;
+    let beta = window.1;
+
+    // Probe transposition table
+    let hash_len_u128 = search_state.hash_table.len() as u128;
+    let hash_index = (position.zobrist_lock % hash_len_u128) as usize;
+    let hash_entry = search_state.hash_table.get(hash_index);
+    let hash_hit = hash_entry.lock == position.zobrist_lock;
+
+    if hash_hit {
+        let score = match hash_entry.score {
+            s if s > MATE_START => s - ply as Score,
+            s if s < -MATE_START => s + ply as Score,
+            s => s,
+        };
+        if hash_entry.bound == Exact {
+            return (pv_single(hash_entry.mv), score);
+        }
+        if hash_entry.bound == Lower && score >= beta {
+            return (pv_single(hash_entry.mv), score);
+        }
+        if hash_entry.bound == Upper && score <= alpha {
+            return (pv_single(hash_entry.mv), score);
+        }
+    }
+
     let eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
 
-    if depth == 0 || eval >= window.1 {
+    if depth == 0 || eval >= beta {
         return (pv_single(0), eval);
     }
 
-    let mut alpha = window.0.max(eval);
+    alpha = alpha.max(eval);
     let mut best_move: Move = 0;
+    let mut best_score = eval;
+    let mut hash_flag = Upper;
 
     let ms = quiesce_moves(position);
 
@@ -164,7 +194,7 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
         let unmake = make_move_in_place(position, m);
 
         if !is_check(position, old_mover) && see(see_value, bit(to_square_part(m)), position) > 0 {
-            let score = -quiesce(position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
+            let score = -quiesce(position, depth - 1, ply + 1, (-beta, -alpha), search_state).1;
 
             unmake_move(position, m, &unmake);
 
@@ -173,17 +203,25 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
                 break;
             }
 
-            if score >= window.1 {
-                return (pv_single(m), window.1);
-            }
-            if score > alpha {
-                alpha = score;
+            if score > best_score {
+                best_score = score;
                 best_move = m;
+
+                if score >= beta {
+                    store_hash_entry(position, 0, 0, 0, Lower, (m, score), search_state, ply, hash_index);
+                    return (pv_single(m), score);
+                }
+                if score > alpha {
+                    alpha = score;
+                    hash_flag = Exact;
+                }
             }
         } else {
             unmake_move(position, m, &unmake);
         }
     }
 
-    (pv_single(best_move), alpha)
+    store_hash_entry(position, 0, 0, 0, hash_flag, (best_move, best_score), search_state, ply, hash_index);
+
+    (pv_single(best_move), best_score)
 }
