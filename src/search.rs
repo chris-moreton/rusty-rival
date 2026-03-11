@@ -1124,6 +1124,20 @@ pub fn search(
                 0
             };
 
+            // Forward futility pruning: if a quiet move at reduced depth can't raise alpha, skip it
+            // This extends the node-level alpha pruning to also catch moves at higher nominal depths
+            // that would be heavily reduced by LMR
+            if lmr > 0 && !gives_check && !is_tactical && !is_promotion && alpha.abs() < MATE_START {
+                let reduced_depth = (depth as i32 - 1 - lmr as i32 + move_extension as i32).max(0) as usize;
+                if reduced_depth < ALPHA_PRUNE_MARGINS.len()
+                    && lazy_eval != -Score::MAX
+                    && lazy_eval + ALPHA_PRUNE_MARGINS[reduced_depth] <= alpha
+                {
+                    unmake_move(position, m, &unmake);
+                    continue;
+                }
+            }
+
             // Apply extensions to search depth
             let search_depth = depth + move_extension;
 
