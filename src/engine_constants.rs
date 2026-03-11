@@ -87,7 +87,12 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
-// SPSA tuned: base=54, per_depth=66 (Run 9 iter 116)
+
+// Correction history: tracks error between static eval and search result, indexed by pawn hash
+pub const NUM_CORRECTION_ENTRIES: usize = 16384;
+pub const CORRECTION_WEIGHT: i32 = 256; // Gravity divisor for correction updates
+pub const CORRECTION_SCALE: i32 = 256; // Divisor when applying correction to eval
+                                       // SPSA tuned: base=54, per_depth=66 (Run 9 iter 116)
 pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [54, 120, 186, 252, 318, 384, 450, 516];
 
 // =============================================================================
