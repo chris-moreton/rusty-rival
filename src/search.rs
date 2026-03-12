@@ -1,16 +1,15 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_SCALE, CORRECTION_WEIGHT,
-    IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS, LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD,
-    LMR_HISTORY_BAD_DIVISOR, LMR_HISTORY_GOOD_DIVISOR, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH,
-    MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH,
-    NULL_MOVE_REDUCE_DEPTH_BASE, NUM_CORRECTION_ENTRIES, PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE,
-    SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION,
-    SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND,
-    TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
+    LMP_MOVE_THRESHOLDS, LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_DIVISOR,
+    LMR_HISTORY_GOOD_DIVISOR, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
+    MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
+    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
+    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
+    SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND,
+    TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
 use crate::fen::algebraic_move_from_move;
-use crate::hash::pawn_zobrist_key;
 use crate::tablebase::{probe_dtz, tablebase_available, TB_MAX_PIECES};
 
 use crate::bitboards::{bit, north_fill, south_fill, FILE_A_BITS, FILE_H_BITS};
@@ -387,11 +386,6 @@ fn age_history_table(search_state: &mut SearchState) {
             }
         }
     }
-
-    // Age correction history table
-    for val in search_state.correction_history.iter_mut() {
-        *val /= 2;
-    }
 }
 
 #[inline(always)]
@@ -643,14 +637,10 @@ pub fn search(
 
     let in_check = is_check(position, position.mover);
 
-    // Correction history: look up pawn-structure-indexed eval correction
-    let correction_index = (pawn_zobrist_key(position) as usize) % NUM_CORRECTION_ENTRIES;
-    let correction = search_state.correction_history[correction_index] / CORRECTION_SCALE;
-
     let mut lazy_eval: Score = -Score::MAX;
 
     if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
-        lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table) + correction;
+        lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
         let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
         if lazy_eval - margin as Score >= beta {
             return (pv_single(0), lazy_eval - margin);
@@ -659,7 +649,7 @@ pub fn search(
 
     let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
         if lazy_eval == -Score::MAX {
-            lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table) + correction;
+            lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
         }
 
         lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
@@ -1134,20 +1124,6 @@ pub fn search(
                 0
             };
 
-            // Forward futility pruning: if a quiet move at reduced depth can't raise alpha, skip it
-            // This extends the node-level alpha pruning to also catch moves at higher nominal depths
-            // that would be heavily reduced by LMR
-            if lmr > 0 && !gives_check && !is_tactical && !is_promotion && alpha.abs() < MATE_START {
-                let reduced_depth = (depth as i32 - 1 - lmr as i32 + move_extension as i32).max(0) as usize;
-                if reduced_depth < ALPHA_PRUNE_MARGINS.len()
-                    && lazy_eval != -Score::MAX
-                    && lazy_eval + ALPHA_PRUNE_MARGINS[reduced_depth] <= alpha
-                {
-                    unmake_move(position, m, &unmake);
-                    continue;
-                }
-            }
-
             // Apply extensions to search depth
             let search_depth = depth + move_extension;
 
@@ -1209,17 +1185,6 @@ pub fn search(
             best_pathscore.1 = draw_value(position, search_state)
         }
     };
-
-    // Update correction history: learn the error between static eval and search result
-    // Only update when we have a valid eval and the result isn't a mate score
-    if !in_check && lazy_eval != -Score::MAX && best_pathscore.1.abs() < MATE_START {
-        let raw_eval = lazy_eval - correction; // Remove old correction to get raw eval
-        let error = best_pathscore.1 - raw_eval;
-        let entry = &mut search_state.correction_history[correction_index];
-        let current = *entry;
-        // Gravity formula: blend towards observed error
-        *entry = current + (error - current / CORRECTION_SCALE) * CORRECTION_WEIGHT / CORRECTION_SCALE;
-    }
 
     store_hash_entry(
         position,

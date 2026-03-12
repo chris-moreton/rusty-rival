@@ -1,4 +1,4 @@
-use crate::engine_constants::{HASH_ENTRY_BYTES, MAX_DEPTH, NUM_CORRECTION_ENTRIES, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES};
+use crate::engine_constants::{HASH_ENTRY_BYTES, MAX_DEPTH, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use arrayvec::ArrayVec;
 use std::cell::UnsafeCell;
@@ -388,7 +388,6 @@ pub struct SearchState {
     pub ponder_hard_ms: Arc<AtomicU64>,
     pub is_ponder_search: bool,
     pub ponder_applied: bool,
-    pub correction_history: Box<[Score; NUM_CORRECTION_ENTRIES]>,
 }
 
 impl Clone for SearchState {
@@ -437,7 +436,6 @@ impl Clone for SearchState {
             ponder_hard_ms: Arc::clone(&self.ponder_hard_ms),
             is_ponder_search: self.is_ponder_search,
             ponder_applied: self.ponder_applied,
-            correction_history: self.correction_history.clone(),
         }
     }
 }
@@ -486,7 +484,6 @@ pub fn default_search_state() -> SearchState {
         ponder_hard_ms: Arc::new(AtomicU64::new(0)),
         is_ponder_search: false,
         ponder_applied: false,
-        correction_history: Box::new([0; NUM_CORRECTION_ENTRIES]),
     }
 }
 
