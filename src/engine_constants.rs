@@ -113,9 +113,9 @@ pub const CAPTURE_HISTORY_DIVISOR: i32 = 1120;
 
 pub const TICKER_MILLIS: u16 = 500;
 
-pub const IID_MIN_DEPTH: u8 = 3;
+pub const IID_MIN_DEPTH: u8 = 2; // SPSA tuned, Run 15
 pub const IID_SEARCH_DEPTH: u8 = 2;
-pub const IID_REDUCE_DEPTH: u8 = 2;
+pub const IID_REDUCE_DEPTH: u8 = 5; // SPSA tuned, Run 15
 
 pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 2; // SPSA tuned, Run 15 (was 4)
 pub const LMR_MIN_DEPTH: u8 = 2; // SPSA tuned, Run 15 (was 3)

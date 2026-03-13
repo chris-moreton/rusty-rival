@@ -786,7 +786,7 @@ pub fn search(
     let check_extension: u8 = if in_check && ply < search_state.iterative_depth * 2 { 1 } else { 0 };
     let real_depth = depth + check_extension;
 
-    let verified_hash_move = if !scouting && hash_move == 0 && depth + check_extension > IID_MIN_DEPTH {
+    let verified_hash_move = if !scouting && hash_move == 0 && depth > IID_MIN_DEPTH + IID_REDUCE_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0, 0).0[0];
         hash_move != 0
     } else {
