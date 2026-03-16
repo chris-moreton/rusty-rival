@@ -21,13 +21,13 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 130; // SPSA tuned, Run 15 iter 100
-pub const BETA_PRUNE_MAX_DEPTH: u8 = 10; // SPSA tuned, Run 15 iter 100
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 152;
+pub const BETA_PRUNE_MAX_DEPTH: u8 = 10; // SPSA 9.70 -> 10
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
-pub const NULL_MOVE_MIN_DEPTH: u8 = 8; // SPSA tuned, Run 15 iter 100 (7.72 -> 8)
-pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 4; // SPSA tuned, Run 15 iter 100 (4.11 -> 4)
+pub const NULL_MOVE_MIN_DEPTH: u8 = 8;
+pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 4;
 
 // Threat extension: if null move search returns a score this much below alpha,
 // the opponent has a significant threat that warrants deeper search
@@ -37,8 +37,8 @@ pub const THREAT_EXTENSION_MARGIN: Score = 449; // SPSA tuned, Run 13
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
-pub const SEE_PRUNE_MAX_DEPTH: u8 = 10; // SPSA tuned, Run 15 iter 100 (9.97 -> 10)
-pub const SEE_PRUNE_MARGIN: Score = 24; // SPSA tuned, Run 15 iter 100
+pub const SEE_PRUNE_MAX_DEPTH: u8 = 10; // SPSA 9.89 -> 10
+pub const SEE_PRUNE_MARGIN: Score = 25; // SPSA 25.37 -> 25
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
@@ -69,7 +69,7 @@ pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 5;
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
 // Conservative thresholds to avoid missing important moves
 pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 2, 6, 11]; // SPSA tuned, Run 15 iter 100
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 7, 6, 7];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -87,9 +87,8 @@ pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTE
 
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
-
-// SPSA tuned: base=54, per_depth=65 (Run 15 iter 100)
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [54, 119, 184, 249, 314, 379, 444, 509];
+// SPSA tuned: base=54, per_depth=66 (Run 9 iter 116)
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [54, 120, 186, 252, 318, 384, 450, 516];
 
 // =============================================================================
 // MOVE ORDERING CONSTANTS (SPSA tunable)
@@ -113,12 +112,12 @@ pub const CAPTURE_HISTORY_DIVISOR: i32 = 1120;
 
 pub const TICKER_MILLIS: u16 = 500;
 
-pub const IID_MIN_DEPTH: u8 = 2; // SPSA tuned, Run 15 iter 100 (2.30 -> 2)
+pub const IID_MIN_DEPTH: u8 = 3;
 pub const IID_SEARCH_DEPTH: u8 = 2;
-pub const IID_REDUCE_DEPTH: u8 = 4; // SPSA tuned, Run 15 iter 100
+pub const IID_REDUCE_DEPTH: u8 = 2;
 
-pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 2; // SPSA tuned, Run 15 iter 100 (1.92 -> 2)
-pub const LMR_MIN_DEPTH: u8 = 1; // SPSA tuned, Run 15 iter 100
+pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 4;
+pub const LMR_MIN_DEPTH: u8 = 3;
 
 // History-based LMR thresholds
 // If history score is above good threshold, reduce by 1 less (move has been successful)
@@ -153,7 +152,7 @@ const fn generate_lmr_table() -> [[u8; 64]; 64] {
     while depth < 64 {
         let mut move_count = 0usize;
         while move_count < 64 {
-            if depth >= 2 && move_count >= 2 {
+            if depth >= 3 && move_count >= 4 {
                 // reduction = 0.75 + ln(depth) * ln(move_count) / 2.5
                 // Using integer math: (750 + ln_d * ln_m / 2500) / 1000
                 let ln_d = LN_TABLE[depth];

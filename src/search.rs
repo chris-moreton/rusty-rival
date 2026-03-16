@@ -168,7 +168,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         }
     }
 
-    age_history_table(search_state);
+    clear_history_table(search_state);
     clear_killers(search_state);
 
     if search_state.history.is_empty() {
@@ -346,44 +346,36 @@ fn clear_killers(search_state: &mut SearchState) {
     }
 }
 
-fn age_history_table(search_state: &mut SearchState) {
+fn clear_history_table(search_state: &mut SearchState) {
     for piece in search_state.history_moves.iter_mut() {
         for from_sq in piece.iter_mut() {
-            for val in from_sq.iter_mut() {
-                *val /= 2;
-            }
+            from_sq.fill(0);
         }
     }
-    search_state.highest_history_score /= 2;
+    search_state.highest_history_score = 0;
 
-    // Age countermove history table
+    // Clear countermove history table
     for prev_piece in search_state.countermove_history.iter_mut() {
         for prev_to in prev_piece.iter_mut() {
             for curr_piece in prev_to.iter_mut() {
-                for val in curr_piece.iter_mut() {
-                    *val /= 2;
-                }
+                curr_piece.fill(0);
             }
         }
     }
 
-    // Age followup history table
+    // Clear followup history table
     for prev_piece in search_state.followup_history.iter_mut() {
         for prev_to in prev_piece.iter_mut() {
             for curr_piece in prev_to.iter_mut() {
-                for val in curr_piece.iter_mut() {
-                    *val /= 2;
-                }
+                curr_piece.fill(0);
             }
         }
     }
 
-    // Age capture history table
+    // Clear capture history table
     for attacker in &mut search_state.capture_history {
         for victim in attacker {
-            for val in victim.iter_mut() {
-                *val /= 2;
-            }
+            victim.fill(0);
         }
     }
 }
@@ -786,7 +778,7 @@ pub fn search(
     let check_extension: u8 = if in_check && ply < search_state.iterative_depth * 2 { 1 } else { 0 };
     let real_depth = depth + check_extension;
 
-    let verified_hash_move = if !scouting && hash_move == 0 && depth > IID_MIN_DEPTH + IID_REDUCE_DEPTH {
+    let verified_hash_move = if !scouting && hash_move == 0 && depth + check_extension > IID_MIN_DEPTH {
         hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0, 0).0[0];
         hash_move != 0
     } else {
