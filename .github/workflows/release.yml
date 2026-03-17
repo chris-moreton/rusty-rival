@@ -25,36 +25,60 @@ jobs:
         run: cargo test --release
 
   build:
-    name: Build ${{ matrix.target }}
+    name: Build ${{ matrix.target }} ${{ matrix.cpu_level }}
     needs: test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64
+          # Linux x86_64 (baseline - SSE2 only)
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             suffix: linux-x86_64
             extension: ""
+            cpu_level: ""
+            cpu_flag: ""
 
-          # Windows x86_64
+          # Linux x86_64 AVX2 (Haswell+ 2013)
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            suffix: linux-x86_64-avx2
+            extension: ""
+            cpu_level: "avx2"
+            cpu_flag: "-C target-cpu=x86-64-v3"
+
+          # Windows x86_64 (baseline)
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             suffix: windows-x86_64
             extension: ".exe"
+            cpu_level: ""
+            cpu_flag: ""
 
-          # macOS Intel (cross-compiled from ARM)
+          # Windows x86_64 AVX2 (Haswell+ 2013)
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            suffix: windows-x86_64-avx2
+            extension: ".exe"
+            cpu_level: "avx2"
+            cpu_flag: "-C target-cpu=x86-64-v3"
+
+          # macOS Intel (all Intel Macs have AVX2, so build with it)
           - target: x86_64-apple-darwin
             os: macos-latest
             suffix: macos-x86_64
             extension: ""
+            cpu_level: ""
+            cpu_flag: "-C target-cpu=x86-64-v3"
 
           # macOS Apple Silicon
           - target: aarch64-apple-darwin
             os: macos-latest
             suffix: macos-aarch64
             extension: ""
+            cpu_level: ""
+            cpu_flag: ""
 
     steps:
       - uses: actions/checkout@v4
@@ -74,19 +98,19 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          # Override config.toml's target-cpu=native for portable release binaries
+          # Set stack size flags per platform, plus optional CPU target level
           case "${{ matrix.target }}" in
             *-linux-*)
-              export RUSTFLAGS="-C link-args=-Wl,-z,stack-size=8388608"
+              export RUSTFLAGS="-C link-args=-Wl,-z,stack-size=8388608 ${{ matrix.cpu_flag }}"
               ;;
             *-windows-msvc)
-              export RUSTFLAGS="-C link-args=/STACK:8388608"
+              export RUSTFLAGS="-C link-args=/STACK:8388608 ${{ matrix.cpu_flag }}"
               ;;
             *-windows-gnu)
-              export RUSTFLAGS="-C link-args=-Wl,--stack,8388608"
+              export RUSTFLAGS="-C link-args=-Wl,--stack,8388608 ${{ matrix.cpu_flag }}"
               ;;
             *-apple-*)
-              export RUSTFLAGS=""
+              export RUSTFLAGS="${{ matrix.cpu_flag }}"
               ;;
           esac
           cargo build --release --target ${{ matrix.target }}
@@ -123,7 +147,9 @@ jobs:
         with:
           files: |
             rusty-rival-${{ github.ref_name }}-linux-x86_64/rusty-rival-${{ github.ref_name }}-linux-x86_64
+            rusty-rival-${{ github.ref_name }}-linux-x86_64-avx2/rusty-rival-${{ github.ref_name }}-linux-x86_64-avx2
             rusty-rival-${{ github.ref_name }}-windows-x86_64.exe/rusty-rival-${{ github.ref_name }}-windows-x86_64.exe
+            rusty-rival-${{ github.ref_name }}-windows-x86_64-avx2.exe/rusty-rival-${{ github.ref_name }}-windows-x86_64-avx2.exe
             rusty-rival-${{ github.ref_name }}-macos-x86_64/rusty-rival-${{ github.ref_name }}-macos-x86_64
             rusty-rival-${{ github.ref_name }}-macos-aarch64/rusty-rival-${{ github.ref_name }}-macos-aarch64
           generate_release_notes: true
