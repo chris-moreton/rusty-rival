@@ -43,7 +43,10 @@ pub fn evaluate(position: &Position) -> Score {
         return 0;
     }
 
-    let score = material_score(position)
+    cache.white_piece_material = piece_material(position, WHITE);
+    cache.black_piece_material = piece_material(position, BLACK);
+
+    let score = material_score(position, &cache)
         + piece_square_values(position)
         + king_score(position, &cache)
         + king_threat_score(position)
@@ -65,10 +68,10 @@ pub fn evaluate(position: &Position) -> Score {
         + knight_fork_threat_score(position)
         + rook_file_score(position)
         + queen_mobility_score(position)
-        + endgame_king_centralization_bonus(position)
-        + king_activity_score(position)
-        + king_mobility_score(position)
-        + trade_bonus(position)
+        + endgame_king_centralization_bonus(position, &cache)
+        + king_activity_score(position, &cache)
+        + king_mobility_score(position, &cache)
+        + trade_bonus(position, &cache)
         + bishop_knight_imbalance_score(position)
         + material_imbalance_score(position)
         + trapped_piece_penalty(position)
@@ -96,6 +99,10 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
         return 0;
     }
 
+    // Cache piece material values (used by many eval terms)
+    cache.white_piece_material = piece_material(position, WHITE);
+    cache.black_piece_material = piece_material(position, BLACK);
+
     // Try to get pawn structure score from hash table
     let pawn_key = pawn_zobrist_key(position);
     let pawn_structure = match pawn_hash.get(pawn_key) {
@@ -109,7 +116,7 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
     };
 
     let score =
-        material_score(position)
+        material_score(position, &cache)
         + piece_square_values(position)
         + king_score(position, &cache)
         + king_threat_score(position)
@@ -128,10 +135,10 @@ pub fn evaluate_with_pawn_hash(position: &Position, pawn_hash: &PawnHashTable) -
         ) + knight_fork_threat_score(position)
             + rook_file_score(position)
             + queen_mobility_score(position)
-            + endgame_king_centralization_bonus(position)
-            + king_activity_score(position)
-            + king_mobility_score(position)
-            + trade_bonus(position)
+            + endgame_king_centralization_bonus(position, &cache)
+            + king_activity_score(position, &cache)
+            + king_mobility_score(position, &cache)
+            + trade_bonus(position, &cache)
             + bishop_knight_imbalance_score(position)
             + material_imbalance_score(position)
             + trapped_piece_penalty(position)
@@ -744,9 +751,9 @@ pub fn black_king_early_safety(position: &Position) -> Score {
 }
 
 #[inline(always)]
-pub fn material_score(position: &Position) -> Score {
+pub fn material_score(position: &Position, cache: &EvaluateCache) -> Score {
     let game_stage =
-        pawn_material(position, WHITE) + pawn_material(position, BLACK) + piece_material(position, WHITE) + piece_material(position, BLACK);
+        pawn_material(position, WHITE) + pawn_material(position, BLACK) + cache.white_piece_material + cache.black_piece_material;
 
     let pawn_balance = position.pieces[WHITE as usize].pawn_bitboard.count_ones() as Score
         - position.pieces[BLACK as usize].pawn_bitboard.count_ones() as Score;
@@ -1436,9 +1443,9 @@ pub fn rook_file_score(position: &Position) -> Score {
 /// This bonus kicks in when both sides have low material (no queens, limited pieces).
 /// It encourages the king to become an active piece in the endgame.
 #[inline(always)]
-pub fn endgame_king_centralization_bonus(position: &Position) -> Score {
-    let white_piece_value = piece_material(position, WHITE);
-    let black_piece_value = piece_material(position, BLACK);
+pub fn endgame_king_centralization_bonus(position: &Position, cache: &EvaluateCache) -> Score {
+    let white_piece_value = cache.white_piece_material;
+    let black_piece_value = cache.black_piece_material;
 
     // Only apply when both sides have low material
     if white_piece_value > ENDGAME_MATERIAL_THRESHOLD || black_piece_value > ENDGAME_MATERIAL_THRESHOLD {
@@ -1467,9 +1474,9 @@ pub fn endgame_king_centralization_bonus(position: &Position) -> Score {
 /// where Stockfish (with NNUE) immediately sees the value but handcrafted
 /// evaluation misses it.
 #[inline(always)]
-pub fn king_activity_score(position: &Position) -> Score {
-    let white_piece_value = piece_material(position, WHITE);
-    let black_piece_value = piece_material(position, BLACK);
+pub fn king_activity_score(position: &Position, cache: &EvaluateCache) -> Score {
+    let white_piece_value = cache.white_piece_material;
+    let black_piece_value = cache.black_piece_material;
 
     // Only apply in endgames when material is low
     if white_piece_value > ENDGAME_MATERIAL_THRESHOLD || black_piece_value > ENDGAME_MATERIAL_THRESHOLD {
@@ -1506,9 +1513,9 @@ pub fn king_activity_score(position: &Position) -> Score {
 /// A king with more mobility is more active and can participate better in the game.
 /// Safe squares are those not attacked by enemy pawns.
 #[inline(always)]
-pub fn king_mobility_score(position: &Position) -> Score {
-    let white_piece_value = piece_material(position, WHITE);
-    let black_piece_value = piece_material(position, BLACK);
+pub fn king_mobility_score(position: &Position, cache: &EvaluateCache) -> Score {
+    let white_piece_value = cache.white_piece_material;
+    let black_piece_value = cache.black_piece_material;
 
     // Only apply in endgames when material is low
     if white_piece_value > ENDGAME_MATERIAL_THRESHOLD || black_piece_value > ENDGAME_MATERIAL_THRESHOLD {
@@ -1547,7 +1554,7 @@ pub fn king_mobility_score(position: &Position) -> Score {
 /// When one side is significantly ahead, they get a bonus for fewer pieces remaining.
 /// This helps convert material advantages by simplifying the position.
 #[inline(always)]
-pub fn trade_bonus(position: &Position) -> Score {
+pub fn trade_bonus(position: &Position, cache: &EvaluateCache) -> Score {
     let white = &position.pieces[WHITE as usize];
     let black = &position.pieces[BLACK as usize];
 
@@ -1563,8 +1570,8 @@ pub fn trade_bonus(position: &Position) -> Score {
         return 0;
     }
 
-    let white_pieces = piece_material(position, WHITE);
-    let black_pieces = piece_material(position, BLACK);
+    let white_pieces = cache.white_piece_material;
+    let black_pieces = cache.black_piece_material;
     let material_balance = white_pieces - black_pieces;
 
     // Need to be ahead by at least ~2 pawns worth to get trade bonus
