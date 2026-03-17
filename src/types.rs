@@ -20,13 +20,6 @@ pub type Window = (Bound, Bound);
 pub type Score = i32;
 pub type HashLock = u128;
 pub type HashIndex = u32;
-
-/// Extract upper 64 bits of a 128-bit zobrist key for hash table storage.
-/// The lower bits are implicit in the hash table index.
-#[inline(always)]
-pub fn hash_lock_upper(lock: HashLock) -> u64 {
-    (lock >> 64) as u64
-}
 /// Thread-safe wrapper for the hash table that allows sharing between threads.
 /// Uses UnsafeCell for interior mutability - data races on individual hash entries
 /// are acceptable in chess engines (worst case is a cache miss or stale data).
@@ -56,12 +49,12 @@ impl SharedHashTable {
     /// Create a new hash table with specified number of entries
     pub fn new_with_entries(num_entries: usize) -> Self {
         let empty = HashEntry {
-            lock: 0,
-            mv: 0,
             score: 0,
             version: 0,
             height: 0,
+            mv: 0,
             bound: BoundType::Exact,
+            lock: 0,
         };
         SharedHashTable {
             data: UnsafeCell::new(vec![empty; num_entries].into_boxed_slice()),
@@ -130,12 +123,12 @@ impl SharedHashTable {
     /// Clear the hash table (used by ucinewgame)
     pub fn clear(&self) {
         let empty = HashEntry {
-            lock: 0,
-            mv: 0,
             score: 0,
             version: 0,
             height: 0,
+            mv: 0,
             bound: BoundType::Exact,
+            lock: 0,
         };
         for i in 0..self.num_entries {
             self.set(i, empty);
@@ -508,8 +501,6 @@ pub fn set_stop(stop: &Arc<AtomicBool>, value: bool) {
 
 pub struct EvaluateCache {
     pub piece_count: u8,
-    pub white_piece_material: Score,
-    pub black_piece_material: Score,
     pub white_pawn_files: Option<u8>,
     pub black_pawn_files: Option<u8>,
     pub white_pawn_attacks: Option<Bitboard>,
@@ -523,8 +514,6 @@ pub struct EvaluateCache {
 pub fn default_evaluate_cache() -> EvaluateCache {
     EvaluateCache {
         piece_count: 0,
-        white_piece_material: 0,
-        black_piece_material: 0,
         white_pawn_files: None,
         black_pawn_files: None,
         white_pawn_attacks: None,
@@ -538,12 +527,12 @@ pub fn default_evaluate_cache() -> EvaluateCache {
 
 #[derive(Debug, Copy, Clone)]
 pub struct HashEntry {
-    pub lock: u64, // Upper 64 bits of zobrist (lower bits implicit in index)
-    pub mv: Move,
     pub score: Score,
     pub version: u32,
     pub height: u8,
+    pub mv: Move,
     pub bound: BoundType,
+    pub lock: HashLock,
 }
 
 #[macro_export]
