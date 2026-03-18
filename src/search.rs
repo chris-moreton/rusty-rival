@@ -738,10 +738,10 @@ pub fn search(
         // Generate and score captures for multi-cut
         let captures = generate_captures(position);
         let enemy = &position.pieces[opponent!(position.mover) as usize];
-        let mut scored_captures: MoveScoreArray = captures
-            .into_iter()
-            .map(|m| (m, score_move(position, m, search_state, ply as usize, enemy)))
-            .collect();
+        let mut scored_captures: MoveScoreArray = MoveScoreArray::new();
+        for m in captures {
+            scored_captures.push((m, score_move(position, m, search_state, ply as usize, enemy)));
+        }
 
         // Sort by score descending to try best captures first
         scored_captures.sort_by(|a, b| b.1.cmp(&a.1));
@@ -899,10 +899,10 @@ pub fn search(
         if excluded_move != 0 {
             evasions.retain(|m| *m != excluded_move);
         }
-        move_scores = evasions
-            .into_iter()
-            .map(|m| (m, score_move(position, m, search_state, ply as usize, &enemy)))
-            .collect();
+        move_scores = MoveScoreArray::new();
+        for m in evasions {
+            move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
+        }
         quiets_added = true; // No staged generation when in check
     } else {
         // Normal staged move generation: captures first, then quiets
@@ -914,10 +914,10 @@ pub fn search(
         if excluded_move != 0 {
             captures.retain(|m| *m != excluded_move);
         }
-        move_scores = captures
-            .into_iter()
-            .map(|m| (m, score_move(position, m, search_state, ply as usize, &enemy)))
-            .collect();
+        move_scores = MoveScoreArray::new();
+        for m in captures {
+            move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
+        }
         quiets_added = false;
     }
 
