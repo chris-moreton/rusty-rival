@@ -42,12 +42,15 @@ impl SharedHashTable {
 
     /// Create a new hash table with specified size in megabytes
     pub fn new_with_mb(mb: usize) -> Self {
-        let num_entries = (mb * 1024 * 1024) / HASH_ENTRY_BYTES as usize;
+        let raw_entries = (mb * 1024 * 1024) / HASH_ENTRY_BYTES as usize;
+        // Round down to power of 2 so index can use bitwise AND instead of modulo
+        let num_entries = raw_entries.next_power_of_two() >> 1;
         Self::new_with_entries(num_entries)
     }
 
-    /// Create a new hash table with specified number of entries
+    /// Create a new hash table with specified number of entries (must be power of 2)
     pub fn new_with_entries(num_entries: usize) -> Self {
+        debug_assert!(num_entries.is_power_of_two(), "Hash table size must be power of 2");
         let empty = HashEntry {
             score: 0,
             version: 0,
@@ -66,6 +69,12 @@ impl SharedHashTable {
     #[inline(always)]
     pub fn len(&self) -> usize {
         self.num_entries
+    }
+
+    /// Get the bitmask for indexing (num_entries - 1, since size is power of 2)
+    #[inline(always)]
+    pub fn mask(&self) -> u64 {
+        (self.num_entries - 1) as u64
     }
 
     /// Check if the hash table is empty
