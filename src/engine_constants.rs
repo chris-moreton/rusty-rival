@@ -21,47 +21,47 @@ pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 125; // SPSA tuned, Run 19
-pub const BETA_PRUNE_MAX_DEPTH: u8 = 11; // SPSA tuned, Run 19
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 127; // SPSA tuned, Run 20
+pub const BETA_PRUNE_MAX_DEPTH: u8 = 12; // SPSA tuned, Run 20
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
 pub const NULL_MOVE_MIN_DEPTH: u8 = 4; // SPSA tuned, Run 19
-pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 2; // SPSA tuned, Run 18
+pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 2;
 
 // Threat extension: if null move search returns a score this much below alpha,
 // the opponent has a significant threat that warrants deeper search
 // Using 400 to be more selective - only trigger for major threats (like losing a piece)
-pub const THREAT_EXTENSION_MARGIN: Score = 449; // SPSA tuned, Run 13
+pub const THREAT_EXTENSION_MARGIN: Score = 401; // SPSA tuned, Run 20
 
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
-pub const SEE_PRUNE_MAX_DEPTH: u8 = 6; // SPSA tuned, Run 19
-pub const SEE_PRUNE_MARGIN: Score = 22; // SPSA tuned, Run 19
+pub const SEE_PRUNE_MAX_DEPTH: u8 = 5; // SPSA tuned, Run 20
+pub const SEE_PRUNE_MARGIN: Score = 24; // SPSA tuned, Run 20
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
 // Only searches captures with SEE >= 0 to verify tactical soundness
-pub const PROBCUT_MIN_DEPTH: u8 = 11; // SPSA tuned, Run 13
-pub const PROBCUT_MARGIN: Score = 39; // SPSA tuned, Run 13
-pub const PROBCUT_DEPTH_REDUCTION: u8 = 4;
+pub const PROBCUT_MIN_DEPTH: u8 = 13; // SPSA tuned, Run 20
+pub const PROBCUT_MARGIN: Score = 50; // SPSA tuned, Run 20
+pub const PROBCUT_DEPTH_REDUCTION: u8 = 5; // SPSA tuned, Run 20
 
 // Multi-cut: at high depth, if multiple moves fail high at shallow depth,
 // assume the position is good and return a beta cutoff
-pub const MULTICUT_MIN_DEPTH: u8 = 19; // SPSA tuned, Run 13
-pub const MULTICUT_DEPTH_REDUCTION: u8 = 9;
-pub const MULTICUT_MOVES_TO_TRY: u8 = 13; // SPSA tuned, Run 13
-pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 6; // SPSA tuned, Run 13
+pub const MULTICUT_MIN_DEPTH: u8 = 19;
+pub const MULTICUT_DEPTH_REDUCTION: u8 = 10; // SPSA tuned, Run 20
+pub const MULTICUT_MOVES_TO_TRY: u8 = 14; // SPSA tuned, Run 20
+pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 7; // SPSA tuned, Run 20
 
 // Singular extension: if the hash move is significantly better than all alternatives,
 // extend its search by 1 ply. This catches critical forcing sequences.
 // We do a reduced search excluding the hash move; if all alternatives fail low
 // by SINGULAR_MARGIN below alpha, the hash move is "singular" and gets extended.
 // Conservative settings to avoid over-extending
-pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 13; // SPSA tuned, Run 13
+pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 13;
 pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 5;
-pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 5; // SPSA tuned, Run 13
+pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 5;
 pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 5;
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
@@ -69,7 +69,7 @@ pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 5;
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
 // Conservative thresholds to avoid missing important moves
 pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 8, 4, 8]; // SPSA tuned, Run 19
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 9, 5, 8]; // SPSA tuned, Run 20
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -82,13 +82,13 @@ pub const MAX_DEPTH: u8 = 250;
 pub const MAX_QUIESCE_DEPTH: u8 = 100;
 
 pub const HASH_ENTRY_BYTES: u64 = 22;
-pub const HASH_SIZE_MB: u64 = 128;
+pub const HASH_SIZE_MB: u64 = 256;
 pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTES;
 
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
-// SPSA tuned: base=68, per_depth=53 (Run 19)
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [68, 121, 174, 227, 280, 333, 386, 439];
+// SPSA tuned: base=70, per_depth=54 (Run 20)
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [70, 124, 178, 232, 286, 340, 394, 448];
 
 // =============================================================================
 // MOVE ORDERING CONSTANTS (SPSA tunable)
@@ -107,29 +107,29 @@ pub const MOVE_SCORE_PAWN_PUSH_6TH: Score = 105;
 
 // History table divisors (scale i16 history to score range) (SPSA tuned, Run 9 iter 116)
 pub const COUNTERMOVE_HISTORY_DIVISOR: i32 = 235;
-pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 537;
+pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 538;
 pub const CAPTURE_HISTORY_DIVISOR: i32 = 1120;
 
 pub const TICKER_MILLIS: u16 = 500;
 
-pub const IID_MIN_DEPTH: u8 = 5; // SPSA tuned, Run 19
+pub const IID_MIN_DEPTH: u8 = 5;
 pub const IID_SEARCH_DEPTH: u8 = 2;
-pub const IID_REDUCE_DEPTH: u8 = 3; // SPSA tuned, Run 19
+pub const IID_REDUCE_DEPTH: u8 = 3;
 
-pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 3; // SPSA tuned, Run 18
-pub const LMR_MIN_DEPTH: u8 = 5; // SPSA tuned, Run 19
+pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 4; // SPSA tuned, Run 20
+pub const LMR_MIN_DEPTH: u8 = 3; // SPSA tuned, Run 20
 
 // History-based LMR thresholds
 // If history score is above good threshold, reduce by 1 less (move has been successful)
 // If history score is below bad threshold, reduce by 1 more (move has failed often)
 // Thresholds are relative to highest_history_score (as a percentage * 100)
-pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 23;
-pub const LMR_HISTORY_BAD_DIVISOR: i32 = 26; // SPSA tuned, Run 13
+pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 22; // SPSA tuned, Run 20
+pub const LMR_HISTORY_BAD_DIVISOR: i32 = 27; // SPSA tuned, Run 20
 
 // Continuation history threshold for LMR (countermove_history + followup_history)
 // These are i16 values, so threshold is raw score (not scaled)
-pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8487; // SPSA tuned, Run 13
-pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8726; // SPSA tuned, Run 13
+pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8683; // SPSA tuned, Run 20
+pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -8969; // SPSA tuned, Run 20
 
 // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
 // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
@@ -202,22 +202,22 @@ pub const BISHOP_MOBILITY_BASE: Score = -15;
 pub const BISHOP_MOBILITY_SCALE_X100: i32 = 1059; // SPSA tuned, Run 14
 pub const VALUE_BISHOP_MOBILITY: [Score; 14] = generate_mobility_table::<14>(BISHOP_MOBILITY_BASE, BISHOP_MOBILITY_SCALE_X100);
 pub const VALUE_BISHOP_PAIR_FEWER_PAWNS_BONUS: Score = 4; // SPSA tuned, Run 14
-pub const VALUE_BISHOP_PAIR: Score = 10;
+pub const VALUE_BISHOP_PAIR: Score = 5; // SPSA tuned, Run 20
 pub const VALUE_GUARDED_PASSED_PAWN: Score = 25;
 // Rook behind passed pawn (Tarrasch rule): rooks are strongest supporting passed pawns from behind
 // As the pawn advances, the rook's scope increases; and it protects the pawn's advance
-pub const VALUE_ROOK_BEHIND_PASSED_PAWN: Score = 28;
-pub const VALUE_KNIGHT_OUTPOST: Score = 22;
+pub const VALUE_ROOK_BEHIND_PASSED_PAWN: Score = 37; // SPSA tuned, Run 20
+pub const VALUE_KNIGHT_OUTPOST: Score = 18; // SPSA tuned, Run 20
 pub const VALUE_PASSED_PAWN_BONUS: [Score; 6] = [18, 14, 14, 39, 70, 88]; // SPSA tuned, Run 12
                                                                           // Bonus for connected passed pawns (two passed pawns on adjacent files)
                                                                           // They're very dangerous as they support each other toward promotion
 pub const VALUE_CONNECTED_PASSED_PAWNS: [Score; 6] = [10, 22, 27, 39, 76, 87]; // SPSA tuned, Run 12
-pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 20;
-pub const DOUBLED_PAWN_PENALTY: Score = 27;
-pub const ISOLATED_PAWN_PENALTY: Score = 14;
+pub const VALUE_BACKWARD_PAWN_PENALTY: Score = 27; // SPSA tuned, Run 20
+pub const DOUBLED_PAWN_PENALTY: Score = 26; // SPSA tuned, Run 20
+pub const ISOLATED_PAWN_PENALTY: Score = 11; // SPSA tuned, Run 20
 
-pub const VALUE_ROOKS_ON_SAME_FILE: Score = 9;
-pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 16;
+pub const VALUE_ROOKS_ON_SAME_FILE: Score = 8; // SPSA tuned, Run 20
+pub const ROOKS_ON_SEVENTH_RANK_BONUS: Score = 20; // SPSA tuned, Run 20
 pub const KING_THREAT_BONUS_KNIGHT: Score = 10; // SPSA tuned, Run 12
 pub const KING_THREAT_BONUS_QUEEN: Score = 14; // SPSA tuned, Run 12
 pub const KING_THREAT_BONUS_BISHOP: Score = 12;
@@ -237,8 +237,8 @@ pub const VALUE_KING_SUPPORTS_PASSED_PAWN: Score = 6; // SPSA tuned, Run 12
 
 pub const KNIGHT_FORK_THREAT_SCORE: Score = 5;
 
-pub const ROOK_OPEN_FILE_BONUS: Score = 38;
-pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 26;
+pub const ROOK_OPEN_FILE_BONUS: Score = 28; // SPSA tuned, Run 20
+pub const ROOK_SEMI_OPEN_FILE_BONUS: Score = 22; // SPSA tuned, Run 20
 
 // Queen mobility bonus based on number of squares available (0-27)
 pub const QUEEN_MOBILITY_BASE: Score = -10; // SPSA tuned, Run 14
@@ -285,12 +285,12 @@ pub const BISHOP_KNIGHT_IMBALANCE_BONUS: Score = 20; // SPSA tuned, Run 14
 
 // Trapped piece penalties
 // Pieces that are trapped (very limited mobility) lose significant value
-pub const TRAPPED_BISHOP_PENALTY: Score = 79;
-pub const TRAPPED_ROOK_PENALTY: Score = 53;
+pub const TRAPPED_BISHOP_PENALTY: Score = 100; // SPSA tuned, Run 20
+pub const TRAPPED_ROOK_PENALTY: Score = 50; // SPSA tuned, Run 20
 
 // Space evaluation: bonus per safe square controlled in opponent's territory
 // More important in closed positions with many pawns
-pub const SPACE_BONUS_PER_SQUARE: Score = 13;
+pub const SPACE_BONUS_PER_SQUARE: Score = 14; // SPSA tuned, Run 20
 
 // Blocked passed pawn: penalty when enemy king guards the promotion square
 // A passed pawn that can never promote should lose most of its bonus
