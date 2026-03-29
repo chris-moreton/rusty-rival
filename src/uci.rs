@@ -1,4 +1,4 @@
-use crate::engine_constants::{TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_SOFT_FACTOR, UCI_MILLIS_REDUCTION};
+use crate::engine_constants::{HASH_SIZE_MB, TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_SOFT_FACTOR, UCI_MILLIS_REDUCTION};
 use crate::tablebase::init_tablebase;
 
 use either::{Either, Left, Right};
@@ -619,7 +619,7 @@ fn cmd_uci() -> Either<String, Option<String>> {
     Right(Some(format!(
         "id name Rusty Rival {}
 id author Chris Moreton
-option name Hash type spin default 128 min 1 max 16384
+option name Hash type spin default {} min 1 max 16384
 option name Clear Hash type button
 option name MultiPV type spin default 1 min 1 max 20
 option name Contempt type spin default 0 min -1000 max 1000
@@ -627,7 +627,8 @@ option name SyzygyPath type string default <empty>
 option name Threads type spin default 1 min 1 max 256
 option name Ponder type check default false
 uciok",
-        env!("CARGO_PKG_VERSION")
+        env!("CARGO_PKG_VERSION"),
+        HASH_SIZE_MB
     )))
 }
 
