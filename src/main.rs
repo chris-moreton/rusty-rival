@@ -1,8 +1,12 @@
 use either::{Left, Right};
+use mimalloc::MiMalloc;
 use rusty_rival::types::{default_search_state, default_uci_state, SearchHandle, SearchState, UciState};
 use rusty_rival::uci::run_command;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() {
     repl().unwrap();
