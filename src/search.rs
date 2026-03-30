@@ -9,6 +9,20 @@ use crate::engine_constants::{
     TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
+
+/// Add deterministic noise to an eval score based on position hash.
+/// Returns the score with noise in range [-noise_max, +noise_max].
+/// Uses the zobrist hash to produce consistent noise for the same position.
+#[inline(always)]
+fn apply_eval_noise(score: Score, hash: u64, noise_max: Score) -> Score {
+    if noise_max == 0 {
+        return score;
+    }
+    // Simple hash-derived noise: take bits from hash, map to [-noise_max, noise_max]
+    let noise_bits = (hash >> 17) as i32; // Arbitrary bit selection
+    let noise = (noise_bits % (2 * noise_max + 1)) - noise_max;
+    score + noise
+}
 use crate::fen::algebraic_move_from_move;
 use crate::tablebase::{probe_dtz, tablebase_available, TB_MAX_PIECES};
 
@@ -545,7 +559,11 @@ pub fn search(
 
     // Prevent stack overflow and array out of bounds at extreme depths
     if ply >= MAX_DEPTH {
-        return (pv_single(0), evaluate_with_pawn_hash(position, &search_state.pawn_hash_table));
+        let eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
+        return (
+            pv_single(0),
+            apply_eval_noise(eval, position.zobrist_lock as u64, search_state.eval_noise),
+        );
     }
 
     // NOTE: Tablebase probing during search is disabled for performance.

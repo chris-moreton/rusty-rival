@@ -123,7 +123,12 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
     }
     search_state.nodes += 1;
 
-    let eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
+    let mut eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
+    if search_state.eval_noise > 0 {
+        let noise_bits = (position.zobrist_lock >> 17) as i32;
+        let noise_max = search_state.eval_noise;
+        eval += (noise_bits % (2 * noise_max + 1)) - noise_max;
+    }
 
     if depth == 0 || eval >= window.1 {
         return (pv_single(0), eval);

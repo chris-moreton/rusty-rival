@@ -397,6 +397,7 @@ pub struct SearchState {
     pub ponder_hard_ms: Arc<AtomicU64>,
     pub is_ponder_search: bool,
     pub ponder_applied: bool,
+    pub eval_noise: Score, // Max noise in centipawns (0 = disabled, e.g. 15 = ±15cp)
 }
 
 impl Clone for SearchState {
@@ -445,6 +446,7 @@ impl Clone for SearchState {
             ponder_hard_ms: Arc::clone(&self.ponder_hard_ms),
             is_ponder_search: self.is_ponder_search,
             ponder_applied: self.ponder_applied,
+            eval_noise: self.eval_noise,
         }
     }
 }
@@ -493,6 +495,7 @@ pub fn default_search_state() -> SearchState {
         ponder_hard_ms: Arc::new(AtomicU64::new(0)),
         is_ponder_search: false,
         ponder_applied: false,
+        eval_noise: 0,
     }
 }
 

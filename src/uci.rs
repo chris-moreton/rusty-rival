@@ -625,6 +625,7 @@ option name MultiPV type spin default 1 min 1 max 20
 option name Contempt type spin default 0 min -1000 max 1000
 option name SyzygyPath type string default <empty>
 option name Threads type spin default 1 min 1 max 256
+option name EvalNoise type spin default 0 min 0 max 100
 option name Ponder type check default false
 uciok",
         env!("CARGO_PKG_VERSION"),
@@ -721,6 +722,19 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &m
                     }
                 } else {
                     Left("usage: setoption name SyzygyPath value <path>".parse().unwrap())
+                }
+            }
+            "evalnoise" => {
+                if parts.len() == 5 && parts[3] == "value" {
+                    match parts[4].parse::<i32>() {
+                        Ok(noise) if (0..=100).contains(&noise) => {
+                            search_state.eval_noise = noise;
+                            Right(None)
+                        }
+                        _ => Left("EvalNoise must be between 0 and 100".parse().unwrap()),
+                    }
+                } else {
+                    Left("usage: setoption name EvalNoise value <N>".parse().unwrap())
                 }
             }
             "ponder" => {
