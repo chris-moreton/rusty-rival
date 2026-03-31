@@ -109,8 +109,9 @@ impl NnueNetwork {
             let s = (stm_acc[i] as i32).clamp(0, QA);
             let n = (ntm_acc[i] as i32).clamp(0, QA);
             // SCReLU: squared clipped ReLU, divided by QA to prevent overflow
-            output += (s * s / QA) * self.l1_weights[i] as i32;
-            output += (n * n / QA) * self.l1_weights[HIDDEN_SIZE + i] as i32;
+            // Note: bullet stores NTM weights first, then STM weights
+            output += s * s / QA * self.l1_weights[HIDDEN_SIZE + i] as i32;
+            output += n * n / QA * self.l1_weights[i] as i32;
         }
 
         // Add bias (already in scale QA*QB) and convert to centipawns
