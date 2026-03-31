@@ -8,7 +8,7 @@ use crate::engine_constants::{
     SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND,
     TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
-use crate::evaluate::{evaluate_with_pawn_hash, insufficient_material, pawn_material, piece_material};
+use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 
 /// Add deterministic noise to an eval score based on position hash.
 /// Returns the score with noise in range [-noise_max, +noise_max].
@@ -23,6 +23,7 @@ fn apply_eval_noise(score: Score, hash: u64, noise_max: Score) -> Score {
     let noise = (noise_bits % (2 * noise_max + 1)) - noise_max;
     score + noise
 }
+
 use crate::fen::algebraic_move_from_move;
 use crate::tablebase::{probe_dtz, tablebase_available, TB_MAX_PIECES};
 
@@ -120,6 +121,14 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     search_state.best_move_stability = 0;
     search_state.prev_best_move = 0;
     search_state.prev_score = 0;
+
+    // Initialize NNUE accumulator from root position
+    if search_state.use_nnue {
+        if let Some(ref net) = search_state.nnue_network {
+            search_state.nnue_ply = 0;
+            search_state.nnue_accumulators[0].compute(net, position);
+        }
+    }
 
     let original_mover = position.mover;
     let all_moves = generate_moves(position);
@@ -559,7 +568,7 @@ pub fn search(
 
     // Prevent stack overflow and array out of bounds at extreme depths
     if ply >= MAX_DEPTH {
-        let eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
+        let eval = evaluate_position(position, search_state);
         return (
             pv_single(0),
             apply_eval_noise(eval, position.zobrist_lock as u64, search_state.eval_noise),
@@ -650,7 +659,7 @@ pub fn search(
     let mut lazy_eval: Score = -Score::MAX;
 
     if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
-        lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
+        lazy_eval = evaluate_position(position, search_state);
         let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
         if lazy_eval - margin as Score >= beta {
             return (pv_single(0), lazy_eval - margin);
@@ -659,7 +668,7 @@ pub fn search(
 
     let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
         if lazy_eval == -Score::MAX {
-            lazy_eval = evaluate_with_pawn_hash(position, &search_state.pawn_hash_table);
+            lazy_eval = evaluate_position(position, search_state);
         }
 
         lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha

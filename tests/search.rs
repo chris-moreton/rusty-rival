@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 #[test]
 fn it_returns_the_best_move_at_depth_1() {
     let mut search_state = default_search_state();
+    search_state.use_nnue = false;
     search_state.end_time = Instant::now().add(Duration::from_millis(250));
 
     let mut position = get_position("n5k1/1P2P1n1/5q1p/P1pP4/5R2/5B2/1r2N2P/R3K1n1 w Q - 0 1");
@@ -24,6 +25,7 @@ fn assert_move(fen: &str, depth: u8, millis: u64, bestmove: &str) {
     let moves: Vec<String> = bestmove.split(',').map(|m| m.to_string()).collect();
 
     let mut search_state = default_search_state();
+    search_state.use_nnue = false;
     search_state.show_info = false;
     let mut position = get_position(fen);
     search_state.end_time = Instant::now().add(Duration::from_millis(millis));

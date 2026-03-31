@@ -12,6 +12,7 @@ pub mod move_constants;
 pub mod move_scores;
 pub mod moves;
 pub mod mvm_test_fens;
+pub mod nnue;
 pub mod perft;
 pub mod piece_square_tables;
 pub mod quiesce;

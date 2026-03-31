@@ -626,6 +626,7 @@ option name Contempt type spin default 0 min -1000 max 1000
 option name SyzygyPath type string default <empty>
 option name Threads type spin default 1 min 1 max 256
 option name EvalNoise type spin default 0 min 0 max 100
+option name UseNNUE type check default true
 option name Ponder type check default false
 uciok",
         env!("CARGO_PKG_VERSION"),
@@ -736,6 +737,12 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &m
                 } else {
                     Left("usage: setoption name EvalNoise value <N>".parse().unwrap())
                 }
+            }
+            "usennue" => {
+                if parts.len() == 5 && parts[3] == "value" {
+                    search_state.use_nnue = parts[4].eq_ignore_ascii_case("true");
+                }
+                Right(None)
             }
             "ponder" => {
                 if parts.len() == 5 && parts[3] == "value" {

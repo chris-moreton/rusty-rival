@@ -1,5 +1,6 @@
 use crate::engine_constants::{HASH_ENTRY_BYTES, MAX_DEPTH, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
+use crate::nnue;
 use arrayvec::ArrayVec;
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
@@ -398,6 +399,10 @@ pub struct SearchState {
     pub is_ponder_search: bool,
     pub ponder_applied: bool,
     pub eval_noise: Score, // Max noise in centipawns (0 = disabled, e.g. 15 = ±15cp)
+    pub use_nnue: bool,
+    pub nnue_network: Option<Arc<nnue::NnueNetwork>>,
+    pub nnue_accumulators: Vec<nnue::Accumulator>,
+    pub nnue_ply: usize,
 }
 
 impl Clone for SearchState {
@@ -447,6 +452,10 @@ impl Clone for SearchState {
             is_ponder_search: self.is_ponder_search,
             ponder_applied: self.ponder_applied,
             eval_noise: self.eval_noise,
+            use_nnue: self.use_nnue,
+            nnue_network: self.nnue_network.clone(),
+            nnue_accumulators: self.nnue_accumulators.clone(),
+            nnue_ply: self.nnue_ply,
         }
     }
 }
@@ -496,6 +505,10 @@ pub fn default_search_state() -> SearchState {
         is_ponder_search: false,
         ponder_applied: false,
         eval_noise: 0,
+        use_nnue: true,
+        nnue_network: Some(Arc::new(nnue::NnueNetwork::embedded())),
+        nnue_accumulators: (0..MAX_DEPTH as usize).map(|_| nnue::Accumulator::new()).collect(),
+        nnue_ply: 0,
     }
 }
 
