@@ -80,16 +80,14 @@ pub fn evaluate(position: &Position) -> Score {
 /// Evaluate using NNUE or HCE depending on search state configuration.
 /// This is the primary evaluation entry point used by the search.
 ///
-/// For NNUE, computes the accumulator from the current position on each call.
-/// This is simpler than incremental updates and guarantees correctness.
-/// The cost (~32 pieces × 256 additions) is small relative to search overhead.
+/// When NNUE is enabled, uses the pre-computed accumulator at the current ply
+/// (maintained incrementally by make_move_nnue/unmake_move_nnue wrappers).
 #[inline(always)]
 pub fn evaluate_position(position: &Position, search_state: &crate::types::SearchState) -> Score {
     if search_state.use_nnue {
         if let Some(ref net) = search_state.nnue_network {
-            let mut acc = crate::nnue::Accumulator::new();
-            acc.compute(net, position);
-            return net.evaluate(&acc, position.mover);
+            let acc = &search_state.nnue_accumulators[search_state.nnue_ply];
+            return net.evaluate(acc, position.mover);
         }
     }
     evaluate_with_pawn_hash(position, &search_state.pawn_hash_table)

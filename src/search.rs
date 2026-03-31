@@ -10,6 +10,32 @@ use crate::engine_constants::{
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 
+/// Make a move with NNUE accumulator update.
+/// Saves pieces, makes the move, then diffs to update the accumulator incrementally.
+#[inline(always)]
+fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
+    let saved_pieces = position.pieces;
+    let unmake = make_move_in_place(position, mv);
+    if search_state.use_nnue {
+        if let Some(ref net) = search_state.nnue_network {
+            let ply = search_state.nnue_ply;
+            search_state.nnue_accumulators[ply + 1] = search_state.nnue_accumulators[ply].clone();
+            nnue::update_accumulator(&mut search_state.nnue_accumulators[ply + 1], net, &saved_pieces, &position.pieces);
+            search_state.nnue_ply += 1;
+        }
+    }
+    unmake
+}
+
+/// Unmake a move and restore NNUE ply.
+#[inline(always)]
+fn unmake_move_nnue(position: &mut Position, mv: Move, unmake: &UnmakeInfo, search_state: &mut SearchState) {
+    unmake_move(position, mv, unmake);
+    if search_state.use_nnue {
+        search_state.nnue_ply -= 1;
+    }
+}
+
 /// Add deterministic noise to an eval score based on position hash.
 /// Returns the score with noise in range [-noise_max, +noise_max].
 /// Uses the zobrist hash to produce consistent noise for the same position.
@@ -36,13 +62,14 @@ use crate::move_constants::{
 };
 use crate::move_scores::score_move;
 use crate::moves::{generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move};
+use crate::nnue;
 use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     is_stopped, pv_prepend, pv_single, set_stop, BoundType, HashEntry, Move, MoveScore, MoveScoreArray, MoveScoreList, Mover, PathScore,
-    Position, Score, SearchState, Square, Window, BLACK, WHITE,
+    Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
@@ -327,7 +354,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
     let hash_mask = search_state.hash_table.mask();
 
     for mv in legal_moves {
-        let unmake = make_move_in_place(position, mv.0);
+        let unmake = make_move_nnue(position, mv.0, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
         search_state.history.push(position.zobrist_lock);
 
@@ -343,7 +370,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
         path_score.1 = -path_score.1;
 
         search_state.history.pop();
-        unmake_move(position, mv.0, &unmake);
+        unmake_move_nnue(position, mv.0, &unmake, search_state);
         mv.1 = path_score.1;
 
         search_state.pv.insert(mv.0, (pv_prepend(mv.0, &path_score.0), mv.1));
@@ -726,7 +753,7 @@ pub fn search(
             }
 
             let old_mover = position.mover;
-            let unmake = make_move_in_place(position, m);
+            let unmake = make_move_nnue(position, m, search_state);
             prefetch_hash(position, search_state, hash_mask);
 
             if !is_check(position, old_mover) {
@@ -741,7 +768,7 @@ pub fn search(
                 )
                 .1;
 
-                unmake_move(position, m, &unmake);
+                unmake_move_nnue(position, m, &unmake, search_state);
 
                 if is_stopped(&search_state.stop) {
                     return (pv_single(0), 0);
@@ -751,7 +778,7 @@ pub fn search(
                     return (pv_single(0), beta);
                 }
             } else {
-                unmake_move(position, m, &unmake);
+                unmake_move_nnue(position, m, &unmake, search_state);
             }
         }
     }
@@ -775,13 +802,13 @@ pub fn search(
 
         for (m, _) in scored_captures.iter().take(MULTICUT_MOVES_TO_TRY as usize) {
             let old_mover = position.mover;
-            let unmake = make_move_in_place(position, *m);
+            let unmake = make_move_nnue(position, *m, search_state);
             prefetch_hash(position, search_state, hash_mask);
 
             if !is_check(position, old_mover) {
                 let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0).1;
 
-                unmake_move(position, *m, &unmake);
+                unmake_move_nnue(position, *m, &unmake, search_state);
 
                 if is_stopped(&search_state.stop) {
                     return (pv_single(0), 0);
@@ -794,7 +821,7 @@ pub fn search(
                     }
                 }
             } else {
-                unmake_move(position, *m, &unmake);
+                unmake_move_nnue(position, *m, &unmake, search_state);
             }
         }
     }
@@ -866,7 +893,7 @@ pub fn search(
     if verified_hash_move {
         let hash_captured_value = captured_piece_value(position, hash_move);
         let old_mover = position.mover;
-        let unmake = make_move_in_place(position, hash_move);
+        let unmake = make_move_nnue(position, hash_move, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
         let hash_is_capture = unmake.captured_piece != CAPTURED_NONE;
 
@@ -877,7 +904,7 @@ pub fn search(
             let score = path_score.1;
             let singular_depth = hash_search_depth;
 
-            unmake_move(position, hash_move, &unmake);
+            unmake_move_nnue(position, hash_move, &unmake, search_state);
             check_time!(search_state);
             if is_stopped(&search_state.stop) {
                 return best_pathscore;
@@ -907,7 +934,7 @@ pub fn search(
                 scout_search = true;
             }
         } else {
-            unmake_move(position, hash_move, &unmake);
+            unmake_move_nnue(position, hash_move, &unmake, search_state);
         }
     }
 
@@ -1017,7 +1044,7 @@ pub fn search(
 
         let move_extension = check_extension + pawn_push_ext + passed_pawn_ext;
 
-        let unmake = make_move_in_place(position, m);
+        let unmake = make_move_nnue(position, m, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
                                                           // Track move at this ply for countermove heuristic
         search_state.ply_move[ply as usize] = m;
@@ -1033,7 +1060,7 @@ pub fn search(
             let gives_check = is_check(position, position.mover);
 
             if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !gives_check {
-                unmake_move(position, m, &unmake);
+                unmake_move_nnue(position, m, &unmake, search_state);
                 continue;
             }
 
@@ -1052,7 +1079,7 @@ pub fn search(
                 && !gives_check
                 && alpha.abs() < MATE_START
             {
-                unmake_move(position, m, &unmake);
+                unmake_move_nnue(position, m, &unmake, search_state);
                 continue;
             }
 
@@ -1154,7 +1181,7 @@ pub fn search(
 
             let score = path_score.1;
 
-            unmake_move(position, m, &unmake);
+            unmake_move_nnue(position, m, &unmake, search_state);
 
             check_time!(search_state);
             if is_stopped(&search_state.stop) {
@@ -1193,7 +1220,7 @@ pub fn search(
                 scout_search = true;
             }
         } else {
-            unmake_move(position, m, &unmake);
+            unmake_move_nnue(position, m, &unmake, search_state);
         }
     }
 

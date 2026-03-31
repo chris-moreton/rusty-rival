@@ -8,10 +8,11 @@ use crate::move_constants::{
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
+use crate::nnue;
 use crate::see::{captured_piece_value_see, see};
 use crate::types::{
     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
-    Window, BLACK, WHITE,
+    UnmakeInfo, Window, BLACK, WHITE,
 };
 use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
@@ -109,7 +110,31 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
     score
 }
 
+/// Make a move with NNUE accumulator update.
 #[inline(always)]
+fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
+    let saved_pieces = position.pieces;
+    let unmake = make_move_in_place(position, mv);
+    if search_state.use_nnue {
+        if let Some(ref net) = search_state.nnue_network {
+            let ply = search_state.nnue_ply;
+            search_state.nnue_accumulators[ply + 1] = search_state.nnue_accumulators[ply].clone();
+            nnue::update_accumulator(&mut search_state.nnue_accumulators[ply + 1], net, &saved_pieces, &position.pieces);
+            search_state.nnue_ply += 1;
+        }
+    }
+    unmake
+}
+
+/// Unmake a move and restore NNUE ply.
+#[inline(always)]
+fn unmake_move_nnue(position: &mut Position, mv: Move, unmake: &UnmakeInfo, search_state: &mut SearchState) {
+    unmake_move(position, mv, unmake);
+    if search_state.use_nnue {
+        search_state.nnue_ply -= 1;
+    }
+}
+
 #[allow(clippy::only_used_in_recursion)]
 pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
     // Check stop flag at TOP before any moves are made - safe to return here
@@ -166,12 +191,12 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
         }
 
         let old_mover = position.mover;
-        let unmake = make_move_in_place(position, m);
+        let unmake = make_move_nnue(position, m, search_state);
 
         if !is_check(position, old_mover) && see(see_value, bit(to_square_part(m)), position) > 0 {
             let score = -quiesce(position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
 
-            unmake_move(position, m, &unmake);
+            unmake_move_nnue(position, m, &unmake, search_state);
 
             check_time!(search_state);
             if is_stopped(&search_state.stop) {
@@ -186,7 +211,7 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
                 best_move = m;
             }
         } else {
-            unmake_move(position, m, &unmake);
+            unmake_move_nnue(position, m, &unmake, search_state);
         }
     }
 
