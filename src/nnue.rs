@@ -8,7 +8,7 @@
 //! The network weights are quantized to i16 and embedded in the binary.
 //! Accumulators are incrementally updated using bitboard diffs.
 
-use crate::types::{Mover, Pieces, Position, Score, WHITE};
+use crate::types::{Mover, Pieces, Position, Score};
 use std::fmt;
 
 // Network dimensions
@@ -96,12 +96,10 @@ impl NnueNetwork {
     /// Returns a score in centipawns from the side-to-move's perspective.
     /// Uses SCReLU activation: clamp(x, 0, QA)² with quantized arithmetic.
     #[inline]
-    pub fn evaluate(&self, acc: &Accumulator, stm: Mover) -> Score {
-        let (stm_acc, ntm_acc) = if stm == WHITE {
-            (&acc.white, &acc.black)
-        } else {
-            (&acc.black, &acc.white)
-        };
+    pub fn evaluate(&self, acc: &Accumulator, _stm: Mover) -> Score {
+        // After compute(), white=STM perspective, black=NTM perspective
+        // (the position was normalized so STM is always "white" in feature space)
+        let (stm_acc, ntm_acc) = (&acc.white, &acc.black);
 
         let mut output: i32 = 0;
 
@@ -109,7 +107,7 @@ impl NnueNetwork {
             let s = (stm_acc[i] as i32).clamp(0, QA);
             let n = (ntm_acc[i] as i32).clamp(0, QA);
             // SCReLU: squared clipped ReLU, divided by QA to prevent overflow
-            // Note: bullet stores NTM weights first, then STM weights
+            // L1 layout: NTM first [0..255], STM second [256..511]
             output += s * s / QA * self.l1_weights[HIDDEN_SIZE + i] as i32;
             output += n * n / QA * self.l1_weights[i] as i32;
         }
@@ -154,28 +152,51 @@ impl Accumulator {
     }
 
     /// Compute the accumulator from scratch for the given position.
-    /// Used at the root of the search tree.
+    ///
+    /// bullet's Chess768 normalizes positions so the side-to-move is always "white".
+    /// When black moves, we flip: swap piece colors and mirror squares vertically.
+    /// The `white` accumulator becomes STM perspective, `black` becomes NTM perspective.
+    /// Compute the accumulator from scratch for the given position.
+    ///
+    /// bullet's Chess768 uses STM-relative features:
+    /// - STM accumulator (white): friendly pieces in [0,383], enemy in [384,767]
+    /// - NTM accumulator (black): friendly pieces in [0,383], enemy in [384,767], squares flipped
+    ///
+    /// When black is to move, we swap colors so black pieces become "friendly" (color=0).
+    /// The NTM perspective automatically handles the vertical square flip via black_feature().
     pub fn compute(&mut self, net: &NnueNetwork, position: &Position) {
-        // Start with biases
         self.white = net.l0_biases;
         self.black = net.l0_biases;
 
-        // Add features for each piece on the board
+        let stm = position.mover as usize; // 0=white, 1=black
+
         for color in 0..2usize {
             let pieces = &position.pieces[color];
+            // Map absolute color to STM-relative: 0 = friendly (same as STM), 1 = enemy
+            let relative_color = if color == stm { 0 } else { 1 };
 
-            // Process each piece type's bitboard
+            // When black is STM, flip squares vertically to normalize the board
+            // (matching bullet's ChessBoard from_raw normalization)
+            let sq_flip: i8 = if stm == 1 { 56 } else { 0 };
+
             for &(bb, piece_type) in &bitboard_piece_types(pieces) {
                 let mut bitboard = bb;
                 while bitboard != 0 {
                     let sq = bitboard.trailing_zeros() as i8;
                     bitboard &= bitboard - 1;
-                    add_feature(&mut self.white, &mut self.black, net, color, piece_type, sq);
+                    add_feature(&mut self.white, &mut self.black, net, relative_color, piece_type, sq ^ sq_flip);
                 }
             }
 
-            // King (stored as square, not bitboard)
-            add_feature(&mut self.white, &mut self.black, net, color, 5, pieces.king_square);
+            // King
+            add_feature(
+                &mut self.white,
+                &mut self.black,
+                net,
+                relative_color,
+                5,
+                pieces.king_square ^ sq_flip,
+            );
         }
     }
 }

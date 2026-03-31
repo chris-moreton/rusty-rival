@@ -87,30 +87,12 @@ pub fn evaluate(position: &Position) -> Score {
 /// at nodes that are cut without evaluation (~60% of all nodes).
 #[inline(always)]
 pub fn evaluate_position(position: &Position, search_state: &mut crate::types::SearchState) -> Score {
-    if search_state.use_nnue && search_state.nnue_network.is_some() {
-        let ply = search_state.nnue_ply;
-
-        if !search_state.nnue_computed[ply] {
-            // Find nearest computed ancestor
-            let mut ancestor = ply;
-            while ancestor > 0 && !search_state.nnue_computed[ancestor] {
-                ancestor -= 1;
-            }
-
-            // Chain diffs from ancestor to current ply
-            let net = search_state.nnue_network.as_ref().unwrap();
-            for p in ancestor..ply {
-                let cloned = search_state.nnue_accumulators[p].clone();
-                search_state.nnue_accumulators[p + 1] = cloned;
-                let pieces_before = search_state.nnue_pieces[p];
-                let pieces_after = search_state.nnue_pieces[p + 1];
-                crate::nnue::update_accumulator(&mut search_state.nnue_accumulators[p + 1], net, &pieces_before, &pieces_after);
-                search_state.nnue_computed[p + 1] = true;
-            }
+    if search_state.use_nnue {
+        if let Some(ref net) = search_state.nnue_network {
+            let mut acc = crate::nnue::Accumulator::new();
+            acc.compute(net, position);
+            return net.evaluate(&acc, position.mover);
         }
-
-        let net = search_state.nnue_network.as_ref().unwrap();
-        return net.evaluate(&search_state.nnue_accumulators[ply], position.mover);
     }
     evaluate_with_pawn_hash(position, &search_state.pawn_hash_table)
 }
