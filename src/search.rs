@@ -11,18 +11,15 @@ use crate::engine_constants::{
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 
 /// Make a move with NNUE accumulator update.
-/// Saves pieces, makes the move, then diffs to update the accumulator incrementally.
+/// Make a move with lazy NNUE tracking. Saves pieces state and advances ply,
+/// but defers accumulator computation until evaluate_position is called.
 #[inline(always)]
 fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
-    let saved_pieces = position.pieces;
     let unmake = make_move_in_place(position, mv);
     if search_state.use_nnue {
-        if let Some(ref net) = search_state.nnue_network {
-            let ply = search_state.nnue_ply;
-            search_state.nnue_accumulators[ply + 1] = search_state.nnue_accumulators[ply].clone();
-            nnue::update_accumulator(&mut search_state.nnue_accumulators[ply + 1], net, &saved_pieces, &position.pieces);
-            search_state.nnue_ply += 1;
-        }
+        search_state.nnue_ply += 1;
+        search_state.nnue_pieces[search_state.nnue_ply] = position.pieces;
+        search_state.nnue_computed[search_state.nnue_ply] = false;
     }
     unmake
 }
@@ -62,7 +59,6 @@ use crate::move_constants::{
 };
 use crate::move_scores::score_move;
 use crate::moves::{generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move};
-use crate::nnue;
 use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::see::static_exchange_evaluation;
@@ -154,6 +150,8 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         if let Some(ref net) = search_state.nnue_network {
             search_state.nnue_ply = 0;
             search_state.nnue_accumulators[0].compute(net, position);
+            search_state.nnue_pieces[0] = position.pieces;
+            search_state.nnue_computed[0] = true;
         }
     }
 

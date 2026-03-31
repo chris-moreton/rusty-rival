@@ -402,6 +402,8 @@ pub struct SearchState {
     pub use_nnue: bool,
     pub nnue_network: Option<Arc<nnue::NnueNetwork>>,
     pub nnue_accumulators: Vec<nnue::Accumulator>,
+    pub nnue_pieces: Vec<[Pieces; 2]>,
+    pub nnue_computed: Vec<bool>,
     pub nnue_ply: usize,
 }
 
@@ -455,6 +457,8 @@ impl Clone for SearchState {
             use_nnue: self.use_nnue,
             nnue_network: self.nnue_network.clone(),
             nnue_accumulators: self.nnue_accumulators.clone(),
+            nnue_pieces: self.nnue_pieces.clone(),
+            nnue_computed: self.nnue_computed.clone(),
             nnue_ply: self.nnue_ply,
         }
     }
@@ -508,6 +512,8 @@ pub fn default_search_state() -> SearchState {
         use_nnue: true,
         nnue_network: Some(Arc::new(nnue::NnueNetwork::embedded())),
         nnue_accumulators: (0..MAX_DEPTH as usize).map(|_| nnue::Accumulator::new()).collect(),
+        nnue_pieces: vec![[Pieces::default(); 2]; MAX_DEPTH as usize],
+        nnue_computed: vec![false; MAX_DEPTH as usize],
         nnue_ply: 0,
     }
 }
@@ -647,7 +653,7 @@ pub fn is_bq_castle_available(position: &Position) -> bool {
     position.castle_flags & BQ_CASTLE != 0
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct Pieces {
     pub pawn_bitboard: Bitboard,
     pub knight_bitboard: Bitboard,

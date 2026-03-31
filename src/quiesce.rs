@@ -8,7 +8,6 @@ use crate::move_constants::{
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
-use crate::nnue;
 use crate::see::{captured_piece_value_see, see};
 use crate::types::{
     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
@@ -110,18 +109,14 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
     score
 }
 
-/// Make a move with NNUE accumulator update.
+/// Make a move with lazy NNUE tracking.
 #[inline(always)]
 fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
-    let saved_pieces = position.pieces;
     let unmake = make_move_in_place(position, mv);
     if search_state.use_nnue {
-        if let Some(ref net) = search_state.nnue_network {
-            let ply = search_state.nnue_ply;
-            search_state.nnue_accumulators[ply + 1] = search_state.nnue_accumulators[ply].clone();
-            nnue::update_accumulator(&mut search_state.nnue_accumulators[ply + 1], net, &saved_pieces, &position.pieces);
-            search_state.nnue_ply += 1;
-        }
+        search_state.nnue_ply += 1;
+        search_state.nnue_pieces[search_state.nnue_ply] = position.pieces;
+        search_state.nnue_computed[search_state.nnue_ply] = false;
     }
     unmake
 }
