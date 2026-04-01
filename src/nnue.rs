@@ -96,10 +96,12 @@ impl NnueNetwork {
     /// Returns a score in centipawns from the side-to-move's perspective.
     /// Uses SCReLU activation: clamp(x, 0, QA)² with quantized arithmetic.
     #[inline]
-    pub fn evaluate(&self, acc: &Accumulator, _stm: Mover) -> Score {
-        // After compute(), white=STM perspective, black=NTM perspective
-        // (the position was normalized so STM is always "white" in feature space)
-        let (stm_acc, ntm_acc) = (&acc.white, &acc.black);
+    pub fn evaluate(&self, acc: &Accumulator, stm: Mover) -> Score {
+        let (stm_acc, ntm_acc) = if stm == 0 {
+            (&acc.white, &acc.black)
+        } else {
+            (&acc.black, &acc.white)
+        };
 
         let mut output: i32 = 0;
 
@@ -154,49 +156,27 @@ impl Accumulator {
     /// Compute the accumulator from scratch for the given position.
     ///
     /// bullet's Chess768 normalizes positions so the side-to-move is always "white".
-    /// When black moves, we flip: swap piece colors and mirror squares vertically.
-    /// The `white` accumulator becomes STM perspective, `black` becomes NTM perspective.
     /// Compute the accumulator from scratch for the given position.
-    ///
-    /// bullet's Chess768 uses STM-relative features:
-    /// - STM accumulator (white): friendly pieces in [0,383], enemy in [384,767]
-    /// - NTM accumulator (black): friendly pieces in [0,383], enemy in [384,767], squares flipped
-    ///
-    /// When black is to move, we swap colors so black pieces become "friendly" (color=0).
-    /// The NTM perspective automatically handles the vertical square flip via black_feature().
+    /// White accumulator = white perspective, black accumulator = black perspective.
+    /// At eval time, STM/NTM selection picks the right perspective.
     pub fn compute(&mut self, net: &NnueNetwork, position: &Position) {
         self.white = net.l0_biases;
         self.black = net.l0_biases;
 
-        let stm = position.mover as usize; // 0=white, 1=black
-
         for color in 0..2usize {
             let pieces = &position.pieces[color];
-            // Map absolute color to STM-relative: 0 = friendly (same as STM), 1 = enemy
-            let relative_color = if color == stm { 0 } else { 1 };
-
-            // When black is STM, flip squares vertically to normalize the board
-            // (matching bullet's ChessBoard from_raw normalization)
-            let sq_flip: i8 = if stm == 1 { 56 } else { 0 };
 
             for &(bb, piece_type) in &bitboard_piece_types(pieces) {
                 let mut bitboard = bb;
                 while bitboard != 0 {
                     let sq = bitboard.trailing_zeros() as i8;
                     bitboard &= bitboard - 1;
-                    add_feature(&mut self.white, &mut self.black, net, relative_color, piece_type, sq ^ sq_flip);
+                    add_feature(&mut self.white, &mut self.black, net, color, piece_type, sq);
                 }
             }
 
             // King
-            add_feature(
-                &mut self.white,
-                &mut self.black,
-                net,
-                relative_color,
-                5,
-                pieces.king_square ^ sq_flip,
-            );
+            add_feature(&mut self.white, &mut self.black, net, color, 5, pieces.king_square);
         }
     }
 }
