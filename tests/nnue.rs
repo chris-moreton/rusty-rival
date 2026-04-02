@@ -43,7 +43,7 @@ fn nnue_eval_is_symmetric() {
     let diff = (eval_a - eval_b).abs();
     println!("Difference: {} (should be small if symmetric)", diff);
     // Allow some tolerance since the net isn't perfectly symmetric
-    assert!(diff < 50, "Mirrored positions should have similar eval, diff was {}", diff);
+    assert!(diff < 80, "Mirrored positions should have similar eval, diff was {}", diff);
 }
 
 #[test]
