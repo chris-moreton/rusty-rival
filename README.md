@@ -6,12 +6,15 @@ Binaries for Windows, Mac OS and Linux are available on the [releases](https://g
 
 ## Features
 
+- NNUE evaluation with embedded network (can fall back to handcrafted evaluation)
 - Alpha-beta search with iterative deepening and aspiration windows
 - Lazy SMP multi-threaded search (configurable via UCI `Threads` option)
+- Ponder support
 - Transposition table, killer moves, history heuristic, countermove heuristic
 - Null move pruning, late move reductions, late move pruning, reverse futility pruning
 - Singular extensions, probcut, multi-cut, SEE pruning
 - Quiescence search with static exchange evaluation
+- Syzygy endgame tablebase support
 - SPSA-tuned evaluation and search parameters
 
 ## Building
@@ -43,3 +46,17 @@ mkdir -p engines/v020-my-feature
 cp target/release/rusty-rival engines/v020-my-feature/
 git tag v020-my-feature
 ```
+
+## UCI Options
+
+| Option | Type | Default | Range | Description |
+|--------|------|---------|-------|-------------|
+| `Hash` | spin | 256 | 1–16384 | Transposition table size in MB. |
+| `Clear Hash` | button | — | — | Clears the transposition table. |
+| `Threads` | spin | 1 | 1–256 | Number of search threads (Lazy SMP). |
+| `UseNNUE` | check | true | — | Use the NNUE neural network evaluation. When disabled, falls back to handcrafted evaluation. |
+| `MultiPV` | spin | 1 | 1–20 | Number of principal variations to report. |
+| `SyzygyPath` | string | `<empty>` | — | Path to Syzygy endgame tablebase files. |
+| `Contempt` | spin | 0 | -1000–1000 | Contempt factor for draw avoidance. Positive values make the engine avoid draws. |
+| `EvalNoise` | spin | 0 | 0–100 | Adds random noise to the evaluation for varied play. |
+| `Ponder` | check | false | — | Enable pondering (thinking on the opponent's time). |
