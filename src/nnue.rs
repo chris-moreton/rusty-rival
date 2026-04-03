@@ -13,7 +13,7 @@ use std::fmt;
 
 // Network dimensions
 pub const INPUT_SIZE: usize = 768;
-pub const HIDDEN_SIZE: usize = 512;
+pub const HIDDEN_SIZE: usize = 256;
 
 // Quantization constants (must match training config)
 const QA: i32 = 255; // L0 weight/bias and accumulator scale
@@ -21,7 +21,7 @@ const QB: i32 = 64; // L1 weight scale
 const EVAL_SCALE: i32 = 400; // Converts network output to centipawns
 
 /// Embedded network weights (trained with bullet, quantised.bin format)
-const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-512x2.bin");
+const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2.bin");
 
 // =============================================================================
 // Network
