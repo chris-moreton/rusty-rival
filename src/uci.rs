@@ -629,6 +629,7 @@ option name EvalNoise type spin default 0 min 0 max 100
 option name UseNNUE type check default true
 option name Ponder type check default false
 option name Move Overhead type spin default 10 min 0 max 5000
+option name UCI_ShowWDL type check default false
 uciok",
         env!("CARGO_PKG_VERSION"),
         HASH_SIZE_MB
@@ -759,6 +760,7 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &m
                 }
                 Right(None)
             }
+            "uci_showwdl" => Right(None),
             _ => Left("Unknown option".parse().unwrap()),
         }
     }
