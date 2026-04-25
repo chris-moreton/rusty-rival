@@ -396,71 +396,72 @@ fn cmd_go(
     let line = parts.join(" ");
     let is_ponder = parts.contains(&"ponder");
 
-    let (max_depth, end_time, soft_time_limit, nodes_limit, tm_active, ponder_soft, ponder_hard) = if *t == "infinite" || *t == "ponder" {
-        let end = Instant::now().add(Duration::from_secs(86400));
-        (200u8, end, end, u64::MAX, false, 0u64, 0u64)
-    } else if *t == "mate" {
-        let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
-        let end = Instant::now().add(Duration::from_secs(86400));
-        (mate_depth.saturating_mul(2), end, end, u64::MAX, false, 0u64, 0u64)
-    } else {
-        uci_state.wtime = extract_go_param("wtime", &line, 0);
-        uci_state.btime = extract_go_param("btime", &line, 0);
-        uci_state.winc = extract_go_param("winc", &line, 0);
-        uci_state.binc = extract_go_param("binc", &line, 0);
-        uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
-        uci_state.depth = extract_go_param("depth", &line, 250);
-        uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
-        uci_state.move_time = extract_go_param("movetime", &line, 10000000);
-
-        let position = get_position(uci_state.fen.trim());
-        if position.mover == WHITE {
-            calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
+    let (max_depth, end_time, soft_time_limit, nodes_limit, tm_active, ponder_soft, ponder_hard) =
+        if *t == "infinite" || (*t == "ponder" && !line.contains("wtime") && !line.contains("btime")) {
+            let end = Instant::now().add(Duration::from_secs(86400));
+            (200u8, end, end, u64::MAX, false, 0u64, 0u64)
+        } else if *t == "mate" {
+            let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
+            let end = Instant::now().add(Duration::from_secs(86400));
+            (mate_depth.saturating_mul(2), end, end, u64::MAX, false, 0u64, 0u64)
         } else {
-            calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
-        }
+            uci_state.wtime = extract_go_param("wtime", &line, 0);
+            uci_state.btime = extract_go_param("btime", &line, 0);
+            uci_state.winc = extract_go_param("winc", &line, 0);
+            uci_state.binc = extract_go_param("binc", &line, 0);
+            uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
+            uci_state.depth = extract_go_param("depth", &line, 250);
+            uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
+            uci_state.move_time = extract_go_param("movetime", &line, 10000000);
 
-        uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, uci_state.move_overhead));
+            let position = get_position(uci_state.fen.trim());
+            if position.mover == WHITE {
+                calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
+            } else {
+                calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
+            }
 
-        let base_time_ms = uci_state.move_time;
-        let time_remaining = if position.mover == WHITE {
-            uci_state.wtime
-        } else {
-            uci_state.btime
-        };
+            uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, uci_state.move_overhead));
 
-        let has_clock = time_remaining > 0;
-        if has_clock {
-            let soft_ms = max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64);
-            let hard_ms = max(
-                10,
-                min(
-                    (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
-                    (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
-                ),
-            );
+            let base_time_ms = uci_state.move_time;
+            let time_remaining = if position.mover == WHITE {
+                uci_state.wtime
+            } else {
+                uci_state.btime
+            };
 
-            if is_ponder {
-                let end = Instant::now().add(Duration::from_secs(86400));
-                (uci_state.depth as u8, end, end, uci_state.nodes, false, soft_ms, hard_ms)
+            let has_clock = time_remaining > 0;
+            if has_clock {
+                let soft_ms = max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64);
+                let hard_ms = max(
+                    10,
+                    min(
+                        (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
+                        (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
+                    ),
+                );
+
+                if is_ponder {
+                    let end = Instant::now().add(Duration::from_secs(86400));
+                    (uci_state.depth as u8, end, end, uci_state.nodes, false, soft_ms, hard_ms)
+                } else {
+                    let now = Instant::now();
+                    (
+                        uci_state.depth as u8,
+                        now.add(Duration::from_millis(hard_ms)),
+                        now.add(Duration::from_millis(soft_ms)),
+                        uci_state.nodes,
+                        true,
+                        0u64,
+                        0u64,
+                    )
+                }
             } else {
                 let now = Instant::now();
-                (
-                    uci_state.depth as u8,
-                    now.add(Duration::from_millis(hard_ms)),
-                    now.add(Duration::from_millis(soft_ms)),
-                    uci_state.nodes,
-                    true,
-                    0u64,
-                    0u64,
-                )
+                let end = now.add(Duration::from_millis(uci_state.move_time));
+                (uci_state.depth as u8, end, end, uci_state.nodes, false, 0u64, 0u64)
             }
-        } else {
-            let now = Instant::now();
-            let end = now.add(Duration::from_millis(uci_state.move_time));
-            (uci_state.depth as u8, end, end, uci_state.nodes, false, 0u64, 0u64)
-        }
-    };
+        };
 
     // Clone position for the search thread
     let position = get_position(uci_state.fen.trim());
