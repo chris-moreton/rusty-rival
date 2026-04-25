@@ -312,6 +312,7 @@ pub struct UciState {
     pub quit: bool,
     pub threads: usize,
     pub ponder_enabled: bool,
+    pub move_overhead: u64,
 }
 
 pub fn default_uci_state() -> UciState {
@@ -332,6 +333,7 @@ pub fn default_uci_state() -> UciState {
         quit: false,
         threads: 1,
         ponder_enabled: false,
+        move_overhead: 10,
     }
 }
 

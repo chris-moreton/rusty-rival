@@ -1,4 +1,4 @@
-use crate::engine_constants::{HASH_SIZE_MB, TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_SOFT_FACTOR, UCI_MILLIS_REDUCTION};
+use crate::engine_constants::{HASH_SIZE_MB, TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_SOFT_FACTOR};
 use crate::tablebase::init_tablebase;
 
 use either::{Either, Left, Right};
@@ -156,7 +156,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
                 calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
             }
 
-            uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
+            uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, uci_state.move_overhead));
 
             let base_time_ms = uci_state.move_time;
             let time_remaining = if position.mover == WHITE {
@@ -420,7 +420,7 @@ fn cmd_go(
             calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
         }
 
-        uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, UCI_MILLIS_REDUCTION as u64));
+        uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, uci_state.move_overhead));
 
         let base_time_ms = uci_state.move_time;
         let time_remaining = if position.mover == WHITE {
@@ -628,6 +628,7 @@ option name Threads type spin default 1 min 1 max 256
 option name EvalNoise type spin default 0 min 0 max 100
 option name UseNNUE type check default true
 option name Ponder type check default false
+option name Move Overhead type spin default 10 min 0 max 5000
 uciok",
         env!("CARGO_PKG_VERSION"),
         HASH_SIZE_MB
@@ -747,6 +748,14 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &m
             "ponder" => {
                 if parts.len() == 5 && parts[3] == "value" {
                     uci_state.ponder_enabled = parts[4].eq_ignore_ascii_case("true");
+                }
+                Right(None)
+            }
+            "move" if parts.len() >= 4 && parts[3].to_lowercase() == "overhead" => {
+                if parts.len() == 6 && parts[4] == "value" {
+                    if let Ok(ms) = parts[5].parse::<u64>() {
+                        uci_state.move_overhead = ms.min(5000);
+                    }
                 }
                 Right(None)
             }
