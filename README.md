@@ -4,6 +4,17 @@ A [UCI](https://en.wikipedia.org/wiki/Universal_Chess_Interface) chess engine wr
 
 Binaries for Windows, Mac OS and Linux are available on the [releases](https://github.com/chris-moreton/rusty-rival/releases) page.
 
+## Play Online
+
+Rusty Rival plays on Lichess as [RustyRival](https://lichess.org/@/RustyRival/perf/bullet).
+
+**Lichess hardware & configuration:**
+- Apple M1 Max (10 cores: 8 performance + 2 efficiency), 64 GB RAM
+- Threads: 8
+- Hash: 512 MB
+- Ponder: enabled
+- Move Overhead: 0 (handled by lichess-bot at 500ms)
+
 ## Features
 
 - NNUE evaluation with embedded network (can fall back to handcrafted evaluation)
@@ -60,3 +71,5 @@ git tag v020-my-feature
 | `Contempt` | spin | 0 | -1000–1000 | Contempt factor for draw avoidance. Positive values make the engine avoid draws. |
 | `EvalNoise` | spin | 0 | 0–100 | Adds random noise to the evaluation for varied play. |
 | `Ponder` | check | false | — | Enable pondering (thinking on the opponent's time). |
+| `Move Overhead` | spin | 10 | 0–5000 | Time in ms reserved per move for communication overhead. |
+| `UCI_ShowWDL` | check | false | — | Show win/draw/loss probabilities in search output. |
