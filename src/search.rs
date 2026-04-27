@@ -796,7 +796,7 @@ pub fn search(
         }
 
         // Sort by score descending to try best captures first
-        scored_captures.sort_by(|a, b| b.1.cmp(&a.1));
+        scored_captures.sort_by_key(|b| std::cmp::Reverse(b.1));
 
         for (m, _) in scored_captures.iter().take(MULTICUT_MOVES_TO_TRY as usize) {
             let old_mover = position.mover;

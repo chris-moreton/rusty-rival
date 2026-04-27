@@ -171,7 +171,7 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
         move_scores.push((m, score));
     }
 
-    move_scores.sort_unstable_by(|a, b| b.1.cmp(&a.1));
+    move_scores.sort_unstable_by_key(|b| std::cmp::Reverse(b.1));
 
     // Delta pruning margin: skip captures that can't raise alpha
     // even with full captured piece value plus this margin
