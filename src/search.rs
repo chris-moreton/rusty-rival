@@ -659,7 +659,14 @@ pub fn search(
             hash_version = hash_entry.version;
             if hash_entry.bound == Exact {
                 search_state.hash_hits_exact += 1;
-                return (pv_single(hash_entry.mv), score);
+                // With Threads > 1 a torn entry can pair a valid lock with a foreign
+                // mv, so never surface an unverified move into the PV
+                let pv_mv = if hash_entry.mv != 0 && verify_move(position, hash_entry.mv) {
+                    hash_entry.mv
+                } else {
+                    0
+                };
+                return (pv_single(pv_mv), score);
             }
             if hash_entry.bound == Lower && score > alpha {
                 alpha = score;
@@ -668,7 +675,12 @@ pub fn search(
                 beta = score
             }
             if alpha >= beta {
-                return (pv_single(hash_entry.mv), score);
+                let pv_mv = if hash_entry.mv != 0 && verify_move(position, hash_entry.mv) {
+                    hash_entry.mv
+                } else {
+                    0
+                };
+                return (pv_single(pv_mv), score);
             }
         }
         hash_entry.mv
@@ -930,6 +942,7 @@ pub fn search(
                             hash_is_capture,
                             hash_captured_value,
                             hash_index,
+                            excluded_move,
                         );
                     }
                     hash_flag = Exact;
@@ -1192,7 +1205,9 @@ pub fn search(
 
             check_time!(search_state);
             if is_stopped(&search_state.stop) {
-                break;
+                // Don't fall through to the TT store: the move list is only
+                // partially searched, so the bound would be unsound
+                return best_pathscore;
             }
 
             if score < beta {
@@ -1220,6 +1235,7 @@ pub fn search(
                             move_is_capture,
                             captured_value,
                             hash_index,
+                            excluded_move,
                         );
                     }
                     hash_flag = Exact;
@@ -1239,17 +1255,21 @@ pub fn search(
         }
     };
 
-    store_hash_entry(
-        position,
-        real_depth,
-        hash_height,
-        hash_version,
-        hash_flag,
-        (best_pathscore.0[0], best_pathscore.1),
-        search_state,
-        ply,
-        hash_index,
-    );
+    // A singular-verification search (excluded_move != 0) produces scores that
+    // exclude the best move - storing them would poison this position's entry
+    if excluded_move == 0 {
+        store_hash_entry(
+            position,
+            real_depth,
+            hash_height,
+            hash_version,
+            hash_flag,
+            (best_pathscore.0[0], best_pathscore.1),
+            search_state,
+            ply,
+            hash_index,
+        );
+    }
 
     best_pathscore
 }
@@ -1380,7 +1400,13 @@ fn cutoff_unmake(
     is_capture: bool,
     captured_value: Score,
     hash_index: usize,
+    excluded_move: Move,
 ) -> PathScore {
+    // Singular-verification cutoffs are artifacts of the excluded move and the
+    // shifted window - keep them out of the TT and the ordering heuristics
+    if excluded_move != 0 {
+        return best_pathscore;
+    }
     store_hash_entry(
         position,
         depth,
