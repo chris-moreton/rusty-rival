@@ -448,7 +448,7 @@ pub fn store_hash_entry(
                 // adjust any mate score so that the score appears calculated as if this ply were the root
                 score: match movescore.1 {
                     x if x > MATE_START => movescore.1 + ply as Score,
-                    x if x < MATE_START => movescore.1 - ply as Score,
+                    x if x < -MATE_START => movescore.1 - ply as Score,
                     _ => movescore.1,
                 },
                 version: search_state.hash_table_version,
