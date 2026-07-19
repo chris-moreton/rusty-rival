@@ -707,6 +707,8 @@ pub fn search(
 
     if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let old_ep = make_null_move(position);
+        // No real previous move exists for the null-move child's countermove context
+        search_state.ply_move[ply as usize] = 0;
 
         let score = -search(
             position,
@@ -753,6 +755,7 @@ pub fn search(
             let old_mover = position.mover;
             let unmake = make_move_nnue(position, m, search_state);
             prefetch_hash(position, search_state, hash_mask);
+            search_state.ply_move[ply as usize] = m;
 
             if !is_check(position, old_mover) {
                 let score = -search(
@@ -802,6 +805,7 @@ pub fn search(
             let old_mover = position.mover;
             let unmake = make_move_nnue(position, *m, search_state);
             prefetch_hash(position, search_state, hash_mask);
+            search_state.ply_move[ply as usize] = *m;
 
             if !is_check(position, old_mover) {
                 let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0).1;
@@ -893,6 +897,7 @@ pub fn search(
         let old_mover = position.mover;
         let unmake = make_move_nnue(position, hash_move, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
+        search_state.ply_move[ply as usize] = hash_move;
         let hash_is_capture = unmake.captured_piece != CAPTURED_NONE;
 
         if !is_check(position, old_mover) {
@@ -1109,7 +1114,9 @@ pub fn search(
                 let (has_prev_move, prev_piece_12, prev_to) = if ply > 0 {
                     let prev_move = search_state.ply_move[ply as usize - 1];
                     if prev_move != 0 {
-                        let opponent_side = position.mover ^ 1;
+                        // m is already made here, so the side that played prev_move is
+                        // old_mover ^ 1, not position.mover ^ 1
+                        let opponent_side = old_mover ^ 1;
                         (
                             true,
                             piece_type_to_index(prev_move) + (opponent_side as usize * 6),
@@ -1131,7 +1138,9 @@ pub fn search(
                 // History-based LMR: adjust reduction based on move's historical performance
                 // Moves that have worked well before get searched deeper (less reduction)
                 // Moves that have failed often get searched shallower (more reduction)
-                let piece_12 = piece_index_12(position, m);
+                // m is already made, so index by old_mover (piece_index_12 would use the
+                // flipped position.mover and read the opponent's table half)
+                let piece_12 = curr_piece + (old_mover as usize * 6);
                 let hist = search_state.history_moves[piece_12][curr_from][curr_to];
                 let good_threshold = search_state.highest_history_score / LMR_HISTORY_GOOD_DIVISOR as i64;
                 let bad_threshold = -(search_state.highest_history_score / LMR_HISTORY_BAD_DIVISOR as i64);
