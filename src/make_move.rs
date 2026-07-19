@@ -339,6 +339,7 @@ pub fn make_king_move(position: &mut Position, from: Square, to: Square) -> u8 {
     let to_mask = bit(to);
 
     let captured = remove_captured_piece(position, to);
+    update_castle_flags_if_square(position, to);
 
     let friendly = &mut position.pieces[position.mover as usize];
 

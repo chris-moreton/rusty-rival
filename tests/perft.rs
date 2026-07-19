@@ -234,3 +234,28 @@ fn it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_wit
         11139762
     );
 }
+
+// Regression test for NET-211: when a king captures an enemy rook on its home
+// corner square, the opponent's castle rights must be cleared. Before the fix,
+// make_king_move left the rights intact and a later "castle" conjured a rook
+// out of thin air (e.g. 1.Kxa8 followed by ...O-O-O).
+//
+// Node counts verified with Stockfish 17 (stockfish depth N == perft(_, N-1)).
+#[test]
+fn it_clears_castle_rights_when_a_king_captures_a_rook() {
+    // White king on b7 captures the a8 rook; black must then have no queenside castle.
+    assert_eq!(perft(&mut get_position("r3k3/1K6/8/8/8/8/8/8 w q - 0 1"), 0), 4);
+    assert_eq!(perft(&mut get_position("r3k3/1K6/8/8/8/8/8/8 w q - 0 1"), 1), 49);
+    assert_eq!(perft(&mut get_position("r3k3/1K6/8/8/8/8/8/8 w q - 0 1"), 2), 243);
+    assert_eq!(perft(&mut get_position("r3k3/1K6/8/8/8/8/8/8 w q - 0 1"), 3), 3991);
+
+    // Colour mirror: black king on b2 captures the a1 rook.
+    assert_eq!(perft(&mut get_position("8/8/8/8/8/8/1k6/R3K3 b Q - 0 1"), 0), 4);
+    assert_eq!(perft(&mut get_position("8/8/8/8/8/8/1k6/R3K3 b Q - 0 1"), 1), 49);
+    assert_eq!(perft(&mut get_position("8/8/8/8/8/8/1k6/R3K3 b Q - 0 1"), 2), 243);
+    assert_eq!(perft(&mut get_position("8/8/8/8/8/8/1k6/R3K3 b Q - 0 1"), 3), 3991);
+
+    // Kingside version: 1.Kxh8 leaves the white king covering g8, so the phantom
+    // castle only becomes "legal" once the king walks away - needs depth 6.
+    assert_eq!(perft(&mut get_position("4k2r/p5K1/8/8/8/8/8/8 w k - 0 1"), 5), 245393);
+}
