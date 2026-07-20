@@ -18,7 +18,7 @@ use crate::move_constants::START_POS;
 use crate::moves::{generate_moves, is_check};
 
 use crate::perft::perft;
-use crate::search::iterative_deepening;
+use crate::search::{clear_history_table, iterative_deepening};
 use crate::types::{set_stop, Move, Position, SearchHandle, SearchState, SharedHashTable, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
@@ -93,6 +93,7 @@ pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState
             search_state.root_moves.clear();
             search_state.pv.clear();
             search_state.hash_table.clear();
+            clear_history_table(search_state);
             uci_state.fen = START_POS.parse().unwrap();
             Right(None)
         }
@@ -787,6 +788,9 @@ fn cmd_ucinewgame(
     search_state.root_moves.clear();
     search_state.pv.clear();
     search_state.hash_table.clear();
+    // History tables persist across searches within a game - a new game needs
+    // a full reset, not the usual decay
+    clear_history_table(search_state);
     uci_state.fen = START_POS.parse().unwrap();
     Right(None)
 }

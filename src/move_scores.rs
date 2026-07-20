@@ -1,7 +1,7 @@
 use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
 use crate::engine_constants::{
-    BISHOP_VALUE_AVERAGE, CAPTURE_HISTORY_DIVISOR, COUNTERMOVE_HISTORY_DIVISOR, FOLLOWUP_HISTORY_DIVISOR, KNIGHT_VALUE_AVERAGE,
-    MOVE_SCORE_COUNTERMOVE, MOVE_SCORE_DISTANT_KILLER_1, MOVE_SCORE_DISTANT_KILLER_2, MOVE_SCORE_HISTORY_MAX, MOVE_SCORE_KILLER_1,
+    BISHOP_VALUE_AVERAGE, CAPTURE_HISTORY_DIVISOR, COUNTERMOVE_HISTORY_DIVISOR, FOLLOWUP_HISTORY_DIVISOR, HISTORY_DIVISOR,
+    KNIGHT_VALUE_AVERAGE, MOVE_SCORE_COUNTERMOVE, MOVE_SCORE_DISTANT_KILLER_1, MOVE_SCORE_DISTANT_KILLER_2, MOVE_SCORE_KILLER_1,
     MOVE_SCORE_KILLER_2, MOVE_SCORE_MATE_KILLER, MOVE_SCORE_PAWN_PUSH_6TH, MOVE_SCORE_PAWN_PUSH_7TH, PAWN_VALUE_AVERAGE,
     QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE,
 };
@@ -14,7 +14,7 @@ use crate::search::piece_index_12;
 use crate::see::static_exchange_evaluation;
 
 use crate::types::{Move, Pieces, Position, Score, SearchState, Square, BLACK, WHITE};
-use crate::utils::{from_square_part, linear_scale, to_square_part};
+use crate::utils::{from_square_part, to_square_part};
 
 pub const BIT_FLIPPED_HORIZONTAL_AXIS: [Square; 64] = [
     56, 57, 58, 59, 60, 61, 62, 63, 48, 49, 50, 51, 52, 53, 54, 55, 40, 41, 42, 43, 44, 45, 46, 47, 32, 33, 34, 35, 36, 37, 38, 39, 24, 25,
@@ -33,7 +33,6 @@ pub const TOTAL_PIECE_VALUE_PER_SIDE_AT_START: Score =
 pub const PAWN_ATTACKER_BONUS: Score = 300;
 
 const GOOD_CAPTURE_START: Score = 3000;
-const HISTORY_START: Score = 0;
 
 #[inline(always)]
 pub fn attacker_bonus(piece: Move) -> Score {
@@ -143,27 +142,14 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
 
 #[inline(always)]
 pub fn history_score(position: &Position, m: Move, search_state: &SearchState, to_square: Square) -> Score {
-    linear_scale(
-        search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize],
-        0,
-        search_state.highest_history_score,
-        HISTORY_START as i64,
-        MOVE_SCORE_HISTORY_MAX as i64,
-    ) as Score
+    let history = search_state.history_moves[piece_index_12(position, m)][from_square_part(m) as usize][to_square as usize];
+    (history as i32 / HISTORY_DIVISOR) as Score
 }
 
 #[inline(always)]
 fn history_score_cached(search_state: &SearchState, piece_index: usize, from_sq: usize, to_sq: usize) -> Score {
-    if search_state.highest_history_score == 0 {
-        return 0;
-    }
-    linear_scale(
-        search_state.history_moves[piece_index][from_sq][to_sq],
-        0,
-        search_state.highest_history_score,
-        HISTORY_START as i64,
-        MOVE_SCORE_HISTORY_MAX as i64,
-    ) as Score
+    let history = search_state.history_moves[piece_index][from_sq][to_sq];
+    (history as i32 / HISTORY_DIVISOR) as Score
 }
 
 /// Follow-up history: bonus based on what worked after our move 2 plies ago

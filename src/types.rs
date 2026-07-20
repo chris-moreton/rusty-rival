@@ -281,7 +281,7 @@ pub type MoveScore = (Move, Score);
 pub type MoveScoreList = Vec<MoveScore>;
 pub type MoveScoreArray = ArrayVec<MoveScore, MAX_MOVES>;
 pub type PositionHistory = Vec<HashLock>;
-pub type HistoryScore = i64;
+pub type HistoryScore = i16;
 pub type ScorePair = (Score, Score);
 
 /// Information needed to unmake a move
@@ -374,7 +374,6 @@ pub struct SearchState {
     pub capture_history: [[[i16; 64]; 6]; 6],                 // [attacker_piece_6][victim_piece_6][to_square]
     pub ply_move: [Move; MAX_DEPTH as usize],                 // Track move at each ply for countermove lookup
     pub history_moves: Box<[[[HistoryScore; 64]; 64]; 12]>,
-    pub highest_history_score: HistoryScore,
     pub nodes: u64,
     pub nodes_limit: u64,
     pub show_info: bool,
@@ -429,7 +428,6 @@ impl Clone for SearchState {
             capture_history: self.capture_history,
             ply_move: self.ply_move,
             history_moves: self.history_moves.clone(),
-            highest_history_score: self.highest_history_score,
             nodes: self.nodes,
             nodes_limit: self.nodes_limit,
             show_info: self.show_info,
@@ -484,7 +482,6 @@ pub fn default_search_state() -> SearchState {
         capture_history: [[[0; 64]; 6]; 6],
         ply_move: [0; MAX_DEPTH as usize],
         history_moves: Box::new([[[0; 64]; 64]; 12]),
-        highest_history_score: 0,
         nodes: 0,
         nodes_limit: u64::MAX,
         show_info: true,

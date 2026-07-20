@@ -1,7 +1,7 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, LMP_MAX_DEPTH,
-    LMP_MOVE_THRESHOLDS, LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_DIVISOR,
-    LMR_HISTORY_GOOD_DIVISOR, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, HISTORY_MAX, IID_MIN_DEPTH, LMP_MAX_DEPTH,
+    LMP_MOVE_THRESHOLDS, LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_THRESHOLD,
+    LMR_HISTORY_GOOD_THRESHOLD, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
     MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
     PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
     SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
@@ -63,8 +63,8 @@ use crate::quiesce::quiesce;
 use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    is_stopped, pv_prepend, pv_single, set_stop, BoundType, HashEntry, Move, MoveScore, MoveScoreArray, MoveScoreList, Mover, PathScore,
-    Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, WHITE,
+    is_stopped, pv_prepend, pv_single, set_stop, BoundType, HashEntry, Move, MoveList, MoveScore, MoveScoreArray, MoveScoreList, Mover,
+    PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
@@ -215,7 +215,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         }
     }
 
-    clear_history_table(search_state);
+    decay_history_tables(search_state);
     clear_killers(search_state);
 
     if search_state.history.is_empty() {
@@ -393,13 +393,12 @@ fn clear_killers(search_state: &mut SearchState) {
     }
 }
 
-fn clear_history_table(search_state: &mut SearchState) {
+pub fn clear_history_table(search_state: &mut SearchState) {
     for piece in search_state.history_moves.iter_mut() {
         for from_sq in piece.iter_mut() {
             from_sq.fill(0);
         }
     }
-    search_state.highest_history_score = 0;
 
     // Clear countermove history table
     for prev_piece in search_state.countermove_history.iter_mut() {
@@ -423,6 +422,43 @@ fn clear_history_table(search_state: &mut SearchState) {
     for attacker in &mut search_state.capture_history {
         for victim in attacker {
             victim.fill(0);
+        }
+    }
+}
+
+/// Halve every history table at the start of a search: old signal decays but
+/// still seeds move ordering for the early iterations of the next search
+fn decay_history_tables(search_state: &mut SearchState) {
+    for piece in search_state.history_moves.iter_mut() {
+        for from_sq in piece.iter_mut() {
+            for entry in from_sq.iter_mut() {
+                *entry /= 2;
+            }
+        }
+    }
+    for prev_piece in search_state.countermove_history.iter_mut() {
+        for prev_to in prev_piece.iter_mut() {
+            for curr_piece in prev_to.iter_mut() {
+                for entry in curr_piece.iter_mut() {
+                    *entry /= 2;
+                }
+            }
+        }
+    }
+    for prev_piece in search_state.followup_history.iter_mut() {
+        for prev_to in prev_piece.iter_mut() {
+            for curr_piece in prev_to.iter_mut() {
+                for entry in curr_piece.iter_mut() {
+                    *entry /= 2;
+                }
+            }
+        }
+    }
+    for attacker in &mut search_state.capture_history {
+        for victim in attacker {
+            for entry in victim.iter_mut() {
+                *entry /= 2;
+            }
         }
     }
 }
@@ -841,6 +877,11 @@ pub fn search(
 
     let mut scout_search = false;
 
+    // Quiets and captures already searched at this node without cutting off -
+    // they get a history malus if a later move turns out to be the best one
+    let mut searched_quiets: MoveList = MoveList::new();
+    let mut searched_captures: MoveScoreArray = MoveScoreArray::new();
+
     let verified_hash_move = hash_move != 0 && verify_move(position, hash_move);
 
     // Internal Iterative Reduction: with no hash move at meaningful depth,
@@ -948,11 +989,18 @@ pub fn search(
                             hash_captured_value,
                             hash_index,
                             excluded_move,
+                            &searched_quiets,
+                            &searched_captures,
                         );
                     }
                     hash_flag = Exact;
                 }
                 scout_search = true;
+            }
+            if hash_captured_value == 0 && hash_move & PROMOTION_FULL_MOVE_MASK == 0 {
+                searched_quiets.push(hash_move);
+            } else if hash_captured_value != 0 {
+                searched_captures.push((hash_move, hash_captured_value));
             }
         } else {
             unmake_move_nnue(position, hash_move, &unmake, search_state);
@@ -1159,12 +1207,10 @@ pub fn search(
                 // m is already made, so index by old_mover (piece_index_12 would use the
                 // flipped position.mover and read the opponent's table half)
                 let piece_12 = curr_piece + (old_mover as usize * 6);
-                let hist = search_state.history_moves[piece_12][curr_from][curr_to];
-                let good_threshold = search_state.highest_history_score / LMR_HISTORY_GOOD_DIVISOR as i64;
-                let bad_threshold = -(search_state.highest_history_score / LMR_HISTORY_BAD_DIVISOR as i64);
-                if hist > good_threshold && reduction > 0 {
+                let hist = search_state.history_moves[piece_12][curr_from][curr_to] as i32;
+                if hist > LMR_HISTORY_GOOD_THRESHOLD && reduction > 0 {
                     reduction -= 1;
-                } else if hist < bad_threshold {
+                } else if hist < LMR_HISTORY_BAD_THRESHOLD {
                     reduction += 1;
                 }
 
@@ -1215,14 +1261,6 @@ pub fn search(
                 return best_pathscore;
             }
 
-            if score < beta {
-                let penalty = -(real_depth as i32) * if score < alpha { 2 } else { 1 };
-                update_history(position, search_state, m, penalty as i64, captured_value);
-                update_countermove_history_for_move(position, ply, search_state, m, penalty, captured_value, is_promotion);
-                update_followup_history_for_move(position, ply, search_state, m, penalty, captured_value, is_promotion);
-                update_capture_history_for_move(position, search_state, m, penalty, captured_value);
-            }
-
             if score > best_pathscore.1 {
                 best_pathscore = (pv_prepend(m, &path_score.0), score);
                 if best_pathscore.1 > alpha {
@@ -1241,11 +1279,20 @@ pub fn search(
                             captured_value,
                             hash_index,
                             excluded_move,
+                            &searched_quiets,
+                            &searched_captures,
                         );
                     }
                     hash_flag = Exact;
                 }
                 scout_search = true;
+            }
+            // Track searched moves that didn't cut off - malus candidates if a
+            // later move proves best (the eventual best move itself is exempt)
+            if captured_value == 0 && !is_promotion {
+                searched_quiets.push(m);
+            } else if captured_value != 0 {
+                searched_captures.push((m, captured_value));
             }
         } else {
             unmake_move_nnue(position, m, &unmake, search_state);
@@ -1259,6 +1306,47 @@ pub fn search(
             best_pathscore.1 = draw_value(position, search_state)
         }
     };
+
+    // PV completion: the move that raised alpha at an exact node is a proven
+    // best move - reward it and push down the quiets tried before it
+    if hash_flag == Exact && excluded_move == 0 {
+        let best_move = best_pathscore.0[0];
+        let best_captured = captured_piece_value(position, best_move);
+        let bonus = (real_depth as i32) * (real_depth as i32);
+        update_history(position, search_state, best_move, bonus, best_captured);
+        update_countermove_history_for_move(
+            position,
+            ply,
+            search_state,
+            best_move,
+            bonus,
+            best_captured,
+            best_move & PROMOTION_FULL_MOVE_MASK != 0,
+        );
+        update_followup_history_for_move(
+            position,
+            ply,
+            search_state,
+            best_move,
+            bonus,
+            best_captured,
+            best_move & PROMOTION_FULL_MOVE_MASK != 0,
+        );
+        update_capture_history_for_move(position, search_state, best_move, bonus, best_captured);
+        let malus = -bonus;
+        for &qm in &searched_quiets {
+            if qm != best_move {
+                update_history(position, search_state, qm, malus, 0);
+                update_countermove_history_for_move(position, ply, search_state, qm, malus, 0, false);
+                update_followup_history_for_move(position, ply, search_state, qm, malus, 0, false);
+            }
+        }
+        for &(cm, cv) in &searched_captures {
+            if cm != best_move {
+                update_capture_history_for_move(position, search_state, cm, malus, cv);
+            }
+        }
+    }
 
     // A singular-verification search (excluded_move != 0) produces scores that
     // exclude the best move - storing them would poison this position's entry
@@ -1406,6 +1494,8 @@ fn cutoff_unmake(
     captured_value: Score,
     hash_index: usize,
     excluded_move: Move,
+    searched_quiets: &MoveList,
+    searched_captures: &MoveScoreArray,
 ) -> PathScore {
     // Singular-verification cutoffs are artifacts of the excluded move and the
     // shifted window - keep them out of the TT and the ordering heuristics
@@ -1424,7 +1514,7 @@ fn cutoff_unmake(
         hash_index,
     );
     let bonus = (depth as i32) * (depth as i32);
-    update_history(position, search_state, m, bonus as i64, captured_value);
+    update_history(position, search_state, m, bonus, captured_value);
     update_killers(ply, search_state, m, best_pathscore.1, is_capture);
     update_countermove(position, ply, search_state, m, is_capture, depth);
     // Update followup history with positive bonus (quiet moves only)
@@ -1439,6 +1529,22 @@ fn cutoff_unmake(
     );
     // Update capture history with positive bonus (captures only)
     update_capture_history_for_move(position, search_state, m, bonus, captured_value);
+
+    // Malus: the moves tried before the cutoff move failed to do the job -
+    // push their history down so they order later next time
+    let malus = -bonus;
+    for &qm in searched_quiets {
+        if qm != m {
+            update_history(position, search_state, qm, malus, 0);
+            update_countermove_history_for_move(position, ply, search_state, qm, malus, 0, false);
+            update_followup_history_for_move(position, ply, search_state, qm, malus, 0, false);
+        }
+    }
+    for &(cm, cv) in searched_captures {
+        if cm != m {
+            update_capture_history_for_move(position, search_state, cm, malus, cv);
+        }
+    }
     best_pathscore
 }
 
@@ -1615,36 +1721,18 @@ fn piece_type_to_index(m: Move) -> usize {
 }
 
 #[inline(always)]
-fn update_history(position: &Position, search_state: &mut SearchState, m: Move, score: i64, captured_value: Score) {
+fn update_history(position: &Position, search_state: &mut SearchState, m: Move, bonus: i32, captured_value: Score) {
     if captured_value == 0 {
         let f = from_square_part(m) as usize;
         let t = to_square_part(m) as usize;
 
         let piece_index = piece_index_12(position, m);
 
-        search_state.history_moves[piece_index][f][t] += score;
-
-        if search_state.history_moves[piece_index][f][t] < 0 {
-            search_state.history_moves[piece_index][f][t] = 0;
-        }
-
-        halve_history_scores_if_required(search_state, f, t, piece_index)
-    }
-}
-
-#[inline(always)]
-fn halve_history_scores_if_required(search_state: &mut SearchState, f: usize, t: usize, piece_index: usize) {
-    if search_state.history_moves[piece_index][f][t] > search_state.highest_history_score {
-        search_state.highest_history_score = search_state.history_moves[piece_index][f][t];
-        if search_state.highest_history_score > (i64::MAX / 2) {
-            for i in 0..12 {
-                for j in 0..64 {
-                    for k in 0..64 {
-                        search_state.history_moves[i][j][k] /= 2;
-                    }
-                }
-            }
-        }
+        let entry = &mut search_state.history_moves[piece_index][f][t];
+        let current = *entry as i32;
+        // Gravity formula keeps values bounded within roughly +/- HISTORY_MAX
+        let new_value = current + bonus - current * bonus.abs() / HISTORY_MAX;
+        *entry = new_value.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
     }
 }
 

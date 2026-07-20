@@ -1,4 +1,4 @@
-use crate::types::{HistoryScore, Score, ScorePair};
+use crate::types::{Score, ScorePair};
 
 pub const DEBUG: bool = false;
 
@@ -16,8 +16,6 @@ pub const QUEEN_VALUE_AVERAGE: Score = (QUEEN_VALUE_PAIR.0 + QUEEN_VALUE_PAIR.1)
 
 pub const STARTING_MATERIAL: Score =
     PAWN_VALUE_AVERAGE * 16 + KNIGHT_VALUE_AVERAGE * 4 + BISHOP_VALUE_AVERAGE * 4 + ROOK_VALUE_AVERAGE * 4 + QUEEN_VALUE_AVERAGE * 2;
-
-pub const HISTORY_MAX_SCORE: Score = (HistoryScore::MAX / 2) as Score;
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
@@ -110,6 +108,13 @@ pub const COUNTERMOVE_HISTORY_DIVISOR: i32 = 235;
 pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 538;
 pub const CAPTURE_HISTORY_DIVISOR: i32 = 1120;
 
+// Gravity cap for all history tables: entry += bonus - entry * |bonus| / HISTORY_MAX
+// keeps every table bounded within roughly [-HISTORY_MAX, HISTORY_MAX]
+pub const HISTORY_MAX: i32 = 16384;
+// Scales butterfly history into move-ordering scores (16384 / 26 ~= 624, the
+// previous MOVE_SCORE_HISTORY_MAX weight)
+pub const HISTORY_DIVISOR: i32 = 26;
+
 pub const TICKER_MILLIS: u16 = 500;
 
 pub const IID_MIN_DEPTH: u8 = 5;
@@ -122,9 +127,10 @@ pub const LMR_MIN_DEPTH: u8 = 3; // SPSA tuned, Run 20
 // History-based LMR thresholds
 // If history score is above good threshold, reduce by 1 less (move has been successful)
 // If history score is below bad threshold, reduce by 1 more (move has failed often)
-// Thresholds are relative to highest_history_score (as a percentage * 100)
-pub const LMR_HISTORY_GOOD_DIVISOR: i32 = 22; // SPSA tuned, Run 20
-pub const LMR_HISTORY_BAD_DIVISOR: i32 = 27; // SPSA tuned, Run 20
+// Absolute values on the fixed [-HISTORY_MAX, HISTORY_MAX] gravity scale; a low
+// good threshold fires on far too many moves and collapses LMR (search explosion)
+pub const LMR_HISTORY_GOOD_THRESHOLD: i32 = 8192;
+pub const LMR_HISTORY_BAD_THRESHOLD: i32 = -2048;
 
 // Continuation history threshold for LMR (countermove_history + followup_history)
 // These are i16 values, so threshold is raw score (not scaled)
