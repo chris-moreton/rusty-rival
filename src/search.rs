@@ -1,5 +1,5 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, IID_REDUCE_DEPTH, LMP_MAX_DEPTH,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, IID_MIN_DEPTH, LMP_MAX_DEPTH,
     LMP_MOVE_THRESHOLDS, LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_DIVISOR,
     LMR_HISTORY_GOOD_DIVISOR, LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
     MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
@@ -636,7 +636,7 @@ pub fn search(
     // Track hash entry info for singular extension (needed even if depth isn't sufficient for cutoff)
     let hash_entry_height = if hash_hit { hash_entry.height } else { 0 };
     let hash_entry_bound = if hash_hit { hash_entry.bound } else { Upper };
-    let mut hash_move = if hash_hit {
+    let hash_move = if hash_hit {
         // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
         // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
         // adjusted it again such that it represented the distance from the root at which it was stored - e.g. we found it at ply 7, and wound
@@ -841,16 +841,22 @@ pub fn search(
 
     let mut scout_search = false;
 
+    let verified_hash_move = hash_move != 0 && verify_move(position, hash_move);
+
+    // Internal Iterative Reduction: with no hash move at meaningful depth,
+    // search one ply shallower - the TT entry this leaves behind makes the
+    // eventual full-depth visit well-ordered. Replaces the previous IID
+    // sub-search, which double-pushed the zobrist history and always
+    // returned an instant repetition draw.
+    let depth = if !verified_hash_move && depth > IID_MIN_DEPTH {
+        depth - 1
+    } else {
+        depth
+    };
+
     // Check extension: extend by 1 ply when in check
     let check_extension: u8 = if in_check && ply < search_state.iterative_depth * 2 { 1 } else { 0 };
     let real_depth = depth + check_extension;
-
-    let verified_hash_move = if !scouting && hash_move == 0 && depth + check_extension > IID_MIN_DEPTH {
-        hash_move = search_wrapper(depth - IID_REDUCE_DEPTH, ply, search_state, (-alpha - 1, -alpha), position, 0, 0).0[0];
-        hash_move != 0
-    } else {
-        hash_move != 0 && verify_move(position, hash_move)
-    };
 
     // Try hash move first if valid
     // Singular extension: determine if hash move is much better than alternatives
