@@ -1233,7 +1233,10 @@ pub fn search(
             let search_depth = depth + move_extension;
 
             let path_score = if scout_search {
-                lmr_scout_search(lmr, ply, search_state, (alpha, beta), search_depth, position)
+                // Cap the reduction so the child depth (search_depth - 1 - lmr)
+                // cannot wrap below zero: stacked LMR adjustments (table + bad
+                // history + bad continuation) can exceed the remaining depth
+                lmr_scout_search(lmr.min(search_depth - 1), ply, search_state, (alpha, beta), search_depth, position)
             } else {
                 search_wrapper(search_depth, ply, search_state, (-beta, -alpha), position, 0, 0)
             };
