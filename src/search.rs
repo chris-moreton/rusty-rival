@@ -1672,7 +1672,10 @@ fn update_killers(ply: u8, search_state: &mut SearchState, m: Move, score: Score
 
 #[inline(always)]
 fn null_move_material(position: &Position) -> bool {
-    side_total_non_pawn_count(position, position.mover) + side_total_non_pawn_count(position, opponent!(position.mover)) >= 2
+    // The side to move must have at least one non-pawn piece: with king+pawns
+    // only, zugzwang makes a null-move "pass" wildly optimistic
+    let stm_non_pawn = side_total_non_pawn_count(position, position.mover);
+    stm_non_pawn >= 1 && stm_non_pawn + side_total_non_pawn_count(position, opponent!(position.mover)) >= 2
 }
 
 #[inline(always)]

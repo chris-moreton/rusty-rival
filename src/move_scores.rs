@@ -88,7 +88,7 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
             PROMOTION_KNIGHT_MOVE_MASK => 1,
             _ => GOOD_CAPTURE_START + QUEEN_VALUE_AVERAGE,
         }
-    } else if to_square == position.en_passant_square {
+    } else if m & PIECE_MASK_FULL == PIECE_MASK_PAWN && to_square == position.en_passant_square {
         GOOD_CAPTURE_START + PAWN_VALUE_AVERAGE + PAWN_ATTACKER_BONUS
     } else if m == search_state.mate_killer[ply] {
         MOVE_SCORE_MATE_KILLER

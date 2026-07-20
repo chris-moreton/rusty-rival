@@ -36,7 +36,7 @@ pub fn to_square_part(mv: Move) -> Square {
 pub fn is_capture(position: &Position, mv: Move) -> bool {
     let enemy = &position.pieces[opponent!(position.mover) as usize];
     let tsp = to_square_part(mv);
-    tsp == position.en_passant_square || (enemy.all_pieces_bitboard & bit(tsp) != 0)
+    (mv & PIECE_MASK_FULL == PIECE_MASK_PAWN && tsp == position.en_passant_square) || (enemy.all_pieces_bitboard & bit(tsp) != 0)
 }
 
 #[inline(always)]
@@ -54,7 +54,7 @@ pub fn captured_piece_value(position: &Position, mv: Move) -> Score {
     };
 
     promote_value
-        + (if tsp == position.en_passant_square || enemy.pawn_bitboard & to_bb != 0 {
+        + (if (mv & PIECE_MASK_FULL == PIECE_MASK_PAWN && tsp == position.en_passant_square) || enemy.pawn_bitboard & to_bb != 0 {
             PAWN_VALUE_AVERAGE
         } else if enemy.knight_bitboard & to_bb != 0 {
             KNIGHT_VALUE_AVERAGE

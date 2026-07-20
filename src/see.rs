@@ -94,7 +94,7 @@ pub fn captured_piece_value_see(position: &Position, mv: Move) -> Score {
     };
 
     promote_value
-        + (if tsp == position.en_passant_square || enemy.pawn_bitboard & to_bb != 0 {
+        + (if (mv & PIECE_MASK_FULL == PIECE_MASK_PAWN && tsp == position.en_passant_square) || enemy.pawn_bitboard & to_bb != 0 {
             PAWN_VALUE_AVERAGE
         } else if enemy.knight_bitboard & to_bb != 0 {
             KNIGHT_VALUE_AVERAGE
