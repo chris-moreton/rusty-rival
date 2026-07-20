@@ -1,4 +1,4 @@
-use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE};
+use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_2_BITS, RANK_7_BITS};
 use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
 use crate::evaluate::evaluate_position;
 use crate::move_constants::{
@@ -6,7 +6,10 @@ use crate::move_constants::{
     PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
-use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check};
+use crate::moves::{
+    generate_check_evasions, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check,
+};
+use crate::search::MATE_SCORE;
 use crate::see::{captured_piece_value_see, see};
 use crate::types::{
     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
@@ -60,6 +63,23 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
         from_square_mask(friendly.king_square) | PIECE_MASK_KING,
         KING_MOVES_BITBOARDS[friendly.king_square as usize] & valid_destinations
     );
+
+    // Quiet queen promotions: a push to the last rank is as tactical as any
+    // capture and must be visible at the horizon
+    let promo_rank_pawns = friendly.pawn_bitboard & if position.mover == WHITE { RANK_7_BITS } else { RANK_2_BITS };
+    if promo_rank_pawns != 0 {
+        let empty = !all_pieces;
+        let mut to_bitboard = if position.mover == WHITE {
+            promo_rank_pawns << 8
+        } else {
+            promo_rank_pawns >> 8
+        } & empty;
+        while to_bitboard != 0 {
+            let to_square = get_and_unset_lsb!(to_bitboard);
+            let from_square = if position.mover == WHITE { to_square - 8 } else { to_square + 8 };
+            move_list.push(from_square_mask(from_square) | to_square as Move | PROMOTION_QUEEN_MOVE_MASK);
+        }
+    }
 
     move_list
 }
@@ -123,6 +143,8 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
     }
     search_state.nodes += 1;
 
+    let in_check = is_check(position, position.mover);
+
     let mut eval = evaluate_position(position, search_state);
     if search_state.eval_noise > 0 {
         let noise_bits = (position.zobrist_lock >> 17) as i32;
@@ -130,18 +152,29 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
         eval += (noise_bits % (2 * noise_max + 1)) - noise_max;
     }
 
-    if depth == 0 || eval >= window.1 {
+    // Depth cap terminates evasion chains; otherwise stand-pat is only a
+    // valid bound when not in check
+    if depth == 0 || (!in_check && eval >= window.1) {
         return (pv_single(0), eval);
     }
 
-    let mut alpha = window.0.max(eval);
+    let mut alpha = if in_check { window.0 } else { window.0.max(eval) };
     let mut best_move: Move = 0;
 
-    let ms = quiesce_moves(position);
+    // In check: every evasion must be considered, not just captures
+    let ms = if in_check {
+        generate_check_evasions(position)
+    } else {
+        quiesce_moves(position)
+    };
 
-    // If there are no legal moves, return the evaluation score
     if ms.is_empty() {
-        return (pv_single(0), eval);
+        // No pseudo-legal evasions while in check = mated at the horizon
+        return if in_check {
+            (pv_single(0), -MATE_SCORE + ply as Score)
+        } else {
+            (pv_single(0), eval)
+        };
     }
 
     let mut move_scores: MoveScoreArray = MoveScoreArray::new();
@@ -157,37 +190,54 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
     // even with full captured piece value plus this margin
     const DELTA_MARGIN: Score = 200;
 
+    let mut legal_move_count = 0;
+
     for (m, _) in move_scores {
+        let is_promotion = m & PROMOTION_FULL_MOVE_MASK != 0;
         let see_value = captured_piece_value_see(position, m);
 
-        // Delta pruning: if capturing this piece can't possibly raise alpha, skip it
-        if eval + see_value + DELTA_MARGIN < alpha {
+        // Delta pruning: if capturing this piece can't possibly raise alpha,
+        // skip it - never prune evasions or promotions
+        if !in_check && !is_promotion && eval + see_value + DELTA_MARGIN < alpha {
             continue;
         }
 
         let old_mover = position.mover;
         let unmake = make_move_nnue(position, m, search_state);
 
-        if !is_check(position, old_mover) && see(see_value, bit(to_square_part(m)), position) > 0 {
-            let score = -quiesce(position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
+        if !is_check(position, old_mover) {
+            legal_move_count += 1;
 
-            unmake_move_nnue(position, m, &unmake, search_state);
+            // SEE gate: skip losing captures (equal exchanges are searched);
+            // evasions and promotions are never gated
+            if in_check || is_promotion || see(see_value, bit(to_square_part(m)), position) >= 0 {
+                let score = -quiesce(position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
 
-            check_time!(search_state);
-            if is_stopped(&search_state.stop) {
-                break;
-            }
+                unmake_move_nnue(position, m, &unmake, search_state);
 
-            if score >= window.1 {
-                return (pv_single(m), window.1);
-            }
-            if score > alpha {
-                alpha = score;
-                best_move = m;
+                check_time!(search_state);
+                if is_stopped(&search_state.stop) {
+                    break;
+                }
+
+                if score >= window.1 {
+                    return (pv_single(m), window.1);
+                }
+                if score > alpha {
+                    alpha = score;
+                    best_move = m;
+                }
+            } else {
+                unmake_move_nnue(position, m, &unmake, search_state);
             }
         } else {
             unmake_move_nnue(position, m, &unmake, search_state);
         }
+    }
+
+    // All evasions were illegal (pins) - the check is mate
+    if in_check && legal_move_count == 0 {
+        return (pv_single(0), -MATE_SCORE + ply as Score);
     }
 
     (pv_single(best_move), alpha)
