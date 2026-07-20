@@ -139,7 +139,11 @@ macro_rules! debug_out {
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
     search_state.start_time = Instant::now();
     set_stop(&search_state.stop, false);
-    search_state.hash_table_version += 1;
+    // Advance the shared TT generation once per search - helper threads share
+    // the table and must not bump it again
+    if search_state.thread_id == 0 {
+        search_state.hash_table.bump_version();
+    }
     search_state.best_move_stability = 0;
     search_state.prev_best_move = 0;
     search_state.prev_score = 0;
@@ -482,8 +486,11 @@ pub fn store_hash_entry(
     ply: u8,
     hash_index: usize,
 ) {
-    if height >= existing_height || search_state.hash_table_version > existing_version {
-        search_state.hash_table.set(
+    let table_version = search_state.hash_table.version();
+    // Replace when at least as deep, or when the incumbent is from an older
+    // search (real aging - stale entries no longer block stores forever)
+    if height >= existing_height || table_version != existing_version {
+        search_state.hash_table.store(
             hash_index,
             HashEntry {
                 // adjust any mate score so that the score appears calculated as if this ply were the root
@@ -492,7 +499,7 @@ pub fn store_hash_entry(
                     x if x < -MATE_START => movescore.1 - ply as Score,
                     _ => movescore.1,
                 },
-                version: search_state.hash_table_version,
+                version: table_version,
                 height,
                 mv: movescore.0,
                 bound,
@@ -666,19 +673,19 @@ pub fn search(
 
     let mut legal_move_count = 0;
     let mut hash_flag = Upper;
-    let mut hash_height = 0;
-    let mut hash_version = 0;
     let mut best_pathscore: PathScore = (pv_single(0), -MATE_SCORE);
 
     let hash_mask = search_state.hash_table.mask();
     let hash_index: usize = (position.zobrist_lock as u64 & hash_mask) as usize;
-    let hash_entry = search_state.hash_table.get(hash_index);
-    // Cache hash hit check to avoid repeated 128-bit comparisons
-    let hash_hit = hash_entry.lock == position.zobrist_lock;
+    // Checksum-verified probe: None on miss, foreign entry, or torn write
+    let probed_entry = search_state.hash_table.probe(hash_index, position.zobrist_lock);
+    // Whatever occupies the slot (matching or not) informs the replacement
+    // decision for stores from this node
+    let (hash_height, hash_version, slot_occupied) = search_state.hash_table.entry_meta(hash_index);
     // Track hash entry info for singular extension (needed even if depth isn't sufficient for cutoff)
-    let hash_entry_height = if hash_hit { hash_entry.height } else { 0 };
-    let hash_entry_bound = if hash_hit { hash_entry.bound } else { Upper };
-    let hash_move = if hash_hit {
+    let hash_entry_height = probed_entry.map_or(0, |e| e.height);
+    let hash_entry_bound = probed_entry.map_or(Upper, |e| e.bound);
+    let hash_move = if let Some(hash_entry) = probed_entry {
         // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
         // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
         // adjusted it again such that it represented the distance from the root at which it was stored - e.g. we found it at ply 7, and wound
@@ -696,12 +703,10 @@ pub fn search(
         // Skip hash cutoffs during singular extension search - the hash entry's score
         // includes the excluded move's contribution, so we can't use it for cutoffs
         if excluded_move == 0 && hash_entry.height >= depth {
-            hash_height = hash_entry.height;
-            hash_version = hash_entry.version;
             if hash_entry.bound == Exact {
                 search_state.hash_hits_exact += 1;
-                // With Threads > 1 a torn entry can pair a valid lock with a foreign
-                // mv, so never surface an unverified move into the PV
+                // The checksum rules out torn entries, but a TT move still
+                // never enters the PV unverified
                 let pv_mv = if hash_entry.mv != 0 && verify_move(position, hash_entry.mv) {
                     hash_entry.mv
                 } else {
@@ -725,7 +730,7 @@ pub fn search(
             }
         }
         hash_entry.mv
-    } else if hash_entry.lock != 0 {
+    } else if slot_occupied {
         search_state.hash_clashes += 1;
         0
     } else {

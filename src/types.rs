@@ -6,7 +6,7 @@ use crate::nnue;
 use arrayvec::ArrayVec;
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Instant;
@@ -23,19 +23,28 @@ pub type Window = (Bound, Bound);
 pub type Score = i32;
 pub type HashLock = u128;
 pub type HashIndex = u32;
-/// Thread-safe wrapper for the hash table that allows sharing between threads.
-/// Uses UnsafeCell for interior mutability - data races on individual hash entries
-/// are acceptable in chess engines (worst case is a cache miss or stale data).
+/// Lockless shared transposition table.
+///
+/// Each entry is three relaxed AtomicU64 words: two data words plus a
+/// checksum word (`key ^ data1 ^ data2`, where key is the high 64 bits of
+/// the 128-bit zobrist lock - the low bits pick the index). A torn read or
+/// write makes the checksum mismatch on probe, so racing threads can never
+/// smuggle a foreign move, score or bound through: no locks, no UB, and no
+/// need to trust unverified entries.
 pub struct SharedHashTable {
-    data: UnsafeCell<Box<[HashEntry]>>,
+    data: Box<[[AtomicU64; 3]]>,
     num_entries: usize,
+    version: AtomicU32,
 }
 
-// SAFETY: Hash table data races are acceptable in chess engines.
-// The worst case is reading stale/corrupted data which just causes
-// a cache miss - it doesn't cause crashes or undefined behavior.
-unsafe impl Send for SharedHashTable {}
-unsafe impl Sync for SharedHashTable {}
+const HASH_WORD_CHECK: usize = 0;
+const HASH_WORD_MOVE_SCORE: usize = 1; // mv in low 32 bits, score in high 32
+const HASH_WORD_META: usize = 2; // height 0..8, bound 8..10, version 16..48
+
+#[inline(always)]
+fn hash_entry_key(lock: HashLock) -> u64 {
+    (lock >> 64) as u64
+}
 
 impl SharedHashTable {
     /// Create a new hash table with the default size
@@ -54,17 +63,13 @@ impl SharedHashTable {
     /// Create a new hash table with specified number of entries (must be power of 2)
     pub fn new_with_entries(num_entries: usize) -> Self {
         debug_assert!(num_entries.is_power_of_two(), "Hash table size must be power of 2");
-        let empty = HashEntry {
-            score: 0,
-            version: 0,
-            height: 0,
-            mv: 0,
-            bound: BoundType::Exact,
-            lock: 0,
-        };
+        let data: Vec<[AtomicU64; 3]> = std::iter::repeat_with(|| [AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0)])
+            .take(num_entries)
+            .collect();
         SharedHashTable {
-            data: UnsafeCell::new(vec![empty; num_entries].into_boxed_slice()),
+            data: data.into_boxed_slice(),
             num_entries,
+            version: AtomicU32::new(1),
         }
     }
 
@@ -91,18 +96,69 @@ impl SharedHashTable {
         (self.num_entries * HASH_ENTRY_BYTES as usize) / (1024 * 1024)
     }
 
-    /// Get a reference to a hash entry (for reading)
+    /// Current search generation, shared by all threads (bumped once per `go`)
     #[inline(always)]
-    pub fn get(&self, index: usize) -> &HashEntry {
-        unsafe { &(*self.data.get())[index] }
+    pub fn version(&self) -> u32 {
+        self.version.load(Ordering::Relaxed)
     }
 
-    /// Get a mutable reference to a hash entry (for writing)
+    /// Advance the search generation - call once per `go`, from one thread
+    pub fn bump_version(&self) {
+        self.version.fetch_add(1, Ordering::Relaxed);
+    }
+
+    /// Probe for the given lock. Returns the decoded entry only when the
+    /// checksum confirms an untorn entry written for this exact lock.
     #[inline(always)]
-    pub fn set(&self, index: usize, entry: HashEntry) {
-        unsafe {
-            (*self.data.get())[index] = entry;
+    pub fn probe(&self, index: usize, lock: HashLock) -> Option<HashEntry> {
+        let words = &self.data[index];
+        let check = words[HASH_WORD_CHECK].load(Ordering::Relaxed);
+        let move_score = words[HASH_WORD_MOVE_SCORE].load(Ordering::Relaxed);
+        let meta = words[HASH_WORD_META].load(Ordering::Relaxed);
+        if check ^ move_score ^ meta != hash_entry_key(lock) || (check | move_score | meta) == 0 {
+            return None;
         }
+        let bound = match (meta >> 8) & 0x3 {
+            0 => BoundType::Exact,
+            1 => BoundType::Lower,
+            _ => BoundType::Upper,
+        };
+        Some(HashEntry {
+            score: (move_score >> 32) as u32 as Score,
+            version: (meta >> 16) as u32,
+            height: meta as u8,
+            mv: move_score as u32 as Move,
+            bound,
+            lock,
+        })
+    }
+
+    /// Height/version/occupancy of whatever occupies the slot (no key check) -
+    /// used for the replacement decision. Torn values only ever influence
+    /// which entry gets overwritten, never correctness.
+    #[inline(always)]
+    pub fn entry_meta(&self, index: usize) -> (u8, u32, bool) {
+        let words = &self.data[index];
+        let check = words[HASH_WORD_CHECK].load(Ordering::Relaxed);
+        let move_score = words[HASH_WORD_MOVE_SCORE].load(Ordering::Relaxed);
+        let meta = words[HASH_WORD_META].load(Ordering::Relaxed);
+        (meta as u8, (meta >> 16) as u32, (check | move_score | meta) != 0)
+    }
+
+    /// Encode and store an entry (entry.lock supplies the checksum key)
+    #[inline(always)]
+    pub fn store(&self, index: usize, entry: HashEntry) {
+        let move_score = entry.mv as u64 | ((entry.score as u32 as u64) << 32);
+        let bound_bits = match entry.bound {
+            BoundType::Exact => 0u64,
+            BoundType::Lower => 1u64,
+            BoundType::Upper => 2u64,
+        };
+        let meta = entry.height as u64 | (bound_bits << 8) | ((entry.version as u64) << 16);
+        let words = &self.data[index];
+        words[HASH_WORD_CHECK].store(hash_entry_key(entry.lock) ^ move_score ^ meta, Ordering::Relaxed);
+        words[HASH_WORD_MOVE_SCORE].store(move_score, Ordering::Relaxed);
+        words[HASH_WORD_META].store(meta, Ordering::Relaxed);
     }
 
     /// Prefetch a hash entry into CPU cache
@@ -113,7 +169,7 @@ impl SharedHashTable {
         {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
             unsafe {
-                let ptr = &(*self.data.get())[index] as *const HashEntry as *const i8;
+                let ptr = &self.data[index] as *const [AtomicU64; 3] as *const i8;
                 _mm_prefetch(ptr, _MM_HINT_T0);
             }
         }
@@ -121,7 +177,7 @@ impl SharedHashTable {
         {
             use std::arch::x86::{_mm_prefetch, _MM_HINT_T0};
             unsafe {
-                let ptr = &(*self.data.get())[index] as *const HashEntry as *const i8;
+                let ptr = &self.data[index] as *const [AtomicU64; 3] as *const i8;
                 _mm_prefetch(ptr, _MM_HINT_T0);
             }
         }
@@ -134,17 +190,12 @@ impl SharedHashTable {
 
     /// Clear the hash table (used by ucinewgame)
     pub fn clear(&self) {
-        let empty = HashEntry {
-            score: 0,
-            version: 0,
-            height: 0,
-            mv: 0,
-            bound: BoundType::Exact,
-            lock: 0,
-        };
-        for i in 0..self.num_entries {
-            self.set(i, empty);
+        for words in self.data.iter() {
+            words[HASH_WORD_CHECK].store(0, Ordering::Relaxed);
+            words[HASH_WORD_MOVE_SCORE].store(0, Ordering::Relaxed);
+            words[HASH_WORD_META].store(0, Ordering::Relaxed);
         }
+        self.version.store(1, Ordering::Relaxed);
     }
 }
 
@@ -366,7 +417,6 @@ pub struct SearchState {
     pub end_time: Instant,
     pub iterative_depth: u8,
     pub hash_table: Arc<SharedHashTable>,
-    pub hash_table_version: u32,
     pub pawn_hash_table: Arc<PawnHashTable>,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
     pub mate_killer: [Move; MAX_DEPTH as usize],
@@ -422,7 +472,6 @@ impl Clone for SearchState {
             iterative_depth: self.iterative_depth,
             // Share the hash table via Arc - no 128MB copy!
             hash_table: Arc::clone(&self.hash_table),
-            hash_table_version: self.hash_table_version,
             pawn_hash_table: Arc::clone(&self.pawn_hash_table),
             killer_moves: self.killer_moves,
             mate_killer: self.mate_killer,
@@ -478,7 +527,6 @@ pub fn default_search_state() -> SearchState {
         end_time: Instant::now(),
         iterative_depth: 0,
         hash_table: Arc::new(SharedHashTable::new()),
-        hash_table_version: 1,
         pawn_hash_table: Arc::new(PawnHashTable::new()),
         killer_moves: [[0, 0]; MAX_DEPTH as usize],
         mate_killer: [0; MAX_DEPTH as usize],

@@ -79,9 +79,10 @@ pub const MAX_DEPTH: u8 = 250;
 
 pub const MAX_QUIESCE_DEPTH: u8 = 100;
 
-pub const HASH_ENTRY_BYTES: u64 = 22;
-pub const HASH_SIZE_MB: u64 = 256;
-pub const NUM_HASH_ENTRIES: u64 = (1024 * 1024 * HASH_SIZE_MB) / HASH_ENTRY_BYTES;
+// True size of one TT entry: three u64 words (2 data + 1 checksum)
+pub const HASH_ENTRY_BYTES: u64 = 24;
+// Startup default, and the value advertised by `uci` for the Hash option
+pub const HASH_SIZE_MB: u64 = 128;
 
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;

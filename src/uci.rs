@@ -672,7 +672,6 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &m
                     match parts[4].parse::<usize>() {
                         Ok(mb) if (1..=16384).contains(&mb) => {
                             search_state.hash_table = Arc::new(SharedHashTable::new_with_mb(mb));
-                            search_state.hash_table_version += 1;
                             Right(None)
                         }
                         _ => Left("Hash size must be between 1 and 16384 MB".parse().unwrap()),

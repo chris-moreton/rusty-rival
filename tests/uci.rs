@@ -363,20 +363,24 @@ pub fn it_handles_the_setoption_clear_hash_command() {
     let mut search_state = default_search_state();
     let mut uci_state = default_uci_state();
 
+    let lock: u128 = (12345u128 << 64) | 999;
     let he = HashEntry {
         score: 100,
-        version: 0,
-        height: 0,
+        version: 1,
+        height: 3,
         mv: 0,
         bound: BoundType::Exact,
-        lock: 0,
+        lock,
     };
 
-    search_state.hash_table.set(0, he);
-    assert_eq!(search_state.hash_table.get(0).score, 100);
+    search_state.hash_table.store(0, he);
+    assert_eq!(search_state.hash_table.probe(0, lock).unwrap().score, 100);
+    // A probe with a different lock must miss (checksum mismatch)
+    assert!(search_state.hash_table.probe(0, lock ^ (1u128 << 100)).is_none());
 
     let result = run_command_test(&mut uci_state, &mut search_state, "setoption name Clear Hash");
     assert_eq!(result, Right(None));
+    assert!(search_state.hash_table.probe(0, lock).is_none());
 }
 
 #[test]
