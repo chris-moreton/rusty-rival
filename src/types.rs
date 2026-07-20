@@ -1,4 +1,6 @@
-use crate::engine_constants::{HASH_ENTRY_BYTES, MAX_DEPTH, MAX_QUIESCE_DEPTH, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES};
+use crate::engine_constants::{
+    CORRECTION_HISTORY_SIZE, HASH_ENTRY_BYTES, MAX_DEPTH, MAX_QUIESCE_DEPTH, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES,
+};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use crate::nnue;
 use arrayvec::ArrayVec;
@@ -374,6 +376,7 @@ pub struct SearchState {
     pub capture_history: [[[i16; 64]; 6]; 6],                 // [attacker_piece_6][victim_piece_6][to_square]
     pub ply_move: [Move; MAX_DEPTH as usize],                 // Track move at each ply for countermove lookup
     pub eval_stack: [Score; MAX_DEPTH as usize],              // Static eval per ply (-Score::MAX when in check)
+    pub correction_history: Box<[[i16; CORRECTION_HISTORY_SIZE]; 2]>, // [side][pawn_key % SIZE] -> eval correction
     pub history_moves: Box<[[[HistoryScore; 64]; 64]; 12]>,
     pub nodes: u64,
     pub nodes_limit: u64,
@@ -429,6 +432,7 @@ impl Clone for SearchState {
             capture_history: self.capture_history,
             ply_move: self.ply_move,
             eval_stack: self.eval_stack,
+            correction_history: self.correction_history.clone(),
             history_moves: self.history_moves.clone(),
             nodes: self.nodes,
             nodes_limit: self.nodes_limit,
@@ -484,6 +488,7 @@ pub fn default_search_state() -> SearchState {
         capture_history: [[[0; 64]; 6]; 6],
         ply_move: [0; MAX_DEPTH as usize],
         eval_stack: [-Score::MAX; MAX_DEPTH as usize],
+        correction_history: Box::new([[0; CORRECTION_HISTORY_SIZE]; 2]),
         history_moves: Box::new([[[0; 64]; 64]; 12]),
         nodes: 0,
         nodes_limit: u64::MAX,

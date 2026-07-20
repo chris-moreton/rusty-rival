@@ -1,5 +1,6 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
+    CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS,
     LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_THRESHOLD, LMR_HISTORY_GOOD_THRESHOLD,
     LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH,
     MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION,
@@ -49,7 +50,7 @@ use crate::fen::algebraic_move_from_move;
 use crate::tablebase::{probe_dtz, tablebase_available, TB_MAX_PIECES};
 
 use crate::bitboards::{bit, north_fill, south_fill, FILE_A_BITS, FILE_H_BITS};
-use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
+use crate::hash::{en_passant_zobrist_key_index, pawn_zobrist_key, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
 use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
@@ -423,6 +424,12 @@ pub fn clear_history_table(search_state: &mut SearchState) {
             victim.fill(0);
         }
     }
+
+    // Clear eval-correction tables (they persist across searches otherwise -
+    // the EMA re-converges within a game but must not leak between games)
+    for side in search_state.correction_history.iter_mut() {
+        side.fill(0);
+    }
 }
 
 /// Halve every history table at the start of a search: old signal decays but
@@ -727,12 +734,13 @@ pub fn search(
 
     let in_check = is_check(position, position.mover);
 
-    // Static eval for this node, recorded per ply so descendants can compute
-    // the improving flag; there is no meaningful static eval while in check
+    // Static eval for this node (correction-history adjusted), recorded per
+    // ply so descendants can compute the improving flag; there is no
+    // meaningful static eval while in check
     let lazy_eval: Score = if in_check {
         -Score::MAX
     } else {
-        evaluate_position(position, search_state)
+        evaluate_position(position, search_state) + eval_correction(position, search_state)
     };
     search_state.eval_stack[ply as usize] = lazy_eval;
 
@@ -996,6 +1004,7 @@ pub fn search(
                             excluded_move,
                             &searched_quiets,
                             &searched_captures,
+                            lazy_eval,
                         );
                     }
                     hash_flag = Exact;
@@ -1300,6 +1309,7 @@ pub fn search(
                             excluded_move,
                             &searched_quiets,
                             &searched_captures,
+                            lazy_eval,
                         );
                     }
                     hash_flag = Exact;
@@ -1364,6 +1374,16 @@ pub fn search(
             if cm != best_move {
                 update_capture_history_for_move(position, search_state, cm, malus, cv);
             }
+        }
+    }
+
+    // Eval-correction update: exact scores always teach; a fail-low only
+    // teaches when it lands below the static eval (usable upper bound)
+    if excluded_move == 0 && !in_check && legal_move_count > 0 && best_pathscore.1.abs() < MATE_START {
+        let best_move = best_pathscore.0[0];
+        let usable_bound = hash_flag == Exact || best_pathscore.1 < lazy_eval;
+        if usable_bound && (best_move == 0 || captured_piece_value(position, best_move) == 0) {
+            update_correction_history(position, search_state, real_depth, best_pathscore.1, lazy_eval);
         }
     }
 
@@ -1515,6 +1535,7 @@ fn cutoff_unmake(
     excluded_move: Move,
     searched_quiets: &MoveList,
     searched_captures: &MoveScoreArray,
+    static_eval: Score,
 ) -> PathScore {
     // Singular-verification cutoffs are artifacts of the excluded move and the
     // shifted window - keep them out of the TT and the ordering heuristics
@@ -1563,6 +1584,12 @@ fn cutoff_unmake(
         if cm != m {
             update_capture_history_for_move(position, search_state, cm, malus, cv);
         }
+    }
+
+    // A quiet fail-high above the static eval is a usable lower-bound signal
+    // for the eval-correction table
+    if static_eval != -Score::MAX && captured_value == 0 && best_pathscore.1 > static_eval && best_pathscore.1.abs() < MATE_START {
+        update_correction_history(position, search_state, depth, best_pathscore.1, static_eval);
     }
     best_pathscore
 }
@@ -1737,6 +1764,27 @@ fn piece_type_to_index(m: Move) -> usize {
         PIECE_MASK_KING => 5,
         _ => 0,
     }
+}
+
+/// Correction to apply to the raw static eval: what the search has learned
+/// about this pawn structure's systematic eval error for the side to move
+#[inline(always)]
+fn eval_correction(position: &Position, search_state: &SearchState) -> Score {
+    let idx = (pawn_zobrist_key(position) as u64 as usize) & (CORRECTION_HISTORY_SIZE - 1);
+    (search_state.correction_history[position.mover as usize][idx] as i32 / CORRECTION_HISTORY_GRAIN) as Score
+}
+
+/// Blend the observed (search score - static eval) gap into the correction
+/// table as a depth-weighted exponential moving average
+#[inline(always)]
+fn update_correction_history(position: &Position, search_state: &mut SearchState, depth: u8, score: Score, static_eval: Score) {
+    let idx = (pawn_zobrist_key(position) as u64 as usize) & (CORRECTION_HISTORY_SIZE - 1);
+    let entry = &mut search_state.correction_history[position.mover as usize][idx];
+    let diff = (score - static_eval) * CORRECTION_HISTORY_GRAIN;
+    let weight = (depth as i32 + 1).min(CORRECTION_HISTORY_WEIGHT_MAX);
+    let current = *entry as i32;
+    let new_value = (current * (256 - weight) + diff * weight) / 256;
+    *entry = new_value.clamp(-CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_MAX) as i16;
 }
 
 #[inline(always)]

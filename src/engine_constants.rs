@@ -111,6 +111,14 @@ pub const CAPTURE_HISTORY_DIVISOR: i32 = 1120;
 // Gravity cap for all history tables: entry += bonus - entry * |bonus| / HISTORY_MAX
 // keeps every table bounded within roughly [-HISTORY_MAX, HISTORY_MAX]
 pub const HISTORY_MAX: i32 = 16384;
+
+// Correction history: per-side tables keyed by pawn-structure hash that learn
+// the systematic gap between static eval and resolved search scores
+pub const CORRECTION_HISTORY_SIZE: usize = 16384; // power of two (indexed by key & (SIZE-1))
+pub const CORRECTION_HISTORY_GRAIN: i32 = 256; // stored units per centipawn
+pub const CORRECTION_HISTORY_MAX: i32 = 16384; // entry cap = +/-64cp of correction
+pub const CORRECTION_HISTORY_WEIGHT_MAX: i32 = 16; // EMA weight cap (of 256)
+
 // Scales butterfly history into move-ordering scores (16384 / 26 ~= 624, the
 // previous MOVE_SCORE_HISTORY_MAX weight)
 pub const HISTORY_DIVISOR: i32 = 26;
