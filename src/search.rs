@@ -727,21 +727,38 @@ pub fn search(
 
     let in_check = is_check(position, position.mover);
 
-    let mut lazy_eval: Score = -Score::MAX;
+    // Static eval for this node, recorded per ply so descendants can compute
+    // the improving flag; there is no meaningful static eval while in check
+    let lazy_eval: Score = if in_check {
+        -Score::MAX
+    } else {
+        evaluate_position(position, search_state)
+    };
+    search_state.eval_stack[ply as usize] = lazy_eval;
+
+    // Improving: our static eval is better than it was 2 plies ago (same side
+    // to move); fall back 4 plies when 2 back was in check, default true when
+    // unknown so pruning stays conservative
+    let improving = if in_check {
+        false
+    } else if ply >= 2 && search_state.eval_stack[ply as usize - 2] != -Score::MAX {
+        lazy_eval > search_state.eval_stack[ply as usize - 2]
+    } else if ply >= 4 && search_state.eval_stack[ply as usize - 4] != -Score::MAX {
+        lazy_eval > search_state.eval_stack[ply as usize - 4]
+    } else {
+        true
+    };
 
     if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
-        lazy_eval = evaluate_position(position, search_state);
-        let margin = BETA_PRUNE_MARGIN_PER_DEPTH * depth as Score;
-        if lazy_eval - margin as Score >= beta {
+        // An improving eval supports the fail-high conclusion, so a smaller
+        // margin suffices; when not improving demand more
+        let margin = BETA_PRUNE_MARGIN_PER_DEPTH * (depth as Score - improving as Score);
+        if lazy_eval - margin >= beta {
             return (pv_single(0), lazy_eval - margin);
         }
     }
 
     let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
-        if lazy_eval == -Score::MAX {
-            lazy_eval = evaluate_position(position, search_state);
-        }
-
         lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
     } else {
         false
@@ -1130,7 +1147,13 @@ pub fn search(
                 && !is_tactical
                 && !is_promotion
                 && !current_is_end_game
-                && legal_move_count > LMP_MOVE_THRESHOLDS[depth as usize]
+                && legal_move_count
+                    > if improving {
+                        LMP_MOVE_THRESHOLDS[depth as usize]
+                    } else {
+                        // Falling eval: give late quiets half the budget
+                        LMP_MOVE_THRESHOLDS[depth as usize] / 2
+                    }
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
                 && !gives_check
@@ -1222,6 +1245,11 @@ pub fn search(
                 if continuation_score > LMR_CONTINUATION_GOOD_THRESHOLD && reduction > 0 {
                     reduction -= 1;
                 } else if continuation_score < LMR_CONTINUATION_BAD_THRESHOLD {
+                    reduction += 1;
+                }
+
+                // Reduce late moves one ply deeper when our eval is falling
+                if !improving {
                     reduction += 1;
                 }
                 reduction

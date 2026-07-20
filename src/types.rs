@@ -373,6 +373,7 @@ pub struct SearchState {
     pub followup_history: Box<[[[[i16; 64]; 6]; 64]; 6]>,     // [our_prev_piece_6][our_prev_to][curr_piece_6][curr_to]
     pub capture_history: [[[i16; 64]; 6]; 6],                 // [attacker_piece_6][victim_piece_6][to_square]
     pub ply_move: [Move; MAX_DEPTH as usize],                 // Track move at each ply for countermove lookup
+    pub eval_stack: [Score; MAX_DEPTH as usize],              // Static eval per ply (-Score::MAX when in check)
     pub history_moves: Box<[[[HistoryScore; 64]; 64]; 12]>,
     pub nodes: u64,
     pub nodes_limit: u64,
@@ -427,6 +428,7 @@ impl Clone for SearchState {
             followup_history: self.followup_history.clone(),
             capture_history: self.capture_history,
             ply_move: self.ply_move,
+            eval_stack: self.eval_stack,
             history_moves: self.history_moves.clone(),
             nodes: self.nodes,
             nodes_limit: self.nodes_limit,
@@ -481,6 +483,7 @@ pub fn default_search_state() -> SearchState {
         followup_history: Box::new([[[[0; 64]; 6]; 64]; 6]),
         capture_history: [[[0; 64]; 6]; 6],
         ply_move: [0; MAX_DEPTH as usize],
+        eval_stack: [-Score::MAX; MAX_DEPTH as usize],
         history_moves: Box::new([[[0; 64]; 64]; 12]),
         nodes: 0,
         nodes_limit: u64::MAX,
