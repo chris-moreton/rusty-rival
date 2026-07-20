@@ -143,3 +143,70 @@ fn debug_knight_eval() {
     println!("Knight e4 delta from kings: {}", knight_eval - kings_eval);
     println!("Rook e4 delta from kings: {}", rook_eval - kings_eval);
 }
+
+/// Regression test for the incremental accumulator chain (NET-212): walking the
+/// tree with make_move_nnue/unmake_move_nnue and evaluating lazily must produce
+/// exactly the same score as a from-scratch accumulator computation, including
+/// across captures, castling, en passant, and promotions, and including chains
+/// that span several plies between evaluations.
+#[test]
+fn incremental_accumulator_matches_full_recompute() {
+    use rusty_rival::evaluate::evaluate_position;
+    use rusty_rival::moves::{generate_moves, is_check};
+    use rusty_rival::search::{make_move_nnue, unmake_move_nnue};
+    use rusty_rival::types::{default_search_state, Position, SearchState};
+
+    fn dfs(pos: &mut Position, ss: &mut SearchState, depth: u8, checked: &mut u32) {
+        // Skip evaluation at some nodes (keyed off the zobrist) so the lazy
+        // chain has to span multiple plies, not just parent-to-child
+        if pos.zobrist_lock % 3 != 0 {
+            let incremental = evaluate_position(pos, ss);
+            let net = ss.nnue_network.clone().unwrap();
+            let mut acc = Accumulator::new();
+            acc.compute(&net, pos);
+            let full = net.evaluate(&acc, pos.mover);
+            assert_eq!(
+                incremental, full,
+                "incremental {} != full {} at nnue_ply {}",
+                incremental, full, ss.nnue_ply
+            );
+            *checked += 1;
+        }
+        if depth == 0 {
+            return;
+        }
+        for m in generate_moves(pos) {
+            let old_mover = pos.mover;
+            let unmake = make_move_nnue(pos, m, ss);
+            if !is_check(pos, old_mover) {
+                dfs(pos, ss, depth - 1, checked);
+            }
+            unmake_move_nnue(pos, m, &unmake, ss);
+        }
+    }
+
+    let fens = [
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        // Kiwipete: castling both sides, en passant potential, heavy tactics
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        // Promotion race with capture-promotions
+        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1",
+        // En passant is immediately available
+        "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1",
+    ];
+
+    for fen in fens {
+        let mut pos = get_position(fen);
+        let mut ss = default_search_state();
+        // Root initialization, as iterative_deepening does it
+        let net = ss.nnue_network.clone().unwrap();
+        ss.nnue_ply = 0;
+        ss.nnue_accumulators[0].compute(&net, &pos);
+        ss.nnue_pieces[0] = pos.pieces;
+        ss.nnue_computed[0] = true;
+
+        let mut checked = 0u32;
+        dfs(&mut pos, &mut ss, 3, &mut checked);
+        assert!(checked > 500, "too few comparisons for {}: {}", fen, checked);
+    }
+}

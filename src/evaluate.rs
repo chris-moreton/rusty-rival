@@ -77,21 +77,50 @@ pub fn evaluate(position: &Position) -> Score {
     10 + if position.mover == WHITE { score } else { -score }
 }
 
-/// Evaluate using NNUE or HCE depending on search state configuration.
+/// Evaluate using NNUE (lazy) or HCE.
 /// This is the primary evaluation entry point used by the search.
 ///
-/// Evaluate using NNUE (lazy) or HCE.
-///
-/// When NNUE is enabled, lazily computes the accumulator by chaining diffs
-/// from the nearest computed ancestor ply. This avoids accumulator cloning
-/// at nodes that are cut without evaluation (~60% of all nodes).
+/// When NNUE is enabled, lazily computes the accumulator by chaining
+/// incremental updates from the nearest computed ancestor ply. Nodes that are
+/// cut before evaluation never pay for an accumulator update at all.
 #[inline(always)]
 pub fn evaluate_position(position: &Position, search_state: &mut crate::types::SearchState) -> Score {
     if search_state.use_nnue {
-        if let Some(ref net) = search_state.nnue_network {
-            let mut acc = crate::nnue::Accumulator::new();
-            acc.compute(net, position);
-            return net.evaluate(&acc, position.mover);
+        if let Some(net) = search_state.nnue_network.clone() {
+            let ply = search_state.nnue_ply;
+
+            // The snapshot for this ply must match the position or the whole
+            // chain is untrustworthy (a caller changed the position without
+            // going through make_move_nnue): self-heal with a full compute
+            if search_state.nnue_pieces[ply] != position.pieces {
+                search_state.nnue_accumulators[ply].compute(&net, position);
+                search_state.nnue_pieces[ply] = position.pieces;
+                search_state.nnue_computed[ply] = true;
+            } else if !search_state.nnue_computed[ply] {
+                // Find the nearest ancestor on the current path with a valid
+                // accumulator, then chain incremental updates forward, caching
+                // every intermediate ply so deeper siblings can reuse them
+                let mut anc = ply;
+                while anc > 0 && !search_state.nnue_computed[anc] {
+                    anc -= 1;
+                }
+                if search_state.nnue_computed[anc] {
+                    for i in anc..ply {
+                        let before = search_state.nnue_pieces[i];
+                        let after = search_state.nnue_pieces[i + 1];
+                        let (lower, upper) = search_state.nnue_accumulators.split_at_mut(i + 1);
+                        upper[0] = lower[i].clone();
+                        crate::nnue::update_accumulator(&mut upper[0], &net, &before, &after);
+                        search_state.nnue_computed[i + 1] = true;
+                    }
+                } else {
+                    // No valid ancestor at all (evaluate outside a search)
+                    search_state.nnue_accumulators[ply].compute(&net, position);
+                    search_state.nnue_computed[ply] = true;
+                }
+            }
+
+            return net.evaluate(&search_state.nnue_accumulators[ply], position.mover);
         }
     }
     evaluate_with_pawn_hash(position, &search_state.pawn_hash_table)

@@ -1,4 +1,4 @@
-use crate::engine_constants::{HASH_ENTRY_BYTES, MAX_DEPTH, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES};
+use crate::engine_constants::{HASH_ENTRY_BYTES, MAX_DEPTH, MAX_QUIESCE_DEPTH, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES};
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use crate::nnue;
 use arrayvec::ArrayVec;
@@ -513,9 +513,12 @@ pub fn default_search_state() -> SearchState {
         eval_noise: 0,
         use_nnue: true,
         nnue_network: Some(Arc::new(nnue::NnueNetwork::embedded())),
-        nnue_accumulators: (0..MAX_DEPTH as usize).map(|_| nnue::Accumulator::new()).collect(),
-        nnue_pieces: vec![[Pieces::default(); 2]; MAX_DEPTH as usize],
-        nnue_computed: vec![false; MAX_DEPTH as usize],
+        // Sized for the deepest possible chain: search ply + quiesce recursion
+        nnue_accumulators: (0..(MAX_DEPTH as usize + MAX_QUIESCE_DEPTH as usize + 2))
+            .map(|_| nnue::Accumulator::new())
+            .collect(),
+        nnue_pieces: vec![[Pieces::default(); 2]; MAX_DEPTH as usize + MAX_QUIESCE_DEPTH as usize + 2],
+        nnue_computed: vec![false; MAX_DEPTH as usize + MAX_QUIESCE_DEPTH as usize + 2],
         nnue_ply: 0,
     }
 }

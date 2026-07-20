@@ -10,11 +10,10 @@ use crate::engine_constants::{
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 
-/// Make a move with NNUE accumulator update.
 /// Make a move with lazy NNUE tracking. Saves pieces state and advances ply,
 /// but defers accumulator computation until evaluate_position is called.
 #[inline(always)]
-fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
+pub fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
     let unmake = make_move_in_place(position, mv);
     if search_state.use_nnue {
         search_state.nnue_ply += 1;
@@ -26,7 +25,7 @@ fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchSt
 
 /// Unmake a move and restore NNUE ply.
 #[inline(always)]
-fn unmake_move_nnue(position: &mut Position, mv: Move, unmake: &UnmakeInfo, search_state: &mut SearchState) {
+pub fn unmake_move_nnue(position: &mut Position, mv: Move, unmake: &UnmakeInfo, search_state: &mut SearchState) {
     unmake_move(position, mv, unmake);
     if search_state.use_nnue {
         search_state.nnue_ply -= 1;

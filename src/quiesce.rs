@@ -1,7 +1,6 @@
 use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE};
 use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
 use crate::evaluate::evaluate_position;
-use crate::make_move::{make_move_in_place, unmake_move};
 use crate::move_constants::{
     PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
     PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
@@ -11,7 +10,7 @@ use crate::moves::{generate_diagonal_slider_moves, generate_knight_moves, genera
 use crate::see::{captured_piece_value_see, see};
 use crate::types::{
     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
-    UnmakeInfo, Window, BLACK, WHITE,
+    Window, BLACK, WHITE,
 };
 use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
@@ -109,26 +108,7 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
     score
 }
 
-/// Make a move with lazy NNUE tracking.
-#[inline(always)]
-fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
-    let unmake = make_move_in_place(position, mv);
-    if search_state.use_nnue {
-        search_state.nnue_ply += 1;
-        search_state.nnue_pieces[search_state.nnue_ply] = position.pieces;
-        search_state.nnue_computed[search_state.nnue_ply] = false;
-    }
-    unmake
-}
-
-/// Unmake a move and restore NNUE ply.
-#[inline(always)]
-fn unmake_move_nnue(position: &mut Position, mv: Move, unmake: &UnmakeInfo, search_state: &mut SearchState) {
-    unmake_move(position, mv, unmake);
-    if search_state.use_nnue {
-        search_state.nnue_ply -= 1;
-    }
-}
+use crate::search::{make_move_nnue, unmake_move_nnue};
 
 #[allow(clippy::only_used_in_recursion)]
 pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
