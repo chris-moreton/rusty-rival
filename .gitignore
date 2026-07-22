@@ -19,3 +19,4 @@ engines/syzygy/
 
 # Python cache
 web/__pycache__/
+*.profraw
