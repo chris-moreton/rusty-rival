@@ -19,8 +19,8 @@ pub const STARTING_MATERIAL: Score =
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 141; // SPSA tuned, Run 20
-pub const BETA_PRUNE_MAX_DEPTH: u8 = 11; // SPSA tuned, Run 20
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 133; // SPSA tuned, Run 20
+pub const BETA_PRUNE_MAX_DEPTH: u8 = 12; // SPSA tuned, Run 20
 
 pub const NUM_KILLER_MOVES: usize = 2;
 
@@ -30,19 +30,19 @@ pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 2;
 // Threat extension: if null move search returns a score this much below alpha,
 // the opponent has a significant threat that warrants deeper search
 // Using 400 to be more selective - only trigger for major threats (like losing a piece)
-pub const THREAT_EXTENSION_MARGIN: Score = 380; // SPSA tuned, Run 20
+pub const THREAT_EXTENSION_MARGIN: Score = 406; // SPSA tuned, Run 20
 
 // SEE pruning: skip bad captures at low depths
 // At depth N, skip captures with SEE < -SEE_PRUNE_MARGIN * N
 // This prunes obviously losing captures like QxP when the pawn is defended
 pub const SEE_PRUNE_MAX_DEPTH: u8 = 5; // SPSA tuned, Run 20
-pub const SEE_PRUNE_MARGIN: Score = 26; // SPSA tuned, Run 20
+pub const SEE_PRUNE_MARGIN: Score = 23; // SPSA tuned, Run 20
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
 // Only searches captures with SEE >= 0 to verify tactical soundness
-pub const PROBCUT_MIN_DEPTH: u8 = 13; // SPSA tuned, Run 20
-pub const PROBCUT_MARGIN: Score = 59; // SPSA tuned, Run 20
+pub const PROBCUT_MIN_DEPTH: u8 = 11; // SPSA tuned, Run 20
+pub const PROBCUT_MARGIN: Score = 52; // SPSA tuned, Run 20
 pub const PROBCUT_DEPTH_REDUCTION: u8 = 5; // SPSA tuned, Run 20
 
 // Multi-cut: at high depth, if multiple moves fail high at shallow depth,
@@ -50,7 +50,7 @@ pub const PROBCUT_DEPTH_REDUCTION: u8 = 5; // SPSA tuned, Run 20
 pub const MULTICUT_MIN_DEPTH: u8 = 19;
 pub const MULTICUT_DEPTH_REDUCTION: u8 = 11; // SPSA tuned, Run 20
 pub const MULTICUT_MOVES_TO_TRY: u8 = 14; // SPSA tuned, Run 20
-pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 7; // SPSA tuned, Run 20
+pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 8; // SPSA tuned, Run 20
 
 // Singular extension: if the hash move is significantly better than all alternatives,
 // extend its search by 1 ply. This catches critical forcing sequences.
@@ -58,7 +58,7 @@ pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 7; // SPSA tuned, Run 20
 // by SINGULAR_MARGIN below alpha, the hash move is "singular" and gets extended.
 // Conservative settings to avoid over-extending
 pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 13;
-pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 5;
+pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 6;
 pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 5;
 pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 6;
 
@@ -67,7 +67,7 @@ pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 6;
 // Index by depth: [depth 0, depth 1, depth 2, depth 3]
 // Conservative thresholds to avoid missing important moves
 pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 8, 6, 8]; // SPSA tuned, Run 20
+pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 9, 6, 9]; // SPSA tuned, Run 20
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -87,7 +87,7 @@ pub const HASH_SIZE_MB: u64 = 128;
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
 // SPSA tuned: base=70, per_depth=54 (Run 20)
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [76, 128, 180, 232, 284, 336, 388, 440];
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [77, 121, 165, 209, 253, 297, 341, 385];
 
 // =============================================================================
 // MOVE ORDERING CONSTANTS (SPSA tunable)
@@ -95,19 +95,19 @@ pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [76, 128, 180, 232, 284, 336, 388, 4
 
 // Score thresholds for different move types (SPSA tuned, Run 9 iter 116)
 pub const MOVE_SCORE_MATE_KILLER: Score = 1836;
-pub const MOVE_SCORE_KILLER_1: Score = 1236;
-pub const MOVE_SCORE_KILLER_2: Score = 581;
-pub const MOVE_SCORE_HISTORY_MAX: Score = 607;
-pub const MOVE_SCORE_DISTANT_KILLER_1: Score = 292;
-pub const MOVE_SCORE_DISTANT_KILLER_2: Score = 206;
-pub const MOVE_SCORE_COUNTERMOVE: Score = 252;
-pub const MOVE_SCORE_PAWN_PUSH_7TH: Score = 236;
-pub const MOVE_SCORE_PAWN_PUSH_6TH: Score = 80;
+pub const MOVE_SCORE_KILLER_1: Score = 1196;
+pub const MOVE_SCORE_KILLER_2: Score = 611;
+pub const MOVE_SCORE_HISTORY_MAX: Score = 637;
+pub const MOVE_SCORE_DISTANT_KILLER_1: Score = 271;
+pub const MOVE_SCORE_DISTANT_KILLER_2: Score = 205;
+pub const MOVE_SCORE_COUNTERMOVE: Score = 231;
+pub const MOVE_SCORE_PAWN_PUSH_7TH: Score = 257;
+pub const MOVE_SCORE_PAWN_PUSH_6TH: Score = 50;
 
 // History table divisors (scale i16 history to score range) (SPSA tuned, Run 9 iter 116)
-pub const COUNTERMOVE_HISTORY_DIVISOR: i32 = 228;
-pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 575;
-pub const CAPTURE_HISTORY_DIVISOR: i32 = 1045;
+pub const COUNTERMOVE_HISTORY_DIVISOR: i32 = 257;
+pub const FOLLOWUP_HISTORY_DIVISOR: i32 = 625;
+pub const CAPTURE_HISTORY_DIVISOR: i32 = 945;
 
 // Gravity cap for all history tables: entry += bonus - entry * |bonus| / HISTORY_MAX
 // keeps every table bounded within roughly [-HISTORY_MAX, HISTORY_MAX]
@@ -116,17 +116,17 @@ pub const HISTORY_MAX: i32 = 16384;
 // Correction history: per-side tables keyed by pawn-structure hash that learn
 // the systematic gap between static eval and resolved search scores
 pub const CORRECTION_HISTORY_SIZE: usize = 16384; // power of two (indexed by key & (SIZE-1))
-pub const CORRECTION_HISTORY_GRAIN: i32 = 227; // stored units per centipawn
-pub const CORRECTION_HISTORY_MAX: i32 = 16762; // entry cap = +/-64cp of correction
+pub const CORRECTION_HISTORY_GRAIN: i32 = 211; // stored units per centipawn
+pub const CORRECTION_HISTORY_MAX: i32 = 16267; // entry cap = +/-64cp of correction
 pub const CORRECTION_HISTORY_WEIGHT_MAX: i32 = 19; // EMA weight cap (of 256)
 
 // Scales butterfly history into move-ordering scores (16384 / 26 ~= 624, the
 // previous MOVE_SCORE_HISTORY_MAX weight)
-pub const HISTORY_DIVISOR: i32 = 25;
+pub const HISTORY_DIVISOR: i32 = 21;
 
 pub const TICKER_MILLIS: u16 = 500;
 
-pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 4; // SPSA tuned, Run 20
+pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 3; // SPSA tuned, Run 20
 pub const LMR_MIN_DEPTH: u8 = 2; // SPSA tuned, Run 20
 
 // History-based LMR thresholds
@@ -134,13 +134,13 @@ pub const LMR_MIN_DEPTH: u8 = 2; // SPSA tuned, Run 20
 // If history score is below bad threshold, reduce by 1 more (move has failed often)
 // Absolute values on the fixed [-HISTORY_MAX, HISTORY_MAX] gravity scale; a low
 // good threshold fires on far too many moves and collapses LMR (search explosion)
-pub const LMR_HISTORY_GOOD_THRESHOLD: i32 = 8083;
-pub const LMR_HISTORY_BAD_THRESHOLD: i32 = -2379;
+pub const LMR_HISTORY_GOOD_THRESHOLD: i32 = 7826;
+pub const LMR_HISTORY_BAD_THRESHOLD: i32 = -2178;
 
 // Continuation history threshold for LMR (countermove_history + followup_history)
 // These are i16 values, so threshold is raw score (not scaled)
-pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8243; // SPSA tuned, Run 20
-pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -9434; // SPSA tuned, Run 20
+pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8237; // SPSA tuned, Run 20
+pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -9943; // SPSA tuned, Run 20
 
 // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
 // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
