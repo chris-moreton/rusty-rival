@@ -486,3 +486,86 @@ pub fn it_parses_params_from_a_go_command() {
 pub fn it_extracts_a_u64_param() {
     assert_eq!(456, extract_go_param("cat", "dog 123 cat 456 fox 789", 0))
 }
+
+// ---------------------------------------------------------------------------
+// NET-214 / NET-213: malformed input must never panic (→ game loss)
+// ---------------------------------------------------------------------------
+
+#[test]
+pub fn extract_go_param_handles_negative_and_garbage() {
+    // Negative/empty/garbage values fall through to the default instead of panicking
+    assert_eq!(0, extract_go_param("wtime", "go wtime -50 btime -10", 0));
+    assert_eq!(250, extract_go_param("depth", "go depth abc", 250));
+    assert_eq!(0, extract_go_param("winc", "go winc", 0));
+    // Overflow falls back to default rather than panicking
+    assert_eq!(7, extract_go_param("nodes", "go nodes 99999999999999999999999", 7));
+    // A well-formed value is still parsed
+    assert_eq!(1234, extract_go_param("wtime", "go wtime 1234", 0));
+}
+
+#[test]
+pub fn malformed_commands_do_not_panic() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    let mut run = |c: &str| run_command_test(&mut uci_state, &mut search_state, c);
+    // None of these may panic; each returns an Either (usually a Left usage/error)
+    assert!(matches!(run("position"), Left(_)));
+    assert!(matches!(run("position fen totally bad fen"), Left(_)));
+    assert!(matches!(run("go perft"), Left(_)));
+    assert!(matches!(run("go perft 0"), Left(_)));
+    assert!(matches!(run("setoption name MultiPV value abc"), Left(_)));
+    assert!(matches!(run("setoption name Contempt value xyz"), Left(_)));
+    assert!(matches!(run("mvm"), Left(_)));
+}
+
+#[test]
+pub fn fen_without_move_counters_is_accepted() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    // Legal FEN with the two counters omitted (4 fields) should be accepted,
+    // with the counters defaulted.
+    assert_eq!(
+        run_command_test(
+            &mut uci_state,
+            &mut search_state,
+            "position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -"
+        ),
+        Right(None)
+    );
+}
+
+#[test]
+pub fn bad_position_does_not_poison_state() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    // Set a good position, then a malformed one (rejected), then search: must not
+    // panic and must still produce a bestmove from a valid position.
+    assert_eq!(
+        run_command_test(&mut uci_state, &mut search_state, "position startpos"),
+        Right(None)
+    );
+    assert!(matches!(
+        run_command_test(&mut uci_state, &mut search_state, "position fen garbage here now"),
+        Left(_)
+    ));
+    match run_command_test(&mut uci_state, &mut search_state, "go movetime 20") {
+        Right(Some(s)) => assert!(s.starts_with("bestmove")),
+        other => panic!("expected a bestmove after a rejected position, got {:?}", other),
+    }
+}
+
+#[test]
+pub fn go_depth_over_255_does_not_wrap_to_instant_move() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    assert_eq!(
+        run_command_test(&mut uci_state, &mut search_state, "position startpos"),
+        Right(None)
+    );
+    // depth 256 previously truncated to 0 (u8 wrap) → unsearched instant move.
+    // Clamped to 250; a short movetime keeps the test fast while proving no wrap.
+    match run_command_test(&mut uci_state, &mut search_state, "go depth 256 movetime 20") {
+        Right(Some(s)) => assert!(s.starts_with("bestmove")),
+        other => panic!("expected a bestmove, got {:?}", other),
+    }
+}

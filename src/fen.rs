@@ -96,10 +96,26 @@ pub fn promotion_mask(piece_char: String) -> Move {
     }
 }
 
+/// True for a two-char string naming a real square, e.g. "e4".
+fn is_algebraic_square(s: &str) -> bool {
+    let b = s.as_bytes();
+    b.len() == 2 && (b'a'..=b'h').contains(&b[0]) && (b'1'..=b'8').contains(&b[1])
+}
+
 pub fn move_from_algebraic_move(a: String, piece_mask: Move) -> Move {
-    let s = if a.len() == 4 { a + " " } else { a };
-    from_square_mask(bitref_from_algebraic_squareref(s[0..2].to_string()))
-        | (piece_mask + bitref_from_algebraic_squareref(s[2..4].to_string()) as Move + promotion_mask(s[4..5].to_string()))
+    // Reject malformed/short/non-ASCII tokens (e.g. a truncated or unicode
+    // `searchmoves` argument) rather than panicking on a byte-slice boundary.
+    if !a.is_ascii() || a.len() < 4 {
+        return 0;
+    }
+    let from = &a[0..2];
+    let to = &a[2..4];
+    if !is_algebraic_square(from) || !is_algebraic_square(to) {
+        return 0;
+    }
+    let promo = if a.len() >= 5 { a[4..5].to_string() } else { " ".to_string() };
+    from_square_mask(bitref_from_algebraic_squareref(from.to_string()))
+        | (piece_mask + bitref_from_algebraic_squareref(to.to_string()) as Move + promotion_mask(promo))
 }
 
 pub fn promotion_part(m: Move) -> String {

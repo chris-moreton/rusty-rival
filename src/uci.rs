@@ -107,14 +107,18 @@ pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState
 
 /// Synchronous version of cmd_go for benchmarking
 fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
-    let t = parts.get(1).unwrap();
+    // Bare `go` behaves as `go infinite`.
+    let t = *parts.get(1).unwrap_or(&"infinite");
     search_state.nodes = 0;
     search_state.nodes_limit = u64::MAX;
     set_stop(&search_state.stop, false);
 
-    match *t {
+    match t {
         "perft" => {
-            let depth = parts.get(2).unwrap().to_string().parse().unwrap();
+            let depth = match parts.get(2).and_then(|s| s.parse::<u8>().ok()) {
+                Some(d) if d >= 1 => d,
+                _ => return Left("usage: go perft <depth>".parse().unwrap()),
+            };
             cmd_perft(depth, uci_state);
             Right(None)
         }
@@ -140,7 +144,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
             uci_state.winc = extract_go_param("winc", &line, 0);
             uci_state.binc = extract_go_param("binc", &line, 0);
             uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
-            uci_state.depth = extract_go_param("depth", &line, 250);
+            uci_state.depth = extract_go_param("depth", &line, 250).min(250);
             uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
             uci_state.move_time = extract_go_param("movetime", &line, 10000000);
 
@@ -269,8 +273,11 @@ pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
 
 fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
     //    cmd_ucinewgame(uci_state, search_state);
-    let t = parts.get(1).unwrap();
-    match *t {
+    let t = match parts.get(1) {
+        Some(t) => *t,
+        None => return Left("usage: position fen <fen> [moves ...]".parse().unwrap()),
+    };
+    match t {
         "fen" => {
             search_state.history = vec![];
 
@@ -278,12 +285,22 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
                 r"\s*^(((?:[rnbqkpRNBQKP1-8]+/){7})[rnbqkpRNBQKP1-8]+)\s([b|w])\s([K|Q|k|q]{1,4}|-)\s(-|[a-h][1-8])\s(\d+\s\d+)$",
             )
             .unwrap();
-            let (fen, moves) = fen_and_moves(parts);
+            let (raw_fen, moves) = fen_and_moves(parts);
 
-            uci_state.fen = fen.parse().unwrap();
+            // Default both move counters when a FEN omits them entirely (4 fields),
+            // so legal FENs like "... w - -" are accepted. A partial-counter FEN
+            // (5 fields) is malformed and left to fail validation. Validate BEFORE
+            // committing to uci_state so a malformed position can never poison state
+            // and crash the next `go`.
+            let raw_fen = raw_fen.trim();
+            let fen = if raw_fen.split_whitespace().count() == 4 {
+                format!("{} 0 1", raw_fen)
+            } else {
+                raw_fen.to_string()
+            };
 
             if re.is_match(&fen) {
-                uci_state.fen = fen;
+                uci_state.fen = fen.clone();
                 let mut position = get_position(&uci_state.fen);
                 let mut new_position = position;
                 search_state.history.push(new_position.zobrist_lock);
@@ -309,14 +326,13 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
 }
 
 pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
-    let re = r"".to_string() + &*needle.to_string() + &*" ([0-9]*)".to_string();
+    // `[0-9]+` (not `*`) so a malformed value like `wtime -50` or `depth abc`
+    // does not match an empty capture and panic; it falls through to `default`.
+    // `unwrap_or(default)` additionally guards against overflow on huge inputs.
+    let re = needle.to_string() + " ([0-9]+)";
     let regex = Regex::new(&re).unwrap();
-    let caps = regex.captures(haystack);
-    match caps {
-        Some(x) => {
-            let s = x.get(1).unwrap().as_str();
-            s.parse::<u64>().unwrap()
-        }
+    match regex.captures(haystack) {
+        Some(x) => x.get(1).map(|m| m.as_str()).and_then(|s| s.parse::<u64>().ok()).unwrap_or(default),
         None => default,
     }
 }
@@ -326,8 +342,13 @@ fn cmd_state(mut _uci_state: &mut UciState, search_state: &mut SearchState) -> E
 }
 
 fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
-    let millis = parts.get(1).unwrap().to_string().parse().unwrap();
-    let count = parts.get(2).unwrap().to_string().parse().unwrap();
+    let (millis, count) = match (
+        parts.get(1).and_then(|s| s.parse::<u64>().ok()),
+        parts.get(2).and_then(|s| s.parse::<u32>().ok()),
+    ) {
+        (Some(m), Some(c)) => (m, c),
+        _ => return Left("usage: mvm <millis> <count>".parse().unwrap()),
+    };
     let mut engine_1_wins = 0;
     let mut engine_2_wins = 0;
     let mut draws = 0;
@@ -338,6 +359,7 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
         let engine_1_colour = if g % 2 == 0 { WHITE } else { BLACK };
         let mut position = get_position(START_POS);
         let final_position = loop {
+            set_stop(&search_state.stop, false);
             search_state.end_time = Instant::now().add(Duration::from_millis(millis));
             let mv = iterative_deepening(&mut position, 100_u8, search_state, 1);
             let mut new_position = position;
@@ -381,11 +403,15 @@ fn cmd_go(
         handle.stop_and_wait();
     }
 
-    let t = parts.get(1).unwrap();
+    // Bare `go` behaves as `go infinite`.
+    let t = *parts.get(1).unwrap_or(&"infinite");
 
     // perft runs synchronously (no threading needed)
-    if *t == "perft" {
-        let depth = parts.get(2).unwrap().to_string().parse().unwrap();
+    if t == "perft" {
+        let depth = match parts.get(2).and_then(|s| s.parse::<u8>().ok()) {
+            Some(d) if d >= 1 => d,
+            _ => return Left("usage: go perft <depth>".parse().unwrap()),
+        };
         cmd_perft(depth, uci_state);
         return Right(None);
     }
@@ -396,12 +422,15 @@ fn cmd_go(
     // so the overhead is minimal.
     let line = parts.join(" ");
     let is_ponder = parts.contains(&"ponder");
+    // A ponder with any budget (clock, movetime, depth, nodes) must carry that
+    // budget through to ponderhit; only a truly limitless `go ponder` is infinite.
+    let has_budget = ["wtime", "btime", "movetime", "depth", "nodes"].iter().any(|k| line.contains(k));
 
     let (max_depth, end_time, soft_time_limit, nodes_limit, tm_active, ponder_soft, ponder_hard) =
-        if *t == "infinite" || (*t == "ponder" && !line.contains("wtime") && !line.contains("btime")) {
+        if t == "infinite" || (t == "ponder" && !has_budget) {
             let end = Instant::now().add(Duration::from_secs(86400));
             (200u8, end, end, u64::MAX, false, 0u64, 0u64)
-        } else if *t == "mate" {
+        } else if t == "mate" {
             let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
             let end = Instant::now().add(Duration::from_secs(86400));
             (mate_depth.saturating_mul(2), end, end, u64::MAX, false, 0u64, 0u64)
@@ -411,7 +440,7 @@ fn cmd_go(
             uci_state.winc = extract_go_param("winc", &line, 0);
             uci_state.binc = extract_go_param("binc", &line, 0);
             uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
-            uci_state.depth = extract_go_param("depth", &line, 250);
+            uci_state.depth = extract_go_param("depth", &line, 250).min(250);
             uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
             uci_state.move_time = extract_go_param("movetime", &line, 10000000);
 
@@ -457,6 +486,20 @@ fn cmd_go(
                         0u64,
                     )
                 }
+            } else if is_ponder {
+                // Movetime/depth/nodes ponder with no clock: defer the deadline until
+                // ponderhit, carrying the movetime budget in ponder_hard/soft so the
+                // ponderhit conversion installs a real deadline instead of hanging.
+                let end = Instant::now().add(Duration::from_secs(86400));
+                (
+                    uci_state.depth as u8,
+                    end,
+                    end,
+                    uci_state.nodes,
+                    false,
+                    uci_state.move_time,
+                    uci_state.move_time,
+                )
             } else {
                 let now = Instant::now();
                 let end = now.add(Duration::from_millis(uci_state.move_time));
@@ -466,6 +509,21 @@ fn cmd_go(
 
     // Clone position for the search thread
     let position = get_position(uci_state.fen.trim());
+
+    // Fallback move (first legal move, else "0000") printed if the search thread
+    // panics, so a search bug never leaves the engine silent → time forfeit.
+    let fallback_move = {
+        let mut fb = String::from("0000");
+        for m in generate_moves(&position) {
+            let mut np = position;
+            make_move(&position, m, &mut np);
+            if !is_check(&np, position.mover) {
+                fb = algebraic_move_from_move(m);
+                break;
+            }
+        }
+        fb
+    };
 
     // Parse searchmoves if present
     let search_moves = parse_searchmoves(&line, &position);
@@ -512,12 +570,22 @@ fn cmd_go(
         // Helper threads start at offset depths to explore different tree parts
         let start_depth: u8 = if thread_id == 0 { 1 } else { ((thread_id % 255) + 1) as u8 };
 
+        let thread_fallback = fallback_move.clone();
+
         let handle = thread::Builder::new()
             .stack_size(16 * 1024 * 1024)
             .spawn(move || {
-                let mv = iterative_deepening(&mut thread_position, max_depth, &mut thread_search_state, start_depth);
+                // Catch a panic in the search so thread 0 still emits a bestmove
+                // (a silent search thread = time forfeit for the whole game).
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    let mv = iterative_deepening(&mut thread_position, max_depth, &mut thread_search_state, start_depth);
+                    (mv, thread_search_state)
+                }));
                 if thread_id == 0 {
-                    println!("{}", format_bestmove(mv, &thread_search_state));
+                    match result {
+                        Ok((mv, ref ss)) => println!("{}", format_bestmove(mv, ss)),
+                        Err(_) => println!("bestmove {}", thread_fallback),
+                    }
                 }
             })
             .expect("Failed to spawn search thread");
@@ -654,7 +722,7 @@ fn cmd_debug(uci_state: &mut UciState, parts: Vec<&str>) -> Either<String, Optio
 
 fn cmd_perft(depth: u8, uci_state: &UciState) -> Either<String, Option<String>> {
     let start = Instant::now();
-    let nodes = perft(&mut get_position(uci_state.fen.trim()), depth - 1);
+    let nodes = perft(&mut get_position(uci_state.fen.trim()), depth.saturating_sub(1));
     let duration = start.elapsed();
     println!("Time elapsed in perft is: {:?}", duration);
     println!("{} nodes {} nps", nodes, (nodes as f64 / (duration.as_millis() as f64)) * 1000.0);
@@ -685,19 +753,29 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &m
                 Right(None)
             }
             "multipv" => {
-                if parts.len() == 5 {
-                    search_state.multi_pv = parts[4].parse().unwrap();
-                    Right(None)
+                if parts.len() == 5 && parts[3] == "value" {
+                    match parts[4].parse::<u8>() {
+                        Ok(n) if (1..=20).contains(&n) => {
+                            search_state.multi_pv = n;
+                            Right(None)
+                        }
+                        _ => Left("MultiPV must be between 1 and 20".parse().unwrap()),
+                    }
                 } else {
-                    Left("Invalid option command".parse().unwrap())
+                    Left("usage: setoption name MultiPV value <N>".parse().unwrap())
                 }
             }
             "contempt" => {
-                if parts.len() == 5 {
-                    search_state.contempt = parts[4].parse().unwrap();
-                    Right(None)
+                if parts.len() == 5 && parts[3] == "value" {
+                    match parts[4].parse::<i32>() {
+                        Ok(c) if (-1000..=1000).contains(&c) => {
+                            search_state.contempt = c;
+                            Right(None)
+                        }
+                        _ => Left("Contempt must be between -1000 and 1000".parse().unwrap()),
+                    }
                 } else {
-                    Left("Invalid option command".parse().unwrap())
+                    Left("usage: setoption name Contempt value <N>".parse().unwrap())
                 }
             }
             "threads" => {

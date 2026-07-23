@@ -110,12 +110,18 @@ macro_rules! check_time {
                 if !$search_state.pondering.load(std::sync::atomic::Ordering::Relaxed) {
                     let hard_ms = $search_state.ponder_hard_ms.load(std::sync::atomic::Ordering::Relaxed);
                     let soft_ms = $search_state.ponder_soft_ms.load(std::sync::atomic::Ordering::Relaxed);
+                    let now = std::time::Instant::now();
                     if hard_ms > 0 {
-                        let now = std::time::Instant::now();
                         $search_state.end_time = now + std::time::Duration::from_millis(hard_ms);
                         $search_state.soft_time_limit = now + std::time::Duration::from_millis(soft_ms);
-                        $search_state.time_management_active = true;
+                    } else {
+                        // Safety net: ponderhit on a search that was never given a
+                        // budget must still terminate. Stop now and return the best
+                        // move found so far rather than hang the engine (time forfeit).
+                        $search_state.end_time = now;
+                        $search_state.soft_time_limit = now;
                     }
+                    $search_state.time_management_active = true;
                     $search_state.ponder_applied = true;
                 }
             }
@@ -138,7 +144,11 @@ macro_rules! debug_out {
 
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
     search_state.start_time = Instant::now();
-    set_stop(&search_state.stop, false);
+    // NOTE: the stop flag is NOT reset here. Each real `go` creates a fresh stop
+    // flag (see cmd_go), so resetting here would race with a stop/quit/second-go
+    // that arrived before this line ran, erasing the request and hanging the
+    // engine in join(). Callers that reuse a stop flag across searches (cmd_go_sync,
+    // the mvm self-play loop) reset it themselves before each call.
     // Advance the shared TT generation once per search - helper threads share
     // the table and must not bump it again
     if search_state.thread_id == 0 {
@@ -190,10 +200,14 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         return legal_moves[0].0;
     }
 
-    // Tablebase probe at root: if ≤6 pieces, return best move immediately
-    // The tablebase knows the perfect result - no need to search
+    // Tablebase probe at root: if ≤6 pieces, return best move immediately.
+    // Only for real timed moves (time_management_active): a ponder or infinite
+    // search must NOT return bestmove before ponderhit/stop, or thread 0 emits an
+    // unsolicited bestmove (UCI violation / desync — e.g. Ponder + SyzygyPath on
+    // Lichess into any ≤6-man position). Those searches fall through to the normal
+    // search, which still handles the TB position correctly and respects stop.
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    if tablebase_available() && all_pieces.count_ones() <= TB_MAX_PIECES {
+    if search_state.time_management_active && tablebase_available() && all_pieces.count_ones() <= TB_MAX_PIECES {
         let mut best_move: Move = 0;
         let mut best_score: Score = -MATE_SCORE;
 
