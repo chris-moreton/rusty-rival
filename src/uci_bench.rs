@@ -9,9 +9,96 @@ use num_format::{Locale, ToFormattedString};
 use std::thread;
 use std::time::Instant;
 
+/// Fixed position set for the deterministic `bench`. Chosen to span opening,
+/// middlegame, tactical, and endgame structures so a functional change in any
+/// part of search/eval perturbs the node signature. DO NOT reorder or edit these
+/// without expecting the signature to change (that is the point of the command).
+const BENCH_FENS: [&str; 16] = [
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+    "2r3k1/pp2bppp/4pn2/3q4/3P4/2N1PN2/PP3PPP/2RQ1RK1 b - - 0 1",
+    "r1bqk2r/1ppp1ppp/p1n2n2/2b1p3/B3P3/2N2N2/PPPP1PPP/R1BQ1RK1 w kq - 0 1",
+    "8/7p/p5pb/4k3/P1pPn3/8/P5PP/1rB2RK1 b - d3 0 28",
+    "8/7R/1pqp1k2/p3p3/P1n1P3/1Q3P2/2Pr4/1KB5 w - - 2 42",
+    "4rrk1/1p1nq3/p7/2p1P1pp/3P2bp/3Q1Bn1/PPPB4/1K2R1NR w - - 0 1",
+    "r2q1rk1/4bppp/p2p4/2pP4/3pP3/3Q4/PP1B1PPP/R3R1K1 w - - 0 1",
+    "6k1/6p1/6Pp/pppPp2P/1P1Ep3/2K5/8/8 b - - 0 1",
+    "3r3k/2r4p/1p1b3q/p4P2/P2Pp3/1B2P3/3BQ1RP/6K1 w - - 0 1",
+    "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1",
+    "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 1",
+    "1k6/5RP1/1P6/1K6/6r1/8/8/8 w - - 0 1",
+];
+
+/// Default depth for the deterministic bench. Deep enough that most search
+/// features are exercised, shallow enough to finish in a few seconds.
+const BENCH_DEFAULT_DEPTH: u8 = 12;
+
+/// Deterministic fixed-depth benchmark (OpenBench style).
+///
+/// Runs a fixed position set at a fixed depth, single-threaded (`run_command_sync`
+/// searches on the calling thread), clearing the TT and history between positions.
+/// The total node count is a signature: **any functional change to search or eval
+/// changes it, and a pure refactor must not.** Use it as a fast regression check
+/// before spending hours on a match.
+fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchState, depth: u8) -> Either<String, Option<String>> {
+    let show_info = search_state.show_info;
+    let saved_fen = uci_state.fen.clone();
+    search_state.show_info = false;
+
+    let start = Instant::now();
+    let mut total_nodes: u64 = 0;
+
+    for (i, fen) in BENCH_FENS.iter().enumerate() {
+        // ucinewgame clears the TT + history so each position starts from a
+        // known-empty state; without this the signature depends on position order
+        // *and* on leftover entries, and stops being reproducible.
+        run_command_sync(uci_state, search_state, "ucinewgame");
+        run_command_sync(uci_state, search_state, &format!("position fen {}", fen));
+        run_command_sync(uci_state, search_state, &format!("go depth {}", depth));
+
+        let nodes = search_state.nodes;
+        total_nodes += nodes;
+        println!(
+            "Position {:>2}/{}: {:>12} nodes",
+            i + 1,
+            BENCH_FENS.len(),
+            nodes.to_formatted_string(&Locale::en)
+        );
+    }
+
+    let elapsed = start.elapsed();
+    let millis = elapsed.as_millis().max(1) as u64;
+    let nps = total_nodes * 1000 / millis;
+
+    println!("===========================");
+    println!("Depth         : {}", depth);
+    println!("Time          : {} ms", millis.to_formatted_string(&Locale::en));
+    println!("Nodes searched: {}", total_nodes);
+    println!("NPS           : {}", nps.to_formatted_string(&Locale::en));
+
+    search_state.show_info = show_info;
+    uci_state.fen = saved_fen;
+    Right(None)
+}
+
 pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+    // `bench`            -> deterministic node-count signature at the default depth
+    // `bench depth <N>`  -> deterministic signature at depth N
+    // `bench <millis>`   -> legacy wall-clock tactical suite
+    if parts.len() == 1 {
+        return cmd_bench_deterministic(uci_state, search_state, BENCH_DEFAULT_DEPTH);
+    }
+    if parts.len() == 3 && parts[1] == "depth" {
+        return match parts[2].parse::<u8>() {
+            Ok(d) if d >= 1 => cmd_bench_deterministic(uci_state, search_state, d),
+            _ => Left::<String, Option<String>>("usage: bench depth <1-250>".parse().unwrap()),
+        };
+    }
     if parts.len() != 2 {
-        return Left::<String, Option<String>>("usage: bench <millis>".parse().unwrap());
+        return Left::<String, Option<String>>("usage: bench | bench depth <N> | bench <millis>".parse().unwrap());
     }
 
     let start = Instant::now();
