@@ -371,10 +371,16 @@ pub fn it_handles_the_setoption_clear_hash_command() {
         mv: 0,
         bound: BoundType::Exact,
         lock,
+        static_eval: -42,
     };
 
     search_state.hash_table.store(0, he);
     assert_eq!(search_state.hash_table.probe(0, lock).unwrap().score, 100);
+    // static_eval shares the meta word with height/bound/version - check it
+    // survives the round-trip rather than being masked away by a neighbour
+    assert_eq!(search_state.hash_table.probe(0, lock).unwrap().static_eval, -42);
+    assert_eq!(search_state.hash_table.probe(0, lock).unwrap().height, 3);
+    assert_eq!(search_state.hash_table.probe(0, lock).unwrap().version, 1);
     // A probe with a different lock must miss (checksum mismatch)
     assert!(search_state.hash_table.probe(0, lock ^ (1u128 << 100)).is_none());
 

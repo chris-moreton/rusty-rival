@@ -7,14 +7,13 @@ use crate::move_constants::{
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{
-    generate_check_evasions, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check, verify_move,
+    generate_check_evasions, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check,
 };
-use crate::search::{MATE_SCORE, MATE_START};
+use crate::search::MATE_SCORE;
 use crate::see::{captured_piece_value_see, see};
-use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    is_stopped, pv_single, set_stop, Bitboard, BoundType, HashEntry, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score,
-    SearchState, Square, Window, BLACK, STATIC_EVAL_NONE, WHITE,
+    is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
+    Window, BLACK, WHITE,
 };
 use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
@@ -131,52 +130,6 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
 
 use crate::search::{make_move_nnue, unmake_move_nnue};
 
-/// Store a quiescence result in the shared TT at height 0.
-///
-/// Height 0 is deliberate and load-bearing: `search()` only probes for a cutoff
-/// when `hash_entry.height >= depth`, and it never reaches the probe at depth 0
-/// (it tail-calls `quiesce` first). So a qsearch entry can never satisfy a
-/// depth >= 1 cutoff, and cannot pollute the main search. It also means the
-/// replacement guard below only ever displaces other height-0 entries or entries
-/// left over from an earlier search generation - deep entries are never clobbered.
-#[inline(always)]
-#[allow(clippy::too_many_arguments)]
-fn store_quiesce(
-    search_state: &mut SearchState,
-    index: usize,
-    position: &Position,
-    score: Score,
-    bound: BoundType,
-    mv: Move,
-    ply: u8,
-    static_eval: Score,
-) {
-    let (existing_height, existing_version, _) = search_state.hash_table.entry_meta(index);
-    let table_version = search_state.hash_table.version();
-    // Height 0 only ever displaces another height-0 entry, or one left over
-    // from an earlier search generation - deep entries are never clobbered.
-    if existing_height == 0 || table_version != existing_version {
-        search_state.hash_table.store(
-            index,
-            HashEntry {
-                // Mate scores are stored relative to the storing ply, exactly as
-                // search() does, so a probe at a different ply can re-derive them
-                score: match score {
-                    x if x > MATE_START => score + ply as Score,
-                    x if x < -MATE_START => score - ply as Score,
-                    _ => score,
-                },
-                version: table_version,
-                height: 0,
-                mv,
-                bound,
-                lock: position.zobrist_lock,
-                static_eval,
-            },
-        );
-    }
-}
-
 #[allow(clippy::only_used_in_recursion)]
 pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
     // Check stop flag at TOP before any moves are made - safe to return here
@@ -190,48 +143,9 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
     }
     search_state.nodes += 1;
 
-    // TT probe. No height gate: any stored entry was produced by a search at
-    // least as deep as this quiescence node, so it is never worse than what we
-    // would compute here. A hit also saves the NNUE evaluate_position() below,
-    // which is the dominant per-node cost in qsearch.
-    let hash_index: usize = (position.zobrist_lock as u64 & search_state.hash_table.mask()) as usize;
-    let mut tt_static_eval: Option<Score> = None;
-    if let Some(entry) = search_state.hash_table.probe(hash_index, position.zobrist_lock) {
-        let tt_score = match entry.score {
-            s if s > MATE_START => s - ply as Score,
-            s if s < -MATE_START => s + ply as Score,
-            s => s,
-        };
-        let usable = match entry.bound {
-            Exact => true,
-            Lower => tt_score >= window.1,
-            Upper => tt_score <= window.0,
-        };
-        if usable {
-            let pv_mv = if entry.mv != 0 && verify_move(position, entry.mv) {
-                entry.mv
-            } else {
-                0
-            };
-            return (pv_single(pv_mv), tt_score);
-        }
-        // Not usable as a bound, but the cached static eval still saves the
-        // NNUE forward pass below
-        if entry.static_eval != STATIC_EVAL_NONE {
-            tt_static_eval = Some(entry.static_eval);
-        }
-    }
-
     let in_check = is_check(position, position.mover);
 
-    // Raw NNUE output, reused from the TT when present - this is the single
-    // most expensive thing a qsearch node does. Captured before eval noise so
-    // the cached value stays a clean static eval.
-    let raw_static_eval: Score = match tt_static_eval {
-        Some(v) => v,
-        None => evaluate_position(position, search_state),
-    };
-    let mut eval = raw_static_eval;
+    let mut eval = evaluate_position(position, search_state);
     if search_state.eval_noise > 0 {
         let noise_bits = (position.zobrist_lock >> 17) as i32;
         let noise_max = search_state.eval_noise;
@@ -241,12 +155,6 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
     // Depth cap terminates evasion chains; otherwise stand-pat is only a
     // valid bound when not in check
     if depth == 0 || (!in_check && eval >= window.1) {
-        // A stand-pat cutoff is a lower bound (the true score is >= eval); the
-        // depth-cap case is just the static eval, which we do not want to cache
-        // as a bound at all since no search backed it up.
-        if !in_check && eval >= window.1 {
-            store_quiesce(search_state, hash_index, position, eval, Lower, 0, ply, raw_static_eval);
-        }
         return (pv_single(0), eval);
     }
 
@@ -313,7 +221,6 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
                 }
 
                 if score >= window.1 {
-                    store_quiesce(search_state, hash_index, position, window.1, Lower, m, ply, raw_static_eval);
                     return (pv_single(m), window.1);
                 }
                 if score > alpha {
@@ -330,18 +237,7 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
 
     // All evasions were illegal (pins) - the check is mate
     if in_check && legal_move_count == 0 {
-        let mate = -MATE_SCORE + ply as Score;
-        store_quiesce(search_state, hash_index, position, mate, Exact, 0, ply, raw_static_eval);
-        return (pv_single(0), mate);
-    }
-
-    // Only store when the search actually ran to completion; a stop mid-loop
-    // leaves `alpha` reflecting a truncated search and must not be cached.
-    if !is_stopped(&search_state.stop) {
-        // Raised alpha above the caller's window => a real (exact) value;
-        // otherwise everything failed low and alpha is only an upper bound.
-        let bound = if alpha > window.0 { Exact } else { Upper };
-        store_quiesce(search_state, hash_index, position, alpha, bound, best_move, ply, raw_static_eval);
+        return (pv_single(0), -MATE_SCORE + ply as Score);
     }
 
     (pv_single(best_move), alpha)
