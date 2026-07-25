@@ -66,6 +66,17 @@ pub fn attacker_value(piece: Move) -> Score {
 
 #[inline(always)]
 pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> Score {
+    score_move_with_see(position, m, search_state, ply, enemy).0
+}
+
+/// Ordering score plus the move's SEE value.
+///
+/// SEE is only meaningful for captures and is returned as 0 for everything else.
+/// Callers that need to split good from bad captures take the second element so
+/// that `static_exchange_evaluation` - one of the hottest non-eval costs in the
+/// search - is computed exactly once per capture instead of twice.
+#[inline(always)]
+pub fn score_move_with_see(position: &Position, m: Move, search_state: &SearchState, ply: usize, enemy: &Pieces) -> (Score, Score) {
     let to_square = to_square_part(m);
     let curr_piece = piece_type_to_index(m);
     let curr_to = to_square as usize;
@@ -76,8 +87,11 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
     // Cap ply to avoid array out of bounds (arrays are sized MAX_DEPTH = 250)
     let ply = ply.min(249);
 
+    let mut see_out: Score = 0;
+
     let score = if enemy_pieces & bit(to_square) != 0 {
         let see_score = static_exchange_evaluation(position, m);
+        see_out = see_score;
         let capture_hist = capture_history_score_cached(curr_piece, to_square, enemy, search_state);
         GOOD_CAPTURE_START + see_score + capture_hist
     } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
@@ -134,10 +148,13 @@ pub fn score_move(position: &Position, m: Move, search_state: &SearchState, ply:
         0
     };
 
-    score
-        + pawn_push_score
-        + history_score_cached(search_state, piece_index, from_sq, curr_to)
-        + followup_history_score_cached(ply, curr_piece, curr_to, search_state)
+    (
+        score
+            + pawn_push_score
+            + history_score_cached(search_state, piece_index, from_sq, curr_to)
+            + followup_history_score_cached(ply, curr_piece, curr_to, search_state),
+        see_out,
+    )
 }
 
 #[inline(always)]

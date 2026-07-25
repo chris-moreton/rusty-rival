@@ -39,7 +39,14 @@ pub struct SharedHashTable {
 
 const HASH_WORD_CHECK: usize = 0;
 const HASH_WORD_MOVE_SCORE: usize = 1; // mv in low 32 bits, score in high 32
-const HASH_WORD_META: usize = 2; // height 0..8, bound 8..10, version 16..48
+const HASH_WORD_META: usize = 2; // height 0..8, bound 8..10, version 16..48, static_eval 48..64
+
+/// Sentinel stored in the static-eval field when no static eval is known.
+/// `i16::MIN` is unreachable as a real eval, so it doubles as "absent" without
+/// costing an extra bit. Entries written before this field existed decode as 0,
+/// which is a legal eval - hence the version check on read is *not* enough on
+/// its own and every writer must set the field explicitly.
+pub const STATIC_EVAL_NONE: Score = i16::MIN as Score;
 
 #[inline(always)]
 fn hash_entry_key(lock: HashLock) -> u64 {
@@ -130,6 +137,7 @@ impl SharedHashTable {
             mv: move_score as u32 as Move,
             bound,
             lock,
+            static_eval: (meta >> 48) as u16 as i16 as Score,
         })
     }
 
@@ -154,7 +162,10 @@ impl SharedHashTable {
             BoundType::Lower => 1u64,
             BoundType::Upper => 2u64,
         };
-        let meta = entry.height as u64 | (bound_bits << 8) | ((entry.version as u64) << 16);
+        // Clamp rather than wrap: a mate-magnitude eval would otherwise alias to
+        // a small value and silently poison every pruning margin that reads it.
+        let static_eval = entry.static_eval.clamp(i16::MIN as Score, i16::MAX as Score) as i16;
+        let meta = entry.height as u64 | (bound_bits << 8) | ((entry.version as u64) << 16) | ((static_eval as u16 as u64) << 48);
         let words = &self.data[index];
         words[HASH_WORD_CHECK].store(hash_entry_key(entry.lock) ^ move_score ^ meta, Ordering::Relaxed);
         words[HASH_WORD_MOVE_SCORE].store(move_score, Ordering::Relaxed);
@@ -622,6 +633,11 @@ pub struct HashEntry {
     pub mv: Move,
     pub bound: BoundType,
     pub lock: HashLock,
+    /// Raw static eval of the position (NNUE output, *before* correction
+    /// history), or `STATIC_EVAL_NONE`. Cached so a TT hit can skip the NNUE
+    /// forward pass - the dominant per-node cost. Depth-independent, so it is
+    /// usable even when the entry's height is too shallow for a score cutoff.
+    pub static_eval: Score,
 }
 
 #[macro_export]

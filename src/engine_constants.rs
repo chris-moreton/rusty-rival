@@ -64,10 +64,23 @@ pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 6;
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
 // After searching N moves at depth D, skip remaining quiet moves entirely
-// Index by depth: [depth 0, depth 1, depth 2, depth 3]
-// Conservative thresholds to avoid missing important moves
-pub const LMP_MAX_DEPTH: u8 = 3;
-pub const LMP_MOVE_THRESHOLDS: [u8; 4] = [0, 9, 6, 9]; // SPSA tuned, Run 20
+// Index by depth: [depth 0, depth 1, ... depth LMP_MAX_DEPTH]
+//
+// Depths 1-3 are the SPSA-tuned values (Run 20) and are deliberately left alone.
+// Depths 4-8 extend LMP into a range that previously did no move-count pruning
+// at all; they follow the standard `3 + depth^2` curve. Rationale: at 1s/1thread
+// the shallow tree was measured at ~95k nodes to depth 6 (Stockfish: 451), i.e.
+// the tree is bloated exactly where LMP was switched off.
+pub const LMP_MAX_DEPTH: u8 = 8;
+pub const LMP_MOVE_THRESHOLDS: [u8; 9] = [0, 9, 6, 9, 19, 28, 39, 52, 67]; // 1-3 SPSA tuned (Run 20); 4-8 = 3+d^2
+
+// Razoring: at very shallow depth, if the static eval is far below alpha, verify
+// with a quiescence search and fail low immediately if that confirms it. Distinct
+// from ALPHA_PRUNE_MARGINS, which skips individual late quiet moves inside the
+// move loop; razoring skips the whole subtree before any move is generated.
+// Index by depth: [unused, depth 1, depth 2, depth 3]
+pub const RAZOR_MAX_DEPTH: u8 = 3;
+pub const RAZOR_MARGINS: [Score; 4] = [0, 240, 400, 620];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)

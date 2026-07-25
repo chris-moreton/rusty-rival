@@ -4,9 +4,10 @@ use crate::engine_constants::{
     LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_THRESHOLD, LMR_HISTORY_GOOD_THRESHOLD,
     LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH,
     MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION,
-    PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN,
-    SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
-    TM_INSTABILITY_EXTEND, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
+    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
+    SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND,
+    TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 
@@ -56,7 +57,7 @@ use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
 };
-use crate::move_scores::score_move;
+use crate::move_scores::{score_move, score_move_with_see};
 use crate::moves::{generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move};
 use crate::opponent;
 use crate::quiesce::quiesce;
@@ -64,7 +65,7 @@ use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     is_stopped, pv_prepend, pv_single, set_stop, BoundType, HashEntry, Move, MoveList, MoveScore, MoveScoreArray, MoveScoreList, Mover,
-    PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, WHITE,
+    PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, STATIC_EVAL_NONE, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
@@ -499,6 +500,7 @@ pub fn store_hash_entry(
     search_state: &mut SearchState,
     ply: u8,
     hash_index: usize,
+    static_eval: Score,
 ) {
     let table_version = search_state.hash_table.version();
     // Replace when at least as deep, or when the incumbent is from an older
@@ -518,6 +520,7 @@ pub fn store_hash_entry(
                 mv: movescore.0,
                 bound,
                 lock: position.zobrist_lock,
+                static_eval,
             },
         );
     }
@@ -756,10 +759,24 @@ pub fn search(
     // Static eval for this node (correction-history adjusted), recorded per
     // ply so descendants can compute the improving flag; there is no
     // meaningful static eval while in check
+    // Raw static eval, reused from the TT when this slot already holds one.
+    // static_eval is depth-independent, so it is valid even when the entry's
+    // height was too shallow to permit a score cutoff above.
+    let raw_static_eval: Score = if in_check {
+        STATIC_EVAL_NONE
+    } else {
+        match probed_entry {
+            Some(e) if e.static_eval != STATIC_EVAL_NONE => e.static_eval,
+            _ => evaluate_position(position, search_state),
+        }
+    };
+
     let lazy_eval: Score = if in_check {
         -Score::MAX
     } else {
-        evaluate_position(position, search_state) + eval_correction(position, search_state)
+        // Correction history is re-applied on every read rather than cached, so
+        // a stale correction from an earlier search can never be resurrected.
+        raw_static_eval + eval_correction(position, search_state)
     };
     search_state.eval_stack[ply as usize] = lazy_eval;
 
@@ -782,6 +799,23 @@ pub fn search(
         let margin = BETA_PRUNE_MARGIN_PER_DEPTH * (depth as Score - improving as Score);
         if lazy_eval - margin >= beta {
             return (pv_single(0), lazy_eval - margin);
+        }
+    }
+
+    // Razoring: at very shallow depth a static eval far below alpha usually means
+    // the node is hopeless. Verify with quiescence (which sees captures/checks the
+    // static eval misses) and only fail low if qsearch agrees - an unverified cut
+    // here would drop real tactics.
+    if scouting && !in_check && depth <= RAZOR_MAX_DEPTH && alpha.abs() < MATE_START && excluded_move == 0 {
+        let razor_margin = RAZOR_MARGINS[depth as usize];
+        if lazy_eval + razor_margin < alpha {
+            let q_score = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha - 1, alpha), search_state).1;
+            if is_stopped(&search_state.stop) {
+                return (pv_single(0), 0);
+            }
+            if q_score < alpha {
+                return (pv_single(0), q_score);
+            }
         }
     }
 
@@ -1024,6 +1058,7 @@ pub fn search(
                             &searched_quiets,
                             &searched_captures,
                             lazy_eval,
+                            raw_static_eval,
                         );
                     }
                     hash_flag = Exact;
@@ -1044,6 +1079,13 @@ pub fn search(
     let enemy = position.pieces[opponent!(position.mover) as usize];
     let mut move_scores: MoveScoreArray;
     let mut quiets_added: bool;
+    // SEE-losing captures, deferred to a third stage behind the quiets (NET-229).
+    // Previously captures were one stage consumed in full before any quiet was
+    // generated, so a losing capture was always searched before killers and
+    // high-history quiets - scoring alone could not fix that, because the
+    // staging, not the score, decided the order.
+    let mut bad_captures: MoveScoreArray = MoveScoreArray::new();
+    let mut bad_captures_added: bool = false;
 
     if in_check {
         // When in check, generate only check evasion moves
@@ -1072,7 +1114,13 @@ pub fn search(
         }
         move_scores = MoveScoreArray::new();
         for m in captures {
-            move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
+            let (score, see_score) = score_move_with_see(position, m, search_state, ply as usize, &enemy);
+            // Promotions change material too much to demote on SEE alone
+            if see_score < 0 && m & PROMOTION_FULL_MOVE_MASK == 0 {
+                bad_captures.push((m, score));
+            } else {
+                move_scores.push((m, score));
+            }
         }
         quiets_added = false;
     }
@@ -1081,27 +1129,33 @@ pub fn search(
     let current_is_end_game = is_end_game(position);
 
     loop {
-        // If we've exhausted the current move list, add quiet moves if we haven't yet
+        // Stage order: good captures -> quiets -> SEE-losing captures.
+        // Advance a stage whenever the current list runs dry, and keep advancing
+        // while stages come back empty (a position can easily have no quiets but
+        // still have bad captures left, and vice versa).
+        while move_scores.is_empty() {
+            if !quiets_added {
+                quiets_added = true;
+                let mut quiets = generate_quiet_moves(position);
+                if verified_hash_move {
+                    quiets.retain(|m| *m != hash_move);
+                }
+                // Also exclude the singular extension search move if set
+                if excluded_move != 0 {
+                    quiets.retain(|m| *m != excluded_move);
+                }
+                for m in quiets {
+                    move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
+                }
+            } else if !bad_captures_added {
+                bad_captures_added = true;
+                move_scores = std::mem::take(&mut bad_captures);
+            } else {
+                break; // All stages exhausted
+            }
+        }
         if move_scores.is_empty() {
-            if quiets_added {
-                break; // All moves processed
-            }
-            // Add quiet moves
-            quiets_added = true;
-            let mut quiets = generate_quiet_moves(position);
-            if verified_hash_move {
-                quiets.retain(|m| *m != hash_move);
-            }
-            // Also exclude the singular extension search move if set
-            if excluded_move != 0 {
-                quiets.retain(|m| *m != excluded_move);
-            }
-            for m in quiets {
-                move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
-            }
-            if move_scores.is_empty() {
-                break; // No quiet moves either
-            }
+            break; // All moves processed
         }
 
         let m = pick_high_score_move(&mut move_scores);
@@ -1329,6 +1383,7 @@ pub fn search(
                             &searched_quiets,
                             &searched_captures,
                             lazy_eval,
+                            raw_static_eval,
                         );
                     }
                     hash_flag = Exact;
@@ -1419,6 +1474,7 @@ pub fn search(
             search_state,
             ply,
             hash_index,
+            raw_static_eval,
         );
     }
 
@@ -1555,6 +1611,9 @@ fn cutoff_unmake(
     searched_quiets: &MoveList,
     searched_captures: &MoveScoreArray,
     static_eval: Score,
+    // Raw (pre-correction) eval for the TT entry; `static_eval` above is the
+    // correction-adjusted value and feeds correction history instead.
+    raw_static_eval: Score,
 ) -> PathScore {
     // Singular-verification cutoffs are artifacts of the excluded move and the
     // shifted window - keep them out of the TT and the ordering heuristics
@@ -1571,6 +1630,7 @@ fn cutoff_unmake(
         search_state,
         ply,
         hash_index,
+        raw_static_eval,
     );
     let bonus = (depth as i32) * (depth as i32);
     update_history(position, search_state, m, bonus, captured_value);
