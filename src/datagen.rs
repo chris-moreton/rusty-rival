@@ -35,7 +35,7 @@ use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
 use crate::moves::{generate_moves, is_check};
 use crate::search::MATE_START;
-use crate::types::{Move, Position, Score, SearchState, UciState, WHITE};
+use crate::types::{default_search_state, default_uci_state, Move, Position, Score, SearchState, UciState, WHITE};
 use crate::uci::run_command_sync;
 use crate::utils::is_capture;
 use either::{Either, Left, Right};
@@ -44,6 +44,9 @@ use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc};
+use std::thread;
 use std::time::Instant;
 
 /// Default number of random plies played from the start position before the
@@ -256,11 +259,31 @@ fn play_game(
     Some(outcome)
 }
 
-/// `datagen <games> <nodes> <output> [random_plies]`
-pub fn cmd_datagen(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
-    const USAGE: &str = "usage: datagen <games> <nodes-per-move> <output-file> [random-plies]";
+/// Base RNG seed. Each worker offsets this by its index so runs are
+/// reproducible for a given thread count but workers never duplicate games.
+const BASE_SEED: u64 = 0x0052_17A1_1EAD_u64;
 
-    if parts.len() < 4 || parts.len() > 5 {
+/// Per-worker transposition table size. Datagen searches are tiny (a few
+/// thousand nodes), so a large table wastes memory that matters once multiplied
+/// by the worker count — 8 workers at the 128MB default would reserve 1GB of
+/// almost entirely untouched table.
+const WORKER_HASH_MB: usize = 16;
+
+/// Stack size for worker threads. Search recurses deeply and the default 2MB
+/// thread stack overflows; this matches the engine's other spawned search threads.
+const WORKER_STACK_BYTES: usize = 16 * 1024 * 1024;
+
+/// `datagen <games> <nodes> <output> [random-plies] [threads]`
+///
+/// Games are independent, so generation is embarrassingly parallel: each worker
+/// owns its own `UciState`, `SearchState` (including its own TT) and RNG, and
+/// streams finished games back to this thread, which is the sole writer. That
+/// keeps the output append-ordered and free of interleaving with no locking on
+/// the hot path.
+pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
+    const USAGE: &str = "usage: datagen <games> <nodes-per-move> <output-file> [random-plies] [threads]";
+
+    if parts.len() < 4 || parts.len() > 6 {
         return Left(USAGE.to_string());
     }
     let games: usize = match parts[1].parse() {
@@ -272,13 +295,21 @@ pub fn cmd_datagen(uci_state: &mut UciState, search_state: &mut SearchState, par
         _ => return Left(USAGE.to_string()),
     };
     let path = parts[3].to_string();
-    let random_plies: usize = if parts.len() == 5 {
+    let random_plies: usize = if parts.len() >= 5 {
         match parts[4].parse() {
             Ok(p) => p,
             _ => return Left(USAGE.to_string()),
         }
     } else {
         DEFAULT_RANDOM_PLIES
+    };
+    let threads: usize = if parts.len() == 6 {
+        match parts[5].parse() {
+            Ok(t) if t > 0 => t,
+            _ => return Left(USAGE.to_string()),
+        }
+    } else {
+        thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
     };
 
     let file = match File::create(&path) {
@@ -287,30 +318,59 @@ pub fn cmd_datagen(uci_state: &mut UciState, search_state: &mut SearchState, par
     };
     let mut writer = BufWriter::new(file);
 
-    // Deterministic by default so a run is reproducible; vary the seed via the
-    // game index so parallel/instanced runs can be made distinct later.
-    let mut rng = StdRng::seed_from_u64(0x0052_17A1_1EAD_u64);
-
-    let show_info = search_state.show_info;
-    search_state.show_info = false;
     let start = Instant::now();
+    let stop = Arc::new(AtomicBool::new(false));
+    let (tx, rx) = mpsc::channel::<(Vec<Sample>, Outcome)>();
+
+    let mut handles = Vec::with_capacity(threads);
+    for worker in 0..threads {
+        let tx = tx.clone();
+        let stop = Arc::clone(&stop);
+        let handle = thread::Builder::new().stack_size(WORKER_STACK_BYTES).spawn(move || {
+            let mut uci_state = default_uci_state();
+            let mut search_state = default_search_state();
+            search_state.show_info = false;
+            run_command_sync(
+                &mut uci_state,
+                &mut search_state,
+                &format!("setoption name Hash value {}", WORKER_HASH_MB),
+            );
+
+            let mut rng = StdRng::seed_from_u64(BASE_SEED.wrapping_add(worker as u64));
+
+            while !stop.load(Ordering::Relaxed) {
+                let mut samples: Vec<Sample> = Vec::new();
+                if let Some(outcome) = play_game(&mut uci_state, &mut search_state, &mut rng, nodes, random_plies, &mut samples) {
+                    // A send error means the collector has finished and dropped
+                    // the receiver, so there is nothing left to do.
+                    if tx.send((samples, outcome)).is_err() {
+                        break;
+                    }
+                }
+            }
+        });
+        match handle {
+            Ok(h) => handles.push(h),
+            Err(e) => return Left(format!("datagen: cannot spawn worker {}: {}", worker, e)),
+        }
+    }
+    // Drop this thread's sender, or the channel never closes.
+    drop(tx);
 
     let mut total_positions: u64 = 0;
     let mut played_games: usize = 0;
     let mut results = [0usize; 3]; // white win, draw, black win
+    let mut write_error: Option<String> = None;
 
-    while played_games < games {
-        let mut samples: Vec<Sample> = Vec::new();
-        let outcome = match play_game(uci_state, search_state, &mut rng, nodes, random_plies, &mut samples) {
-            Some(o) => o,
-            None => continue,
-        };
-
+    for (samples, outcome) in rx {
         for s in &samples {
             if writeln!(writer, "{} | {} | {}", s.fen, s.score, outcome.wdl()).is_err() {
-                search_state.show_info = show_info;
-                return Left(format!("datagen: write failed to {}", path));
+                write_error = Some(format!("datagen: write failed to {}", path));
+                break;
             }
+        }
+        if write_error.is_some() {
+            break;
         }
 
         total_positions += samples.len() as u64;
@@ -330,16 +390,32 @@ pub fn cmd_datagen(uci_state: &mut UciState, search_state: &mut SearchState, par
                 start.elapsed().as_secs_f64()
             );
         }
+
+        if played_games >= games {
+            break;
+        }
+    }
+
+    // Signal the workers and wait. They check `stop` between games, so a run
+    // ends once the games already in flight finish rather than being cut off
+    // mid-game and discarding that work.
+    stop.store(true, Ordering::Relaxed);
+    for h in handles {
+        let _ = h.join();
     }
 
     let _ = writer.flush();
-    search_state.show_info = show_info;
+
+    if let Some(e) = write_error {
+        return Left(e);
+    }
 
     let secs = start.elapsed().as_secs_f64();
     println!("===========================");
     println!("Games         : {}", played_games);
     println!("Positions     : {}", total_positions.to_formatted_string(&Locale::en));
     println!("W/D/L         : {} / {} / {}", results[0], results[1], results[2]);
+    println!("Threads       : {}", threads);
     println!("Time          : {:.1}s", secs);
     println!("Positions/sec : {:.0}", total_positions as f64 / secs.max(0.001));
     println!("Output        : {}", path);
