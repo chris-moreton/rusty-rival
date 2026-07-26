@@ -34,7 +34,14 @@ pub struct NnueNetwork {
     l0_weights: Box<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
     /// L0 biases: initial accumulator values before any features are added.
     l0_biases: [i16; HIDDEN_SIZE],
-    /// L1 weights: first 256 for side-to-move, last 256 for not-side-to-move.
+    /// L1 weights: first 256 for **not**-side-to-move, last 256 for side-to-move.
+    ///
+    /// Note this is the opposite order to stock bullet's export, and `evaluate()`
+    /// indexes accordingly (`l1_weights[HIDDEN_SIZE + i]` for STM). Code and net
+    /// agree, so the eval is correct — but a retrain exported in bullet's default
+    /// order would silently sign-flip the perspective terms. If you retrain, either
+    /// keep this layout or change both this comment and `evaluate()` together, and
+    /// re-run `nnue_golden_values_are_bit_identical`.
     l1_weights: [i16; 2 * HIDDEN_SIZE],
     /// L1 bias (single value, scale QA*QB).
     l1_bias: i16,

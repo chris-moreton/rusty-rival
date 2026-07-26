@@ -144,6 +144,45 @@ fn debug_knight_eval() {
     println!("Rook e4 delta from kings: {}", rook_eval - kings_eval);
 }
 
+/// Golden-value test (NET-320): pins the exact centipawn output of the NNUE
+/// forward pass for a fixed set of positions against the embedded net.
+///
+/// These numbers are not "correct" in any absolute sense — they are simply what
+/// `nets/rival-256x2.bin` produces today. The point is that any change to the
+/// inference path (SIMD, i64 accumulation, quantisation, weight layout) must be
+/// **bit-identical**, so this test failing means the refactor changed the eval.
+///
+/// If the net itself is retrained, these values must be regenerated deliberately
+/// — never "fixed" by pasting in whatever the new code happens to print.
+#[test]
+fn nnue_golden_values_are_bit_identical() {
+    let net = NnueNetwork::embedded();
+    let mut acc = Accumulator::new();
+
+    // (expected_cp, fen) — evaluated from the side to move's perspective.
+    let golden: &[(i32, &str)] = &[
+        (-28, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
+        (-180, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
+        (-79, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
+        (10, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
+        (318, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
+        (153, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
+        (11, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
+        (-111, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
+    ];
+
+    for &(expected, fen) in golden {
+        let pos = get_position(fen);
+        acc.compute(&net, &pos);
+        let actual = net.evaluate(&acc, pos.mover) as i32;
+        assert_eq!(
+            actual, expected,
+            "NNUE eval changed for {}: expected {}, got {}",
+            fen, expected, actual
+        );
+    }
+}
+
 /// Regression test for the incremental accumulator chain (NET-212): walking the
 /// tree with make_move_nnue/unmake_move_nnue and evaluating lazily must produce
 /// exactly the same score as a from-scratch accumulator computation, including
