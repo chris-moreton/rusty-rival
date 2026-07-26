@@ -20,3 +20,6 @@ engines/syzygy/
 # Python cache
 web/__pycache__/
 *.profraw
+
+# A/B match artifacts (large PGNs) - reproducible, not source
+results/ab/
