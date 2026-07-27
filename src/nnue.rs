@@ -15,6 +15,31 @@ use std::fmt;
 pub const INPUT_SIZE: usize = 768;
 pub const HIDDEN_SIZE: usize = 256;
 
+/// Number of output buckets, selected by material count (NET-321).
+///
+/// A single-bucket net is loaded as 8 identical buckets, so the inference path
+/// is uniform and a pre-bucket net evaluates bit-identically to before.
+pub const NUM_OUTPUT_BUCKETS: usize = 8;
+
+/// Bucket divisor. Must match bullet's `MaterialCount<N>`, which uses
+/// `32usize.div_ceil(N)` — verified against pinned bullet rev 7bc395f3 in
+/// `crates/bullet_lib/src/game/outputs.rs`.
+const OUTPUT_BUCKET_DIVISOR: u32 = 4; // 32.div_ceil(8)
+
+/// Select the output bucket for a position, reproducing bullet's formula:
+/// `(occ.count_ones() - 2) / 32.div_ceil(N)`.
+///
+/// This MUST match the trainer exactly. If it doesn't, the engine reads a
+/// different bucket's weights than training wrote, and the net evaluates
+/// plausibly but wrongly — it will load fine and produce sane-looking numbers.
+#[inline(always)]
+pub fn output_bucket(piece_count: u32) -> usize {
+    // saturating_sub guards a malformed position with fewer than two pieces;
+    // min() guards a 33+ piece position. Neither occurs in legal play, but a
+    // panic or out-of-bounds read in the hottest path is not worth the risk.
+    ((piece_count.saturating_sub(2) / OUTPUT_BUCKET_DIVISOR) as usize).min(NUM_OUTPUT_BUCKETS - 1)
+}
+
 // Quantization constants (must match training config)
 const QA: i32 = 255; // L0 weight/bias and accumulator scale
 const QB: i32 = 64; // L1 weight scale
@@ -34,17 +59,30 @@ pub struct NnueNetwork {
     l0_weights: Box<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
     /// L0 biases: initial accumulator values before any features are added.
     l0_biases: [i16; HIDDEN_SIZE],
-    /// L1 weights: first 256 for **not**-side-to-move, last 256 for side-to-move.
+    /// L1 weights, one 512-wide row per output bucket (bucket-major).
     ///
-    /// Note this is the opposite order to stock bullet's export, and `evaluate()`
-    /// indexes accordingly (`l1_weights[HIDDEN_SIZE + i]` for STM). Code and net
-    /// agree, so the eval is correct — but a retrain exported in bullet's default
-    /// order would silently sign-flip the perspective terms. If you retrain, either
-    /// keep this layout or change both this comment and `evaluate()` together, and
-    /// re-run `nnue_golden_values_are_bit_identical`.
-    l1_weights: [i16; 2 * HIDDEN_SIZE],
-    /// L1 bias (single value, scale QA*QB).
-    l1_bias: i16,
+    /// Within a row: first 256 are **not**-side-to-move, last 256 are
+    /// side-to-move — `evaluate()` indexes `[HIDDEN_SIZE + i]` for STM.
+    ///
+    /// ## Two layout facts that will bite a retrain if ignored
+    ///
+    /// 1. **Bucket-major is what bullet writes** *only because* the trainer's
+    ///    `l1w` save entry has `.transpose()`. Derived from pinned rev 7bc395f3:
+    ///    `new_affine` builds `Shape::new(out, in)` = (8, 512), and
+    ///    `transpose_impl` writes `new_buf[cols*i + j] = weights[rows*j + i]`,
+    ///    i.e. `[bucket][512]`. Drop the `.transpose()` and this silently
+    ///    becomes `[512][bucket]`.
+    /// 2. **The perspective halves are NTM-first here, but the trainer
+    ///    concatenates `stm.concat(ntm)`** — i.e. STM-first. The shipped net is
+    ///    self-consistent with this loader (a queen-up position evaluates
+    ///    strongly positive, which a swapped net could not do), so the two
+    ///    conventions currently cancel. **A retrain could land either way.**
+    ///    `nnue_eval_signs_are_correct` is the guard: it fails loudly on a
+    ///    swapped net. If it fails after a retrain, swap the two indices here
+    ///    rather than assuming the net is bad.
+    l1_weights: Box<[[i16; 2 * HIDDEN_SIZE]; NUM_OUTPUT_BUCKETS]>,
+    /// L1 bias per bucket (scale QA*QB).
+    l1_biases: [i16; NUM_OUTPUT_BUCKETS],
 }
 
 impl fmt::Debug for NnueNetwork {
@@ -61,9 +99,22 @@ impl NnueNetwork {
 
     /// Load network from raw quantised.bin bytes.
     ///
-    /// File layout: l0_weights[256][768] + l0_biases[256] + l1_weights[512] + l1_bias[1]
-    /// All values are little-endian i16. We transpose l0_weights to [768][256] during loading
-    /// for cache-friendly feature-indexed access during incremental updates.
+    /// Accepts **both** net formats and normalises to the bucketed representation:
+    ///
+    /// * single-bucket: `l0w[768][256] + l0b[256] + l1w[512] + l1b[1]`
+    /// * 8-bucket:      `l0w[768][256] + l0b[256] + l1w[8][512] + l1b[8]`
+    ///
+    /// A single-bucket net is replicated into all 8 buckets, so it evaluates
+    /// bit-identically to the pre-bucket implementation. That is what keeps
+    /// `nnue_golden_values_are_bit_identical` passing across this change, and it
+    /// means the engine stays shippable before the bucketed net is trained.
+    ///
+    /// All values are little-endian i16. l0_weights is transposed to [768][256]
+    /// during loading for cache-friendly feature-indexed access.
+    ///
+    /// Note the format is detected by size rather than matched exactly: the
+    /// shipped net carries 62 trailing bytes beyond what is read (bullet
+    /// padding), so an equality check would be brittle.
     pub fn from_bytes(data: &[u8]) -> Self {
         let mut offset = 0;
 
@@ -81,20 +132,43 @@ impl NnueNetwork {
             *item = read_i16(data, &mut offset);
         }
 
-        // L1 weights (512 values: 256 for STM perspective, 256 for NTM)
-        let mut l1_weights = [0i16; 2 * HIDDEN_SIZE];
-        for item in l1_weights.iter_mut() {
-            *item = read_i16(data, &mut offset);
-        }
+        // Decide the format from what is left after the L0 section.
+        let remaining_i16 = (data.len() - offset) / 2;
+        let bucketed_i16 = NUM_OUTPUT_BUCKETS * (2 * HIDDEN_SIZE) + NUM_OUTPUT_BUCKETS;
+        let is_bucketed = remaining_i16 >= bucketed_i16;
 
-        // L1 bias
-        let l1_bias = read_i16(data, &mut offset);
+        let mut l1_weights = Box::new([[0i16; 2 * HIDDEN_SIZE]; NUM_OUTPUT_BUCKETS]);
+        let mut l1_biases = [0i16; NUM_OUTPUT_BUCKETS];
+
+        if is_bucketed {
+            // Bucket-major: each bucket's 512 weights are contiguous.
+            for bucket in l1_weights.iter_mut() {
+                for item in bucket.iter_mut() {
+                    *item = read_i16(data, &mut offset);
+                }
+            }
+            for item in l1_biases.iter_mut() {
+                *item = read_i16(data, &mut offset);
+            }
+        } else {
+            // Legacy single-bucket net: read one row and one bias, then
+            // replicate so every bucket resolves to the same weights.
+            let mut row = [0i16; 2 * HIDDEN_SIZE];
+            for item in row.iter_mut() {
+                *item = read_i16(data, &mut offset);
+            }
+            let bias = read_i16(data, &mut offset);
+            for bucket in l1_weights.iter_mut() {
+                *bucket = row;
+            }
+            l1_biases = [bias; NUM_OUTPUT_BUCKETS];
+        }
 
         NnueNetwork {
             l0_weights,
             l0_biases,
             l1_weights,
-            l1_bias,
+            l1_biases,
         }
     }
 
@@ -102,13 +176,26 @@ impl NnueNetwork {
     ///
     /// Returns a score in centipawns from the side-to-move's perspective.
     /// Uses SCReLU activation: clamp(x, 0, QA)² with quantized arithmetic.
+    ///
+    /// `piece_count` is the total number of pieces on the board and selects the
+    /// output bucket. It must be the same count bullet used when training — see
+    /// [`output_bucket`]. With a single-bucket net every bucket holds identical
+    /// weights, so the value is irrelevant and the result is unchanged.
+    ///
+    /// The per-element `/QA` looks like it would be slow, but on aarch64 LLVM
+    /// already lowers this whole loop to 8-wide i16 NEON with the division as a
+    /// multiply-high plus shift, 4x unrolled. Verified by disassembly (NET-320);
+    /// do not "optimise" it into explicit SIMD without measuring first.
     #[inline]
-    pub fn evaluate(&self, acc: &Accumulator, stm: Mover) -> Score {
+    pub fn evaluate(&self, acc: &Accumulator, stm: Mover, piece_count: u32) -> Score {
         let (stm_acc, ntm_acc) = if stm == 0 {
             (&acc.white, &acc.black)
         } else {
             (&acc.black, &acc.white)
         };
+
+        let bucket = output_bucket(piece_count);
+        let l1_weights = &self.l1_weights[bucket];
 
         let mut output: i32 = 0;
 
@@ -117,12 +204,12 @@ impl NnueNetwork {
             let n = (ntm_acc[i] as i32).clamp(0, QA);
             // SCReLU: squared clipped ReLU, divided by QA to prevent overflow
             // L1 layout: NTM first [0..255], STM second [256..511]
-            output += s * s / QA * self.l1_weights[HIDDEN_SIZE + i] as i32;
-            output += n * n / QA * self.l1_weights[i] as i32;
+            output += s * s / QA * l1_weights[HIDDEN_SIZE + i] as i32;
+            output += n * n / QA * l1_weights[i] as i32;
         }
 
         // Add bias (already in scale QA*QB) and convert to centipawns
-        output += self.l1_bias as i32;
+        output += self.l1_biases[bucket] as i32;
         (output * EVAL_SCALE / (QA * QB)) as Score
     }
 }

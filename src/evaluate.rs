@@ -120,7 +120,12 @@ pub fn evaluate_position(position: &Position, search_state: &mut crate::types::S
                 }
             }
 
-            return net.evaluate(&search_state.nnue_accumulators[ply], position.mover);
+            // Piece count selects the NNUE output bucket; it must match the
+            // count bullet used at training time (all pieces, both sides).
+            let piece_count = position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
+                + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones();
+
+            return net.evaluate(&search_state.nnue_accumulators[ply], position.mover, piece_count);
         }
     }
     evaluate_with_pawn_hash(position, &search_state.pawn_hash_table)

@@ -1,6 +1,11 @@
 use rusty_rival::fen::get_position;
 use rusty_rival::nnue::{Accumulator, NnueNetwork};
-use rusty_rival::types::WHITE;
+use rusty_rival::types::{Position, BLACK, WHITE};
+
+/// Total pieces on the board — selects the NNUE output bucket.
+fn piece_count(position: &Position) -> u32 {
+    position.pieces[WHITE as usize].all_pieces_bitboard.count_ones() + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()
+}
 
 #[test]
 fn nnue_eval_signs_are_correct() {
@@ -10,14 +15,14 @@ fn nnue_eval_signs_are_correct() {
     let pos = get_position("4k3/8/8/8/8/8/8/3QK3 w - - 0 1");
     let mut acc = Accumulator::new();
     acc.compute(&net, &pos);
-    let white_queen_up = net.evaluate(&acc, WHITE);
+    let white_queen_up = net.evaluate(&acc, WHITE, piece_count(&pos));
     println!("Ke1+Qd1 vs ke8 (white STM): {}", white_queen_up);
     assert!(white_queen_up > 100, "White with queen should be positive, got {}", white_queen_up);
 
     // Black has extra queen - should be very negative for white
     let pos = get_position("3qk3/8/8/8/8/8/8/4K3 w - - 0 1");
     acc.compute(&net, &pos);
-    let black_queen_up = net.evaluate(&acc, WHITE);
+    let black_queen_up = net.evaluate(&acc, WHITE, piece_count(&pos));
     println!("Ke1 vs ke8+qd8 (white STM): {}", black_queen_up);
     assert!(black_queen_up < -100, "Black with queen should be negative, got {}", black_queen_up);
 }
@@ -30,13 +35,13 @@ fn nnue_eval_is_symmetric() {
     let pos_a = get_position("4k3/8/8/8/4P3/8/8/4K3 w - - 0 1");
     let mut acc = Accumulator::new();
     acc.compute(&net, &pos_a);
-    let eval_a = net.evaluate(&acc, WHITE);
+    let eval_a = net.evaluate(&acc, WHITE, piece_count(&pos_a));
 
     // Position B: exact color mirror - black has pawn advantage, black to move
     // (flip all colors and flip board vertically)
     let pos_b = get_position("4k3/8/8/8/4p3/8/8/4K3 b - - 0 1");
     acc.compute(&net, &pos_b);
-    let eval_b = net.evaluate(&acc, 1); // black STM
+    let eval_b = net.evaluate(&acc, 1, piece_count(&pos_b)); // black STM
 
     println!("White pawn e4, white STM: {}", eval_a);
     println!("Black pawn e4, black STM: {}", eval_b);
@@ -54,22 +59,22 @@ fn nnue_material_ordering() {
     // Just kings
     let pos = get_position("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
     acc.compute(&net, &pos);
-    let kings_only = net.evaluate(&acc, WHITE);
+    let kings_only = net.evaluate(&acc, WHITE, piece_count(&pos));
 
     // White has a pawn
     let pos = get_position("4k3/8/8/8/4P3/8/8/4K3 w - - 0 1");
     acc.compute(&net, &pos);
-    let white_pawn = net.evaluate(&acc, WHITE);
+    let white_pawn = net.evaluate(&acc, WHITE, piece_count(&pos));
 
     // White has a knight
     let pos = get_position("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1");
     acc.compute(&net, &pos);
-    let white_knight = net.evaluate(&acc, WHITE);
+    let white_knight = net.evaluate(&acc, WHITE, piece_count(&pos));
 
     // White has a queen
     let pos = get_position("4k3/8/8/8/4Q3/8/8/4K3 w - - 0 1");
     acc.compute(&net, &pos);
-    let white_queen = net.evaluate(&acc, WHITE);
+    let white_queen = net.evaluate(&acc, WHITE, piece_count(&pos));
 
     println!("Kings only: {}", kings_only);
     println!("White pawn: {}", white_pawn);
@@ -97,7 +102,7 @@ fn nnue_startpos_is_roughly_equal() {
     let pos = get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     let mut acc = Accumulator::new();
     acc.compute(&net, &pos);
-    let eval = net.evaluate(&acc, WHITE);
+    let eval = net.evaluate(&acc, WHITE, piece_count(&pos));
     println!("Starting position eval: {}", eval);
     // Should be roughly equal (small white advantage typical)
     assert!(eval.abs() < 100, "Starting position should be near 0, got {}", eval);
@@ -111,27 +116,27 @@ fn debug_knight_eval() {
     let pos = get_position("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
     let mut acc = Accumulator::new();
     acc.compute(&net, &pos);
-    let kings_eval = net.evaluate(&acc, WHITE);
+    let kings_eval = net.evaluate(&acc, WHITE, piece_count(&pos));
 
     // Add a white rook on e4 instead
     let pos2 = get_position("4k3/8/8/8/4R3/8/8/4K3 w - - 0 1");
     acc.compute(&net, &pos2);
-    let rook_eval = net.evaluate(&acc, WHITE);
+    let rook_eval = net.evaluate(&acc, WHITE, piece_count(&pos2));
 
     // Add a white knight on e4
     let pos3 = get_position("4k3/8/8/8/4N3/8/8/4K3 w - - 0 1");
     acc.compute(&net, &pos3);
-    let knight_eval = net.evaluate(&acc, WHITE);
+    let knight_eval = net.evaluate(&acc, WHITE, piece_count(&pos3));
 
     // Knight on a completely different square
     let pos4 = get_position("4k3/8/8/8/8/8/8/N3K3 w - - 0 1");
     acc.compute(&net, &pos4);
-    let knight_a1 = net.evaluate(&acc, WHITE);
+    let knight_a1 = net.evaluate(&acc, WHITE, piece_count(&pos4));
 
     // Two knights
     let pos5 = get_position("4k3/8/8/8/4N3/8/8/N3K3 w - - 0 1");
     acc.compute(&net, &pos5);
-    let two_knights = net.evaluate(&acc, WHITE);
+    let two_knights = net.evaluate(&acc, WHITE, piece_count(&pos5));
 
     println!("Kings only: {}", kings_eval);
     println!("Rook e4: {}", rook_eval);
@@ -174,7 +179,7 @@ fn nnue_golden_values_are_bit_identical() {
     for &(expected, fen) in golden {
         let pos = get_position(fen);
         acc.compute(&net, &pos);
-        let actual = net.evaluate(&acc, pos.mover) as i32;
+        let actual = net.evaluate(&acc, pos.mover, piece_count(&pos)) as i32;
         assert_eq!(
             actual, expected,
             "NNUE eval changed for {}: expected {}, got {}",
@@ -203,7 +208,7 @@ fn incremental_accumulator_matches_full_recompute() {
             let net = ss.nnue_network.clone().unwrap();
             let mut acc = Accumulator::new();
             acc.compute(&net, pos);
-            let full = net.evaluate(&acc, pos.mover);
+            let full = net.evaluate(&acc, pos.mover, piece_count(&pos));
             assert_eq!(
                 incremental, full,
                 "incremental {} != full {} at nnue_ply {}",
@@ -247,5 +252,136 @@ fn incremental_accumulator_matches_full_recompute() {
         let mut checked = 0u32;
         dfs(&mut pos, &mut ss, 3, &mut checked);
         assert!(checked > 500, "too few comparisons for {}: {}", fen, checked);
+    }
+}
+
+// =============================================================================
+// Output buckets (NET-321)
+// =============================================================================
+
+use rusty_rival::nnue::{output_bucket, HIDDEN_SIZE, INPUT_SIZE, NUM_OUTPUT_BUCKETS};
+
+/// The bucket formula must match bullet's `MaterialCount<N>` exactly:
+/// `(occ.count_ones() - 2) / 32usize.div_ceil(N)`. If it drifts, the engine
+/// reads a different bucket than training wrote and the eval is silently wrong.
+#[test]
+fn output_bucket_matches_bullet_material_count() {
+    // Reference implementation, transcribed from bullet's outputs.rs.
+    fn bullet_bucket(piece_count: u32) -> usize {
+        let divisor = 32usize.div_ceil(NUM_OUTPUT_BUCKETS);
+        ((piece_count as usize - 2) / divisor).min(NUM_OUTPUT_BUCKETS - 1)
+    }
+
+    // 2 pieces (bare kings) through 32 (startpos) is the full legal range.
+    for pieces in 2..=32u32 {
+        assert_eq!(output_bucket(pieces), bullet_bucket(pieces), "bucket mismatch at {} pieces", pieces);
+    }
+
+    // Spot-check the boundaries explicitly so a divisor change is obvious.
+    assert_eq!(output_bucket(2), 0, "bare kings -> bucket 0");
+    assert_eq!(output_bucket(5), 0, "(5-2)/4 = 0");
+    assert_eq!(output_bucket(6), 1, "(6-2)/4 = 1");
+    assert_eq!(output_bucket(32), 7, "startpos -> top bucket");
+
+    // Out-of-range inputs must clamp rather than panic or read out of bounds.
+    assert_eq!(output_bucket(0), 0);
+    assert_eq!(output_bucket(1), 0);
+    assert_eq!(output_bucket(64), NUM_OUTPUT_BUCKETS - 1);
+}
+
+/// Build a synthetic 8-bucket net whose only non-zero values are the per-bucket
+/// biases, chosen so bucket k evaluates to exactly (k+1)*100 centipawns.
+///
+/// With all L0 weights and biases zero, every accumulator entry is 0, so both
+/// SCReLU terms vanish and the output reduces to the bucket's bias alone:
+///   eval = bias * EVAL_SCALE / (QA*QB) = bias * 400 / 16320
+/// Setting bias_k = 4080*(k+1) gives eval = 100*(k+1).
+fn synthetic_bucketed_net() -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new();
+    let mut push = |v: i16| out.extend_from_slice(&v.to_le_bytes());
+
+    for _ in 0..(INPUT_SIZE * HIDDEN_SIZE) {
+        push(0); // l0 weights
+    }
+    for _ in 0..HIDDEN_SIZE {
+        push(0); // l0 biases
+    }
+    for _ in 0..(NUM_OUTPUT_BUCKETS * 2 * HIDDEN_SIZE) {
+        push(0); // l1 weights, all buckets
+    }
+    for k in 0..NUM_OUTPUT_BUCKETS {
+        push((4080 * (k + 1)) as i16); // l1 bias per bucket
+    }
+    out
+}
+
+/// End-to-end check of the bucketed loading path, using a synthetic net so it
+/// runs before any bucketed net has actually been trained.
+///
+/// This is the guard that the `[bucket][512]` layout assumption and the bucket
+/// selection agree: each bucket is given a distinct signature and the eval must
+/// return the one matching the position's piece count.
+#[test]
+fn bucketed_net_selects_the_right_bucket() {
+    let bytes = synthetic_bucketed_net();
+
+    // Size must be exactly what a real bucketed quantised.bin will be.
+    let expected_i16 = INPUT_SIZE * HIDDEN_SIZE + HIDDEN_SIZE + NUM_OUTPUT_BUCKETS * 2 * HIDDEN_SIZE + NUM_OUTPUT_BUCKETS;
+    assert_eq!(bytes.len(), expected_i16 * 2, "synthetic net is the wrong size");
+    assert_eq!(bytes.len(), 401_936, "bucketed net size changed unexpectedly");
+
+    let net = NnueNetwork::from_bytes(&bytes);
+    let mut acc = Accumulator::new();
+
+    // (fen, expected piece count) spanning several buckets.
+    let cases = [
+        ("4k3/8/8/8/8/8/8/4K3 w - - 0 1", 2u32),
+        ("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1", 3),
+        ("4k3/4p3/8/8/8/8/4P3/4K3 w - - 0 1", 4),
+        ("4k3/3ppp2/8/8/8/8/3PPP2/4K3 w - - 0 1", 8),
+        ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 32),
+    ];
+
+    for (fen, expected_pieces) in cases {
+        let pos = get_position(fen);
+        let pieces = piece_count(&pos);
+        assert_eq!(pieces, expected_pieces, "test case piece count wrong for {}", fen);
+
+        acc.compute(&net, &pos);
+        let eval = net.evaluate(&acc, pos.mover, pieces) as i32;
+
+        let bucket = output_bucket(pieces);
+        let expected = 100 * (bucket as i32 + 1);
+        assert_eq!(
+            eval, expected,
+            "{} ({} pieces) should hit bucket {} and eval {}, got {}",
+            fen, pieces, bucket, expected, eval
+        );
+    }
+}
+
+/// A single-bucket (legacy) net must be replicated across all buckets, so its
+/// evaluation is independent of piece count and identical to the pre-bucket
+/// implementation. This is what lets the engine ship before the bucketed net
+/// exists, and what keeps the golden values valid across this change.
+#[test]
+fn single_bucket_net_is_piece_count_independent() {
+    let net = NnueNetwork::embedded();
+    let mut acc = Accumulator::new();
+
+    // Same position evaluated while claiming wildly different piece counts.
+    // With the shipped single-bucket net every bucket holds the same weights,
+    // so the result must not move.
+    let pos = get_position("4k3/8/8/8/8/8/8/3QK3 w - - 0 1");
+    acc.compute(&net, &pos);
+
+    let baseline = net.evaluate(&acc, pos.mover, piece_count(&pos));
+    for claimed in [2u32, 7, 15, 23, 32] {
+        assert_eq!(
+            net.evaluate(&acc, pos.mover, claimed),
+            baseline,
+            "single-bucket net changed with claimed piece count {}",
+            claimed
+        );
     }
 }
