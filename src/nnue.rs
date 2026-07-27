@@ -45,8 +45,14 @@ const QA: i32 = 255; // L0 weight/bias and accumulator scale
 const QB: i32 = 64; // L1 weight scale
 const EVAL_SCALE: i32 = 400; // Converts network output to centipawns
 
-/// Embedded network weights (trained with bullet, quantised.bin format)
-const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2.bin");
+/// Embedded network weights (trained with bullet, quantised.bin format).
+///
+/// `rival-256x2-ob8.bin` — 8 output buckets by material count (NET-321),
+/// 600 superbatches on the same 635M Stockfish depth-9 dataset as the previous
+/// single-bucket net. The previous net, `rival-256x2.bin`, is kept in the repo:
+/// the loader still reads single-bucket nets, so switching back is a one-line
+/// change if the A/B match goes against this one.
+const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2-ob8.bin");
 
 // =============================================================================
 // Network

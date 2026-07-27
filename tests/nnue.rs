@@ -153,7 +153,9 @@ fn debug_knight_eval() {
 /// forward pass for a fixed set of positions against the embedded net.
 ///
 /// These numbers are not "correct" in any absolute sense — they are simply what
-/// `nets/rival-256x2.bin` produces today. The point is that any change to the
+/// `nets/rival-256x2-ob8.bin` (8 output buckets, NET-321) produces today.
+/// They were regenerated deliberately when that net replaced the single-bucket
+/// `rival-256x2.bin`, after `check_net` confirmed it loads with correct signs. The point is that any change to the
 /// inference path (SIMD, i64 accumulation, quantisation, weight layout) must be
 /// **bit-identical**, so this test failing means the refactor changed the eval.
 ///
@@ -166,14 +168,14 @@ fn nnue_golden_values_are_bit_identical() {
 
     // (expected_cp, fen) — evaluated from the side to move's perspective.
     let golden: &[(i32, &str)] = &[
-        (-28, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
-        (-180, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
-        (-79, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
-        (10, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
-        (318, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
-        (153, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
-        (11, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
-        (-111, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
+        (-26, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
+        (-223, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
+        (-76, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
+        (-13, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
+        (350, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
+        (143, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
+        (9, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
+        (-81, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
     ];
 
     for &(expected, fen) in golden {
@@ -362,16 +364,22 @@ fn bucketed_net_selects_the_right_bucket() {
 
 /// A single-bucket (legacy) net must be replicated across all buckets, so its
 /// evaluation is independent of piece count and identical to the pre-bucket
-/// implementation. This is what lets the engine ship before the bucketed net
-/// exists, and what keeps the golden values valid across this change.
+/// implementation.
+///
+/// The legacy net is loaded explicitly rather than via `embedded()`, because
+/// the embedded net is now the bucketed one — reading it here would test the
+/// opposite property. Keeping this guard matters: the loader still accepts
+/// single-bucket nets, which is the escape hatch if the bucketed net loses its
+/// A/B match and we need to revert with a one-line change.
 #[test]
 fn single_bucket_net_is_piece_count_independent() {
-    let net = NnueNetwork::embedded();
+    const LEGACY_NET: &[u8] = include_bytes!("../nets/rival-256x2.bin");
+    let net = NnueNetwork::from_bytes(LEGACY_NET);
     let mut acc = Accumulator::new();
 
     // Same position evaluated while claiming wildly different piece counts.
-    // With the shipped single-bucket net every bucket holds the same weights,
-    // so the result must not move.
+    // With a single-bucket net every bucket holds the same weights, so the
+    // result must not move.
     let pos = get_position("4k3/8/8/8/8/8/8/3QK3 w - - 0 1");
     acc.compute(&net, &pos);
 
