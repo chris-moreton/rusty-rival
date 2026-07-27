@@ -72,46 +72,49 @@ fn main() {
     let mut acc = Accumulator::new();
     let mut failures = 0;
 
-    // --- Training maturity ----------------------------------------------
-    // Sign checks on small material advantages are meaningless in a barely
-    // trained net: every score sits near zero, so the sign is noise. Gauge
-    // maturity from the largest material swing first and scale expectations,
-    // otherwise an early checkpoint reads as a layout bug.
-    let queen_up = eval(&net, &mut acc, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1");
-    let mature = queen_up.abs() >= 300;
-    if !mature {
-        println!("\nWARNING: a queen advantage evaluates to only {} cp.", queen_up);
-        println!("A trained net scores this in the high hundreds. This looks like an early");
-        println!("checkpoint, so treat small-material sign checks below as inconclusive");
-        println!("rather than as evidence of a layout bug. Re-run on the final net.");
-    }
-
     // --- Sign sanity ----------------------------------------------------
-    // These must hold for ANY sanely trained net, however undertrained.
+    //
+    // Positions deliberately carry a full complement of other material. Sparse
+    // endgames (KQvK, KRvK) are a trap here: Stockfish game data barely
+    // contains them, so every net in this family evaluates them near zero with
+    // unreliable signs. The shipped net — worth +280 Elo over HCE — scores a
+    // bare KQvK at only 153 cp and gets KRvK signs backwards. Judging a net on
+    // those positions reports a layout bug that isn't there.
+    //
+    // With a realistic middlegame around it, a queen is worth hundreds of
+    // centipawns to any sane net, and a swapped-perspective net inverts it.
     println!("\n--- sign checks (catch swapped STM/NTM perspectives) ---");
     let checks: [(&str, &str, bool); 4] = [
-        ("white queen up, white to move", "4k3/8/8/8/8/8/8/3QK3 w - - 0 1", true),
-        ("black queen up, white to move", "3qk3/8/8/8/8/8/8/4K3 w - - 0 1", false),
-        ("white rook up, black to move", "4k3/8/8/8/8/8/8/3RK3 b - - 0 1", false),
-        ("black rook up, black to move", "3rk3/8/8/8/8/8/8/4K3 b - - 0 1", true),
+        (
+            "white queen up, white to move",
+            "r1b1kb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1",
+            true,
+        ),
+        (
+            "black queen up, white to move",
+            "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNB1K2R w KQkq - 0 1",
+            false,
+        ),
+        (
+            "white queen up, black to move",
+            "r1b1kb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1",
+            false,
+        ),
+        (
+            "black queen up, black to move",
+            "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNB1K2R b KQkq - 0 1",
+            true,
+        ),
     ];
-    // Scale the bar to the net's own maturity, so an early checkpoint is judged
-    // on direction rather than magnitude.
-    let threshold = if mature { 50 } else { 1 };
+    // A queen in a real position is worth far more than this to any usable net;
+    // the shipped reference clears it by a wide margin.
+    const SIGN_THRESHOLD: i32 = 300;
     for (name, fen, expect_positive) in checks {
         let e = eval(&net, &mut acc, fen);
         // Scores are from the side to move's perspective.
-        let ok = if expect_positive { e > threshold } else { e < -threshold };
-        let verdict = if ok {
-            "ok"
-        } else if mature {
-            "FAIL"
-        } else {
-            "inconclusive (undertrained)"
-        };
-        println!("  {:<32} {:>7} cp  {}", name, e, verdict);
-        // Only a mature net's sign errors are real failures.
-        if !ok && mature {
+        let ok = if expect_positive { e > SIGN_THRESHOLD } else { e < -SIGN_THRESHOLD };
+        println!("  {:<32} {:>7} cp  {}", name, e, if ok { "ok" } else { "FAIL" });
+        if !ok {
             failures += 1;
         }
     }
