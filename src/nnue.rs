@@ -13,7 +13,11 @@ use std::fmt;
 
 // Network dimensions
 pub const INPUT_SIZE: usize = 768;
-pub const HIDDEN_SIZE: usize = 256;
+/// Hidden layer width. **Must match the embedded net** — the loader's format
+/// detection distinguishes single-bucket from bucketed, *not* 256 from 512, so
+/// a 512-wide net read with this set to 256 loads without error and evaluates
+/// garbage. Change this and `EMBEDDED_NET` together (NET-324).
+pub const HIDDEN_SIZE: usize = 512;
 
 /// Number of output buckets, selected by material count (NET-321).
 ///
@@ -47,12 +51,16 @@ const EVAL_SCALE: i32 = 400; // Converts network output to centipawns
 
 /// Embedded network weights (trained with bullet, quantised.bin format).
 ///
-/// `rival-256x2-ob8.bin` — 8 output buckets by material count (NET-321),
+/// `rival-512x2-ob8.bin` — 512-wide hidden layer with 8 output buckets
+/// (NET-324), 600 superbatches on the same 635M dataset. Fills the previously
+/// untested (512, 635M) cell; width is the only change from the NET-321 net.
+///
+/// Previously `rival-256x2-ob8.bin` — 8 output buckets by material count (NET-321),
 /// 600 superbatches on the same 635M Stockfish depth-9 dataset as the previous
 /// single-bucket net. The previous net, `rival-256x2.bin`, is kept in the repo:
 /// the loader still reads single-bucket nets, so switching back is a one-line
 /// change if the A/B match goes against this one.
-const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2-ob8.bin");
+const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-512x2-ob8.bin");
 
 // =============================================================================
 // Network
@@ -122,6 +130,22 @@ impl NnueNetwork {
     /// shipped net carries 62 trailing bytes beyond what is read (bullet
     /// padding), so an equality check would be brittle.
     pub fn from_bytes(data: &[u8]) -> Self {
+        // Reject a net whose width doesn't match HIDDEN_SIZE before reading a
+        // single byte. The format detection below distinguishes single-bucket
+        // from bucketed, but NOT 256-wide from 512-wide: a mismatched net either
+        // runs off the end of the buffer (panic with an opaque index message) or,
+        // if the file happens to be larger, is read as plausible garbage and
+        // silently evaluates nonsense. Both are far worse than failing here.
+        let single_i16 = INPUT_SIZE * HIDDEN_SIZE + HIDDEN_SIZE + 2 * HIDDEN_SIZE + 1;
+        assert!(
+            data.len() >= single_i16 * 2,
+            "NNUE net is too small for HIDDEN_SIZE={}: got {} bytes, need at least {}. \
+             The embedded net and HIDDEN_SIZE must be changed together.",
+            HIDDEN_SIZE,
+            data.len(),
+            single_i16 * 2
+        );
+
         let mut offset = 0;
 
         // L0 weights: stored as [feature][neuron] = 768 features × 256 neurons

@@ -11,20 +11,33 @@ fn piece_count(position: &Position) -> u32 {
 fn nnue_eval_signs_are_correct() {
     let net = NnueNetwork::embedded();
 
-    // White has extra queen - should be very positive for white
-    let pos = get_position("4k3/8/8/8/8/8/8/3QK3 w - - 0 1");
+    // Material edge in a REALISTIC position. Bare KQvK is a trap: Stockfish
+    // game data barely contains such positions, so every net in this family
+    // scores them near zero regardless of health. The 512x2 net scores KQvK at
+    // 74 cp and the shipped 256 net at 153 - neither is evidence of anything.
+    // With a full middlegame around it, a queen is worth hundreds to any sane
+    // net, and a swapped-perspective net inverts the sign.
     let mut acc = Accumulator::new();
+
+    let pos = get_position("r1b1kb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1");
     acc.compute(&net, &pos);
     let white_queen_up = net.evaluate(&acc, WHITE, piece_count(&pos));
-    println!("Ke1+Qd1 vs ke8 (white STM): {}", white_queen_up);
-    assert!(white_queen_up > 100, "White with queen should be positive, got {}", white_queen_up);
+    println!("white a queen up, white to move: {}", white_queen_up);
+    assert!(
+        white_queen_up > 300,
+        "White a queen up should be strongly positive, got {}",
+        white_queen_up
+    );
 
-    // Black has extra queen - should be very negative for white
-    let pos = get_position("3qk3/8/8/8/8/8/8/4K3 w - - 0 1");
+    let pos = get_position("r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNB1K2R w KQkq - 0 1");
     acc.compute(&net, &pos);
     let black_queen_up = net.evaluate(&acc, WHITE, piece_count(&pos));
-    println!("Ke1 vs ke8+qd8 (white STM): {}", black_queen_up);
-    assert!(black_queen_up < -100, "Black with queen should be negative, got {}", black_queen_up);
+    println!("black a queen up, white to move: {}", black_queen_up);
+    assert!(
+        black_queen_up < -300,
+        "Black a queen up should be strongly negative, got {}",
+        black_queen_up
+    );
 }
 
 #[test]
@@ -153,7 +166,7 @@ fn debug_knight_eval() {
 /// forward pass for a fixed set of positions against the embedded net.
 ///
 /// These numbers are not "correct" in any absolute sense — they are simply what
-/// `nets/rival-256x2-ob8.bin` (8 output buckets, NET-321) produces today.
+/// `nets/rival-512x2-ob8.bin` (512 wide, 8 output buckets, NET-324) produces today.
 /// They were regenerated deliberately when that net replaced the single-bucket
 /// `rival-256x2.bin`, after `check_net` confirmed it loads with correct signs. The point is that any change to the
 /// inference path (SIMD, i64 accumulation, quantisation, weight layout) must be
@@ -168,14 +181,14 @@ fn nnue_golden_values_are_bit_identical() {
 
     // (expected_cp, fen) — evaluated from the side to move's perspective.
     let golden: &[(i32, &str)] = &[
-        (-26, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
-        (-223, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
-        (-76, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
-        (-13, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
-        (350, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
-        (143, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
-        (9, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
-        (-81, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
+        (-42, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
+        (-135, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
+        (7, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
+        (-141, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
+        (406, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
+        (74, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
+        (10, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
+        (-114, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
     ];
 
     for &(expected, fen) in golden {
@@ -330,7 +343,6 @@ fn bucketed_net_selects_the_right_bucket() {
     // Size must be exactly what a real bucketed quantised.bin will be.
     let expected_i16 = INPUT_SIZE * HIDDEN_SIZE + HIDDEN_SIZE + NUM_OUTPUT_BUCKETS * 2 * HIDDEN_SIZE + NUM_OUTPUT_BUCKETS;
     assert_eq!(bytes.len(), expected_i16 * 2, "synthetic net is the wrong size");
-    assert_eq!(bytes.len(), 401_936, "bucketed net size changed unexpectedly");
 
     let net = NnueNetwork::from_bytes(&bytes);
     let mut acc = Accumulator::new();
@@ -373,8 +385,23 @@ fn bucketed_net_selects_the_right_bucket() {
 /// A/B match and we need to revert with a one-line change.
 #[test]
 fn single_bucket_net_is_piece_count_independent() {
-    const LEGACY_NET: &[u8] = include_bytes!("../nets/rival-256x2.bin");
-    let net = NnueNetwork::from_bytes(LEGACY_NET);
+    // Synthesised at the current HIDDEN_SIZE rather than read from
+    // nets/rival-256x2.bin. That file is 256-wide, so once HIDDEN_SIZE became
+    // 512 loading it ran off the end of the buffer - the loader cannot tell
+    // 256 from 512. Synthesising keeps this guard meaningful at any width.
+    let mut bytes: Vec<u8> = Vec::new();
+    let mut push = |v: i16| bytes.extend_from_slice(&v.to_le_bytes());
+    for i in 0..(INPUT_SIZE * HIDDEN_SIZE) {
+        push((i % 7) as i16 - 3); // arbitrary but non-uniform
+    }
+    for _ in 0..HIDDEN_SIZE {
+        push(1);
+    }
+    for i in 0..(2 * HIDDEN_SIZE) {
+        push((i % 5) as i16 - 2);
+    }
+    push(64); // single L1 bias
+    let net = NnueNetwork::from_bytes(&bytes);
     let mut acc = Accumulator::new();
 
     // Same position evaluated while claiming wildly different piece counts.
