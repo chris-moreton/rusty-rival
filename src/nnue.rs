@@ -17,7 +17,7 @@ pub const INPUT_SIZE: usize = 768;
 /// detection distinguishes single-bucket from bucketed, *not* 256 from 512, so
 /// a 512-wide net read with this set to 256 loads without error and evaluates
 /// garbage. Change this and `EMBEDDED_NET` together (NET-324).
-pub const HIDDEN_SIZE: usize = 512;
+pub const HIDDEN_SIZE: usize = 256;
 
 /// Number of output buckets, selected by material count (NET-321).
 ///
@@ -51,16 +51,12 @@ const EVAL_SCALE: i32 = 400; // Converts network output to centipawns
 
 /// Embedded network weights (trained with bullet, quantised.bin format).
 ///
-/// `rival-512x2-ob8.bin` — 512-wide hidden layer with 8 output buckets
-/// (NET-324), 600 superbatches on the same 635M dataset. Fills the previously
-/// untested (512, 635M) cell; width is the only change from the NET-321 net.
-///
-/// Previously `rival-256x2-ob8.bin` — 8 output buckets by material count (NET-321),
+/// `rival-256x2-ob8.bin` — 8 output buckets by material count (NET-321),
 /// 600 superbatches on the same 635M Stockfish depth-9 dataset as the previous
 /// single-bucket net. The previous net, `rival-256x2.bin`, is kept in the repo:
 /// the loader still reads single-bucket nets, so switching back is a one-line
 /// change if the A/B match goes against this one.
-const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-512x2-ob8.bin");
+const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2-ob8.bin");
 
 // =============================================================================
 // Network

@@ -166,7 +166,7 @@ fn debug_knight_eval() {
 /// forward pass for a fixed set of positions against the embedded net.
 ///
 /// These numbers are not "correct" in any absolute sense — they are simply what
-/// `nets/rival-512x2-ob8.bin` (512 wide, 8 output buckets, NET-324) produces today.
+/// `nets/rival-256x2-ob8.bin` (8 output buckets, NET-321) produces today.
 /// They were regenerated deliberately when that net replaced the single-bucket
 /// `rival-256x2.bin`, after `check_net` confirmed it loads with correct signs. The point is that any change to the
 /// inference path (SIMD, i64 accumulation, quantisation, weight layout) must be
@@ -181,14 +181,14 @@ fn nnue_golden_values_are_bit_identical() {
 
     // (expected_cp, fen) — evaluated from the side to move's perspective.
     let golden: &[(i32, &str)] = &[
-        (-42, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
-        (-135, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
-        (7, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
-        (-141, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
-        (406, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
-        (74, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
-        (10, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
-        (-114, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
+        (-26, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
+        (-223, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
+        (-76, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
+        (-13, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
+        (350, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
+        (143, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
+        (9, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
+        (-81, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
     ];
 
     for &(expected, fen) in golden {
