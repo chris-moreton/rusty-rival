@@ -1,4 +1,5 @@
 pub mod bitboards;
+pub mod datagen;
 pub mod engine_constants;
 pub mod evaluate;
 pub mod fen;

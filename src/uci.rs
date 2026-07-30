@@ -17,6 +17,7 @@ use crate::make_move::make_move;
 use crate::move_constants::START_POS;
 use crate::moves::{generate_moves, is_check};
 
+use crate::datagen::cmd_datagen;
 use crate::perft::perft;
 use crate::search::{clear_history_table, iterative_deepening};
 use crate::types::{set_stop, Move, Position, SearchHandle, SearchState, SharedHashTable, UciState, BLACK, WHITE};
@@ -214,6 +215,7 @@ pub fn run_command(
 
     match *parts.first().unwrap() {
         "bench" => cmd_benchmark(uci_state, search_state, parts),
+        "datagen" => cmd_datagen(uci_state, search_state, parts),
         "uci" => cmd_uci(),
         "isready" => cmd_isready(),
         "state" => cmd_state(uci_state, search_state),
