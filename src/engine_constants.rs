@@ -339,3 +339,33 @@ pub const TM_SCORE_DROP_THRESHOLD: Score = 50;
 pub const TM_SCORE_DROP_EXTEND: f64 = 1.5;
 pub const TM_INSTABILITY_EXTEND: f64 = 1.3;
 pub const TM_MIN_DEPTH_FOR_TM: u8 = 5;
+
+// Predictive iteration cutoff (NET-339).
+//
+// The soft limit can only be tested between iterations: once an iteration has
+// started, nothing but the hard limit stops it. So starting an iteration that
+// cannot finish inside the soft budget silently promotes that move to the hard
+// budget, which is TM_HARD_FACTOR/TM_SOFT_FACTOR = ~4.2x larger. Measured on
+// v1.0.48 at 60+0.6, the median move cost 2.41x its soft limit for exactly this
+// reason, and roughly one move in six ran to the full hard limit.
+//
+// Before starting iteration N+1 we therefore predict its cost as the measured
+// cost of iteration N multiplied by this factor, and decline to start it if the
+// prediction lands past the soft limit. The multiplier is an effective
+// branching factor: the search tree grows geometrically, so iteration N+1
+// typically costs 1.5-3x iteration N once the tree is past the shallow depths.
+pub const TM_ITERATION_GROWTH: f64 = 1.8;
+
+// Ceiling on the cumulative soft-limit extension (NET-339).
+//
+// TM_INSTABILITY_EXTEND and TM_SCORE_DROP_EXTEND are applied once per iteration
+// and each only clamped against end_time, so on a position where the best move
+// keeps changing they compound geometrically and saturate the soft limit at the
+// hard limit - which is TM_HARD_FACTOR/TM_SOFT_FACTOR = ~4.2x the intended
+// budget. Measured: moves costing exactly 4.17x soft, i.e. the whole hard
+// ceiling, which at 60+0.6 is 6.1s of a 60s game on a single move.
+//
+// An unstable position genuinely deserves more time, so the extensions stay -
+// but bounded in total, relative to the ORIGINAL soft budget rather than
+// creeping up to the emergency ceiling.
+pub const TM_MAX_EXTENSION_FACTOR: f64 = 2.0;
