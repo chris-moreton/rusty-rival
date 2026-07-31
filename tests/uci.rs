@@ -1,9 +1,10 @@
 use either::{Either, Left, Right};
 use rusty_rival::fen::get_position;
 use rusty_rival::move_constants::START_POS;
+use rusty_rival::search::next_iteration_fits;
 use rusty_rival::types::{default_search_state, default_uci_state, BoundType, HashEntry, SearchState, UciState};
 use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 #[test]
 pub fn it_sets_a_fen() {
@@ -235,6 +236,77 @@ pub fn it_returns_a_best_move() {
         println!("{}", message);
         message.contains("bestmove")
     });
+}
+
+/// NET-339 regression: the engine must respect the SOFT limit, not merely the hard one.
+///
+/// Every pre-existing timing assertion in this file checks only that the search
+/// returned inside the HARD limit — which it always did, to within 1ms. That is
+/// precisely why this shipped: the soft limit is the budget the engine intends to
+/// spend, and it was being exceeded by 2-4x on a typical move, because nothing
+/// could stop an iteration once it had started. At bullet that is the whole game
+/// (31 of 33 losses on v1.0.48 were time forfeits).
+///
+/// The tolerance is deliberately loose so a loaded CI box cannot flake it, while
+/// still sitting far below the hard limit — the failure being guarded against is
+/// the engine treating `hard` as its budget.
+#[test]
+pub fn it_respects_the_soft_time_limit() {
+    // 60+0.6 bullet — the control the Lichess bot actually plays.
+    //   base = (60000/31) * 0.95 + 600 = 2438ms
+    //   soft = base * 0.6  = 1462ms      <- the budget
+    //   hard = base * 2.5  = 6095ms      <- the emergency ceiling
+    // Pre-fix, this position consumed the full 6095ms.
+    const SOFT_MS: u128 = 1462;
+    const TOLERANCE: u128 = 2; // 2x soft, i.e. 2924ms — less than half of hard
+
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+
+    assert_eq!(
+        run_command_test(&mut uci_state, &mut search_state, &format!("position fen {}", START_POS)),
+        Right(None)
+    );
+
+    let start = Instant::now();
+    let result = run_command_test(&mut uci_state, &mut search_state, "go wtime 60000 btime 60000 winc 600 binc 600");
+    let millis = (Instant::now() - start).as_millis();
+
+    assert_success_message(result, |message| message.contains("bestmove"));
+    assert!(
+        millis <= SOFT_MS * TOLERANCE,
+        "search spent {}ms against a soft limit of {}ms ({:.1}x). The hard limit is 6095ms, \
+         so an assertion against `hard` alone would still pass here — that is the bug this \
+         test exists to catch (NET-339).",
+        millis,
+        SOFT_MS,
+        millis as f64 / SOFT_MS as f64
+    );
+}
+
+/// Unit coverage for the predictive cutoff itself, independent of any search, so
+/// the decision logic is pinned deterministically rather than via wall-clock.
+#[test]
+pub fn it_declines_an_iteration_that_cannot_finish() {
+    let growth = 1.8;
+
+    // Last iteration took 100ms; predicted next is 180ms.
+    assert!(
+        next_iteration_fits(Duration::from_millis(100), Duration::from_millis(200), growth),
+        "180ms prediction fits in 200ms remaining"
+    );
+    assert!(
+        !next_iteration_fits(Duration::from_millis(100), Duration::from_millis(150), growth),
+        "180ms prediction must NOT be started with only 150ms left — this is the \
+         overrun that ran the move to the hard limit"
+    );
+
+    // Already past the soft limit: nothing further may be started.
+    assert!(!next_iteration_fits(Duration::from_millis(1), Duration::ZERO, growth));
+
+    // A free iteration is always allowed, so shallow depths are never starved
+    // and a legal move is always available.
+    assert!(next_iteration_fits(Duration::ZERO, Duration::ZERO, growth));
 }
 
 fn test_wtime_btime(fen: &str, cmd: &str, hard_limit_millis: u128) {

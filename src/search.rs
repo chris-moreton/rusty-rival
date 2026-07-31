@@ -6,8 +6,8 @@ use crate::engine_constants::{
     MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION,
     PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
     SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
-    SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND,
-    TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR,
+    TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 
@@ -70,7 +70,7 @@ use crate::types::{
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
 use std::cmp::{max, min};
 use std::sync::atomic::Ordering;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 pub const MAX_WINDOW: Score = 20000;
 pub const MATE_SCORE: Score = 10000;
@@ -141,6 +141,18 @@ macro_rules! debug_out {
             $s
         }
     };
+}
+
+/// Whether another iterative-deepening iteration can be started without
+/// overrunning the soft time limit, given how long the last one took.
+///
+/// Pure and public so the decision is regression-testable without running a
+/// search. This matters: the NET-339 time-forfeit bug was invisible to every
+/// existing timing test because they all asserted against the HARD limit, which
+/// the engine honours to within a millisecond, while the soft limit - the budget
+/// the engine is actually supposed to spend - was being exceeded ~4x.
+pub fn next_iteration_fits(last_iteration: Duration, remaining_to_soft: Duration, growth: f64) -> bool {
+    last_iteration.mul_f64(growth) <= remaining_to_soft
 }
 
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
@@ -251,10 +263,23 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 
     let mut prev_synced_nodes: u64 = 0;
 
+    // Ceiling for the cumulative soft-limit extension, fixed against the ORIGINAL
+    // soft budget before any iteration can move it (NET-339). Without this the
+    // per-iteration extensions compound until soft == hard.
+    let max_soft_time_limit = search_state.start_time
+        + search_state
+            .soft_time_limit
+            .saturating_duration_since(search_state.start_time)
+            .mul_f64(TM_MAX_EXTENSION_FACTOR);
+
     for iterative_depth in start_depth..=max_depth {
         //println!("Iterative depth {}", iterative_depth);
         let mut c = 0;
         search_state.iterative_depth = iterative_depth;
+        // Cost of this iteration, used to predict whether the next one fits in
+        // the soft budget. Includes any aspiration re-searches, which is what we
+        // want - a re-search storm is exactly the case that overruns.
+        let iteration_start = Instant::now();
 
         loop {
             //println!("Searching with aspiration window {} {} at [{}]", aspiration_window.0, aspiration_window.1, c);
@@ -330,7 +355,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 let remaining_soft = search_state.soft_time_limit.saturating_duration_since(now);
                 let extension = remaining_soft.mul_f64(TM_INSTABILITY_EXTEND - 1.0);
                 let extended = search_state.soft_time_limit + extension;
-                search_state.soft_time_limit = min(extended, search_state.end_time);
+                search_state.soft_time_limit = min(min(extended, max_soft_time_limit), search_state.end_time);
             }
 
             // Extend soft limit on score drop
@@ -338,11 +363,33 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 let remaining_soft = search_state.soft_time_limit.saturating_duration_since(now);
                 let extension = remaining_soft.mul_f64(TM_SCORE_DROP_EXTEND - 1.0);
                 let extended = search_state.soft_time_limit + extension;
-                search_state.soft_time_limit = min(extended, search_state.end_time);
+                search_state.soft_time_limit = min(min(extended, max_soft_time_limit), search_state.end_time);
             }
 
             // Past soft limit (possibly extended) — stop
             if now >= search_state.soft_time_limit {
+                set_stop(&search_state.stop, true);
+                break;
+            }
+        }
+
+        // Predictive iteration cutoff (NET-339). Everything above only decides
+        // whether we are ALREADY past the soft limit; none of it can stop an
+        // iteration once it has begun, because check_time!/time_expired! test
+        // end_time (the hard limit) and nothing tests soft_time_limit inside the
+        // search. So an iteration started just under the soft limit runs to the
+        // hard limit instead - ~4.2x the intended budget. That is what lost games
+        // on the clock. Predict the next iteration from the cost of this one and
+        // decline to start it if it cannot finish in time.
+        //
+        // Deliberately not gated on TM_MIN_DEPTH_FOR_TM: shallow iterations cost
+        // microseconds, so the prediction cannot fire early enough to matter, and
+        // current_best always holds a legal move from before the loop.
+        if search_state.time_management_active && search_state.thread_id == 0 {
+            let now = Instant::now();
+            let last_iteration = now.saturating_duration_since(iteration_start);
+            let remaining_to_soft = search_state.soft_time_limit.saturating_duration_since(now);
+            if !next_iteration_fits(last_iteration, remaining_to_soft, TM_ITERATION_GROWTH) {
                 set_stop(&search_state.stop, true);
                 break;
             }
