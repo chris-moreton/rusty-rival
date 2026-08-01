@@ -237,11 +237,26 @@ pub fn insufficient_material(position: &Position, piece_count: u8, include_helpm
         return false;
     }
 
-    let knight_count = (w.knight_bitboard | b.knight_bitboard).count_ones();
-    let minor_count = (w.bishop_bitboard | b.bishop_bitboard).count_ones();
+    // What matters is OWNERSHIP, not the total: two minors on the same side can
+    // be a forced win (both KBB and KBN mate), one each never is. The previous
+    // code counted only bishops into `minor_count` and returned
+    // `minor_count <= 2`, which is unconditionally true once piece_count <= 4 -
+    // so every pawnless, majorless 4-man position was called a draw, including
+    // KBB-vs-K and KBN-vs-K. In the default (NNUE) configuration is_draw calls
+    // this at every node past ply 6, so those wins were scored 0 and thrown
+    // away, and the engine would trade into them when losing (NET-363).
+    let white_minors = (w.knight_bitboard | w.bishop_bitboard).count_ones();
+    let black_minors = (b.knight_bitboard | b.bishop_bitboard).count_ones();
 
     if include_helpmates {
-        return minor_count <= 2 || (minor_count == 3 && knight_count == 0);
+        // Nothing to mate with, or one minor each (KB-KB either colouring,
+        // KB-KN, KN-KN): no forced win exists for either side.
+        if white_minors + black_minors <= 1 || (white_minors == 1 && black_minors == 1) {
+            return true;
+        }
+        // Both minors on one side. Only two knights cannot force mate;
+        // bishop pair and bishop+knight both can.
+        return w.knight_bitboard.count_ones() == 2 || b.knight_bitboard.count_ones() == 2;
     }
 
     if (w.bishop_bitboard | w.knight_bitboard | b.bishop_bitboard | b.knight_bitboard).count_ones() == 1 {

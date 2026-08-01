@@ -71,6 +71,19 @@ fn it_knows_insufficient_material() {
 
     test_insufficient_material("6k1/8/8/4K3/8/4B3/5b2/8 b - - 0 1", true, false);
     test_insufficient_material("6k1/8/8/4K3/8/4B3/5b2/8 b - - 0 1", true, true);
+
+    // NET-363: two minors on the SAME side. KBB and KBN are forced wins and
+    // must never be called insufficient - previously every one of these
+    // returned true with helpmates included, so the search scored a won
+    // bishop-pair or bishop+knight endgame as a dead draw at every node past
+    // ply 6. KNN cannot force mate, so it stays a draw.
+    test_insufficient_material("8/8/8/4k3/8/8/8/1BB2K2 w - - 0 1", false, true);
+    test_insufficient_material("8/8/8/4k3/8/8/8/2B1NK2 w - - 0 1", false, true);
+    test_insufficient_material("8/8/8/4k3/8/8/8/1NN2K2 w - - 0 1", true, true);
+    // ...and the same three without helpmates: a lone side with two minors is
+    // never "insufficient" in the strict sense except two knights
+    test_insufficient_material("8/8/8/4k3/8/8/8/1BB2K2 w - - 0 1", false, false);
+    test_insufficient_material("8/8/8/4k3/8/8/8/2B1NK2 w - - 0 1", false, false);
 }
 
 #[test]
