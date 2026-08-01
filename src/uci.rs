@@ -147,7 +147,8 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
             uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
             uci_state.depth = extract_go_param("depth", &line, 250).min(250);
             uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
-            uci_state.move_time = extract_go_param("movetime", &line, 10000000);
+            let movetime = extract_go_param_opt("movetime", &line);
+            uci_state.move_time = movetime.unwrap_or(10000000);
 
             search_state.nodes_limit = uci_state.nodes;
 
@@ -156,38 +157,54 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
             // Parse searchmoves if present
             search_state.search_moves = parse_searchmoves(&line, &position);
 
-            if position.mover == WHITE {
-                calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
-            } else {
-                calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
+            // Mirrors cmd_go (NET-362): clock presence keyed on tokens, explicit
+            // movetime is exact and never rescaled by the clock allocation.
+            let clock_present = parts.contains(&"wtime") || parts.contains(&"btime");
+
+            if movetime.is_none() && clock_present {
+                if position.mover == WHITE {
+                    calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
+                } else {
+                    calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
+                }
             }
 
             uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, uci_state.move_overhead));
 
             let base_time_ms = uci_state.move_time;
-            let time_remaining = if position.mover == WHITE {
-                uci_state.wtime
+            let (time_remaining, increment) = if position.mover == WHITE {
+                (uci_state.wtime, uci_state.winc)
             } else {
-                uci_state.btime
+                (uci_state.btime, uci_state.binc)
             };
 
-            let has_clock = time_remaining > 0;
-            if has_clock {
-                let soft_ms = max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64);
-                let hard_ms = max(
-                    10,
-                    min(
-                        (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
-                        (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
-                    ),
-                );
+            if movetime.is_none() && clock_present {
+                let (soft_ms, hard_ms) = if time_remaining == 0 {
+                    // Zero/negative clock: emergency budget, not the 10M default.
+                    let emergency = (increment / 2).clamp(10, 50);
+                    (emergency, emergency)
+                } else {
+                    (
+                        max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64),
+                        max(
+                            10,
+                            min(
+                                (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
+                                (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
+                            ),
+                        ),
+                    )
+                };
 
                 let now = Instant::now();
                 search_state.end_time = now.add(Duration::from_millis(hard_ms));
                 search_state.soft_time_limit = now.add(Duration::from_millis(soft_ms));
                 search_state.time_management_active = true;
             } else {
-                search_state.end_time = Instant::now().add(Duration::from_millis(uci_state.move_time));
+                // Exact deadline: explicit movetime, or no clock at all.
+                let end = Instant::now().add(Duration::from_millis(uci_state.move_time));
+                search_state.end_time = end;
+                search_state.soft_time_limit = end;
                 search_state.time_management_active = false;
             }
 
@@ -327,16 +344,36 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
     }
 }
 
-pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
-    // `[0-9]+` (not `*`) so a malformed value like `wtime -50` or `depth abc`
-    // does not match an empty capture and panic; it falls through to `default`.
-    // `unwrap_or(default)` additionally guards against overflow on huge inputs.
-    let re = needle.to_string() + " ([0-9]+)";
+/// Like `extract_go_param` but distinguishes "parameter absent" (None) from
+/// "parameter present with a valid value" — the distinction matters for time
+/// management (NET-362): `go movetime 0`/`go wtime 0` mean "present, zero" and
+/// must not be confused with the parameter being missing.
+///
+/// Out-of-range values (negative, or too large for u64) are treated as absent
+/// rather than clamped, preserving the long-standing fall-through-to-default
+/// behaviour for every parameter: `depth -3` must NOT become `depth 0` (an
+/// instant unsearched move) and a 20-digit `winc` must NOT become u64::MAX
+/// (overflowing the time allocation). Zero/negative CLOCKS still trigger the
+/// emergency budget because clock presence is keyed on the wtime/btime tokens,
+/// not on these parsed values, and the clock defaults are already 0.
+pub fn extract_go_param_opt(needle: &str, haystack: &str) -> Option<u64> {
+    // `-?` so a negative value (cutechess sends negative clocks near
+    // flag-fall) is consumed and rejected here, not left to mismatch.
+    let re = needle.to_string() + " (-?[0-9]+)";
     let regex = Regex::new(&re).unwrap();
-    match regex.captures(haystack) {
-        Some(x) => x.get(1).map(|m| m.as_str()).and_then(|s| s.parse::<u64>().ok()).unwrap_or(default),
-        None => default,
-    }
+    regex
+        .captures(haystack)
+        .and_then(|x| x.get(1))
+        .and_then(|m| match m.as_str().parse::<i128>() {
+            Ok(v) if (0..=u64::MAX as i128).contains(&v) => Some(v as u64),
+            _ => None, // negative, or overflows u64/i128: treat as absent
+        })
+}
+
+pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
+    // Malformed, negative, or oversized values fall through to `default`
+    // instead of panicking (NET-214).
+    extract_go_param_opt(needle, haystack).unwrap_or(default)
 }
 
 fn cmd_state(mut _uci_state: &mut UciState, search_state: &mut SearchState) -> Either<String, Option<String>> {
@@ -444,34 +481,54 @@ fn cmd_go(
             uci_state.moves_to_go = extract_go_param("movestogo", &line, 0);
             uci_state.depth = extract_go_param("depth", &line, 250).min(250);
             uci_state.nodes = extract_go_param("nodes", &line, u64::MAX);
-            uci_state.move_time = extract_go_param("movetime", &line, 10000000);
+            let movetime = extract_go_param_opt("movetime", &line);
+            uci_state.move_time = movetime.unwrap_or(10000000);
 
             let position = get_position(uci_state.fen.trim());
-            if position.mover == WHITE {
-                calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
-            } else {
-                calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
+            // Clock presence is keyed on the TOKENS, not the parsed values:
+            // `go wtime 0` is a present-but-empty clock and must produce an
+            // emergency budget, never the no-clock default budget (NET-362).
+            let clock_present = parts.contains(&"wtime") || parts.contains(&"btime");
+
+            // An explicit `movetime` is an exact budget per the UCI spec; clock
+            // times must not rescale it (NET-362), so skip the allocation.
+            if movetime.is_none() && clock_present {
+                if position.mover == WHITE {
+                    calc_from_colour_times(uci_state, uci_state.wtime, uci_state.winc);
+                } else {
+                    calc_from_colour_times(uci_state, uci_state.btime, uci_state.binc);
+                }
             }
 
             uci_state.move_time = max(10, uci_state.move_time - min(uci_state.move_time, uci_state.move_overhead));
 
             let base_time_ms = uci_state.move_time;
-            let time_remaining = if position.mover == WHITE {
-                uci_state.wtime
+            let (time_remaining, increment) = if position.mover == WHITE {
+                (uci_state.wtime, uci_state.winc)
             } else {
-                uci_state.btime
+                (uci_state.btime, uci_state.binc)
             };
 
-            let has_clock = time_remaining > 0;
-            if has_clock {
-                let soft_ms = max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64);
-                let hard_ms = max(
-                    10,
-                    min(
-                        (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
-                        (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
-                    ),
-                );
+            if movetime.is_none() && clock_present {
+                let (soft_ms, hard_ms) = if time_remaining == 0 {
+                    // Clock reported zero (or negative — cutechess sends these
+                    // near flag-fall with timemargin): emergency budget. Falling
+                    // through to the 10,000,000ms default here searched for ~2.8
+                    // hours and forfeited otherwise-winnable increment games.
+                    let emergency = (increment / 2).clamp(10, 50);
+                    (emergency, emergency)
+                } else {
+                    (
+                        max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64),
+                        max(
+                            10,
+                            min(
+                                (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
+                                (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
+                            ),
+                        ),
+                    )
+                };
 
                 if is_ponder {
                     let end = Instant::now().add(Duration::from_secs(86400));
@@ -489,9 +546,11 @@ fn cmd_go(
                     )
                 }
             } else if is_ponder {
-                // Movetime/depth/nodes ponder with no clock: defer the deadline until
+                // Movetime/depth/nodes ponder: defer the deadline until
                 // ponderhit, carrying the movetime budget in ponder_hard/soft so the
                 // ponderhit conversion installs a real deadline instead of hanging.
+                // (An explicit movetime lands here even with clocks present: the
+                // exact budget carries through to ponderhit unrescaled.)
                 let end = Instant::now().add(Duration::from_secs(86400));
                 (
                     uci_state.depth as u8,
@@ -503,6 +562,8 @@ fn cmd_go(
                     uci_state.move_time,
                 )
             } else {
+                // Exact deadline: explicit movetime (regardless of clocks), or
+                // no clock at all (depth/nodes/default budget).
                 let now = Instant::now();
                 let end = now.add(Duration::from_millis(uci_state.move_time));
                 (uci_state.depth as u8, end, end, uci_state.nodes, false, 0u64, 0u64)

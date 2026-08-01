@@ -455,6 +455,11 @@ pub struct SearchState {
     pub shared_nodes: Arc<AtomicU64>,
     pub thread_id: usize,
     pub soft_time_limit: Instant,
+    // Ceiling for cumulative soft-limit extensions (NET-339). Lives on SearchState
+    // (not a local in iterative_deepening) so the ponderhit conversion in
+    // check_time! can rebase it on the REAL budget instead of the 24h ponder
+    // placeholder (NET-362).
+    pub max_soft_time_limit: Instant,
     pub best_move_stability: u8,
     pub prev_best_move: Move,
     pub prev_score: Score,
@@ -510,6 +515,7 @@ impl Clone for SearchState {
             shared_nodes: Arc::clone(&self.shared_nodes),
             thread_id: self.thread_id,
             soft_time_limit: self.soft_time_limit,
+            max_soft_time_limit: self.max_soft_time_limit,
             best_move_stability: self.best_move_stability,
             prev_best_move: self.prev_best_move,
             prev_score: self.prev_score,
@@ -565,6 +571,7 @@ pub fn default_search_state() -> SearchState {
         shared_nodes: Arc::new(AtomicU64::new(0)),
         thread_id: 0,
         soft_time_limit: Instant::now(),
+        max_soft_time_limit: Instant::now(),
         best_move_stability: 0,
         prev_best_move: 0,
         prev_score: 0,

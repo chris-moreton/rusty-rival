@@ -3,7 +3,7 @@ use rusty_rival::fen::get_position;
 use rusty_rival::move_constants::START_POS;
 use rusty_rival::search::next_iteration_fits;
 use rusty_rival::types::{default_search_state, default_uci_state, BoundType, HashEntry, SearchState, UciState};
-use rusty_rival::uci::{extract_go_param, is_legal_move, run_command_test};
+use rusty_rival::uci::{extract_go_param, extract_go_param_opt, is_legal_move, run_command_test};
 use std::time::{Duration, Instant};
 
 #[test]
@@ -571,14 +571,42 @@ pub fn it_extracts_a_u64_param() {
 
 #[test]
 pub fn extract_go_param_handles_negative_and_garbage() {
-    // Negative/empty/garbage values fall through to the default instead of panicking
+    // Negative/garbage/oversized values fall through to the default instead of
+    // panicking — and negative must NOT clamp to 0 for value-params like depth,
+    // where 0 would mean an instant unsearched move (`go depth -3`).
     assert_eq!(0, extract_go_param("wtime", "go wtime -50 btime -10", 0));
+    assert_eq!(3, extract_go_param("wtime", "go wtime -50 btime -10", 3));
+    assert_eq!(250, extract_go_param("depth", "go depth -3", 250));
     assert_eq!(250, extract_go_param("depth", "go depth abc", 250));
     assert_eq!(0, extract_go_param("winc", "go winc", 0));
-    // Overflow falls back to default rather than panicking
+    // Overflow falls back to default rather than panicking or clamping (a
+    // 20-digit winc must not become u64::MAX and overflow the allocation)
     assert_eq!(7, extract_go_param("nodes", "go nodes 99999999999999999999999", 7));
+    assert_eq!(0, extract_go_param("winc", "go winc 99999999999999999999999", 0));
     // A well-formed value is still parsed
     assert_eq!(1234, extract_go_param("wtime", "go wtime 1234", 0));
+}
+
+#[test]
+pub fn extract_go_param_opt_distinguishes_absent_from_zero() {
+    // NET-362: `wtime 0` / `movetime 0` are present-with-zero; absence is None.
+    assert_eq!(Some(0), extract_go_param_opt("wtime", "go wtime 0 btime 5000"));
+    assert_eq!(None, extract_go_param_opt("wtime", "go btime 5000"));
+    assert_eq!(Some(1234), extract_go_param_opt("movetime", "go movetime 1234 wtime 60000"));
+    assert_eq!(None, extract_go_param_opt("movetime", "go wtime 60000"));
+    // Out-of-range values are treated as absent (fall through to the caller's
+    // default), whatever their sign or size
+    assert_eq!(None, extract_go_param_opt("wtime", "go wtime -37 btime 5000"));
+    assert_eq!(None, extract_go_param_opt("movetime", "go movetime -500 wtime 60000"));
+    assert_eq!(None, extract_go_param_opt("wtime", "go wtime 99999999999999999999999"));
+    assert_eq!(
+        None,
+        extract_go_param_opt("wtime", "go wtime 9999999999999999999999999999999999999999999999")
+    );
+    assert_eq!(
+        None,
+        extract_go_param_opt("wtime", "go wtime -9999999999999999999999999999999999999999999999")
+    );
 }
 
 #[test]
@@ -646,4 +674,69 @@ pub fn go_depth_over_255_does_not_wrap_to_instant_move() {
         Right(Some(s)) => assert!(s.starts_with("bestmove")),
         other => panic!("expected a bestmove, got {:?}", other),
     }
+}
+
+// ---------------------------------------------------------------------------
+// NET-362: time-management defects found by the v1.0.49 correctness audit
+// ---------------------------------------------------------------------------
+
+/// A zero (or negative) clock must install a small emergency budget, not fall
+/// through to the 10,000,000ms no-clock default. Pre-fix, `go wtime 0 ...`
+/// searched for ~2.8 hours: `has_clock` keyed on the parsed VALUE being > 0,
+/// so an empty clock looked like "no clock at all" and got the default budget.
+/// cutechess-cli sends zero/negative clocks near flag-fall when timemargin > 0,
+/// so with increment this forfeited otherwise-winnable games.
+#[test]
+pub fn it_moves_immediately_when_the_clock_is_empty() {
+    // The nodes cap converts a regression from a ~2.8h hang into a fast, loud
+    // failure: pre-fix code stops at 20M nodes (~10-20s) instead of end_time.
+    for go in [
+        "go wtime 0 btime 5000 winc 100 binc 100 nodes 20000000",
+        "go wtime -37 btime 5000 winc 100 binc 100 nodes 20000000",
+    ] {
+        let mut uci_state = default_uci_state();
+        let mut search_state = default_search_state();
+        assert_eq!(
+            run_command_test(&mut uci_state, &mut search_state, &format!("position fen {}", START_POS)),
+            Right(None)
+        );
+        let start = Instant::now();
+        let result = run_command_test(&mut uci_state, &mut search_state, go);
+        let millis = (Instant::now() - start).as_millis();
+        assert_success_message(result, |message| message.contains("bestmove"));
+        // Emergency budget is ~50ms; the generous bound keeps CI honest while
+        // still being 5 orders of magnitude below the pre-fix 2.8h behaviour.
+        assert!(millis <= 1000, "'{}' spent {}ms against an emergency budget of ~50ms", go, millis);
+    }
+}
+
+/// UCI `movetime` is an exact budget; accompanying clock times must not rescale
+/// it. Pre-fix, the clock allocation multiplied the commanded movetime by 0.95,
+/// ADDED the full increment, then applied the TM soft (0.6x) / hard (2.5x)
+/// factors on top: `movetime 300 winc 5000` gave soft=3165ms / hard=13187ms —
+/// up to ~44x the commanded time, and never an exact stop.
+#[test]
+pub fn it_treats_movetime_as_exact_when_clocks_are_present() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    assert_eq!(
+        run_command_test(&mut uci_state, &mut search_state, &format!("position fen {}", START_POS)),
+        Right(None)
+    );
+    let start = Instant::now();
+    let result = run_command_test(
+        &mut uci_state,
+        &mut search_state,
+        "go movetime 300 wtime 60000 btime 60000 winc 5000 binc 5000",
+    );
+    let millis = (Instant::now() - start).as_millis();
+    assert_success_message(result, |message| message.contains("bestmove"));
+    // Pre-fix, the earliest possible return was ~1130ms (predictive cutoff
+    // against the 3165ms soft budget), so the 700ms bound discriminates with
+    // a ~430ms margin while staying loose enough for a loaded CI box.
+    assert!(
+        (150..=700).contains(&millis),
+        "movetime 300 with clocks spent {}ms; must be ~300ms exact (pre-fix budget was soft 3165ms / hard 13187ms, earliest pre-fix stop ~1130ms)",
+        millis
+    );
 }

@@ -115,14 +115,27 @@ macro_rules! check_time {
                     if hard_ms > 0 {
                         $search_state.end_time = now + std::time::Duration::from_millis(hard_ms);
                         $search_state.soft_time_limit = now + std::time::Duration::from_millis(soft_ms);
+                        // Rebase the extension ceiling on the REAL soft budget
+                        // (NET-362): the value computed at search start came from
+                        // the 24h ponder placeholder, which would disable the
+                        // NET-339 cap for the whole pondered move.
+                        $search_state.max_soft_time_limit =
+                            now + std::time::Duration::from_millis(soft_ms).mul_f64($crate::engine_constants::TM_MAX_EXTENSION_FACTOR);
+                        // Exact budgets (movetime, emergency: soft == hard) must run
+                        // to the deadline, matching the non-ponder exact path — TM's
+                        // predictive cutoff would otherwise stop a commanded
+                        // movetime as early as ~1/2.8 of it (NET-362). Clock-derived
+                        // budgets (soft < hard) get full time management.
+                        $search_state.time_management_active = soft_ms != hard_ms;
                     } else {
                         // Safety net: ponderhit on a search that was never given a
                         // budget must still terminate. Stop now and return the best
                         // move found so far rather than hang the engine (time forfeit).
                         $search_state.end_time = now;
                         $search_state.soft_time_limit = now;
+                        $search_state.max_soft_time_limit = now;
+                        $search_state.time_management_active = true;
                     }
-                    $search_state.time_management_active = true;
                     $search_state.ponder_applied = true;
                 }
             }
@@ -266,7 +279,11 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     // Ceiling for the cumulative soft-limit extension, fixed against the ORIGINAL
     // soft budget before any iteration can move it (NET-339). Without this the
     // per-iteration extensions compound until soft == hard.
-    let max_soft_time_limit = search_state.start_time
+    //
+    // Stored on SearchState (NET-362): for a pondered search the soft limit here
+    // is the 24h placeholder, so this initial value is meaningless — check_time!
+    // rebases the ceiling on the REAL budget when ponderhit installs it.
+    search_state.max_soft_time_limit = search_state.start_time
         + search_state
             .soft_time_limit
             .saturating_duration_since(search_state.start_time)
@@ -355,7 +372,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 let remaining_soft = search_state.soft_time_limit.saturating_duration_since(now);
                 let extension = remaining_soft.mul_f64(TM_INSTABILITY_EXTEND - 1.0);
                 let extended = search_state.soft_time_limit + extension;
-                search_state.soft_time_limit = min(min(extended, max_soft_time_limit), search_state.end_time);
+                search_state.soft_time_limit = min(min(extended, search_state.max_soft_time_limit), search_state.end_time);
             }
 
             // Extend soft limit on score drop
@@ -363,7 +380,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 let remaining_soft = search_state.soft_time_limit.saturating_duration_since(now);
                 let extension = remaining_soft.mul_f64(TM_SCORE_DROP_EXTEND - 1.0);
                 let extended = search_state.soft_time_limit + extension;
-                search_state.soft_time_limit = min(min(extended, max_soft_time_limit), search_state.end_time);
+                search_state.soft_time_limit = min(min(extended, search_state.max_soft_time_limit), search_state.end_time);
             }
 
             // Past soft limit (possibly extended) — stop
