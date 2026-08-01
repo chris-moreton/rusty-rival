@@ -10,6 +10,7 @@ use crate::engine_constants::{
     TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
+use arrayvec::ArrayVec;
 
 /// Make a move with lazy NNUE tracking. Saves pieces state and advances ply,
 /// but defers accumulator computation until evaluate_position is called.
@@ -446,6 +447,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
             search_state,
             false,
             0,
+            None,
         );
         path_score.1 = -path_score.1;
 
@@ -696,6 +698,7 @@ fn prefetch_hash(position: &Position, search_state: &SearchState, hash_mask: u64
 }
 
 #[inline(always)]
+#[allow(clippy::too_many_arguments)]
 pub fn search(
     position: &mut Position,
     depth: u8,
@@ -704,6 +707,10 @@ pub fn search(
     search_state: &mut SearchState,
     on_null_move: bool,
     excluded_move: Move, // For singular extension search: skip this move (0 = no exclusion)
+    // Whether the side to move is in check, when the caller already knows it
+    // (NET-355): the parent's gives_check IS the child's in_check, so passing
+    // it down saves a redundant is_check at nearly every node entry.
+    known_in_check: Option<bool>,
 ) -> PathScore {
     // Check stop flag at TOP before any moves are made - safe to return here
     if is_stopped(&search_state.stop) {
@@ -737,7 +744,7 @@ pub fn search(
     let scouting = window.1 - window.0 == 1;
 
     if depth == 0 {
-        return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state);
+        return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state, known_in_check);
     }
 
     search_state.nodes += 1;
@@ -818,7 +825,7 @@ pub fn search(
         0
     };
 
-    let in_check = is_check(position, position.mover);
+    let in_check = known_in_check.unwrap_or_else(|| is_check(position, position.mover));
 
     // Static eval for this node (correction-history adjusted), recorded per
     // ply so descendants can compute the improving flag; there is no
@@ -873,7 +880,9 @@ pub fn search(
     if scouting && !in_check && depth <= RAZOR_MAX_DEPTH && alpha.abs() < MATE_START && excluded_move == 0 {
         let razor_margin = RAZOR_MARGINS[depth as usize];
         if lazy_eval + razor_margin < alpha {
-            let q_score = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha - 1, alpha), search_state).1;
+            // This block is !in_check-gated, so the verification qsearch knows
+            // its in_check exactly
+            let q_score = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha - 1, alpha), search_state, Some(false)).1;
             if is_stopped(&search_state.stop) {
                 return (pv_single(0), 0);
             }
@@ -906,6 +915,9 @@ pub fn search(
             search_state,
             true,
             0,
+            // After a null move the side to move is the side that did NOT just
+            // move in the (legality-checked) parent, which cannot be in check
+            Some(false),
         )
         .1;
 
@@ -954,6 +966,7 @@ pub fn search(
                     search_state,
                     false,
                     0,
+                    None,
                 )
                 .1;
 
@@ -996,7 +1009,7 @@ pub fn search(
             search_state.ply_move[ply as usize] = *m;
 
             if !is_check(position, old_mover) {
-                let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0).1;
+                let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0, None).1;
 
                 unmake_move_nnue(position, *m, &unmake, search_state);
 
@@ -1062,7 +1075,8 @@ pub fn search(
             (singular_beta - 1, singular_beta),
             search_state,
             false,
-            hash_move, // Exclude hash move from this search
+            hash_move,      // Exclude hash move from this search
+            Some(in_check), // Same position, already computed
         )
         .1;
 
@@ -1091,7 +1105,7 @@ pub fn search(
         if !is_check(position, old_mover) {
             legal_move_count += 1;
             let hash_search_depth = real_depth + singular_extension;
-            let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0);
+            let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, None);
             let score = path_score.1;
             let singular_depth = hash_search_depth;
 
@@ -1148,7 +1162,9 @@ pub fn search(
     // generated, so a losing capture was always searched before killers and
     // high-history quiets - scoring alone could not fix that, because the
     // staging, not the score, decided the order.
-    let mut bad_captures: MoveScoreArray = MoveScoreArray::new();
+    // Entries carry (move, ordering score, SEE) - the staging SEE is reused by
+    // SEE pruning at pick time instead of recomputing it (NET-353).
+    let mut bad_captures: ArrayVec<(Move, Score, Score), 256> = ArrayVec::new();
     let mut bad_captures_added: bool = false;
 
     if in_check {
@@ -1181,7 +1197,7 @@ pub fn search(
             let (score, see_score) = score_move_with_see(position, m, search_state, ply as usize, &enemy);
             // Promotions change material too much to demote on SEE alone
             if see_score < 0 && m & PROMOTION_FULL_MOVE_MASK == 0 {
-                bad_captures.push((m, score));
+                bad_captures.push((m, score, see_score));
             } else {
                 move_scores.push((m, score));
             }
@@ -1213,7 +1229,12 @@ pub fn search(
                 }
             } else if !bad_captures_added {
                 bad_captures_added = true;
-                move_scores = std::mem::take(&mut bad_captures);
+                // Copy only the live entries (mem::take of the full-capacity
+                // ArrayVec was a ~2KB memcpy even when the list was empty);
+                // bad_captures itself is kept for its stored SEE values.
+                for &(bm, bscore, _) in bad_captures.iter() {
+                    move_scores.push((bm, bscore));
+                }
             } else {
                 break; // All stages exhausted
             }
@@ -1233,9 +1254,23 @@ pub fn search(
         // Only in scout (null-window) searches to avoid missing important PV moves
         // Don't prune promotions (they change material dramatically) or when in check
         // Don't prune when searching for mate (alpha/beta near mate scores)
-        if scouting && is_tactical && !is_promotion && !in_check && depth <= SEE_PRUNE_MAX_DEPTH && alpha.abs() < MATE_START {
+        //
+        // NET-353: staging already ran SEE for every generated capture, so reuse
+        // it rather than recomputing the Position-copying SEE per picked move.
+        // Good-stage tactical moves all have SEE >= 0 (EP captures skip staging
+        // SEE but are provably >= 0), and the threshold is always negative, so
+        // the prune can only ever fire in the bad-captures stage.
+        if bad_captures_added
+            && scouting
+            && is_tactical
+            && !is_promotion
+            && !in_check
+            && depth <= SEE_PRUNE_MAX_DEPTH
+            && alpha.abs() < MATE_START
+        {
             let see_threshold = -(SEE_PRUNE_MARGIN * (depth as Score) * (depth as Score));
-            if static_exchange_evaluation(position, m) < see_threshold {
+            let stored_see = bad_captures.iter().find(|e| e.0 == m).map_or(0, |e| e.2);
+            if stored_see < see_threshold {
                 continue;
             }
         }
@@ -1277,7 +1312,18 @@ pub fn search(
 
             // Cache whether this move gives check (opponent's king in check)
             // Used for pruning decisions - moves that give check should not be pruned/reduced
-            let gives_check = is_check(position, position.mover);
+            //
+            // NET-355: computed lazily - every consumer (alpha-prune, LMP, LMR)
+            // requires !is_tactical, and all are unreachable when the check
+            // extension applies (alpha_prune_flag and LMP are !in_check-gated,
+            // LMR needs move_extension == 0). When computed, the value is passed
+            // to the child as its in_check, saving the entry recompute there.
+            let gives_check_known: Option<bool> = if is_tactical || check_extension != 0 {
+                None
+            } else {
+                Some(is_check(position, position.mover))
+            };
+            let gives_check = gives_check_known == Some(true);
 
             if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !gives_check {
                 unmake_move_nnue(position, m, &unmake, search_state);
@@ -1410,9 +1456,17 @@ pub fn search(
                 // Cap the reduction so the child depth (search_depth - 1 - lmr)
                 // cannot wrap below zero: stacked LMR adjustments (table + bad
                 // history + bad continuation) can exceed the remaining depth
-                lmr_scout_search(lmr.min(search_depth - 1), ply, search_state, (alpha, beta), search_depth, position)
+                lmr_scout_search(
+                    lmr.min(search_depth - 1),
+                    ply,
+                    search_state,
+                    (alpha, beta),
+                    search_depth,
+                    position,
+                    gives_check_known,
+                )
             } else {
-                search_wrapper(search_depth, ply, search_state, (-beta, -alpha), position, 0, 0)
+                search_wrapper(search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, gives_check_known)
             };
 
             let score = path_score.1;
@@ -1599,21 +1653,31 @@ fn lmr_scout_search(
     window: Window,
     real_depth: u8,
     new_position: &mut Position,
+    known_in_check: Option<bool>,
 ) -> PathScore {
     let alpha = window.0;
     let beta = window.1;
-    let mut scout_path = search_wrapper(real_depth, ply, search_state, (-alpha - 1, -alpha), new_position, lmr, 0);
+    let mut scout_path = search_wrapper(
+        real_depth,
+        ply,
+        search_state,
+        (-alpha - 1, -alpha),
+        new_position,
+        lmr,
+        0,
+        known_in_check,
+    );
 
     if scout_path.1 > alpha && lmr > 0 {
         // We are in an LMR search and we Need to research with full window. but still with late move reduction
-        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr, 0);
+        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr, 0, known_in_check);
         if scout_path.1 > alpha {
             // Need to research with full window and no reduction
-            scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0)
+            scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
         }
     } else if scout_path.1 > alpha && scout_path.1 < beta {
         // Not doing a LMR search, but still need to research with a full window
-        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0)
+        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
     }
 
     scout_path
@@ -1642,6 +1706,7 @@ fn unmake_null_move(position: &mut Position, old_ep: Square) {
 }
 
 #[inline(always)]
+#[allow(clippy::too_many_arguments)]
 fn search_wrapper(
     depth: u8,
     ply: u8,
@@ -1650,9 +1715,19 @@ fn search_wrapper(
     position: &mut Position,
     lmr: u8,
     excluded_move: Move,
+    known_in_check: Option<bool>,
 ) -> PathScore {
     search_state.history.push(position.zobrist_lock);
-    let path_score = search(position, depth - 1 - lmr, ply + 1, window, search_state, false, excluded_move);
+    let path_score = search(
+        position,
+        depth - 1 - lmr,
+        ply + 1,
+        window,
+        search_state,
+        false,
+        excluded_move,
+        known_in_check,
+    );
     search_state.history.pop();
     (path_score.0, -path_score.1)
 }

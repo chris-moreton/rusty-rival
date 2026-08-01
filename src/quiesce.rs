@@ -10,7 +10,7 @@ use crate::moves::{
     generate_check_evasions, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check,
 };
 use crate::search::MATE_SCORE;
-use crate::see::{captured_piece_value_see, see};
+use crate::see::{captured_piece_value_see, make_see_move, see};
 use crate::types::{
     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
     Window, BLACK, WHITE,
@@ -135,7 +135,16 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
 use crate::search::{make_move_nnue, unmake_move_nnue};
 
 #[allow(clippy::only_used_in_recursion)]
-pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, search_state: &mut SearchState) -> PathScore {
+pub fn quiesce(
+    position: &mut Position,
+    depth: u8,
+    ply: u8,
+    window: Window,
+    search_state: &mut SearchState,
+    // Whether the side to move is in check, when the caller already knows it
+    // (NET-355) - e.g. search's depth==0 forward or the !in_check razor path
+    known_in_check: Option<bool>,
+) -> PathScore {
     // Check stop flag at TOP before any moves are made - safe to return here
     if is_stopped(&search_state.stop) {
         return (pv_single(0), 0);
@@ -147,14 +156,24 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
     }
     search_state.nodes += 1;
 
-    let in_check = is_check(position, position.mover);
+    let in_check = known_in_check.unwrap_or_else(|| is_check(position, position.mover));
 
-    let mut eval = evaluate_position(position, search_state);
-    if search_state.eval_noise > 0 {
-        let noise_bits = (position.zobrist_lock >> 17) as i32;
-        let noise_max = search_state.eval_noise;
-        eval += (noise_bits % (2 * noise_max + 1)) - noise_max;
-    }
+    // NET-352: when in check above the depth cap the stand-pat eval is provably
+    // never read - stand-pat and delta pruning are !in_check-gated, alpha starts
+    // at window.0, and the empty-evasion path returns a mate score - so skip the
+    // NNUE forward pass entirely. (The lazy accumulator chain computes this ply
+    // as an intermediate if a descendant evaluates, so nothing downstream changes.)
+    let eval = if in_check && depth > 0 {
+        0
+    } else {
+        let mut e = evaluate_position(position, search_state);
+        if search_state.eval_noise > 0 {
+            let noise_bits = (position.zobrist_lock >> 17) as i32;
+            let noise_max = search_state.eval_noise;
+            e += (noise_bits % (2 * noise_max + 1)) - noise_max;
+        }
+        e
+    };
 
     // Depth cap terminates evasion chains; otherwise stand-pat is only a
     // valid bound when not in check
@@ -188,6 +207,10 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
         move_scores.push((m, score));
     }
 
+    // NOTE (NET-352): replacing this sort with lazy selection
+    // (pick_high_score_move) changes tie ordering vs sort_unstable and altered
+    // the bench signature (+1.6% nodes) - not behavior-neutral, so it needs its
+    // own SPRT rather than riding a speed-only release.
     move_scores.sort_unstable_by_key(|b| std::cmp::Reverse(b.1));
 
     // Delta pruning margin: skip captures that can't raise alpha
@@ -200,10 +223,25 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
         let is_promotion = m & PROMOTION_FULL_MOVE_MASK != 0;
         let see_value = captured_piece_value_see(position, m);
 
-        // Delta pruning: if capturing this piece can't possibly raise alpha,
-        // skip it - never prune evasions or promotions
-        if !in_check && !is_promotion && eval + see_value + DELTA_MARGIN < alpha {
-            continue;
+        // Evasions and promotions are never delta-pruned or SEE-gated
+        if !in_check && !is_promotion {
+            // Delta pruning: if capturing this piece can't possibly raise
+            // alpha, skip it
+            if eval + see_value + DELTA_MARGIN < alpha {
+                continue;
+            }
+
+            // SEE gate BEFORE the move is made (NET-352): a losing capture
+            // must not pay make/unmake plus NNUE bookkeeping just to be
+            // discarded. Equivalent to the old post-make `see(...)` gate:
+            // see() reads only piece bitboards/king/mover/EP, on which a
+            // full make and make_see_move agree for the captures gated here.
+            // (Equal exchanges pass and are searched, as before.)
+            let mut see_position = *position;
+            make_see_move(m, &mut see_position);
+            if see(see_value, bit(to_square_part(m)), &see_position) < 0 {
+                continue;
+            }
         }
 
         let old_mover = position.mover;
@@ -212,27 +250,21 @@ pub fn quiesce(position: &mut Position, depth: u8, ply: u8, window: Window, sear
         if !is_check(position, old_mover) {
             legal_move_count += 1;
 
-            // SEE gate: skip losing captures (equal exchanges are searched);
-            // evasions and promotions are never gated
-            if in_check || is_promotion || see(see_value, bit(to_square_part(m)), position) >= 0 {
-                let score = -quiesce(position, depth - 1, ply + 1, (-window.1, -alpha), search_state).1;
+            let score = -quiesce(position, depth - 1, ply + 1, (-window.1, -alpha), search_state, None).1;
 
-                unmake_move_nnue(position, m, &unmake, search_state);
+            unmake_move_nnue(position, m, &unmake, search_state);
 
-                check_time!(search_state);
-                if is_stopped(&search_state.stop) {
-                    break;
-                }
+            check_time!(search_state);
+            if is_stopped(&search_state.stop) {
+                break;
+            }
 
-                if score >= window.1 {
-                    return (pv_single(m), window.1);
-                }
-                if score > alpha {
-                    alpha = score;
-                    best_move = m;
-                }
-            } else {
-                unmake_move_nnue(position, m, &unmake, search_state);
+            if score >= window.1 {
+                return (pv_single(m), window.1);
+            }
+            if score > alpha {
+                alpha = score;
+                best_move = m;
             }
         } else {
             unmake_move_nnue(position, m, &unmake, search_state);
