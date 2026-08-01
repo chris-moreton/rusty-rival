@@ -123,8 +123,33 @@ Wanted: a final release becomes `latest`; an rc does not; assets return 200.
 
 Two standing rituals, both easy to forget:
 
-1. **Stockfish anchor ladder** — `compete vX.Y.Z sf-2600`, `sf-2800`, `sf-3000`, 50 games each, from `chess-compete`. Must run at **0.5s/move on a verified-idle machine**; validate afterwards against the PGN `WhiteNPS`/`BlackNPS` headers (Stockfish ~0.9–1.1M when healthy) and rerun anything measured under contention. Record on the Notion Ratings page.
-2. **Notion** — a row in the Verification matches table on the Code Audit page, plus any relevant results pages.
+### 1. Stockfish anchor ladder
+
+Run from the **`chess-compete` repo, a sibling of this one** — `../chess-compete` (absolute: `~/git/chris-moreton/chess/chess-compete`). It is a **separate git repository**, not a subdirectory, and it has its own virtualenv which must be used — there is no top-level `compete` executable on `PATH`:
+
+```bash
+cd ../chess-compete
+
+# 1. Register the new release. --init downloads the macos-aarch64 asset
+#    straight from the GitHub release, so publish before running this.
+.venv/bin/python -m compete --init rusty vX.Y.Z
+
+# 2. Ladder: 50 games against each anchor.
+#    sf-3000 is the ceiling — Stockfish caps UCI_Elo near 3190, so no sf-3200 exists.
+.venv/bin/python -u -m compete vX.Y.Z sf-2600 --games 50 --time 0.5
+.venv/bin/python -u -m compete vX.Y.Z sf-2800 --games 50 --time 0.5
+.venv/bin/python -u -m compete vX.Y.Z sf-3000 --games 50 --time 0.5
+```
+
+**Run it detached** — `nohup … > log 2>&1 & disown` — and poll the log. Backgrounded session tasks are killed after ~10 minutes and have destroyed multi-hundred-game runs.
+
+**0.5s/move on a verified-idle machine is mandatory, not a preference.** Afterwards, validate against the PGN `WhiteNPS`/`BlackNPS` headers: Stockfish should read ~0.9–1.1M. Elo-capped Stockfish is roughly node-independent while rusty-rival is not, so CPU contention selectively destroys rusty at the upper rungs and produces convincingly-wrong numbers. A whole v1.0.45 ladder was thrown away to this. Load average alone is a poor gate on this Mac (I/O inflates it badly) — confirm with `top -l 1 -n 0 | grep "CPU usage"` for healthy idle%, plus the NPS headers.
+
+The compete database retains discarded runs, so split any results query by `created_at` — otherwise you pool a rerun with the bad run it replaced.
+
+### 2. Notion
+
+A row in the Verification matches table on the Code Audit page, plus the Ratings page for the ladder results.
 
 Also comment the result and set state on the Linear ticket.
 
@@ -147,6 +172,7 @@ gh api repos/chris-moreton/rusty-rival/releases \
 
 ## Gotchas
 
+- **`chess-compete` is a sibling repo (`../chess-compete`), not part of this one.** Both `scripts/ab_match.sh` and `scripts/ab_time_match.sh` hardcode its opening book at `$HOME/git/chris-moreton/chess/chess-compete/openings/8moves_v3.pgn` and abort with `book not found` if it is not checked out. The anchor ladder needs it too.
 - **Don't run heavy cargo builds while a match is playing.** CPU contention distorts game timing and invalidates results.
 - Long matches must be `nohup … & disown` — backgrounded tasks are capped around 10 minutes and get killed.
 - Commit messages: no AI/Claude attribution.
