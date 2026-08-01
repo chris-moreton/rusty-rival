@@ -338,6 +338,151 @@ pub fn update_accumulator(acc: &mut Accumulator, net: &NnueNetwork, pieces_befor
     }
 }
 
+/// Ceiling on feature changes from one move. Castling moves two pieces
+/// (king + rook) = 2 removed + 2 added; en passant and capture-promotions are
+/// 2 removed + 1 added. Anything beyond this falls back to the generic path.
+const MAX_FEATURE_DELTA: usize = 4;
+
+/// Fused accumulator update: compute `dst` directly from `src` in ONE pass.
+///
+/// `A`/`S` are const so the inner loops unroll and the whole thing vectorises
+/// as a single strided i16 add/sub over the hidden layer.
+///
+/// Wrapping arithmetic is used deliberately: it makes the result independent of
+/// the order features are applied in, so this is bit-identical to the previous
+/// clone-then-add/sub sequence even in the (practically unreachable) case where
+/// an intermediate value would overflow i16.
+#[inline(always)]
+fn fuse_features<const A: usize, const S: usize>(
+    dst: &mut [i16; HIDDEN_SIZE],
+    src: &[i16; HIDDEN_SIZE],
+    add: [&[i16; HIDDEN_SIZE]; A],
+    sub: [&[i16; HIDDEN_SIZE]; S],
+) {
+    for j in 0..HIDDEN_SIZE {
+        let mut v = src[j];
+        for a in add.iter() {
+            v = v.wrapping_add(a[j]);
+        }
+        for s in sub.iter() {
+            v = v.wrapping_sub(s[j]);
+        }
+        dst[j] = v;
+    }
+}
+
+/// Build a child accumulator from its parent without an intermediate copy.
+///
+/// The previous flow was `child = parent.clone()` followed by one full pass per
+/// changed feature inside `update_accumulator` - three or more passes over the
+/// 1 KB accumulator (plus the weight rows) for a quiet move. Gathering the
+/// changed features first collapses that to a single pass, roughly halving the
+/// memory traffic of the hottest non-eval operation in the search.
+///
+/// Falls back to the clone-then-update path for unusual deltas, so correctness
+/// never depends on the gather fitting.
+pub fn update_accumulator_from(
+    parent: &Accumulator,
+    child: &mut Accumulator,
+    net: &NnueNetwork,
+    pieces_before: &[Pieces; 2],
+    pieces_after: &[Pieces; 2],
+) {
+    // (white_feature, black_feature) pairs
+    let mut adds: [(usize, usize); MAX_FEATURE_DELTA] = [(0, 0); MAX_FEATURE_DELTA];
+    let mut subs: [(usize, usize); MAX_FEATURE_DELTA] = [(0, 0); MAX_FEATURE_DELTA];
+    let mut n_add = 0usize;
+    let mut n_sub = 0usize;
+    let mut overflowed = false;
+
+    for color in 0..2usize {
+        let before = bitboard_piece_types(&pieces_before[color]);
+        let after = bitboard_piece_types(&pieces_after[color]);
+
+        for i in 0..5 {
+            let (bb_before, piece_type) = before[i];
+            let (bb_after, _) = after[i];
+
+            let mut removed = bb_before & !bb_after;
+            while removed != 0 {
+                let sq = removed.trailing_zeros() as i8;
+                removed &= removed - 1;
+                if n_sub == MAX_FEATURE_DELTA {
+                    overflowed = true;
+                    break;
+                }
+                subs[n_sub] = (white_feature(color, piece_type, sq), black_feature(color, piece_type, sq));
+                n_sub += 1;
+            }
+
+            let mut added = !bb_before & bb_after;
+            while added != 0 {
+                let sq = added.trailing_zeros() as i8;
+                added &= added - 1;
+                if n_add == MAX_FEATURE_DELTA {
+                    overflowed = true;
+                    break;
+                }
+                adds[n_add] = (white_feature(color, piece_type, sq), black_feature(color, piece_type, sq));
+                n_add += 1;
+            }
+        }
+
+        let king_before = pieces_before[color].king_square;
+        let king_after = pieces_after[color].king_square;
+        if king_before != king_after {
+            if n_sub == MAX_FEATURE_DELTA || n_add == MAX_FEATURE_DELTA {
+                overflowed = true;
+            } else {
+                subs[n_sub] = (white_feature(color, 5, king_before), black_feature(color, 5, king_before));
+                n_sub += 1;
+                adds[n_add] = (white_feature(color, 5, king_after), black_feature(color, 5, king_after));
+                n_add += 1;
+            }
+        }
+    }
+
+    if overflowed {
+        // Generic path: provably correct, just slower. Never hit by legal moves.
+        child.clone_from(parent);
+        update_accumulator(child, net, pieces_before, pieces_after);
+        return;
+    }
+
+    let w = &net.l0_weights;
+    match (n_add, n_sub) {
+        // Quiet move (also promotion: one piece type out, another in)
+        (1, 1) => {
+            fuse_features(&mut child.white, &parent.white, [&w[adds[0].0]], [&w[subs[0].0]]);
+            fuse_features(&mut child.black, &parent.black, [&w[adds[0].1]], [&w[subs[0].1]]);
+        }
+        // Capture, en passant, capture-promotion
+        (1, 2) => {
+            fuse_features(&mut child.white, &parent.white, [&w[adds[0].0]], [&w[subs[0].0], &w[subs[1].0]]);
+            fuse_features(&mut child.black, &parent.black, [&w[adds[0].1]], [&w[subs[0].1], &w[subs[1].1]]);
+        }
+        // Castling: king and rook both move
+        (2, 2) => {
+            fuse_features(
+                &mut child.white,
+                &parent.white,
+                [&w[adds[0].0], &w[adds[1].0]],
+                [&w[subs[0].0], &w[subs[1].0]],
+            );
+            fuse_features(
+                &mut child.black,
+                &parent.black,
+                [&w[adds[0].1], &w[adds[1].1]],
+                [&w[subs[0].1], &w[subs[1].1]],
+            );
+        }
+        _ => {
+            child.clone_from(parent);
+            update_accumulator(child, net, pieces_before, pieces_after);
+        }
+    }
+}
+
 /// Process removed and added pieces for a single piece type.
 #[inline]
 fn apply_bitboard_delta(

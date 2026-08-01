@@ -124,8 +124,10 @@ pub fn evaluate_position(position: &Position, search_state: &mut crate::types::S
                         let before = nnue_pieces[i];
                         let after = nnue_pieces[i + 1];
                         let (lower, upper) = nnue_accumulators.split_at_mut(i + 1);
-                        upper[0] = lower[i].clone();
-                        crate::nnue::update_accumulator(&mut upper[0], net, &before, &after);
+                        // Single fused pass parent -> child (NET-350); the old
+                        // clone-then-add/sub made three or more passes over the
+                        // accumulator per chain step
+                        crate::nnue::update_accumulator_from(&lower[i], &mut upper[0], net, &before, &after);
                         nnue_computed[i + 1] = true;
                     }
                 } else {

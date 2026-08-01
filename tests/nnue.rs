@@ -420,3 +420,63 @@ fn single_bucket_net_is_piece_count_independent() {
         );
     }
 }
+
+/// NET-350: the fused parent->child accumulator update must be bit-identical
+/// to the old clone-then-add/sub path for every legal move, including the
+/// awkward shapes (castling moves two pieces, en passant removes a pawn that
+/// is not on the destination square, capture-promotions swap piece types).
+///
+/// The DFS test above would also catch a broken fusion, but only as "the
+/// incremental chain disagrees with a full recompute"; this one isolates the
+/// fusion itself.
+#[test]
+fn fused_accumulator_update_matches_clone_then_update() {
+    use rusty_rival::make_move::{make_move_in_place, unmake_move};
+    use rusty_rival::moves::generate_moves;
+    use rusty_rival::nnue::{update_accumulator, update_accumulator_from};
+
+    let net = NnueNetwork::embedded();
+    let fens = [
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        // Kiwipete: castling both sides, heavy tactics
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        // Promotions and capture-promotions
+        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1",
+        // En passant immediately available
+        "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1",
+    ];
+
+    let mut compared = 0u32;
+    for fen in fens {
+        let mut pos = get_position(fen);
+        let mut parent = Accumulator::new();
+        parent.compute(&net, &pos);
+
+        for m in generate_moves(&pos) {
+            let before = pos.pieces;
+            let unmake = make_move_in_place(&mut pos, m);
+            let after = pos.pieces;
+
+            let mut expected = parent.clone();
+            update_accumulator(&mut expected, &net, &before, &after);
+
+            let mut actual = Accumulator::new();
+            update_accumulator_from(&parent, &mut actual, &net, &before, &after);
+
+            assert_eq!(
+                expected.white, actual.white,
+                "FEN {} move {:x}: white perspective differs after fused update",
+                fen, m
+            );
+            assert_eq!(
+                expected.black, actual.black,
+                "FEN {} move {:x}: black perspective differs after fused update",
+                fen, m
+            );
+            compared += 1;
+
+            unmake_move(&mut pos, m, &unmake);
+        }
+    }
+    assert!(compared > 100, "too few move comparisons: {}", compared);
+}
