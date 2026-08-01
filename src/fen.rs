@@ -232,11 +232,13 @@ pub fn get_position(fen: &str) -> Position {
         half_moves: fen_part(fen, 4).parse::<u16>().unwrap(),
         move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
         zobrist_lock: 0,
+        pawn_key: 0,
     };
 
     let lock = zobrist_lock(&position);
 
     position.zobrist_lock = lock;
+    position.pawn_key = crate::hash::pawn_key_from_scratch(&position);
     position
 }
 

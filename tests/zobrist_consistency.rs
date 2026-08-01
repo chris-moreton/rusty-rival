@@ -1,5 +1,5 @@
 use rusty_rival::fen::get_position;
-use rusty_rival::hash::zobrist_lock;
+use rusty_rival::hash::{pawn_key_from_scratch, zobrist_lock};
 use rusty_rival::make_move::{make_move, make_move_in_place, unmake_move};
 use rusty_rival::moves::generate_moves;
 
@@ -100,4 +100,63 @@ fn test_zobrist_consistency_through_game_sequence() {
         original_zobrist, position.zobrist_lock,
         "After unmake sequence: zobrist should match original"
     );
+}
+
+/// NET-356: the incrementally-maintained `Position::pawn_key` must equal a
+/// from-scratch recomputation after every make and unmake, on both the
+/// copy-make and in-place paths. It indexes correction history, so a drift
+/// here silently corrupts eval corrections rather than failing loudly.
+#[test]
+fn test_pawn_key_matches_recomputation() {
+    let fens = vec![
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "r3k2r/p6p/8/B7/1pp1p3/3b4/P6P/R3K1R1 b Qkq - 0 1",
+        "8/2p5/3p4/1P5r/1R2Pp2/1K4P1/7k/8 b - e3 0 1", // en passant capture available
+        "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1",     // promotions, incl. capture-promotions
+        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+    ];
+
+    for fen in fens {
+        let original = get_position(fen);
+        assert_eq!(
+            original.pawn_key,
+            pawn_key_from_scratch(&original),
+            "FEN: {}\nfresh position pawn_key mismatch",
+            fen
+        );
+
+        for m in generate_moves(&original) {
+            let mut copy_pos = original;
+            make_move(&original, m, &mut copy_pos);
+            assert_eq!(
+                copy_pos.pawn_key,
+                pawn_key_from_scratch(&copy_pos),
+                "FEN: {}, Move: {:x}\ncopy-make pawn_key drifted",
+                fen,
+                m
+            );
+
+            let mut inplace_pos = original;
+            let unmake = make_move_in_place(&mut inplace_pos, m);
+            assert_eq!(
+                inplace_pos.pawn_key,
+                pawn_key_from_scratch(&inplace_pos),
+                "FEN: {}, Move: {:x}\ninplace-make pawn_key drifted",
+                fen,
+                m
+            );
+            assert_eq!(
+                copy_pos.pawn_key, inplace_pos.pawn_key,
+                "FEN: {}, Move: {:x}\ncopy-make and inplace-make pawn_key disagree",
+                fen, m
+            );
+
+            unmake_move(&mut inplace_pos, m, &unmake);
+            assert_eq!(
+                original.pawn_key, inplace_pos.pawn_key,
+                "FEN: {}, Move: {:x}\npawn_key not restored by unmake",
+                fen, m
+            );
+        }
+    }
 }

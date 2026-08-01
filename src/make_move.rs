@@ -101,12 +101,26 @@ pub fn perform_castle(position: &mut Position, index: usize) {
     position.move_number += CASTLE_VARS_FULL_MOVE_INC[index];
 }
 
+/// XOR one pawn's placement into BOTH Zobrist keys (NET-356).
+///
+/// `zobrist_lock` and the incremental `pawn_key` must always move together;
+/// doing it in a single macro makes it impossible to update one and silently
+/// forget the other. Every pawn-key mutation in this file goes through here.
+macro_rules! xor_pawn_square {
+    ($position:expr, $colour:expr, $square:expr) => {{
+        let key = ZOBRIST_KEYS_PIECES[$colour][ZOBRIST_PIECE_INDEX_PAWN][$square as usize];
+        $position.zobrist_lock ^= key;
+        $position.pawn_key ^= key as u64;
+    }};
+}
+
 #[inline(always)]
 fn make_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
     let switch = bit(from) | bit(to);
     position.pieces[position.mover as usize].pawn_bitboard ^= switch;
-    position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][from as usize]
-        ^ ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][to as usize];
+    let mover = position.mover as usize;
+    xor_pawn_square!(position, mover, from);
+    xor_pawn_square!(position, mover, to);
 
     position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
 
@@ -183,7 +197,8 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
 
     let opponent = opponent!(position.mover) as usize;
 
-    position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][from as usize];
+    let mover = position.mover as usize;
+    xor_pawn_square!(position, mover, from);
 
     position.pieces[position.mover as usize].all_pieces_bitboard ^= bit_from | bit_to;
 
@@ -288,7 +303,7 @@ pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square)
         let pawn_off = EN_PASSANT_CAPTURE_MASK[to as usize];
 
         let epcps = en_passant_captured_piece_square(position.en_passant_square) as usize;
-        position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_PAWN][epcps];
+        xor_pawn_square!(position, opponent, epcps);
 
         enemy.pawn_bitboard &= pawn_off;
         enemy.all_pieces_bitboard &= pawn_off;
@@ -296,7 +311,7 @@ pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square)
     } else {
         let cap = if enemy.pawn_bitboard & bit_to != 0 {
             enemy.pawn_bitboard &= !bit_to;
-            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_PAWN][to as usize];
+            xor_pawn_square!(position, opponent, to);
             CAPTURED_PAWN
         } else if enemy.knight_bitboard & bit_to != 0 {
             enemy.knight_bitboard &= !bit_to;
@@ -325,8 +340,9 @@ pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square)
     position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
     position.pieces[position.mover as usize].pawn_bitboard ^= switch;
 
-    position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][from as usize]
-        ^ ZOBRIST_KEYS_PIECES[position.mover as usize][ZOBRIST_PIECE_INDEX_PAWN][to as usize];
+    let mover = position.mover as usize;
+    xor_pawn_square!(position, mover, from);
+    xor_pawn_square!(position, mover, to);
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
@@ -369,7 +385,7 @@ fn remove_captured_piece(position: &mut Position, to: Square) -> u8 {
 
         let captured = if enemy.pawn_bitboard & bit_to != 0 {
             enemy.pawn_bitboard &= !bit_to;
-            position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[opponent][ZOBRIST_PIECE_INDEX_PAWN][to as usize];
+            xor_pawn_square!(position, opponent, to);
             CAPTURED_PAWN
         } else if enemy.knight_bitboard & bit_to != 0 {
             enemy.knight_bitboard &= !bit_to;
@@ -417,6 +433,7 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
     let en_passant_square = position.en_passant_square;
     let half_moves = position.half_moves;
     let zobrist_lock = position.zobrist_lock;
+    let pawn_key = position.pawn_key;
 
     let from = from_square_part(mv);
     let to = to_square_part(mv);
@@ -475,6 +492,7 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
         en_passant_square,
         half_moves,
         zobrist_lock,
+        pawn_key,
         captured_piece,
     }
 }
@@ -550,6 +568,7 @@ pub fn unmake_move(position: &mut Position, mv: Move, unmake: &UnmakeInfo) {
     position.en_passant_square = unmake.en_passant_square;
     position.half_moves = unmake.half_moves;
     position.zobrist_lock = unmake.zobrist_lock;
+    position.pawn_key = unmake.pawn_key;
 }
 
 #[inline(always)]

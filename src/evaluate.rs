@@ -86,37 +86,52 @@ pub fn evaluate(position: &Position) -> Score {
 #[inline(always)]
 pub fn evaluate_position(position: &Position, search_state: &mut crate::types::SearchState) -> Score {
     if search_state.use_nnue {
-        if let Some(net) = search_state.nnue_network.clone() {
-            let ply = search_state.nnue_ply;
+        // Split-borrow the NNUE fields rather than cloning the Arc (NET-354).
+        // The clone existed only to satisfy the borrow checker while the
+        // accumulator/snapshot fields are mutated, and cost two atomic RMWs on
+        // every eval - the hottest path in the engine. Worse under SMP: every
+        // thread's SearchState holds an Arc to the SAME allocation, so each
+        // eval was a lock-prefixed RMW on one shared refcount cache line.
+        let crate::types::SearchState {
+            nnue_network,
+            nnue_accumulators,
+            nnue_pieces,
+            nnue_computed,
+            nnue_ply,
+            ..
+        } = search_state;
+
+        if let Some(net) = nnue_network.as_deref() {
+            let ply = *nnue_ply;
 
             // The snapshot for this ply must match the position or the whole
             // chain is untrustworthy (a caller changed the position without
             // going through make_move_nnue): self-heal with a full compute
-            if search_state.nnue_pieces[ply] != position.pieces {
-                search_state.nnue_accumulators[ply].compute(&net, position);
-                search_state.nnue_pieces[ply] = position.pieces;
-                search_state.nnue_computed[ply] = true;
-            } else if !search_state.nnue_computed[ply] {
+            if nnue_pieces[ply] != position.pieces {
+                nnue_accumulators[ply].compute(net, position);
+                nnue_pieces[ply] = position.pieces;
+                nnue_computed[ply] = true;
+            } else if !nnue_computed[ply] {
                 // Find the nearest ancestor on the current path with a valid
                 // accumulator, then chain incremental updates forward, caching
                 // every intermediate ply so deeper siblings can reuse them
                 let mut anc = ply;
-                while anc > 0 && !search_state.nnue_computed[anc] {
+                while anc > 0 && !nnue_computed[anc] {
                     anc -= 1;
                 }
-                if search_state.nnue_computed[anc] {
+                if nnue_computed[anc] {
                     for i in anc..ply {
-                        let before = search_state.nnue_pieces[i];
-                        let after = search_state.nnue_pieces[i + 1];
-                        let (lower, upper) = search_state.nnue_accumulators.split_at_mut(i + 1);
+                        let before = nnue_pieces[i];
+                        let after = nnue_pieces[i + 1];
+                        let (lower, upper) = nnue_accumulators.split_at_mut(i + 1);
                         upper[0] = lower[i].clone();
-                        crate::nnue::update_accumulator(&mut upper[0], &net, &before, &after);
-                        search_state.nnue_computed[i + 1] = true;
+                        crate::nnue::update_accumulator(&mut upper[0], net, &before, &after);
+                        nnue_computed[i + 1] = true;
                     }
                 } else {
                     // No valid ancestor at all (evaluate outside a search)
-                    search_state.nnue_accumulators[ply].compute(&net, position);
-                    search_state.nnue_computed[ply] = true;
+                    nnue_accumulators[ply].compute(net, position);
+                    nnue_computed[ply] = true;
                 }
             }
 
@@ -125,7 +140,7 @@ pub fn evaluate_position(position: &Position, search_state: &mut crate::types::S
             let piece_count = position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
                 + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones();
 
-            return net.evaluate(&search_state.nnue_accumulators[ply], position.mover, piece_count);
+            return net.evaluate(&nnue_accumulators[ply], position.mover, piece_count);
         }
     }
     evaluate_with_pawn_hash(position, &search_state.pawn_hash_table)

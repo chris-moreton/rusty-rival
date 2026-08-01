@@ -52,7 +52,7 @@ use crate::fen::algebraic_move_from_move;
 use crate::tablebase::{probe_dtz, tablebase_available, TB_MAX_PIECES};
 
 use crate::bitboards::{bit, north_fill, south_fill, FILE_A_BITS, FILE_H_BITS};
-use crate::hash::{en_passant_zobrist_key_index, pawn_zobrist_key, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
+use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
 use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
@@ -1988,7 +1988,9 @@ fn piece_type_to_index(m: Move) -> usize {
 /// about this pawn structure's systematic eval error for the side to move
 #[inline(always)]
 fn eval_correction(position: &Position, search_state: &SearchState) -> Score {
-    let idx = (pawn_zobrist_key(position) as u64 as usize) & (CORRECTION_HISTORY_SIZE - 1);
+    // Incremental pawn key (NET-356) - identical value to the old
+    // pawn_zobrist_key(position) as u64, without the per-node pawn loop
+    let idx = (position.pawn_key as usize) & (CORRECTION_HISTORY_SIZE - 1);
     (search_state.correction_history[position.mover as usize][idx] as i32 / CORRECTION_HISTORY_GRAIN) as Score
 }
 
@@ -1996,7 +1998,7 @@ fn eval_correction(position: &Position, search_state: &SearchState) -> Score {
 /// table as a depth-weighted exponential moving average
 #[inline(always)]
 fn update_correction_history(position: &Position, search_state: &mut SearchState, depth: u8, score: Score, static_eval: Score) {
-    let idx = (pawn_zobrist_key(position) as u64 as usize) & (CORRECTION_HISTORY_SIZE - 1);
+    let idx = (position.pawn_key as usize) & (CORRECTION_HISTORY_SIZE - 1);
     let entry = &mut search_state.correction_history[position.mover as usize][idx];
     let diff = (score - static_eval) * CORRECTION_HISTORY_GRAIN;
     let weight = (depth as i32 + 1).min(CORRECTION_HISTORY_WEIGHT_MAX);

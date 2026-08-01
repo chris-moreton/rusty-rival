@@ -355,6 +355,7 @@ pub struct UnmakeInfo {
     pub en_passant_square: Square,
     pub half_moves: u16,
     pub zobrist_lock: HashLock,
+    pub pawn_key: u64,
     pub captured_piece: u8, // 0 = none, 1-5 = pawn/knight/bishop/rook/queen
 }
 
@@ -766,6 +767,11 @@ pub struct Position {
     pub half_moves: u16,
     pub move_number: u16,
     pub zobrist_lock: u128,
+    /// Zobrist key over pawn placement only, maintained incrementally
+    /// (NET-356). Equals `pawn_zobrist_key(position) as u64` at all times -
+    /// built from the low halves of the same tables so correction-history
+    /// indices are bit-identical to the old per-node recomputation.
+    pub pawn_key: u64,
 }
 
 impl PartialEq for Position {

@@ -882,8 +882,28 @@ fn zobrist_piece(mut bb: Bitboard, colour: Mover, piece_index: usize) -> HashLoc
 
 /// Calculate Zobrist key for pawn structure only (used for pawn hash table)
 /// Only depends on white and black pawn positions - no other pieces or state
+///
+/// Prefer `position.pawn_key` (maintained incrementally, NET-356) on hot paths;
+/// this full recomputation is the definition the incremental key is checked
+/// against, and is still used for one-off setup and in tests.
 #[inline(always)]
 pub fn pawn_zobrist_key(position: &Position) -> HashLock {
     zobrist_piece(position.pieces[WHITE as usize].pawn_bitboard, WHITE, ZOBRIST_PIECE_INDEX_PAWN)
         ^ zobrist_piece(position.pieces[BLACK as usize].pawn_bitboard, BLACK, ZOBRIST_PIECE_INDEX_PAWN)
+}
+
+/// Low 64 bits of the pawn-placement Zobrist key of `square` for `colour`.
+///
+/// The incremental `Position::pawn_key` is the XOR of these over all pawns, so
+/// it equals `pawn_zobrist_key(position) as u64` exactly (XOR commutes with
+/// truncation) - which is what every consumer already truncated to anyway.
+#[inline(always)]
+pub fn pawn_key_component(colour: usize, square: Square) -> u64 {
+    ZOBRIST_KEYS_PIECES[colour][ZOBRIST_PIECE_INDEX_PAWN][square as usize] as u64
+}
+
+/// Full pawn key for a position, matching the incremental field.
+#[inline(always)]
+pub fn pawn_key_from_scratch(position: &Position) -> u64 {
+    pawn_zobrist_key(position) as u64
 }
