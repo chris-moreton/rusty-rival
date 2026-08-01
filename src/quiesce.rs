@@ -118,7 +118,11 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
     };
 
     score += if enemy.all_pieces_bitboard & bit(to_square) != 0 {
-        piece_value(enemy, to_square) - attacker_bonus(m & PIECE_MASK_FULL)
+        // MVV-LVA: attacker_bonus is scaled cheap-attacker-high (pawn 300 .. king 50),
+        // so it is ADDED, matching the EP branch below and score_move_with_see.
+        // (NET-366: a 2022 refactor flipped this to `-`, searching the most
+        // valuable attacker first for four years.)
+        piece_value(enemy, to_square) + attacker_bonus(m & PIECE_MASK_FULL)
     } else if to_square == position.en_passant_square {
         PAWN_VALUE_AVERAGE + PAWN_ATTACKER_BONUS
     } else {
