@@ -906,6 +906,12 @@ pub fn search(
         let old_ep = make_null_move(position);
         // No real previous move exists for the null-move child's countermove context
         search_state.ply_move[ply as usize] = 0;
+        // Every other recursion pushes the child's lock before descending (the
+        // root loop and search_wrapper), which is what makes `repeats > 1`
+        // detect a single genuine prior occurrence. Skipping it here left the
+        // null subtree needing TWO priors to see a draw, and left this
+        // position missing from the stack for the whole subtree (NET-367).
+        search_state.history.push(position.zobrist_lock);
 
         let score = -search(
             position,
@@ -921,6 +927,7 @@ pub fn search(
         )
         .1;
 
+        search_state.history.pop();
         unmake_null_move(position, old_ep);
 
         if is_stopped(&search_state.stop) {
@@ -958,6 +965,10 @@ pub fn search(
             search_state.ply_move[ply as usize] = m;
 
             if !is_check(position, old_mover) {
+                // Real-move child: push the lock like every other recursion
+                // does, or this subtree cannot see repetitions correctly and
+                // the position is absent from the stack throughout (NET-367)
+                search_state.history.push(position.zobrist_lock);
                 let score = -search(
                     position,
                     probcut_depth,
@@ -969,6 +980,7 @@ pub fn search(
                     None,
                 )
                 .1;
+                search_state.history.pop();
 
                 unmake_move_nnue(position, m, &unmake, search_state);
 
@@ -1009,7 +1021,10 @@ pub fn search(
             search_state.ply_move[ply as usize] = *m;
 
             if !is_check(position, old_mover) {
+                // Real-move child: see the probcut note above (NET-367)
+                search_state.history.push(position.zobrist_lock);
                 let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0, None).1;
+                search_state.history.pop();
 
                 unmake_move_nnue(position, *m, &unmake, search_state);
 
@@ -1619,7 +1634,15 @@ pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> 
 #[inline(always)]
 fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bool {
     let mut repeats = 0;
-    for lock in search_state.history.iter().rev().take(position.half_moves as usize) {
+    // `+ 1` because reverse index 0 is the current position itself - every
+    // caller pushes the child's lock before recursing - so one slot of the
+    // window is spent self-matching. Without it the scan stops one short and
+    // misses a recurrence at distance exactly half_moves, i.e. the position
+    // immediately after the last irreversible move (NET-367). take() stops at
+    // the end of the history, so a short history is safe, and an odd
+    // half_moves adds an entry with the opposite side to move, whose lock can
+    // never match.
+    for lock in search_state.history.iter().rev().take(position.half_moves as usize + 1) {
         if position.zobrist_lock == *lock {
             repeats += 1;
             if repeats > 1 {
@@ -1692,6 +1715,10 @@ fn make_null_move(position: &mut Position) -> Square {
     }
     position.mover ^= 1;
     position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
+    // A null move is neither a capture nor a pawn move, so it advances the
+    // halfmove clock like any other quiet move. Without this the repetition
+    // window inside the null subtree is one entry short (NET-367).
+    position.half_moves = position.half_moves.saturating_add(1);
     old_ep
 }
 
@@ -1699,6 +1726,7 @@ fn make_null_move(position: &mut Position) -> Square {
 fn unmake_null_move(position: &mut Position, old_ep: Square) {
     position.mover ^= 1;
     position.zobrist_lock ^= ZOBRIST_KEY_MOVER_SWITCH;
+    position.half_moves = position.half_moves.saturating_sub(1);
     if old_ep != EN_PASSANT_NOT_AVAILABLE {
         position.en_passant_square = old_ep;
         position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(old_ep)];

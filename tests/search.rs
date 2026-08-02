@@ -256,3 +256,44 @@ fn test_is_passed_pawn_push() {
         "e3e4 should NOT trigger extension (only 4th rank)"
     );
 }
+
+/// NET-367: every recursion that descends into a child must push that child's
+/// zobrist lock and pop it again. Null-move, probcut and multicut children
+/// previously skipped the push entirely; adding it introduces the opposite
+/// risk, that some early-return path pops fewer times than it pushed and the
+/// history stack grows without bound, silently corrupting draw detection for
+/// the rest of the game. Assert the stack is exactly restored.
+#[test]
+fn search_leaves_the_repetition_history_balanced() {
+    use rusty_rival::fen::get_position;
+    use rusty_rival::search::iterative_deepening;
+    use rusty_rival::types::default_search_state;
+    use std::time::{Duration, Instant};
+
+    // Positions chosen to exercise null move, probcut and multicut: deep
+    // enough to pass their min-depth gates, with plenty of captures.
+    for fen in [
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "rnbq1rk1/pp2ppbp/2pp1np1/8/2PPP3/2N2N2/PP2BPPP/R1BQK2R w KQ - 0 1",
+        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+    ] {
+        let mut position = get_position(fen);
+        let mut search_state = default_search_state();
+        search_state.show_info = false;
+        search_state.end_time = Instant::now() + Duration::from_millis(600);
+
+        search_state.history.push(position.zobrist_lock);
+        let before = search_state.history.len();
+
+        iterative_deepening(&mut position, 14, &mut search_state, 1);
+
+        assert_eq!(
+            search_state.history.len(),
+            before,
+            "history stack not restored for {} (before {}, after {})",
+            fen,
+            before,
+            search_state.history.len()
+        );
+    }
+}
