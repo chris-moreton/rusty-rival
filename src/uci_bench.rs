@@ -107,7 +107,15 @@ pub fn cmd_benchmark(uci_state: &mut UciState, search_state: &mut SearchState, p
 
     let show_info = search_state.show_info;
     search_state.show_info = false;
-    let millis: u32 = parts.get(1).unwrap().to_string().parse().unwrap();
+    // `bench cat` must be a usage error, not a panic that kills the engine
+    // (NET-369)
+    let millis: u32 = match parts.get(1).unwrap().parse() {
+        Ok(m) => m,
+        Err(_) => {
+            search_state.show_info = show_info;
+            return Left::<String, Option<String>>("usage: bench | bench depth <N> | bench <millis>".parse().unwrap());
+        }
+    };
 
     let mut total_nodes = 0;
     let mut total_correct = 0;

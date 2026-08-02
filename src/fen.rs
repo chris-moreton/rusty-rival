@@ -205,6 +205,40 @@ pub fn get_position(fen: &str) -> Position {
         castle_flags |= BQ_CASTLE
     };
 
+    let all_occupied = wp | wn | wb | wr | wq | wk | bp | bn | bb | br | bq | bk;
+
+    let mover = get_mover(fen);
+
+    // Reject an en-passant square that no legal double push could have created
+    // (NET-369). make_pawn_capture_move decides "this is en passant" purely
+    // from `en_passant_square == to` and then applies EN_PASSANT_CAPTURE_MASK,
+    // which is ZERO outside ranks 3 and 6 - so a bogus square such as "e4"
+    // wipes the enemy pawn AND all-pieces bitboards entirely. Even a
+    // well-ranked but unbacked square leaves the Zobrist key XORing a pawn
+    // that is not there. Sanitised here, before zobrist_lock is computed.
+    //
+    // Geometry: squares 16..=23 mean White has just double-pushed (so Black is
+    // to move and the capturable White pawn sits at ep+8); 40..=47 is the
+    // mirror. This deliberately keeps "phantom" EP squares that are legal but
+    // uncapturable - narrowing those is NET-220 and changes search behaviour.
+    let raw_ep = en_passant_bit_ref(en_passant_fen_part(fen));
+    let en_passant_square = if raw_ep == EN_PASSANT_UNAVAILABLE {
+        EN_PASSANT_UNAVAILABLE
+    } else {
+        let ep_bit = bit(raw_ep);
+        let pawn_sq = raw_ep + if raw_ep < 40 { 8 } else { -8 };
+        let plausible = match raw_ep {
+            16..=23 => mover == BLACK && (wp & bit(pawn_sq)) != 0,
+            40..=47 => mover == WHITE && (bp & bit(pawn_sq)) != 0,
+            _ => false,
+        };
+        if plausible && all_occupied & ep_bit == 0 {
+            raw_ep
+        } else {
+            EN_PASSANT_UNAVAILABLE
+        }
+    };
+
     let mut position = Position {
         pieces: [
             Pieces {
@@ -226,11 +260,15 @@ pub fn get_position(fen: &str) -> Position {
                 all_pieces_bitboard: bp | bn | bb | br | bq | bk,
             },
         ],
-        mover: get_mover(fen),
-        en_passant_square: en_passant_bit_ref(en_passant_fen_part(fen)) as Square,
+        mover,
+        en_passant_square: en_passant_square as Square,
         castle_flags,
-        half_moves: fen_part(fen, 4).parse::<u16>().unwrap(),
-        move_number: fen_part(fen, 5).parse::<u16>().unwrap(),
+        // Saturate rather than unwrap: a FEN carrying counters beyond u16
+        // (e.g. "... 0 99999999") is malformed input, not a reason to kill the
+        // engine mid-game (NET-369). half_moves >= 100 is already a draw and
+        // move_number is only ever reported, so clamping is harmless.
+        half_moves: fen_part(fen, 4).parse::<u32>().unwrap_or(0).min(u16::MAX as u32) as u16,
+        move_number: fen_part(fen, 5).parse::<u32>().unwrap_or(1).min(u16::MAX as u32) as u16,
         zobrist_lock: 0,
         pawn_key: 0,
     };

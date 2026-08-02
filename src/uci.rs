@@ -318,6 +318,17 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
                 raw_fen.to_string()
             };
 
+            // The regex checks shape, not legality: a board with no king passes
+            // it, and get_position then indexes ZOBRIST_KEYS_PIECES[..][64]
+            // (king_square = trailing_zeros() of an empty bitboard) and panics
+            // on the MAIN thread, killing the engine outright - the catch_unwind
+            // in cmd_go only guards the search thread. Checked here, before
+            // get_position is ever called (NET-369).
+            let board = fen.split_whitespace().next().unwrap_or("");
+            if board.matches('K').count() != 1 || board.matches('k').count() != 1 {
+                return Left("Invalid FEN: needs exactly one king of each colour".parse().unwrap());
+            }
+
             if re.is_match(&fen) {
                 uci_state.fen = fen.clone();
                 let mut position = get_position(&uci_state.fen);

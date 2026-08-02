@@ -4,9 +4,9 @@ use crate::bitboards::{
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::move_constants::{
-    CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN,
-    PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
-    PROMOTION_SQUARES, QUEEN_INDEX,
+    CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, KING_ROOK_START, KING_START, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING,
+    PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK,
+    PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX, QUEEN_ROOK_START,
 };
 use crate::types::{Bitboard, Move, MoveList, Mover, Position, Square, BLACK, WHITE};
 use crate::utils::{from_square_mask, from_square_part, to_square_part};
@@ -380,8 +380,25 @@ pub fn generate_capture_pawn_moves_with_destinations(
 
 #[inline(always)]
 fn generate_castle_moves(position: &Position, move_list: &mut MoveList, all_pieces: Bitboard, colour_index: usize) {
+    // A FEN can assert castle rights that the board cannot support (the rook
+    // captured or never there, the king already moved). Nothing else here
+    // checks: perform_castle XORs a rook onto f1/d1 and teleports the king to
+    // its castled square from wherever it stands, so an unbacked right let the
+    // engine conjure a rook out of nothing (NET-369). Verify the pieces are
+    // actually home. Costs two bitboard tests on a path already gated on the
+    // flag being set and the squares being empty.
+    let friendly = &position.pieces[colour_index];
+    if friendly.king_square != KING_START[colour_index] {
+        return;
+    }
     for side in [KING_INDEX, QUEEN_INDEX] {
+        let rook_home = if side == KING_INDEX {
+            KING_ROOK_START[colour_index]
+        } else {
+            QUEEN_ROOK_START[colour_index]
+        };
         if position.castle_flags & CASTLE_FLAG[side][colour_index] != 0
+            && friendly.rook_bitboard & bit(rook_home) != 0
             && all_pieces & EMPTY_CASTLE_SQUARES[side][colour_index] == 0
             && !any_squares_in_bitboard_attacked(position, position.mover, NO_CHECK_CASTLE_SQUARES[side][colour_index])
         {

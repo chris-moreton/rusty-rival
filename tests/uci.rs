@@ -740,3 +740,113 @@ pub fn it_treats_movetime_as_exact_when_clocks_are_present() {
         millis
     );
 }
+
+// ---------------------------------------------------------------------------
+// NET-369: malformed FEN / command input must never panic or corrupt the board
+// ---------------------------------------------------------------------------
+
+/// A board with no king passed the FEN regex, and get_position then indexed
+/// ZOBRIST_KEYS_PIECES[..][64] - king_square is trailing_zeros() of an empty
+/// bitboard - panicking on the MAIN thread and killing the engine. The
+/// catch_unwind in cmd_go only ever guarded the search thread.
+#[test]
+pub fn kingless_fen_is_rejected_not_fatal() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    for fen in [
+        "8/8/8/8/8/8/8/8 w - - 0 1",      // no kings at all
+        "4k3/8/8/8/8/8/8/8 w - - 0 1",    // no white king
+        "8/8/8/8/8/8/8/4K3 w - - 0 1",    // no black king
+        "4k3/8/8/8/8/8/8/3KK3 w - - 0 1", // two white kings
+    ] {
+        let cmd = format!("position fen {}", fen);
+        assert!(
+            matches!(run_command_test(&mut uci_state, &mut search_state, &cmd), Left(_)),
+            "expected a rejection for {}",
+            fen
+        );
+    }
+    // ...and the engine is still alive and usable afterwards
+    assert_eq!(
+        run_command_test(&mut uci_state, &mut search_state, "position startpos"),
+        Right(None)
+    );
+    match run_command_test(&mut uci_state, &mut search_state, "go movetime 20") {
+        Right(Some(s)) => assert!(s.starts_with("bestmove")),
+        other => panic!("expected a bestmove, got {:?}", other),
+    }
+}
+
+/// An en-passant square no legal double push could have produced used to be
+/// trusted by make_pawn_capture_move, which applies EN_PASSANT_CAPTURE_MASK -
+/// zero outside ranks 3 and 6 - and so wiped the enemy pawn and all-pieces
+/// bitboards wholesale. Sanitised at parse time.
+#[test]
+pub fn impossible_en_passant_square_is_dropped() {
+    // "e4" can never be an EP square: EP squares live on rank 3 or 6 only
+    let p = get_position("4k3/8/8/3p4/4P3/8/8/4K3 b - e4 0 1");
+    assert_eq!(p.en_passant_square, -1, "impossible EP square should be dropped");
+
+    // Right rank, but no white pawn on e4 to be captured
+    let p = get_position("4k3/8/8/8/8/8/8/4K3 b - e3 0 1");
+    assert_eq!(p.en_passant_square, -1, "unbacked EP square should be dropped");
+
+    // Right rank and side, but the EP square itself is occupied
+    let p = get_position("4k3/8/8/8/4P3/4N3/8/4K3 b - e3 0 1");
+    assert_eq!(p.en_passant_square, -1, "occupied EP square should be dropped");
+
+    // A genuine en passant is preserved
+    let p = get_position("4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1");
+    assert_ne!(p.en_passant_square, -1, "a real EP square must survive");
+}
+
+/// generate_castle_moves never checked that the rook exists, and
+/// perform_castle XORs one onto f1/d1 while teleporting the king to its
+/// castled square from wherever it stands - so castle rights a FEN asserts but
+/// the board cannot support let the engine conjure a rook out of nothing.
+#[test]
+pub fn castling_is_not_generated_without_the_pieces() {
+    use rusty_rival::fen::algebraic_move_from_move;
+    use rusty_rival::moves::generate_moves;
+
+    let castles = |fen: &str| -> Vec<String> {
+        let p = get_position(fen);
+        generate_moves(&p)
+            .iter()
+            .map(|m| algebraic_move_from_move(*m))
+            .filter(|m| m == "e1g1" || m == "e1c1" || m == "e8g8" || m == "e8c8")
+            .collect()
+    };
+
+    // Rights claimed, but no rooks at all
+    assert!(castles("4k3/8/8/8/8/8/8/4K3 w KQkq - 0 1").is_empty());
+    // Right claimed for a side whose rook is missing; the backed side still works
+    assert_eq!(castles("4k3/8/8/8/8/8/8/4K2R w KQ - 0 1"), vec!["e1g1"]);
+    // King not on its home square
+    assert!(castles("4k3/8/8/8/8/8/8/R2K3R w KQ - 0 1").is_empty());
+    // Fully legal position still generates both
+    let mut both = castles("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
+    both.sort();
+    assert_eq!(both, vec!["e1c1", "e1g1"]);
+}
+
+/// Move counters beyond u16 used to hit parse::<u16>().unwrap().
+#[test]
+pub fn oversized_move_counters_do_not_panic() {
+    let p = get_position("4k3/8/8/8/8/8/8/4K3 w - - 99999999 88888888");
+    assert_eq!(p.half_moves, u16::MAX);
+    assert_eq!(p.move_number, u16::MAX);
+}
+
+/// `bench <non-numeric>` used to be parse().unwrap().
+#[test]
+pub fn bench_with_a_bad_argument_does_not_panic() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    assert!(matches!(run_command_test(&mut uci_state, &mut search_state, "bench cat"), Left(_)));
+    // engine still usable
+    assert_eq!(
+        run_command_test(&mut uci_state, &mut search_state, "position startpos"),
+        Right(None)
+    );
+}
