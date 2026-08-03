@@ -308,8 +308,22 @@ fn generate_pawn_quiet_moves(
         while to_bitboard != 0 {
             let base_move = fsm | get_and_unset_lsb!(to_bitboard) as Move;
             if is_promotion {
-                // Only generate queen promotions for quiet moves (underpromotions are rare)
+                // All four pieces (NET-371). This is the staged generator the
+                // search uses at every internal node, so emitting queen only
+                // made quiet rook/bishop/knight promotions unreachable below the
+                // root: capture-promotions get all four, evasions get all four
+                // when they block or capture the checker, and the root uses
+                // generate_moves - but a quiet underpromotion by a side not in
+                // check was generated nowhere. The TT cannot compensate either,
+                // since a move that is never generated is never stored.
+                //
+                // Rook underpromotion is what wins Saavedra-type positions by
+                // avoiding stalemate, and knight underpromotion delivers forks
+                // and checks a queen cannot.
                 move_list.push(base_move | PROMOTION_QUEEN_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_ROOK_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_BISHOP_MOVE_MASK);
+                move_list.push(base_move | PROMOTION_KNIGHT_MOVE_MASK);
             } else {
                 move_list.push(base_move);
             }

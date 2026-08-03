@@ -468,3 +468,43 @@ fn it_can_verify_a_move() {
         assert!(verify_move(&position, m));
     }
 }
+
+/// NET-371: the staged generator the search uses at every internal node must
+/// emit all four quiet promotions, not just the queen.
+///
+/// This is deliberately a GENERATOR test rather than a search test. A search
+/// test on a study position such as Saavedra does not discriminate: the root
+/// uses `generate_moves`, which always emitted all four, so the engine found
+/// the winning underpromotion at ply 0 even with the bug. The defect only ever
+/// applied below the root, where `generate_quiet_moves` is used - so that is
+/// what has to be asserted.
+#[test]
+fn staged_generator_emits_all_quiet_underpromotions() {
+    use rusty_rival::fen::algebraic_move_from_move;
+    use rusty_rival::moves::{generate_moves, generate_quiet_moves};
+
+    // White pawn on c7, both kings clear of the action: c8 is an empty square,
+    // so this is a QUIET promotion, not a capture-promotion.
+    let position = get_position("8/2P5/8/8/8/8/8/k1K5 w - - 0 1");
+
+    let mut quiet: Vec<String> = generate_quiet_moves(&position)
+        .iter()
+        .map(|m| algebraic_move_from_move(*m))
+        .filter(|m| m.starts_with("c7c8"))
+        .collect();
+    quiet.sort();
+    assert_eq!(
+        quiet,
+        vec!["c7c8b", "c7c8n", "c7c8q", "c7c8r"],
+        "staged quiet generation must offer every promotion piece"
+    );
+
+    // ...and it must agree with the full generator the root uses.
+    let mut full: Vec<String> = generate_moves(&position)
+        .iter()
+        .map(|m| algebraic_move_from_move(*m))
+        .filter(|m| m.starts_with("c7c8"))
+        .collect();
+    full.sort();
+    assert_eq!(quiet, full, "staged and full generators must agree on promotions");
+}
