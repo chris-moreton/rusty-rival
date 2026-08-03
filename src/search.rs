@@ -1635,7 +1635,7 @@ pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> 
 #[inline(always)]
 fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bool {
     let mut repeats = 0;
-    // KNOWN INCOMPLETE - see NET-375 before changing this line. Two defects are
+    // KNOWN INCOMPLETE - see NET-391 before changing this line. Two defects are
     // understood and deliberately NOT fixed here, because each is correct in
     // principle but measured a large bench-node cost that no match has yet
     // shown to be worth paying:
@@ -1652,7 +1652,7 @@ fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bo
     //      standard rule) cost +12.9% nodes.
     //
     // Both make the engine more correct about draws and both make the tree
-    // markedly bigger; NET-375 exists to settle whether either is affordable.
+    // markedly bigger; NET-391 exists to settle whether either is affordable.
     for lock in search_state.history.iter().rev().take(position.half_moves as usize) {
         if position.zobrist_lock == *lock {
             repeats += 1;
