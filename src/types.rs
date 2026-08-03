@@ -447,6 +447,11 @@ pub struct SearchState {
     pub pv: HashMap<Move, PathScore>,
     pub hash_clashes: u64,
     pub history: PositionHistory,
+    /// Index into `history` below which the repetition scan must not look.
+    /// Raised at each null move: positions either side of a null do not form a
+    /// legal sequence, so matching across one is a fictitious repetition. This
+    /// is the plies-from-null bound every mainstream engine applies (NET-367).
+    pub history_null_floor: usize,
     pub multi_pv: u8,
     pub contempt: Score,
     pub ignore_root_move: Move,
@@ -507,6 +512,7 @@ impl Clone for SearchState {
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
             history: self.history.clone(),
+            history_null_floor: self.history_null_floor,
             multi_pv: self.multi_pv,
             contempt: self.contempt,
             ignore_root_move: self.ignore_root_move,
@@ -563,6 +569,7 @@ pub fn default_search_state() -> SearchState {
         pv: HashMap::new(),
         hash_clashes: 0,
         history: vec![],
+        history_null_floor: 0,
         multi_pv: 1,
         contempt: 0,
         ignore_root_move: 0,
