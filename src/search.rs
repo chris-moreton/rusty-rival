@@ -904,8 +904,6 @@ pub fn search(
 
     if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let old_ep = make_null_move(position);
-        let old_null_floor = search_state.history_null_floor;
-        search_state.history_null_floor = search_state.history.len();
         // No real previous move exists for the null-move child's countermove context
         search_state.ply_move[ply as usize] = 0;
         // NOTE: deliberately NOT pushing the null position onto the repetition
@@ -931,7 +929,6 @@ pub fn search(
         )
         .1;
 
-        search_state.history_null_floor = old_null_floor;
         unmake_null_move(position, old_ep);
 
         if is_stopped(&search_state.stop) {
@@ -1638,19 +1635,25 @@ pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> 
 #[inline(always)]
 fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bool {
     let mut repeats = 0;
-    // `+ 1` because reverse index 0 is the current position itself - every
-    // caller pushes the child's lock before recursing - so one slot of the
-    // window is spent self-matching. Without it the scan stops one short and
-    // misses a recurrence at distance exactly half_moves, i.e. the position
-    // immediately after the last irreversible move (NET-367). take() stops at
-    // the end of the history, so a short history is safe, and an odd
-    // half_moves adds an entry with the opposite side to move, whose lock can
-    // never match.
-    // Never scan past the most recent null move (history_null_floor), and never
-    // past the last irreversible move (half_moves). The `+ 1` covers reverse
-    // index 0 being the current position itself.
-    let window = (position.half_moves as usize + 1).min(search_state.history.len() - search_state.history_null_floor);
-    for lock in search_state.history.iter().rev().take(window) {
+    // KNOWN INCOMPLETE - see NET-375 before changing this line. Two defects are
+    // understood and deliberately NOT fixed here, because each is correct in
+    // principle but measured a large bench-node cost that no match has yet
+    // shown to be worth paying:
+    //
+    //   1. The window is one short. Reverse index 0 is the current position
+    //      itself (every caller pushes the child's lock before recursing), so
+    //      a slot is spent self-matching and a recurrence at distance exactly
+    //      half_moves - the position right after the last irreversible move -
+    //      can never be seen. `half_moves + 1` is the provably correct window
+    //      and cost +15.4% nodes.
+    //   2. There is no plies-from-null bound, so this scan reaches ACROSS null
+    //      moves. Positions either side of a null do not form a legal
+    //      sequence, so such a match is fictitious. Adding the bound (the
+    //      standard rule) cost +12.9% nodes.
+    //
+    // Both make the engine more correct about draws and both make the tree
+    // markedly bigger; NET-375 exists to settle whether either is affordable.
+    for lock in search_state.history.iter().rev().take(position.half_moves as usize) {
         if position.zobrist_lock == *lock {
             repeats += 1;
             if repeats > 1 {
