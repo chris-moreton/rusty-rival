@@ -229,8 +229,17 @@ fn play_game(
 
         // --- Adjudication ---------------------------------------------------
         let favours_white = white_score > 0;
-        if white_score.abs() >= ADJUDICATION_SCORE && (decisive_streak == 0 || favours_white == streak_favours_white) {
-            decisive_streak += 1;
+        if white_score.abs() >= ADJUDICATION_SCORE {
+            // A decisive ply that flips the favoured side STARTS a new streak
+            // rather than clearing it: the flip ply is itself decisive, and
+            // resetting to 0 discarded that (NET-374). Restructured so the
+            // trigger check runs on every decisive ply, including the flip -
+            // the old shape would silently break if ADJUDICATION_PLIES were 1.
+            decisive_streak = if decisive_streak > 0 && favours_white == streak_favours_white {
+                decisive_streak + 1
+            } else {
+                1
+            };
             streak_favours_white = favours_white;
             if decisive_streak >= ADJUDICATION_PLIES {
                 outcome = if favours_white { Outcome::WhiteWin } else { Outcome::BlackWin };

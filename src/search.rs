@@ -58,7 +58,7 @@ use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
 };
-use crate::move_scores::{score_move, score_move_with_see};
+use crate::move_scores::{score_move, score_move_with_see, victim_piece_index};
 use crate::moves::{generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move};
 use crate::opponent;
 use crate::quiesce::quiesce;
@@ -1055,7 +1055,11 @@ pub fn search(
     let verified_hash_move = hash_move != 0 && verify_move(position, hash_move);
 
     // Check extension: extend by 1 ply when in check
-    let check_extension: u8 = if in_check && ply < search_state.iterative_depth * 2 { 1 } else { 0 };
+    let check_extension: u8 = if in_check && (ply as u16) < (search_state.iterative_depth as u16) * 2 {
+        1
+    } else {
+        0
+    };
     let real_depth = depth + check_extension;
 
     // Try hash move first if valid
@@ -1276,7 +1280,14 @@ pub fn search(
         // Good-stage tactical moves all have SEE >= 0 (EP captures skip staging
         // SEE but are provably >= 0), and the threshold is always negative, so
         // the prune can only ever fire in the bad-captures stage.
-        if bad_captures_added
+        // `legal_move_count >= 1` (NET-374): this `continue` fires BEFORE the
+        // move is made and before legal_move_count is incremented, and unlike
+        // alpha-pruning and LMP it had no first-move protection. If every legal
+        // move at a node were SEE-pruned, legal_move_count would stay 0 and the
+        // node would be adjudicated stalemate/mate - a fabricated score, which
+        // then gets stored in the TT.
+        if legal_move_count >= 1
+            && bad_captures_added
             && scouting
             && is_tactical
             && !is_promotion
@@ -1293,11 +1304,12 @@ pub fn search(
 
         // Pawn push extension: extend by 1 ply for pawn push to 7th rank
         // Only if no check extension already applied (avoid over-extending)
-        let pawn_push_ext: u8 = if check_extension == 0 && is_pawn_push_to_7th(position, m) && ply < search_state.iterative_depth * 2 {
-            1
-        } else {
-            0
-        };
+        let pawn_push_ext: u8 =
+            if check_extension == 0 && is_pawn_push_to_7th(position, m) && (ply as u16) < (search_state.iterative_depth as u16) * 2 {
+                1
+            } else {
+                0
+            };
 
         // Passed pawn push extension: extend by 1 ply for passed pawn reaching 5th/6th rank
         // Only apply in endgames to avoid search explosion in complex middlegames
@@ -1306,7 +1318,7 @@ pub fn search(
             && pawn_push_ext == 0
             && current_is_end_game
             && is_passed_pawn_push(position, m)
-            && ply < search_state.iterative_depth * 2
+            && (ply as u16) < (search_state.iterative_depth as u16) * 2
         {
             1
         } else {
@@ -1971,14 +1983,33 @@ fn update_followup_history_for_move(
 /// Update capture history: tracks how well captures perform
 /// Indexed by [attacker_piece][victim_piece][to_square]
 #[inline(always)]
-fn update_capture_history_for_move(_position: &Position, search_state: &mut SearchState, m: Move, bonus: i32, captured_value: Score) {
+fn update_capture_history_for_move(position: &Position, search_state: &mut SearchState, m: Move, bonus: i32, captured_value: Score) {
     if captured_value == 0 {
         return; // Not a capture
     }
 
+    // Index the victim from the BOARD, exactly as the read side does
+    // (capture_history_score_cached -> victim_piece_index). Deriving it from
+    // captured_value instead was wrong for promotions, because that value
+    // includes the promotion delta, so captured_piece_to_index matched no
+    // piece value and fell through to bucket 5 - a bucket the reader never
+    // consults. Every promotion, capturing or not, wrote its history into a
+    // dead slot (NET-374).
+    //
+    // The move has been unmade by the time this runs, so `position` is the
+    // pre-move board and the victim is still on the destination square.
+    let enemy = &position.pieces[opponent!(position.mover) as usize];
+    let to_square = to_square_part(m);
+    if enemy.all_pieces_bitboard & bit(to_square) == 0 {
+        // Quiet promotion (non-zero captured_value from the promo delta, but no
+        // victim), or en passant - where the victim is not on the destination
+        // square and which the read side likewise never looks up.
+        return;
+    }
+
     let attacker = piece_type_to_index(m);
-    let victim = captured_piece_to_index(captured_value);
-    let to_sq = to_square_part(m) as usize;
+    let victim = victim_piece_index(to_square, enemy);
+    let to_sq = to_square as usize;
 
     let entry = &mut search_state.capture_history[attacker][victim][to_sq];
     let current = *entry as i32;
@@ -1986,25 +2017,6 @@ fn update_capture_history_for_move(_position: &Position, search_state: &mut Sear
     let abs_bonus = bonus.abs();
     let new_value = current + bonus - current * abs_bonus / 16384;
     *entry = new_value.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-}
-
-/// Convert captured piece value to index 0-5
-#[inline(always)]
-fn captured_piece_to_index(value: Score) -> usize {
-    use crate::engine_constants::*;
-    if value == PAWN_VALUE_AVERAGE {
-        0
-    } else if value == KNIGHT_VALUE_AVERAGE {
-        1
-    } else if value == BISHOP_VALUE_AVERAGE {
-        2
-    } else if value == ROOK_VALUE_AVERAGE {
-        3
-    } else if value == QUEEN_VALUE_AVERAGE {
-        4
-    } else {
-        5 // King (shouldn't happen)
-    }
 }
 
 /// Convert move's piece mask to index 0-5

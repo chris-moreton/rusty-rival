@@ -850,3 +850,35 @@ pub fn bench_with_a_bad_argument_does_not_panic() {
         Right(None)
     );
 }
+
+/// NET-374: `next_power_of_two() >> 1` halves the table whenever the raw entry
+/// count is ALREADY a power of two, which with 24-byte entries happens for
+/// Hash = 3*2^k MB - including 96, the advertised default. Users asking for
+/// 96MB were silently given 48MB.
+#[test]
+pub fn hash_table_uses_the_memory_it_was_given() {
+    use rusty_rival::types::SharedHashTable;
+
+    // 96MB / 24 bytes = 4,194,304 entries = exactly 2^22 - the pathological case
+    let t = SharedHashTable::new_with_mb(96);
+    assert_eq!(t.len(), 4_194_304, "96MB should give 2^22 entries, not half that");
+    assert_eq!(t.size_mb(), 96);
+
+    // Same trap at every 3*2^k
+    for mb in [3usize, 6, 12, 24, 48, 192] {
+        let t = SharedHashTable::new_with_mb(mb);
+        assert_eq!(t.size_mb(), mb, "Hash={}MB should allocate {}MB", mb, mb);
+    }
+
+    // Non-power-of-two counts still round DOWN, never up past the request
+    for mb in [1usize, 2, 5, 100, 128, 1000] {
+        let t = SharedHashTable::new_with_mb(mb);
+        assert!(t.len().is_power_of_two(), "Hash={}MB: entry count must stay a power of two", mb);
+        assert!(
+            t.size_mb() <= mb,
+            "Hash={}MB allocated {}MB - must never exceed the request",
+            mb,
+            t.size_mb()
+        );
+    }
+}

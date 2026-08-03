@@ -2,7 +2,7 @@ use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RA
 use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
 use crate::evaluate::evaluate_position;
 use crate::move_constants::{
-    PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
+    PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
     PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
@@ -123,7 +123,10 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
         // (NET-366: a 2022 refactor flipped this to `-`, searching the most
         // valuable attacker first for four years.)
         piece_value(enemy, to_square) + attacker_bonus(m & PIECE_MASK_FULL)
-    } else if to_square == position.en_passant_square {
+    } else if m & PIECE_MASK_FULL == PIECE_MASK_PAWN && to_square == position.en_passant_square {
+        // The pawn guard matters when in check: evasions include quiet king and
+        // slider moves, and one landing on the EP square was being scored as a
+        // capture worth 475 (NET-374). Matches see.rs:97 and utils.rs:39.
         PAWN_VALUE_AVERAGE + PAWN_ATTACKER_BONUS
     } else {
         0

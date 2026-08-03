@@ -190,12 +190,50 @@ impl NnueNetwork {
             l1_biases = [bias; NUM_OUTPUT_BUCKETS];
         }
 
-        NnueNetwork {
+        let net = NnueNetwork {
             l0_weights,
             l0_biases,
             l1_weights,
             l1_biases,
-        }
+        };
+        net.assert_no_output_overflow();
+        net
+    }
+
+    /// Guard the i32 accumulation in `evaluate()` at LOAD time (NET-374).
+    ///
+    /// `output` sums 2*HIDDEN_SIZE terms of `(s*s/QA) * w` where `s*s/QA <= QA`,
+    /// so the worst case is `2 * HIDDEN_SIZE * QA * max|w|`. With the shipped
+    /// net that is nowhere near i32::MAX, but nothing checked it: a retrained
+    /// net with larger L1 weights would silently wrap (or panic in debug) and
+    /// produce garbage evaluations with no other symptom. There is a second
+    /// latent overflow at `output * EVAL_SCALE`, checked here too.
+    ///
+    /// Done at load rather than in the loop because `evaluate()` is the hottest
+    /// path in the engine and this costs nothing there.
+    fn assert_no_output_overflow(&self) {
+        let max_w = self
+            .l1_weights
+            .iter()
+            .flat_map(|bucket| bucket.iter())
+            .map(|w| (*w as i64).abs())
+            .max()
+            .unwrap_or(0);
+        let max_bias = self.l1_biases.iter().map(|b| (*b as i64).abs()).max().unwrap_or(0);
+        let worst = 2 * HIDDEN_SIZE as i64 * QA as i64 * max_w + max_bias;
+        assert!(
+            worst <= i32::MAX as i64,
+            "NNUE L1 weights can overflow the i32 accumulator in evaluate(): worst case {} > {}. \
+             Widen the accumulator to i64 or requantise the net.",
+            worst,
+            i32::MAX
+        );
+        assert!(
+            worst.saturating_mul(EVAL_SCALE as i64) <= i32::MAX as i64 * QA as i64 * QB as i64,
+            "NNUE output can overflow at `output * EVAL_SCALE`: worst case {} with EVAL_SCALE {}.",
+            worst,
+            EVAL_SCALE
+        );
     }
 
     /// Evaluate the position using the current accumulator.

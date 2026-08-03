@@ -4,7 +4,6 @@ use crate::engine_constants::{
 use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
 use crate::nnue;
 use arrayvec::ArrayVec;
-use std::cell::UnsafeCell;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
@@ -61,9 +60,14 @@ impl SharedHashTable {
 
     /// Create a new hash table with specified size in megabytes
     pub fn new_with_mb(mb: usize) -> Self {
-        let raw_entries = (mb * 1024 * 1024) / HASH_ENTRY_BYTES as usize;
-        // Round down to power of 2 so index can use bitwise AND instead of modulo
-        let num_entries = raw_entries.next_power_of_two() >> 1;
+        let raw_entries = ((mb * 1024 * 1024) / HASH_ENTRY_BYTES as usize).max(1);
+        // Round DOWN to a power of two so the index can use a mask instead of a
+        // modulo. `next_power_of_two() >> 1` gets this wrong when raw_entries is
+        // already a power of two - it returns the value unchanged, then halves
+        // it - throwing away half the requested memory. With 24-byte entries
+        // that happens for Hash = 3*2^k MB: 3, 6, 12, 24, 48 and 96, the last
+        // of which is the default (NET-374).
+        let num_entries = 1usize << raw_entries.ilog2();
         Self::new_with_entries(num_entries)
     }
 
@@ -222,26 +226,35 @@ impl std::fmt::Debug for SharedHashTable {
     }
 }
 
-// Pawn hash table entry - caches pawn structure evaluation
-#[derive(Copy, Clone, Default)]
+/// Pawn hash entry: two relaxed atomic words, `key ^ score` and `score`.
+///
+/// The previous version was a plain `{u64, i32}` written through an UnsafeCell
+/// with non-atomic stores, justified by "data races just cause cache misses".
+/// That was false, and it was UB (NET-374). Two writers interleaving could
+/// leave writer A's key paired with writer B's score, and the reader would
+/// then VERIFY that pair and return a wrong pawn score for a key it believes
+/// it matched - silent eval corruption under Threads > 1, not a cache miss.
+///
+/// The XOR check is the same trick SharedHashTable uses: a torn pair fails
+/// `key == word0 ^ word1` and simply reads as a miss.
+#[derive(Default)]
 pub struct PawnHashEntry {
-    pub key: u64,     // Lower 64 bits of pawn Zobrist key for verification
-    pub score: Score, // Cached pawn structure score
+    key_xor_score: AtomicU64,
+    score: AtomicU64,
 }
 
 // Pawn hash table - smaller dedicated cache for pawn structure evaluation
 pub struct PawnHashTable {
-    data: UnsafeCell<Box<[PawnHashEntry; NUM_PAWN_HASH_ENTRIES]>>,
+    data: Box<[PawnHashEntry]>,
 }
-
-// SAFETY: Same reasoning as SharedHashTable - data races just cause cache misses
-unsafe impl Send for PawnHashTable {}
-unsafe impl Sync for PawnHashTable {}
 
 impl PawnHashTable {
     pub fn new() -> Self {
         PawnHashTable {
-            data: UnsafeCell::new(Box::new([PawnHashEntry::default(); NUM_PAWN_HASH_ENTRIES])),
+            data: std::iter::repeat_with(PawnHashEntry::default)
+                .take(NUM_PAWN_HASH_ENTRIES)
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
         }
     }
 
@@ -249,10 +262,13 @@ impl PawnHashTable {
     pub fn get(&self, key: HashLock) -> Option<Score> {
         let index = (key as usize) % NUM_PAWN_HASH_ENTRIES;
         let key_lower = key as u64;
-        // SAFETY: We accept data races as they only cause cache misses
-        let entry = unsafe { &(*self.data.get())[index] };
-        if entry.key == key_lower {
-            Some(entry.score)
+        let entry = &self.data[index];
+        let check = entry.key_xor_score.load(Ordering::Relaxed);
+        let score = entry.score.load(Ordering::Relaxed);
+        // A torn write fails this and reads as a miss, which is correct and
+        // costs only a recomputation
+        if check ^ score == key_lower {
+            Some(score as u32 as Score)
         } else {
             None
         }
@@ -262,12 +278,10 @@ impl PawnHashTable {
     pub fn set(&self, key: HashLock, score: Score) {
         let index = (key as usize) % NUM_PAWN_HASH_ENTRIES;
         let key_lower = key as u64;
-        // SAFETY: We accept data races as they only cause cache misses
-        unsafe {
-            let entry = &mut (*self.data.get())[index];
-            entry.key = key_lower;
-            entry.score = score;
-        }
+        let score_bits = score as u32 as u64;
+        let entry = &self.data[index];
+        entry.key_xor_score.store(key_lower ^ score_bits, Ordering::Relaxed);
+        entry.score.store(score_bits, Ordering::Relaxed);
     }
 
     #[inline(always)]
@@ -276,9 +290,9 @@ impl PawnHashTable {
         #[cfg(target_arch = "x86_64")]
         {
             use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
-            // SAFETY: We're prefetching a valid address within our allocation
+            // SAFETY: prefetching a valid address within our allocation
             unsafe {
-                let ptr = &(*self.data.get())[index] as *const PawnHashEntry as *const i8;
+                let ptr = &self.data[index] as *const PawnHashEntry as *const i8;
                 _mm_prefetch(ptr, _MM_HINT_T0);
             }
         }
@@ -286,7 +300,7 @@ impl PawnHashTable {
         {
             use std::arch::x86::{_mm_prefetch, _MM_HINT_T0};
             unsafe {
-                let ptr = &(*self.data.get())[index] as *const PawnHashEntry as *const i8;
+                let ptr = &self.data[index] as *const PawnHashEntry as *const i8;
                 _mm_prefetch(ptr, _MM_HINT_T0);
             }
         }
@@ -298,12 +312,9 @@ impl PawnHashTable {
     }
 
     pub fn clear(&self) {
-        // SAFETY: Called before search starts, no concurrent access expected
-        unsafe {
-            let data = &mut *self.data.get();
-            for entry in data.iter_mut() {
-                *entry = PawnHashEntry::default();
-            }
+        for entry in self.data.iter() {
+            entry.key_xor_score.store(0, Ordering::Relaxed);
+            entry.score.store(0, Ordering::Relaxed);
         }
     }
 }

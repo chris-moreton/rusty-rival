@@ -142,10 +142,32 @@ pub fn evaluate_position(position: &Position, search_state: &mut crate::types::S
             let piece_count = position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
                 + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones();
 
-            return net.evaluate(&nnue_accumulators[ply], position.mover, piece_count);
+            return clamp_to_eval_band(net.evaluate(&nnue_accumulators[ply], position.mover, piece_count));
         }
     }
-    evaluate_with_pawn_hash(position, &search_state.pawn_hash_table)
+    clamp_to_eval_band(evaluate_with_pawn_hash(position, &search_state.pawn_hash_table))
+}
+
+/// Keep a static evaluation strictly inside the mate band (NET-374).
+///
+/// store_hash_entry reinterprets ANY score with |score| > MATE_START as a mate
+/// distance and adjusts it by ply on the way in, with the probe reversing that
+/// using a different ply. That is only sound if a non-mate score can never
+/// reach the band - but static evals were unbounded: the HCE path is an
+/// unbounded sum of ~20 terms, and reverse-futility returns `lazy_eval - margin`
+/// directly. An eval that strayed into the band came back out of the TT as a
+/// fabricated mate distance.
+///
+/// The bound leaves headroom for eval noise, which is applied AFTER this by
+/// both callers, so noise cannot push a clamped value back over the line.
+#[inline(always)]
+fn clamp_to_eval_band(score: Score) -> Score {
+    // EvalNoise is capped at 100 by the UCI option, but its actual range is
+    // [-3n, +n] because of the modulo-sign bug recorded in NET-225, so reserve
+    // 300 rather than 100. Deliberately generous: this headroom costs nothing.
+    const MAX_EVAL_NOISE: Score = 300;
+    const EVAL_LIMIT: Score = crate::search::MATE_START - 1 - MAX_EVAL_NOISE;
+    score.clamp(-EVAL_LIMIT, EVAL_LIMIT)
 }
 
 /// Evaluate with pawn hash table support for caching pawn structure evaluation

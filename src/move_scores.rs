@@ -198,7 +198,7 @@ fn capture_history_score_cached(attacker: usize, to_square: Square, enemy: &Piec
 
 /// Get the piece type index (0-5) of the victim at the given square
 #[inline(always)]
-fn victim_piece_index(sq: Square, pieces: &Pieces) -> usize {
+pub fn victim_piece_index(sq: Square, pieces: &Pieces) -> usize {
     let bb = bit(sq);
     if pieces.pawn_bitboard & bb != 0 {
         return 0; // Pawn

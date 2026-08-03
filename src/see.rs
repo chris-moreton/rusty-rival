@@ -9,7 +9,8 @@ use std::cmp::min;
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::move_constants::{
     EN_PASSANT_CAPTURE_MASK, EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT,
-    PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
+    PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK,
+    PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES,
 };
 use crate::{get_and_unset_lsb, get_lsb, opponent};
 
@@ -62,9 +63,22 @@ pub fn make_see_move(mv: Move, new_position: &mut Position) {
     }
     new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
-    if mv & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK {
-        new_position.pieces[new_position.mover as usize].queen_bitboard |= bit_to;
-        new_position.pieces[new_position.mover as usize].pawn_bitboard &= !bit(from);
+    // All four promotion pieces, not just the queen (NET-374). generate_captures
+    // emits rook/bishop/knight promo-captures and score_move_with_see feeds them
+    // straight to SEE; the queen-only test sent them down the plain-pawn branch
+    // below, which XORs a PAWN onto the promotion square - a phantom pawn on
+    // rank 8 that then defends and recaptures as a pawn for the rest of the
+    // exchange, mis-valuing the whole sequence.
+    if mv & PROMOTION_FULL_MOVE_MASK != 0 {
+        let mover = new_position.mover as usize;
+        match mv & PROMOTION_FULL_MOVE_MASK {
+            PROMOTION_QUEEN_MOVE_MASK => new_position.pieces[mover].queen_bitboard |= bit_to,
+            PROMOTION_ROOK_MOVE_MASK => new_position.pieces[mover].rook_bitboard |= bit_to,
+            PROMOTION_BISHOP_MOVE_MASK => new_position.pieces[mover].bishop_bitboard |= bit_to,
+            PROMOTION_KNIGHT_MOVE_MASK => new_position.pieces[mover].knight_bitboard |= bit_to,
+            _ => {}
+        }
+        new_position.pieces[mover].pawn_bitboard &= !bit(from);
     } else {
         match piece_mask {
             PIECE_MASK_PAWN => new_position.pieces[new_position.mover as usize].pawn_bitboard ^= switch,
@@ -87,10 +101,14 @@ pub fn captured_piece_value_see(position: &Position, mv: Move) -> Score {
     let tsp = to_square_part(mv);
     let to_bb = bit(tsp);
 
-    let promote_value = if mv & PROMOTION_FULL_MOVE_MASK == PROMOTION_QUEEN_MOVE_MASK {
-        QUEEN_VALUE_AVERAGE - PAWN_VALUE_AVERAGE
-    } else {
-        0
+    // Mirror utils::captured_piece_value: every promotion gains its piece's
+    // value, not only the queen (NET-374)
+    let promote_value = match mv & PROMOTION_FULL_MOVE_MASK {
+        PROMOTION_QUEEN_MOVE_MASK => QUEEN_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+        PROMOTION_ROOK_MOVE_MASK => ROOK_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+        PROMOTION_BISHOP_MOVE_MASK => BISHOP_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+        PROMOTION_KNIGHT_MOVE_MASK => KNIGHT_VALUE_AVERAGE - PAWN_VALUE_AVERAGE,
+        _ => 0,
     };
 
     promote_value
