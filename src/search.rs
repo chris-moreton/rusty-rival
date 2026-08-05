@@ -517,6 +517,27 @@ pub fn clear_history_table(search_state: &mut SearchState) {
     }
 }
 
+/// Countermoves are the one move-ordering table with no reset at all: the
+/// history tables are decayed per search and cleared per game, the killers are
+/// cleared per search, but a countermove learned in the first game is still
+/// steering move ordering in the fiftieth.
+///
+/// That is deliberately *not* done by `clear_history_table`, so `ucinewgame`
+/// keeps the warm table: clearing it costs 12% more nodes on `bench`, which
+/// runs sixteen unrelated positions and so pays the cold-table price fifteen
+/// times over. Whether a real match would rather have the clean table is an
+/// open question (NET-396) and needs a match to answer, not a node count.
+///
+/// Self-play datagen calls this per game regardless, because there the warmth
+/// is a liability: it makes a game's labels depend on which *other* games that
+/// worker happened to be handed, which is both a reproducibility hole and a
+/// source of label noise.
+pub fn clear_countermoves(search_state: &mut SearchState) {
+    for prev_piece in search_state.countermoves.iter_mut() {
+        prev_piece.fill(0);
+    }
+}
+
 /// Halve every history table at the start of a search: old signal decays but
 /// still seeds move ordering for the early iterations of the next search
 fn decay_history_tables(search_state: &mut SearchState) {

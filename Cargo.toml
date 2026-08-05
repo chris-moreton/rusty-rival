@@ -29,6 +29,7 @@ rustyline = "12.0.0"
 fs = "0.0.5"
 md5 = "0.7.0"
 mimalloc = { version = "0.1", default-features = false }
+zstd = "0.13.3"
 
 [dev-dependencies]
 cargo-husky = { version = "1", features = ["user-hooks"] }

@@ -34,7 +34,7 @@
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
 use crate::moves::{generate_moves, is_check};
-use crate::search::MATE_START;
+use crate::search::{clear_countermoves, MATE_START};
 use crate::types::{default_search_state, default_uci_state, Move, Position, Score, SearchState, UciState, WHITE};
 use crate::uci::run_command_sync;
 use crate::utils::is_capture;
@@ -148,6 +148,10 @@ fn play_game(
     // previous game bias the early search of the next one and the generated data
     // stops being independent per game.
     run_command_sync(uci_state, search_state, "ucinewgame");
+    // `ucinewgame` deliberately leaves the countermove table warm (see
+    // `clear_countermoves`). For datagen that warmth is the one thing standing
+    // between us and reproducible output, so drop it here.
+    clear_countermoves(search_state);
 
     let mut position = get_position(START_FEN);
     let mut played: Vec<String> = Vec::new();
@@ -268,9 +272,91 @@ fn play_game(
     Some(outcome)
 }
 
-/// Base RNG seed. Each worker offsets this by its index so runs are
-/// reproducible for a given thread count but workers never duplicate games.
+/// Base RNG seed. Mixed with the GAME INDEX rather than the worker index, so a
+/// given game number always produces the same game regardless of how many
+/// threads are running. That is what makes a run both reproducible and
+/// resumable: workers claim indices from a shared counter, so which worker
+/// plays which game no longer changes the data.
 const BASE_SEED: u64 = 0x0052_17A1_1EAD_u64;
+
+/// How many random openings to try for one game index before giving up. The
+/// imbalance filter rejects roughly one opening in ten, so exhausting this is
+/// vanishingly unlikely; the bound exists only so a pathological setting cannot
+/// spin forever.
+const MAX_OPENING_ATTEMPTS: usize = 64;
+
+/// Games per output shard. Shards are the unit of resumability: one is written
+/// to a temporary path and atomically renamed, so a shard on disk is proof its
+/// games are complete and flushed. Small enough that a crash loses little,
+/// large enough that zstd has a useful window.
+const GAMES_PER_SHARD: usize = 500;
+
+/// Derive a game's seed from its index. SplitMix64 finalizer, so adjacent game
+/// numbers give unrelated streams.
+fn game_seed(index: usize) -> u64 {
+    let mut z = BASE_SEED.wrapping_add((index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
+}
+
+/// Path of a sealed shard - one holding exactly `GAMES_PER_SHARD` games.
+fn shard_path(base: &str, n: usize) -> String {
+    format!("{}.{:05}.zst", base, n)
+}
+
+/// Path of the trailing short shard, which holds `games` games rather than a
+/// full `GAMES_PER_SHARD`.
+///
+/// The count is in the filename because it is the only record of how many games
+/// a shard represents: a shard stores positions, and the number of positions per
+/// game varies. Without it, resuming a dataset that did not end on a shard
+/// boundary would credit the short shard with a full `GAMES_PER_SHARD` and
+/// silently generate fewer games than asked for.
+fn short_shard_path(base: &str, n: usize, games: usize) -> String {
+    format!("{}.{:05}.p{}.zst", base, n, games)
+}
+
+/// Games already on disk for this output base, and the shard index to write next.
+///
+/// Sealed shards are counted from zero and stop at the first gap, so a run that
+/// died mid-write resumes from a contiguous prefix rather than trusting stray
+/// files. A short shard is only ever written at the end of a run, so at most one
+/// can exist and it always sits at the first free index.
+fn scan_shards(base: &str) -> (usize, usize) {
+    let mut sealed = 0;
+    while std::path::Path::new(&shard_path(base, sealed)).exists() {
+        sealed += 1;
+    }
+    match short_shard_games(base, sealed) {
+        Some(games) => (sealed * GAMES_PER_SHARD + games, sealed + 1),
+        None => (sealed * GAMES_PER_SHARD, sealed),
+    }
+}
+
+/// Game count of the short shard at `index`, if one is present.
+fn short_shard_games(base: &str, index: usize) -> Option<usize> {
+    let path = std::path::Path::new(base);
+    let dir = match path.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+        _ => std::path::PathBuf::from("."),
+    };
+    let stem = path.file_name()?.to_str()?;
+    let prefix = format!("{}.{:05}.p", stem, index);
+
+    for entry in std::fs::read_dir(dir).ok()?.flatten() {
+        let name = entry.file_name();
+        let name = name.to_str()?;
+        if let Some(rest) = name.strip_prefix(&prefix) {
+            if let Some(digits) = rest.strip_suffix(".zst") {
+                if let Ok(games) = digits.parse::<usize>() {
+                    return Some(games);
+                }
+            }
+        }
+    }
+    None
+}
 
 /// Per-worker transposition table size. Datagen searches are tiny (a few
 /// thousand nodes), so a large table wastes memory that matters once multiplied
@@ -290,7 +376,7 @@ const WORKER_STACK_BYTES: usize = 16 * 1024 * 1024;
 /// keeps the output append-ordered and free of interleaving with no locking on
 /// the hot path.
 pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
-    const USAGE: &str = "usage: datagen <games> <nodes-per-move> <output-file> [random-plies] [threads]";
+    const USAGE: &str = "usage: datagen <games> <nodes-per-move> <output-base> [random-plies] [threads]";
 
     if parts.len() < 4 || parts.len() > 6 {
         return Left(USAGE.to_string());
@@ -321,20 +407,42 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
         thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
     };
 
-    let file = match File::create(&path) {
-        Ok(f) => f,
-        Err(e) => return Left(format!("datagen: cannot write {}: {}", path, e)),
-    };
-    let mut writer = BufWriter::new(file);
+    // Resume from whatever is already on disk. A shard exists only after its
+    // atomic rename, so it is proof its games are complete and durable; an
+    // interrupted run loses only the games that were in flight.
+    //
+    // Resuming is only sound because a game index reproduces the same game
+    // regardless of thread count or scheduling - see `game_seed` and the
+    // per-game reset in `play_game`.
+    let (resumed_games, next_shard) = scan_shards(&path);
+    let mut shard_index = next_shard;
+    if resumed_games >= games {
+        return Right(Some(format!(
+            "datagen: {} already holds {} games - nothing to do",
+            path, resumed_games
+        )));
+    }
+    if resumed_games > 0 {
+        println!(
+            "Resuming: {} games already on disk in {} shard(s), {} to go",
+            resumed_games,
+            shard_index,
+            games - resumed_games
+        );
+    }
 
     let start = Instant::now();
     let stop = Arc::new(AtomicBool::new(false));
     let (tx, rx) = mpsc::channel::<(Vec<Sample>, Outcome)>();
+    // Workers claim game indices from here, so no two play the same game and
+    // the assignment does not depend on the thread count.
+    let next_game = Arc::new(std::sync::atomic::AtomicUsize::new(resumed_games));
 
     let mut handles = Vec::with_capacity(threads);
     for worker in 0..threads {
         let tx = tx.clone();
         let stop = Arc::clone(&stop);
+        let next_game = Arc::clone(&next_game);
         let handle = thread::Builder::new().stack_size(WORKER_STACK_BYTES).spawn(move || {
             let mut uci_state = default_uci_state();
             let mut search_state = default_search_state();
@@ -345,11 +453,37 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
                 &format!("setoption name Hash value {}", WORKER_HASH_MB),
             );
 
-            let mut rng = StdRng::seed_from_u64(BASE_SEED.wrapping_add(worker as u64));
-
             while !stop.load(Ordering::Relaxed) {
+                // Claim the next game index; its seed is a pure function of that
+                // index, so the game played is identical on any thread count and
+                // on a resumed run.
+                let index = next_game.fetch_add(1, Ordering::Relaxed);
+                if index >= games {
+                    break;
+                }
+
+                // One claimed index yields exactly ONE game. play_game returns
+                // None when the random opening is rejected (already lopsided, or
+                // no legal moves), which is common enough that letting a
+                // rejection consume the index would make "games completed" and
+                // "indices consumed" drift apart by the rejection rate - and the
+                // resume arithmetic depends on those being the same number.
+                // Retrying under a derived seed keeps the mapping exact and
+                // still deterministic.
                 let mut samples: Vec<Sample> = Vec::new();
-                if let Some(outcome) = play_game(&mut uci_state, &mut search_state, &mut rng, nodes, random_plies, &mut samples) {
+                let mut produced = None;
+                for attempt in 0..MAX_OPENING_ATTEMPTS {
+                    if stop.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    samples.clear();
+                    let mut rng = StdRng::seed_from_u64(game_seed(index).wrapping_add(attempt as u64));
+                    if let Some(outcome) = play_game(&mut uci_state, &mut search_state, &mut rng, nodes, random_plies, &mut samples) {
+                        produced = Some(outcome);
+                        break;
+                    }
+                }
+                if let Some(outcome) = produced {
                     // A send error means the collector has finished and dropped
                     // the receiver, so there is nothing left to do.
                     if tx.send((samples, outcome)).is_err() {
@@ -371,15 +505,29 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
     let mut results = [0usize; 3]; // white win, draw, black win
     let mut write_error: Option<String> = None;
 
+    // Positions buffered for the shard currently being filled.
+    let mut shard_buf: Vec<u8> = Vec::new();
+    let mut games_in_shard = 0usize;
+
     for (samples, outcome) in rx {
         for s in &samples {
-            if writeln!(writer, "{} | {} | {}", s.fen, s.score, outcome.wdl()).is_err() {
-                write_error = Some(format!("datagen: write failed to {}", path));
+            if writeln!(shard_buf, "{} | {} | {}", s.fen, s.score, outcome.wdl()).is_err() {
+                write_error = Some("datagen: formatting failed".to_string());
                 break;
             }
         }
         if write_error.is_some() {
             break;
+        }
+        games_in_shard += 1;
+        if games_in_shard == GAMES_PER_SHARD {
+            if let Err(e) = flush_shard(&shard_path(&path, shard_index), &shard_buf) {
+                write_error = Some(e);
+                break;
+            }
+            shard_index += 1;
+            shard_buf.clear();
+            games_in_shard = 0;
         }
 
         total_positions += samples.len() as u64;
@@ -413,7 +561,16 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
         let _ = h.join();
     }
 
-    let _ = writer.flush();
+    // Trailing short shard - the run finished (or was stopped) mid-shard. Its
+    // game count goes in the filename so a later run can resume from an exact
+    // total rather than assuming a full shard's worth (see `short_shard_path`).
+    if write_error.is_none() && games_in_shard > 0 {
+        if let Err(e) = flush_shard(&short_shard_path(&path, shard_index, games_in_shard), &shard_buf) {
+            write_error = Some(e);
+        } else {
+            shard_index += 1;
+        }
+    }
 
     if let Some(e) = write_error {
         return Left(e);
@@ -427,7 +584,36 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
     println!("Threads       : {}", threads);
     println!("Time          : {:.1}s", secs);
     println!("Positions/sec : {:.0}", total_positions as f64 / secs.max(0.001));
-    println!("Output        : {}", path);
+    println!("Shards        : {} ({})", shard_index, shard_path(&path, 0));
 
     Right(None)
 }
+
+/// Write one shard: zstd-compress into a temporary file, fsync, then rename.
+///
+/// The rename is the commit point. A shard that exists is therefore complete
+/// and durable, which is exactly the property `existing_shards` relies on to
+/// resume - a half-written file can never be mistaken for finished work.
+fn flush_shard(final_path: &str, data: &[u8]) -> Result<(), String> {
+    let tmp_path = format!("{}.tmp", final_path);
+
+    let file = File::create(&tmp_path).map_err(|e| format!("datagen: cannot create {}: {}", tmp_path, e))?;
+    let mut encoder = zstd::Encoder::new(BufWriter::new(file), ZSTD_LEVEL).map_err(|e| format!("datagen: zstd init failed: {}", e))?;
+    encoder
+        .write_all(data)
+        .map_err(|e| format!("datagen: write failed to {}: {}", tmp_path, e))?;
+    let mut inner = encoder.finish().map_err(|e| format!("datagen: zstd finish failed: {}", e))?;
+    inner.flush().map_err(|e| format!("datagen: flush failed: {}", e))?;
+    inner
+        .get_ref()
+        .sync_all()
+        .map_err(|e| format!("datagen: fsync failed on {}: {}", tmp_path, e))?;
+    drop(inner);
+
+    std::fs::rename(&tmp_path, final_path).map_err(|e| format!("datagen: cannot rename {} -> {}: {}", tmp_path, final_path, e))?;
+    Ok(())
+}
+
+/// zstd level. 3 is the default and compresses FEN text ~6x at a speed far
+/// above what datagen produces, so the writer never becomes the bottleneck.
+const ZSTD_LEVEL: i32 = 3;

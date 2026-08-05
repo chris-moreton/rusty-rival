@@ -64,6 +64,81 @@ fn datagen_white_pov_conversion_agrees_for_both_sides() {
     assert!(black_up_b < -100, "white-POV score should be negative, got {}", black_up_b);
 }
 
+/// Remove any shards left behind by an earlier run of a test.
+///
+/// This matters more than it looks: the generator resumes from whatever
+/// complete shards it finds, so a stale shard would make a fresh test run
+/// decide the work was already done and write nothing at all.
+fn clean_shards(base: &str) {
+    for path in shard_files(base) {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
+/// Every shard file for an output base, in shard order.
+///
+/// Sealed shards are `<base>.<n>.zst`; a trailing short shard carries its game
+/// count as `<base>.<n>.p<games>.zst`, so both spellings have to be picked up.
+fn shard_files(base: &str) -> Vec<std::path::PathBuf> {
+    let path = std::path::Path::new(base);
+    let dir = match path.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
+        _ => std::path::PathBuf::from("."),
+    };
+    let stem = path.file_name().unwrap().to_string_lossy().to_string();
+
+    let mut files: Vec<std::path::PathBuf> = std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            let name = p.file_name().unwrap_or_default().to_string_lossy().to_string();
+            name.starts_with(&format!("{}.", stem)) && name.ends_with(".zst")
+        })
+        .collect();
+    files.sort();
+    files
+}
+
+/// Decompress and concatenate every shard the generator wrote, in shard order.
+fn read_shards(base: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for path in shard_files(base) {
+        let bytes = std::fs::read(&path).expect("cannot read shard");
+        let plain = zstd::decode_all(&bytes[..]).expect("shard is not valid zstd");
+        let text = String::from_utf8(plain).expect("shard is not valid utf-8");
+        out.extend(text.lines().filter(|l| !l.trim().is_empty()).map(str::to_string));
+    }
+    out
+}
+
+/// Positions produced, as a multiset.
+///
+/// Completion order across worker threads is not part of the guarantee - the
+/// collector writes games as they finish - so every comparison here is on
+/// content. Training data is shuffled before use, so ordering carries nothing.
+fn sorted(mut lines: Vec<String>) -> Vec<String> {
+    lines.sort();
+    lines
+}
+
+/// Run the generator and return the positions it produced.
+fn run_datagen(base: &str, games: &str, threads: &str) -> Vec<String> {
+    run_datagen_at(base, games, threads, "800")
+}
+
+fn run_datagen_at(base: &str, games: &str, threads: &str, nodes: &str) -> Vec<String> {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+
+    let parts = vec!["datagen", games, nodes, base, "6", threads];
+    let result = cmd_datagen(&mut uci_state, &mut search_state, parts);
+    assert!(result.is_right(), "datagen returned an error: {:?}", result.left());
+
+    read_shards(base)
+}
+
 /// End-to-end smoke test for the multi-threaded generator.
 ///
 /// Guards the things concurrency gets wrong rather than the chess: that the
@@ -72,22 +147,14 @@ fn datagen_white_pov_conversion_agrees_for_both_sides() {
 /// interleaved by concurrent writers.
 #[test]
 fn parallel_datagen_produces_well_formed_output() {
-    use std::fs;
-
-    let mut uci_state = default_uci_state();
-    let mut search_state = default_search_state();
-
-    let path = std::env::temp_dir().join("rusty_rival_datagen_test.txt");
-    let path_str = path.to_string_lossy().to_string();
+    let path = std::env::temp_dir().join("rusty_rival_datagen_wellformed");
+    let base = path.to_string_lossy().to_string();
+    clean_shards(&base);
 
     // 6 games, low node count, 3 workers, 6 random plies.
-    let parts = vec!["datagen", "6", "800", path_str.as_str(), "6", "3"];
-    let result = cmd_datagen(&mut uci_state, &mut search_state, parts);
-    assert!(result.is_right(), "datagen returned an error: {:?}", result.left());
-
-    let contents = fs::read_to_string(&path).expect("datagen wrote no output file");
-    let lines: Vec<&str> = contents.lines().filter(|l| !l.trim().is_empty()).collect();
+    let lines = run_datagen(&base, "6", "3");
     assert!(!lines.is_empty(), "datagen produced no positions");
+    let lines: Vec<&str> = lines.iter().map(String::as_str).collect();
 
     for line in &lines {
         let fields: Vec<&str> = line.split('|').map(|f| f.trim()).collect();
@@ -105,5 +172,99 @@ fn parallel_datagen_produces_well_formed_output() {
         assert!(matches!(fields[2], "1.0" | "0.5" | "0.0"), "unexpected wdl label {}", fields[2]);
     }
 
-    let _ = fs::remove_file(&path);
+    clean_shards(&base);
+}
+
+/// Two runs with the same arguments must produce the same data, even across
+/// several worker threads.
+///
+/// This is not a nicety — it is the property that makes an interrupted run
+/// resumable, because resume replays game indices and trusts them to reproduce
+/// the same games. It was genuinely broken until NET-319: every move-ordering
+/// table is reset per game except the countermoves, so a game's result depended
+/// on which *other* games its worker happened to be handed, which varies with
+/// thread scheduling. Single-threaded runs matched and hid it; this test uses
+/// several threads precisely so that they cannot.
+#[test]
+fn datagen_output_is_reproducible_across_threads() {
+    let dir = std::env::temp_dir();
+    let base_a = dir.join("rusty_rival_datagen_repro_a").to_string_lossy().to_string();
+    let base_b = dir.join("rusty_rival_datagen_repro_b").to_string_lossy().to_string();
+    clean_shards(&base_a);
+    clean_shards(&base_b);
+
+    // Sized to actually catch the leak: it needs enough games per worker for the
+    // countermove table to accumulate, and enough nodes for move ordering to
+    // change which move comes back. At 8 games of 800 nodes the two runs agreed
+    // even with the bug present.
+    let a = run_datagen_at(&base_a, "24", "4", "3000");
+    let b = run_datagen_at(&base_b, "24", "4", "3000");
+
+    assert!(!a.is_empty(), "datagen produced no positions");
+    assert_eq!(
+        sorted(a),
+        sorted(b),
+        "two identical runs produced different data - some per-game state is leaking between games"
+    );
+
+    clean_shards(&base_a);
+    clean_shards(&base_b);
+}
+
+/// A finished run must not redo its work when invoked again.
+///
+/// The resume path keys off shards on disk, so re-running a completed
+/// generation is a no-op rather than a duplicate append.
+#[test]
+fn datagen_does_not_redo_completed_work() {
+    let path = std::env::temp_dir().join("rusty_rival_datagen_resume");
+    let base = path.to_string_lossy().to_string();
+    clean_shards(&base);
+
+    let first = run_datagen(&base, "4", "2");
+    assert!(!first.is_empty(), "datagen produced no positions");
+
+    // Re-running with the same arguments finds the finished shard and stops.
+    let second = run_datagen(&base, "4", "2");
+    assert_eq!(
+        sorted(first),
+        sorted(second),
+        "re-running a completed generation changed the output"
+    );
+
+    clean_shards(&base);
+}
+
+/// Extending an existing dataset must add exactly the missing games.
+///
+/// A run that does not end on a shard boundary leaves a short shard. That shard
+/// records its game count in its filename precisely so this case works: credit
+/// it with a full shard instead and the extension silently generates too few
+/// games, leaving a dataset smaller than the one that was asked for while
+/// reporting success.
+#[test]
+fn datagen_extends_a_dataset_to_exactly_the_requested_size() {
+    let dir = std::env::temp_dir();
+    let grown = dir.join("rusty_rival_datagen_grow").to_string_lossy().to_string();
+    let fresh = dir.join("rusty_rival_datagen_fresh").to_string_lossy().to_string();
+    clean_shards(&grown);
+    clean_shards(&fresh);
+
+    // Four games, then extend the same base to six.
+    let partial = run_datagen(&grown, "4", "2");
+    let extended = run_datagen(&grown, "6", "2");
+
+    // ...must match six games generated in one go, because a game index always
+    // reproduces the same game.
+    let one_go = run_datagen(&fresh, "6", "2");
+
+    assert!(extended.len() > partial.len(), "extending the dataset added nothing");
+    assert_eq!(
+        sorted(extended),
+        sorted(one_go),
+        "a dataset grown from 4 to 6 games differs from 6 games generated in one run"
+    );
+
+    clean_shards(&grown);
+    clean_shards(&fresh);
 }
