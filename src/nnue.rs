@@ -51,12 +51,24 @@ const EVAL_SCALE: i32 = 400; // Converts network output to centipawns
 
 /// Embedded network weights (trained with bullet, quantised.bin format).
 ///
-/// `rival-256x2-ob8.bin` — 8 output buckets by material count (NET-321),
-/// 600 superbatches on the same 635M Stockfish depth-9 dataset as the previous
-/// single-bucket net. The previous net, `rival-256x2.bin`, is kept in the repo:
-/// the loader still reads single-bucket nets, so switching back is a one-line
-/// change if the A/B match goes against this one.
-const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2-ob8.bin");
+/// `rival-256x2-ob8-v53.bin` — 8 output buckets by material count (NET-321),
+/// 600 superbatches over 512,363,260 Stockfish depth-9 positions, retrained on
+/// a **relabelled** corpus (NET-400).
+///
+/// ⚠ **Every other net in `nets/` is incompatible with this build.** They were
+/// all trained against the inverted WDL label that the transposed L1 indexing
+/// in `evaluate()` used to cancel out. Now that the indexing is correct, those
+/// nets evaluate *backwards*: swapping this `include_bytes!` to any of them
+/// yields an engine that plays to lose, and it will pass every structural check
+/// on the way — `check_net`'s sign checks are the only thing that catches it.
+/// They are kept only as a record of the experiments that produced them.
+///
+/// To train a replacement, the corpus must carry a **white-relative** score and
+/// a **white-relative** result. `bulletformat` flips both for black to move; it
+/// does not want side-to-move-relative input, despite what the field order
+/// suggests. The corpus in S3 is not stored that way and needs its result field
+/// flipped first — see NET-400 for the transform and the verification.
+const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2-ob8-v53.bin");
 
 // =============================================================================
 // Network
@@ -267,9 +279,21 @@ impl NnueNetwork {
             let s = (stm_acc[i] as i32).clamp(0, QA);
             let n = (ntm_acc[i] as i32).clamp(0, QA);
             // SCReLU: squared clipped ReLU, divided by QA to prevent overflow
-            // L1 layout: NTM first [0..255], STM second [256..511]
-            output += s * s / QA * l1_weights[HIDDEN_SIZE + i] as i32;
-            output += n * n / QA * l1_weights[i] as i32;
+            //
+            // L1 layout: STM first [0..255], NTM second [256..511]. These two
+            // indices were transposed until v1.0.53 (NET-400). Swapping the two
+            // perspectives of a dual-perspective net *negates* its output, and
+            // does so symmetrically - a position and its colour mirror still
+            // agreed - so nothing in the test suite caught it. What masked it in
+            // play was that the training corpus had its WDL label inverted too,
+            // and the two errors cancelled.
+            //
+            // The cancellation was not free: bullet blends the target 75% result
+            // / 25% score, and only the result half was inverted, so a quarter of
+            // every training target fought the other three. Correcting both ends
+            // together was worth +198 +/-7 Elo over 3000 games.
+            output += s * s / QA * l1_weights[i] as i32;
+            output += n * n / QA * l1_weights[HIDDEN_SIZE + i] as i32;
         }
 
         // Add bias (already in scale QA*QB) and convert to centipawns
