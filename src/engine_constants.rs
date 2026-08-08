@@ -102,6 +102,21 @@ pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
 // SPSA tuned: base=70, per_depth=54 (Run 20)
 pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [77, 121, 165, 209, 253, 297, 341, 385];
 
+// Delta pruning (quiescence): skip a capture when the static eval plus the full
+// captured piece value plus this margin still cannot reach alpha.
+//
+// Lived as a function-local const in `quiesce.rs` until NET-404. It reads the
+// NNUE evaluation, so it has to be tunable, and the SPSA builder only rewrites
+// this file.
+pub const DELTA_MARGIN: Score = 200;
+
+// Aspiration windows: radius around the previous iteration's score, widened one
+// rung each time the search fails high or low. Past the last rung the window
+// opens to +/-MAX_WINDOW.
+//
+// Also moved here from `search.rs` by NET-404, for the same reason.
+pub const ASPIRATION_RADIUS: [Score; 6] = [25, 50, 100, 200, 400, 800];
+
 // =============================================================================
 // MOVE ORDERING CONSTANTS (SPSA tunable)
 // =============================================================================

@@ -1,5 +1,5 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, ASPIRATION_RADIUS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
     CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS,
     LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_THRESHOLD, LMR_HISTORY_GOOD_THRESHOLD,
     LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH,
@@ -272,8 +272,6 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     // Initialize with the first legal move so we always have a valid move to return
     // even if time expires before the first search iteration completes
     search_state.current_best = (pv_single(legal_moves[0].0), -MATE_SCORE);
-
-    const ASPIRATION_RADIUS: [Score; 6] = [25, 50, 100, 200, 400, 800];
 
     let mut prev_synced_nodes: u64 = 0;
 
