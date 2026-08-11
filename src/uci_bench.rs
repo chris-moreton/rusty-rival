@@ -79,6 +79,19 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     println!("Nodes searched: {}", total_nodes);
     println!("NPS           : {}", nps.to_formatted_string(&Locale::en));
 
+    // Move-ordering quality (NET-493). Of every beta cutoff, the share that came
+    // from the first move tried. A node that cut on move 6 searched five subtrees
+    // it did not need, so this ratio drives the effective branching factor and
+    // therefore the depth reached in a fixed time.
+    if search_state.cutoffs > 0 {
+        let pct = search_state.cutoffs_first_move as f64 / search_state.cutoffs as f64 * 100.0;
+        println!(
+            "Cutoffs       : {} ({:.1}% on first move)",
+            search_state.cutoffs.to_formatted_string(&Locale::en),
+            pct
+        );
+    }
+
     search_state.show_info = show_info;
     uci_state.fen = saved_fen;
     Right(None)

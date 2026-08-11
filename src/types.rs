@@ -455,6 +455,13 @@ pub struct SearchState {
     pub nodes_limit: u64,
     pub show_info: bool,
     pub hash_hits_exact: u64,
+    // Move-ordering quality (NET-493). Every beta cutoff, and how many of them
+    // came from the first move tried at that node. The ratio is the standard
+    // measure of ordering quality: a well-ordered search cuts on move 1 the
+    // large majority of the time, because a node that needed six tries wasted
+    // five subtrees. Counted at the single choke point `cutoff_unmake`.
+    pub cutoffs: u64,
+    pub cutoffs_first_move: u64,
     pub pv: HashMap<Move, PathScore>,
     pub hash_clashes: u64,
     pub history: PositionHistory,
@@ -515,6 +522,11 @@ impl Clone for SearchState {
             nodes_limit: self.nodes_limit,
             show_info: self.show_info,
             hash_hits_exact: self.hash_hits_exact,
+            // Per-thread counters: a cloned helper thread starts its own tally
+            // rather than inheriting the parent's, so a multi-threaded bench
+            // does not double-count the main thread's cutoffs.
+            cutoffs: 0,
+            cutoffs_first_move: 0,
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
             history: self.history.clone(),
@@ -571,6 +583,8 @@ pub fn default_search_state() -> SearchState {
         nodes_limit: u64::MAX,
         show_info: true,
         hash_hits_exact: 0,
+        cutoffs: 0,
+        cutoffs_first_move: 0,
         pv: HashMap::new(),
         hash_clashes: 0,
         history: vec![],

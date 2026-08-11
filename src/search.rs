@@ -1176,6 +1176,7 @@ pub fn search(
                             &searched_captures,
                             lazy_eval,
                             raw_static_eval,
+                            legal_move_count,
                         );
                     }
                     hash_flag = Exact;
@@ -1549,6 +1550,7 @@ pub fn search(
                             &searched_captures,
                             lazy_eval,
                             raw_static_eval,
+                            legal_move_count,
                         );
                     }
                     hash_flag = Exact;
@@ -1821,11 +1823,21 @@ fn cutoff_unmake(
     // Raw (pre-correction) eval for the TT entry; `static_eval` above is the
     // correction-adjusted value and feeds correction history instead.
     raw_static_eval: Score,
+    // 1-based index of the move that caused this cutoff, for the ordering
+    // statistic (NET-493).
+    legal_move_count: u8,
 ) -> PathScore {
     // Singular-verification cutoffs are artifacts of the excluded move and the
     // shifted window - keep them out of the TT and the ordering heuristics
     if excluded_move != 0 {
         return best_pathscore;
+    }
+
+    // Counted after the singular-verification bail above, so the statistic
+    // reflects real cutoffs rather than artifacts of the excluded-move window.
+    search_state.cutoffs += 1;
+    if legal_move_count <= 1 {
+        search_state.cutoffs_first_move += 1;
     }
     store_hash_entry(
         position,
