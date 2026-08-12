@@ -158,6 +158,7 @@ pub fn quiesce(
         return (pv_single(0), 0);
     }
     search_state.nodes += 1;
+    search_state.qnodes += 1;
 
     let in_check = known_in_check.unwrap_or_else(|| is_check(position, position.mover));
 

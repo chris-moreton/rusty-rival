@@ -50,6 +50,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
 
     let start = Instant::now();
     let mut total_nodes: u64 = 0;
+    let mut total_qnodes: u64 = 0;
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
         // ucinewgame clears the TT + history so each position starts from a
@@ -61,6 +62,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
 
         let nodes = search_state.nodes;
         total_nodes += nodes;
+        total_qnodes += search_state.qnodes;
         println!(
             "Position {:>2}/{}: {:>12} nodes",
             i + 1,
@@ -89,6 +91,23 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             "Cutoffs       : {} ({:.1}% on first move)",
             search_state.cutoffs.to_formatted_string(&Locale::en),
             pct
+        );
+    }
+
+    // Where the tree actually is. A growth-rate problem shows up in the
+    // branching factor; a constant-factor problem shows up as an outsized
+    // quiescence share.
+    if total_qnodes > 0 {
+        let main = total_nodes.saturating_sub(total_qnodes);
+        println!(
+            "  main search : {:>12} ({:.1}%)",
+            main.to_formatted_string(&Locale::en),
+            main as f64 / total_nodes as f64 * 100.0
+        );
+        println!(
+            "  quiescence  : {:>12} ({:.1}%)",
+            total_qnodes.to_formatted_string(&Locale::en),
+            total_qnodes as f64 / total_nodes as f64 * 100.0
         );
     }
 

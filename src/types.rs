@@ -462,6 +462,11 @@ pub struct SearchState {
     // five subtrees. Counted at the single choke point `cutoff_unmake`.
     pub cutoffs: u64,
     pub cutoffs_first_move: u64,
+    // Quiescence nodes only (NET-493). `nodes` counts both, so main-search nodes
+    // are `nodes - qnodes`. Splitting them separates the two causes of our
+    // oversized tree: a growth-rate problem shows in the effective branching
+    // factor, a constant-factor problem shows here.
+    pub qnodes: u64,
     pub pv: HashMap<Move, PathScore>,
     pub hash_clashes: u64,
     pub history: PositionHistory,
@@ -527,6 +532,7 @@ impl Clone for SearchState {
             // does not double-count the main thread's cutoffs.
             cutoffs: 0,
             cutoffs_first_move: 0,
+            qnodes: 0,
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
             history: self.history.clone(),
@@ -585,6 +591,7 @@ pub fn default_search_state() -> SearchState {
         hash_hits_exact: 0,
         cutoffs: 0,
         cutoffs_first_move: 0,
+        qnodes: 0,
         pv: HashMap::new(),
         hash_clashes: 0,
         history: vec![],
