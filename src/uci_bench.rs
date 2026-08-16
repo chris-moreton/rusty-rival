@@ -1,5 +1,6 @@
 use crate::fen::{algebraic_move_from_move, get_position};
 use crate::mvm_test_fens::get_test_fens;
+use crate::search::{clear_countermoves, clear_killers};
 use crate::types::{Move, Score, SearchState, UciState};
 use crate::uci::run_command_sync;
 use crate::utils::hydrate_move_from_algebraic_move;
@@ -56,12 +57,25 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     let (mut tt_probes, mut tt_hits, mut tt_deep, mut tt_taken) = (0u64, 0u64, 0u64, 0u64);
     let (mut scouts, mut rs_lmr, mut rs_full, mut rs_pvs) = (0u64, 0u64, 0u64, 0u64);
     let (mut kids, mut allnodes, mut allkids) = (0u64, 0u64, 0u64);
+    let (mut cuts, mut cuts_first) = (0u64, 0u64);
+    let (mut by_kind, mut by_index) = ([0u64; 5], [0u64; 5]);
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
-        // ucinewgame clears the TT + history so each position starts from a
-        // known-empty state; without this the signature depends on position order
-        // *and* on leftover entries, and stops being reproducible.
+        // `ucinewgame` clears the TT and the history tables, but deliberately
+        // leaves killers, the mate killer and the countermove table warm -
+        // clearing those costs ~12% of bench in real play (NET-396). That
+        // warmth is right for games and wrong here: it carried state from one
+        // bench position into the next, so a SECOND bench in the same process
+        // returned a different signature (3,310,543 then 3,148,827) despite the
+        // comment that used to sit here claiming reproducibility. Caught in
+        // review by Codex.
+        //
+        // Cleared explicitly here rather than in `ucinewgame`, so the engine
+        // keeps its deliberate warmth and only the benchmark is made
+        // deterministic.
         run_command_sync(uci_state, search_state, "ucinewgame");
+        clear_killers(search_state);
+        clear_countermoves(search_state);
         run_command_sync(uci_state, search_state, &format!("position fen {}", fen));
         run_command_sync(uci_state, search_state, &format!("go depth {}", depth));
 
@@ -79,6 +93,12 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
         kids += search_state.children_searched;
         allnodes += search_state.all_nodes;
         allkids += search_state.all_node_children;
+        cuts += search_state.cutoffs;
+        cuts_first += search_state.cutoffs_first_move;
+        for i in 0..5 {
+            by_kind[i] += search_state.cutoff_by_kind[i];
+            by_index[i] += search_state.cutoff_by_index[i];
+        }
         println!(
             "Position {:>2}/{}: {:>12} nodes",
             i + 1,
@@ -101,12 +121,11 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     // from the first move tried. A node that cut on move 6 searched five subtrees
     // it did not need, so this ratio drives the effective branching factor and
     // therefore the depth reached in a fixed time.
-    if search_state.cutoffs > 0 {
-        let pct = search_state.cutoffs_first_move as f64 / search_state.cutoffs as f64 * 100.0;
+    if cuts > 0 {
         println!(
             "Cutoffs       : {} ({:.1}% on first move)",
-            search_state.cutoffs.to_formatted_string(&Locale::en),
-            pct
+            cuts.to_formatted_string(&Locale::en),
+            cuts_first as f64 / cuts as f64 * 100.0
         );
     }
 
@@ -114,17 +133,17 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     // sat. Together these say *why* the first-move rate is short of the low-90s
     // strong engines reach - a weak TT share points at replacement policy, a
     // long tail past move 3 points at quiet-move ranking.
-    if search_state.cutoffs > 0 {
-        let tot = search_state.cutoffs as f64;
+    if cuts > 0 {
+        let tot = cuts as f64;
         let kinds = ["TT move", "capture", "killer", "countermove", "other quiet"];
         print!("  by heuristic :");
-        for (name, n) in kinds.iter().zip(search_state.cutoff_by_kind.iter()) {
+        for (name, n) in kinds.iter().zip(by_kind.iter()) {
             print!(" {} {:.1}%", name, *n as f64 / tot * 100.0);
         }
         println!();
         let idx = ["1st", "2nd", "3rd", "4-6th", "7th+"];
         print!("  by position  :");
-        for (name, n) in idx.iter().zip(search_state.cutoff_by_index.iter()) {
+        for (name, n) in idx.iter().zip(by_index.iter()) {
             print!(" {} {:.1}%", name, *n as f64 / tot * 100.0);
         }
         println!();

@@ -467,7 +467,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
     current_best
 }
 
-fn clear_killers(search_state: &mut SearchState) {
+pub fn clear_killers(search_state: &mut SearchState) {
     for i in 0..MAX_DEPTH as usize {
         search_state.mate_killer[i] = 0;
         for j in 0..2 {
@@ -1161,6 +1161,13 @@ pub fn search(
 
         if !is_check(position, old_mover) {
             legal_move_count += 1;
+            // The hash move is searched here, outside the staged move loop, so
+            // it must be counted here too (NET-493). Missing this undercounted
+            // every no-cut node by one, and silently dropped from all_nodes any
+            // node whose only searched child was the hash move - which biased
+            // the reported children-per-all-node figure. Caught in review.
+            children_here += 1;
+            search_state.children_searched += 1;
             let hash_search_depth = real_depth + singular_extension;
             let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, None);
             let score = path_score.1;
