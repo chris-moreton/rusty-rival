@@ -1165,7 +1165,7 @@ pub fn search(
             // it must be counted here too (NET-493). Missing this undercounted
             // every no-cut node by one, and silently dropped from no_cutoff_nodes any
             // node whose only searched child was the hash move - which biased
-            // the reported children-per-all-node figure. Caught in review.
+            // the reported children-per-no-cutoff-node figure. Caught in review.
             children_here += 1;
             search_state.children_searched += 1;
             let hash_search_depth = real_depth + singular_extension;
@@ -1599,7 +1599,9 @@ pub fn search(
     }
 
     // Reaching here means the move loop finished without a beta cutoff - an
-    // all-node (or a PV node that never failed high). Cut nodes return early
+    // completed no-cut move-loop node. This includes PV nodes and excludes
+    // forward-pruned fail-low nodes, so it is NOT an alpha-beta all-node. Cut
+    // nodes return early
     // through cutoff_unmake and are not counted.
     if children_here > 0 {
         search_state.no_cutoff_nodes += 1;
