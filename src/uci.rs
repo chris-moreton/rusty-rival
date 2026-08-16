@@ -100,6 +100,9 @@ pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState
             search_state.research_lmr_full = 0;
             search_state.research_full_depth = 0;
             search_state.research_pvs = 0;
+            search_state.children_searched = 0;
+            search_state.all_nodes = 0;
+            search_state.all_node_children = 0;
             search_state.root_moves.clear();
             search_state.pv.clear();
             search_state.hash_table.clear();
@@ -129,6 +132,9 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
     search_state.research_lmr_full = 0;
     search_state.research_full_depth = 0;
     search_state.research_pvs = 0;
+    search_state.children_searched = 0;
+    search_state.all_nodes = 0;
+    search_state.all_node_children = 0;
     search_state.nodes_limit = u64::MAX;
     set_stop(&search_state.stop, false);
 
@@ -643,6 +649,9 @@ fn cmd_go(
         thread_search_state.research_lmr_full = 0;
         thread_search_state.research_full_depth = 0;
         thread_search_state.research_pvs = 0;
+        thread_search_state.children_searched = 0;
+        thread_search_state.all_nodes = 0;
+        thread_search_state.all_node_children = 0;
         thread_search_state.nodes_limit = nodes_limit;
         thread_search_state.end_time = end_time;
         thread_search_state.soft_time_limit = soft_time_limit;
@@ -979,6 +988,12 @@ fn cmd_ucinewgame(
     search_state.research_full_depth = 0;
 
     search_state.research_pvs = 0;
+
+    search_state.children_searched = 0;
+
+    search_state.all_nodes = 0;
+
+    search_state.all_node_children = 0;
     // Clear root_moves and pv to prevent stale data from previous games
     // being output if time expires before the first search iteration completes
     search_state.root_moves.clear();

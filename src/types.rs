@@ -486,6 +486,16 @@ pub struct SearchState {
     pub research_lmr_full: u64,   // scout failed high under LMR -> reduced, FULL window
     pub research_full_depth: u64, // ...and that failed too -> full depth, full window
     pub research_pvs: u64,        // non-LMR scout failed high -> full window
+    // All-node width (NET-493). Every other metric describes nodes that CUT
+    // OFF; none describes nodes where nothing cuts and every move is searched
+    // unless pruned or reduced. That is where a constant factor would hide.
+    //
+    // Counted immediately before each child search, NOT from legal_move_count,
+    // which increments before alpha/LMP pruning and so overcounts (thanks to
+    // Codex for that catch).
+    pub children_searched: u64,
+    pub all_nodes: u64,         // main-search nodes that finished the loop with no cutoff
+    pub all_node_children: u64, // children searched at those nodes
     // Quiescence nodes only (NET-493). `nodes` counts both, so main-search nodes
     // are `nodes - qnodes`. Splitting them separates the two causes of our
     // oversized tree: a growth-rate problem shows in the effective branching
@@ -566,6 +576,9 @@ impl Clone for SearchState {
             research_lmr_full: 0,
             research_full_depth: 0,
             research_pvs: 0,
+            children_searched: 0,
+            all_nodes: 0,
+            all_node_children: 0,
             qnodes: 0,
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
@@ -635,6 +648,9 @@ pub fn default_search_state() -> SearchState {
         research_lmr_full: 0,
         research_full_depth: 0,
         research_pvs: 0,
+        children_searched: 0,
+        all_nodes: 0,
+        all_node_children: 0,
         qnodes: 0,
         pv: HashMap::new(),
         hash_clashes: 0,

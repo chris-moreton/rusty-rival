@@ -55,6 +55,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     // them after the loop would report the last position only.
     let (mut tt_probes, mut tt_hits, mut tt_deep, mut tt_taken) = (0u64, 0u64, 0u64, 0u64);
     let (mut scouts, mut rs_lmr, mut rs_full, mut rs_pvs) = (0u64, 0u64, 0u64, 0u64);
+    let (mut kids, mut allnodes, mut allkids) = (0u64, 0u64, 0u64);
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
         // ucinewgame clears the TT + history so each position starts from a
@@ -75,6 +76,9 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
         rs_lmr += search_state.research_lmr_full;
         rs_full += search_state.research_full_depth;
         rs_pvs += search_state.research_pvs;
+        kids += search_state.children_searched;
+        allnodes += search_state.all_nodes;
+        allkids += search_state.all_node_children;
         println!(
             "Position {:>2}/{}: {:>12} nodes",
             i + 1,
@@ -150,6 +154,18 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             rs_lmr as f64 / sc * 100.0,
             rs_full as f64 / sc * 100.0,
             rs_pvs as f64 / sc * 100.0
+        );
+    }
+
+    // All-node width: the last place a constant factor could hide. Cut nodes
+    // are already known to be well ordered; this is what happens where nothing
+    // cuts and every move must be searched unless pruned or reduced.
+    if allnodes > 0 {
+        println!(
+            "Children      : {} searched · all-nodes {} · {:.2} children per all-node",
+            kids.to_formatted_string(&Locale::en),
+            allnodes.to_formatted_string(&Locale::en),
+            allkids as f64 / allnodes as f64
         );
     }
 

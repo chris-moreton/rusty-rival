@@ -779,6 +779,9 @@ pub fn search(
     }
 
     let mut legal_move_count = 0;
+    // Children actually searched at THIS node (NET-493). Distinct from
+    // legal_move_count, which increments before alpha/LMP pruning.
+    let mut children_here: u32 = 0;
     let mut hash_flag = Upper;
     let mut best_pathscore: PathScore = (pv_single(0), -MATE_SCORE);
 
@@ -1516,6 +1519,8 @@ pub fn search(
             // Apply extensions to search depth
             let search_depth = depth + move_extension;
 
+            children_here += 1;
+            search_state.children_searched += 1;
             let path_score = if scout_search {
                 // Cap the reduction so the child depth (search_depth - 1 - lmr)
                 // cannot wrap below zero: stacked LMR adjustments (table + bad
@@ -1584,6 +1589,14 @@ pub fn search(
         } else {
             unmake_move_nnue(position, m, &unmake, search_state);
         }
+    }
+
+    // Reaching here means the move loop finished without a beta cutoff - an
+    // all-node (or a PV node that never failed high). Cut nodes return early
+    // through cutoff_unmake and are not counted.
+    if children_here > 0 {
+        search_state.all_nodes += 1;
+        search_state.all_node_children += children_here as u64;
     }
 
     if legal_move_count == 0 {
