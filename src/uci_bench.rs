@@ -1,6 +1,6 @@
 use crate::fen::{algebraic_move_from_move, get_position};
 use crate::mvm_test_fens::get_test_fens;
-use crate::search::{clear_countermoves, clear_killers};
+use crate::search::clear_countermoves;
 use crate::types::{Move, Score, SearchState, UciState};
 use crate::uci::run_command_sync;
 use crate::utils::hydrate_move_from_algebraic_move;
@@ -61,20 +61,22 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     let (mut by_kind, mut by_index) = ([0u64; 5], [0u64; 5]);
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
-        // `ucinewgame` clears the TT and the history tables, but deliberately
-        // leaves killers, the mate killer and the countermove table warm -
-        // clearing those costs ~12% of bench in real play (NET-396). That
-        // warmth is right for games and wrong here: it carried state from one
-        // bench position into the next, so a SECOND bench in the same process
-        // returned a different signature (3,310,543 then 3,148,827) despite the
-        // comment that used to sit here claiming reproducibility. Caught in
-        // review by Codex.
+        // `ucinewgame` clears the TT and history tables, and `iterative_deepening`
+        // clears killers on every `go`. The COUNTERMOVE table is the one thing
+        // nothing resets - deliberately, because clearing it costs ~12% of bench
+        // in real play (NET-396).
         //
-        // Cleared explicitly here rather than in `ucinewgame`, so the engine
-        // keeps its deliberate warmth and only the benchmark is made
+        // That warmth is right for games and wrong for a signature: it carried
+        // state from one bench position into the next, so a second bench in the
+        // same process returned a different node count (3,310,543 then
+        // 3,148,827) despite the comment that used to sit here claiming
+        // reproducibility. Caught in review by Codex, who also pointed out that
+        // clearing killers here as well was redundant.
+        //
+        // Cleared here rather than in `ucinewgame`, so the engine keeps its
+        // deliberate warmth for real play and only the benchmark is made
         // deterministic.
         run_command_sync(uci_state, search_state, "ucinewgame");
-        clear_killers(search_state);
         clear_countermoves(search_state);
         run_command_sync(uci_state, search_state, &format!("position fen {}", fen));
         run_command_sync(uci_state, search_state, &format!("go depth {}", depth));
@@ -91,8 +93,8 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
         rs_full += search_state.research_full_depth;
         rs_pvs += search_state.research_pvs;
         kids += search_state.children_searched;
-        allnodes += search_state.all_nodes;
-        allkids += search_state.all_node_children;
+        allnodes += search_state.no_cutoff_nodes;
+        allkids += search_state.no_cutoff_children;
         cuts += search_state.cutoffs;
         cuts_first += search_state.cutoffs_first_move;
         for i in 0..5 {
@@ -181,7 +183,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     // cuts and every move must be searched unless pruned or reduced.
     if allnodes > 0 {
         println!(
-            "Children      : {} searched · all-nodes {} · {:.2} children per all-node",
+            "Children      : {} searched · no-cutoff nodes {} · {:.2} children each",
             kids.to_formatted_string(&Locale::en),
             allnodes.to_formatted_string(&Locale::en),
             allkids as f64 / allnodes as f64

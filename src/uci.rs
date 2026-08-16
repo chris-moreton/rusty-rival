@@ -101,8 +101,8 @@ pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState
             search_state.research_full_depth = 0;
             search_state.research_pvs = 0;
             search_state.children_searched = 0;
-            search_state.all_nodes = 0;
-            search_state.all_node_children = 0;
+            search_state.no_cutoff_nodes = 0;
+            search_state.no_cutoff_children = 0;
             search_state.cutoffs = 0;
             search_state.cutoffs_first_move = 0;
             search_state.cutoff_by_kind = [0; 5];
@@ -137,8 +137,8 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
     search_state.research_full_depth = 0;
     search_state.research_pvs = 0;
     search_state.children_searched = 0;
-    search_state.all_nodes = 0;
-    search_state.all_node_children = 0;
+    search_state.no_cutoff_nodes = 0;
+    search_state.no_cutoff_children = 0;
     search_state.cutoffs = 0;
     search_state.cutoffs_first_move = 0;
     search_state.cutoff_by_kind = [0; 5];
@@ -658,8 +658,8 @@ fn cmd_go(
         thread_search_state.research_full_depth = 0;
         thread_search_state.research_pvs = 0;
         thread_search_state.children_searched = 0;
-        thread_search_state.all_nodes = 0;
-        thread_search_state.all_node_children = 0;
+        thread_search_state.no_cutoff_nodes = 0;
+        thread_search_state.no_cutoff_children = 0;
         thread_search_state.cutoffs = 0;
         thread_search_state.cutoffs_first_move = 0;
         thread_search_state.cutoff_by_kind = [0; 5];
@@ -1003,9 +1003,9 @@ fn cmd_ucinewgame(
 
     search_state.children_searched = 0;
 
-    search_state.all_nodes = 0;
+    search_state.no_cutoff_nodes = 0;
 
-    search_state.all_node_children = 0;
+    search_state.no_cutoff_children = 0;
 
     search_state.cutoffs = 0;
 

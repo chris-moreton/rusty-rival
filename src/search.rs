@@ -1163,7 +1163,7 @@ pub fn search(
             legal_move_count += 1;
             // The hash move is searched here, outside the staged move loop, so
             // it must be counted here too (NET-493). Missing this undercounted
-            // every no-cut node by one, and silently dropped from all_nodes any
+            // every no-cut node by one, and silently dropped from no_cutoff_nodes any
             // node whose only searched child was the hash move - which biased
             // the reported children-per-all-node figure. Caught in review.
             children_here += 1;
@@ -1602,8 +1602,8 @@ pub fn search(
     // all-node (or a PV node that never failed high). Cut nodes return early
     // through cutoff_unmake and are not counted.
     if children_here > 0 {
-        search_state.all_nodes += 1;
-        search_state.all_node_children += children_here as u64;
+        search_state.no_cutoff_nodes += 1;
+        search_state.no_cutoff_children += children_here as u64;
     }
 
     if legal_move_count == 0 {
