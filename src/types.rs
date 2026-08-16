@@ -471,6 +471,21 @@ pub struct SearchState {
     pub cutoff_by_kind: [u64; 5],
     // index: 0=move 1  1=move 2  2=move 3  3=moves 4-6  4=move 7+
     pub cutoff_by_index: [u64; 5],
+    // Transposition table effectiveness (NET-493). A poor hit rate re-searches
+    // subtrees already solved, at every depth - a constant factor that neither
+    // the branching factor nor the ordering stats can see.
+    pub tt_probes: u64,
+    pub tt_hits: u64,        // probe returned an entry for this position
+    pub tt_deep_enough: u64, // ...and its stored depth was >= the depth we need
+    // Slot was occupied by a DIFFERENT position: pressure on the replacement policy.
+    pub tt_slot_taken: u64,
+    // PVS / LMR re-search accounting (NET-493). Work that is invisible to both
+    // the branching factor and the cutoff histogram: a node that needs three
+    // searches instead of one costs 3x and shows up in neither.
+    pub scout_searches: u64,      // null-window scout searches attempted
+    pub research_lmr_full: u64,   // scout failed high under LMR -> reduced, FULL window
+    pub research_full_depth: u64, // ...and that failed too -> full depth, full window
+    pub research_pvs: u64,        // non-LMR scout failed high -> full window
     // Quiescence nodes only (NET-493). `nodes` counts both, so main-search nodes
     // are `nodes - qnodes`. Splitting them separates the two causes of our
     // oversized tree: a growth-rate problem shows in the effective branching
@@ -543,6 +558,14 @@ impl Clone for SearchState {
             cutoffs_first_move: 0,
             cutoff_by_kind: [0; 5],
             cutoff_by_index: [0; 5],
+            tt_probes: 0,
+            tt_hits: 0,
+            tt_deep_enough: 0,
+            tt_slot_taken: 0,
+            scout_searches: 0,
+            research_lmr_full: 0,
+            research_full_depth: 0,
+            research_pvs: 0,
             qnodes: 0,
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
@@ -604,6 +627,14 @@ pub fn default_search_state() -> SearchState {
         cutoffs_first_move: 0,
         cutoff_by_kind: [0; 5],
         cutoff_by_index: [0; 5],
+        tt_probes: 0,
+        tt_hits: 0,
+        tt_deep_enough: 0,
+        tt_slot_taken: 0,
+        scout_searches: 0,
+        research_lmr_full: 0,
+        research_full_depth: 0,
+        research_pvs: 0,
         qnodes: 0,
         pv: HashMap::new(),
         hash_clashes: 0,

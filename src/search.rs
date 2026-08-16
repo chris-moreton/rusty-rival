@@ -790,6 +790,21 @@ pub fn search(
     // decision for stores from this node
     let (hash_height, hash_version, slot_occupied) = search_state.hash_table.entry_meta(hash_index);
     // Track hash entry info for singular extension (needed even if depth isn't sufficient for cutoff)
+    search_state.tt_probes += 1;
+    match probed_entry {
+        Some(e) => {
+            search_state.tt_hits += 1;
+            if e.height >= depth {
+                search_state.tt_deep_enough += 1;
+            }
+        }
+        // Occupied by a different position - the slot exists, the entry we
+        // wanted is gone. Distinguishes "table too small / bad replacement"
+        // from "genuinely never searched this".
+        None if slot_occupied => search_state.tt_slot_taken += 1,
+        None => {}
+    }
+
     let hash_entry_height = probed_entry.map_or(0, |e| e.height);
     let hash_entry_bound = probed_entry.map_or(Upper, |e| e.bound);
     let hash_move = if let Some(hash_entry) = probed_entry {
@@ -1726,6 +1741,7 @@ fn lmr_scout_search(
 ) -> PathScore {
     let alpha = window.0;
     let beta = window.1;
+    search_state.scout_searches += 1;
     let mut scout_path = search_wrapper(
         real_depth,
         ply,
@@ -1738,13 +1754,16 @@ fn lmr_scout_search(
     );
 
     if scout_path.1 > alpha && lmr > 0 {
+        search_state.research_lmr_full += 1;
         // We are in an LMR search and we Need to research with full window. but still with late move reduction
         scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr, 0, known_in_check);
         if scout_path.1 > alpha {
             // Need to research with full window and no reduction
+            search_state.research_full_depth += 1;
             scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
         }
     } else if scout_path.1 > alpha && scout_path.1 < beta {
+        search_state.research_pvs += 1;
         // Not doing a LMR search, but still need to research with a full window
         scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
     }

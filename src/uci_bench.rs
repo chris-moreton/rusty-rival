@@ -51,6 +51,10 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     let start = Instant::now();
     let mut total_nodes: u64 = 0;
     let mut total_qnodes: u64 = 0;
+    // Accumulated per position: uci.rs resets these on every `go`, so reading
+    // them after the loop would report the last position only.
+    let (mut tt_probes, mut tt_hits, mut tt_deep, mut tt_taken) = (0u64, 0u64, 0u64, 0u64);
+    let (mut scouts, mut rs_lmr, mut rs_full, mut rs_pvs) = (0u64, 0u64, 0u64, 0u64);
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
         // ucinewgame clears the TT + history so each position starts from a
@@ -63,6 +67,14 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
         let nodes = search_state.nodes;
         total_nodes += nodes;
         total_qnodes += search_state.qnodes;
+        tt_probes += search_state.tt_probes;
+        tt_hits += search_state.tt_hits;
+        tt_deep += search_state.tt_deep_enough;
+        tt_taken += search_state.tt_slot_taken;
+        scouts += search_state.scout_searches;
+        rs_lmr += search_state.research_lmr_full;
+        rs_full += search_state.research_full_depth;
+        rs_pvs += search_state.research_pvs;
         println!(
             "Position {:>2}/{}: {:>12} nodes",
             i + 1,
@@ -112,6 +124,33 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             print!(" {} {:.1}%", name, *n as f64 / tot * 100.0);
         }
         println!();
+    }
+
+    // Transposition table effectiveness. A low hit rate means re-searching
+    // subtrees already solved - a constant factor invisible to both the
+    // branching factor and the ordering stats.
+    if tt_probes > 0 {
+        let p = tt_probes as f64;
+        println!(
+            "TT probes     : {} · hit {:.1}% · deep enough {:.1}% · slot taken by other pos {:.1}%",
+            tt_probes.to_formatted_string(&Locale::en),
+            tt_hits as f64 / p * 100.0,
+            tt_deep as f64 / p * 100.0,
+            tt_taken as f64 / p * 100.0
+        );
+    }
+
+    // Re-search cost. Every re-search repeats a subtree already searched once,
+    // and none of it appears in the branching factor or the cutoff histogram.
+    if scouts > 0 {
+        let sc = scouts as f64;
+        println!(
+            "Scout searches: {} · LMR re-search (reduced, full window) {:.1}% · then full depth {:.1}% · PVS re-search {:.1}%",
+            scouts.to_formatted_string(&Locale::en),
+            rs_lmr as f64 / sc * 100.0,
+            rs_full as f64 / sc * 100.0,
+            rs_pvs as f64 / sc * 100.0
+        );
     }
 
     // Where the tree actually is. A growth-rate problem shows up in the
