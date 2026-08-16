@@ -462,6 +462,15 @@ pub struct SearchState {
     // five subtrees. Counted at the single choke point `cutoff_unmake`.
     pub cutoffs: u64,
     pub cutoffs_first_move: u64,
+    // Which ordering heuristic produced the cutting move, and how deep into the
+    // move list it sat (NET-493). `cutoffs_first_move` says 11.5% of cutoffs
+    // need more than one try; these say *which* heuristic is failing to put the
+    // right move first, which is the difference between a TT replacement
+    // problem and a history-ranking one.
+    // kind:  0=TT  1=capture  2=killer  3=countermove  4=other quiet
+    pub cutoff_by_kind: [u64; 5],
+    // index: 0=move 1  1=move 2  2=move 3  3=moves 4-6  4=move 7+
+    pub cutoff_by_index: [u64; 5],
     // Quiescence nodes only (NET-493). `nodes` counts both, so main-search nodes
     // are `nodes - qnodes`. Splitting them separates the two causes of our
     // oversized tree: a growth-rate problem shows in the effective branching
@@ -532,6 +541,8 @@ impl Clone for SearchState {
             // does not double-count the main thread's cutoffs.
             cutoffs: 0,
             cutoffs_first_move: 0,
+            cutoff_by_kind: [0; 5],
+            cutoff_by_index: [0; 5],
             qnodes: 0,
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
@@ -591,6 +602,8 @@ pub fn default_search_state() -> SearchState {
         hash_hits_exact: 0,
         cutoffs: 0,
         cutoffs_first_move: 0,
+        cutoff_by_kind: [0; 5],
+        cutoff_by_index: [0; 5],
         qnodes: 0,
         pv: HashMap::new(),
         hash_clashes: 0,

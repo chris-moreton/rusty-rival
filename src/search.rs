@@ -1177,6 +1177,7 @@ pub fn search(
                             lazy_eval,
                             raw_static_eval,
                             legal_move_count,
+                            true,
                         );
                     }
                     hash_flag = Exact;
@@ -1551,6 +1552,7 @@ pub fn search(
                             lazy_eval,
                             raw_static_eval,
                             legal_move_count,
+                            false,
                         );
                     }
                     hash_flag = Exact;
@@ -1826,6 +1828,8 @@ fn cutoff_unmake(
     // 1-based index of the move that caused this cutoff, for the ordering
     // statistic (NET-493).
     legal_move_count: u8,
+    // True only at the hash-move call site, which is tried before the loop.
+    is_hash_move: bool,
 ) -> PathScore {
     // Singular-verification cutoffs are artifacts of the excluded move and the
     // shifted window - keep them out of the TT and the ordering heuristics
@@ -1839,6 +1843,42 @@ fn cutoff_unmake(
     if legal_move_count <= 1 {
         search_state.cutoffs_first_move += 1;
     }
+
+    // Which heuristic supplied the cutting move (NET-493). Classified in the
+    // order the move generator actually tries them, so a move that is both a
+    // killer and a capture is credited to whichever got it searched first.
+    let kind = if is_hash_move {
+        0
+    } else if is_capture {
+        1
+    } else if m == search_state.mate_killer[ply as usize]
+        || m == search_state.killer_moves[ply as usize][0]
+        || m == search_state.killer_moves[ply as usize][1]
+    {
+        2
+    } else if ply > 0 && {
+        // Same derivation as update_countermove: index by the opponent's
+        // previous move.
+        let prev = search_state.ply_move[(ply - 1) as usize];
+        prev != 0 && {
+            let prev_piece = piece_type_to_index(prev) + ((position.mover ^ 1) as usize * 6);
+            search_state.countermoves[prev_piece][to_square_part(prev) as usize] == m
+        }
+    } {
+        3
+    } else {
+        4
+    };
+    search_state.cutoff_by_kind[kind] += 1;
+
+    let idx = match legal_move_count {
+        0 | 1 => 0,
+        2 => 1,
+        3 => 2,
+        4..=6 => 3,
+        _ => 4,
+    };
+    search_state.cutoff_by_index[idx] += 1;
     store_hash_entry(
         position,
         depth,

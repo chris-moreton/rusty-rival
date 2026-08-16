@@ -94,6 +94,26 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
         );
     }
 
+    // Which heuristic supplied the cutting move, and how far down the list it
+    // sat. Together these say *why* the first-move rate is short of the low-90s
+    // strong engines reach - a weak TT share points at replacement policy, a
+    // long tail past move 3 points at quiet-move ranking.
+    if search_state.cutoffs > 0 {
+        let tot = search_state.cutoffs as f64;
+        let kinds = ["TT move", "capture", "killer", "countermove", "other quiet"];
+        print!("  by heuristic :");
+        for (name, n) in kinds.iter().zip(search_state.cutoff_by_kind.iter()) {
+            print!(" {} {:.1}%", name, *n as f64 / tot * 100.0);
+        }
+        println!();
+        let idx = ["1st", "2nd", "3rd", "4-6th", "7th+"];
+        print!("  by position  :");
+        for (name, n) in idx.iter().zip(search_state.cutoff_by_index.iter()) {
+            print!(" {} {:.1}%", name, *n as f64 / tot * 100.0);
+        }
+        println!();
+    }
+
     // Where the tree actually is. A growth-rate problem shows up in the
     // branching factor; a constant-factor problem shows up as an outsized
     // quiescence share.
