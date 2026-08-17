@@ -91,6 +91,22 @@ pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState
         "ucinewgame" => {
             // Simplified ucinewgame for sync mode (no search handle needed)
             search_state.nodes = 0;
+            search_state.qnodes = 0;
+            search_state.tt_probes = 0;
+            search_state.tt_hits = 0;
+            search_state.tt_deep_enough = 0;
+            search_state.tt_slot_taken = 0;
+            search_state.scout_searches = 0;
+            search_state.research_lmr_full = 0;
+            search_state.research_full_depth = 0;
+            search_state.research_pvs = 0;
+            search_state.children_searched = 0;
+            search_state.no_cutoff_nodes = 0;
+            search_state.no_cutoff_children = 0;
+            search_state.cutoffs = 0;
+            search_state.cutoffs_first_move = 0;
+            search_state.cutoff_by_kind = [0; 7];
+            search_state.cutoff_by_index = [0; 5];
             search_state.root_moves.clear();
             search_state.pv.clear();
             search_state.hash_table.clear();
@@ -111,6 +127,22 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
     // Bare `go` behaves as `go infinite`.
     let t = *parts.get(1).unwrap_or(&"infinite");
     search_state.nodes = 0;
+    search_state.qnodes = 0;
+    search_state.tt_probes = 0;
+    search_state.tt_hits = 0;
+    search_state.tt_deep_enough = 0;
+    search_state.tt_slot_taken = 0;
+    search_state.scout_searches = 0;
+    search_state.research_lmr_full = 0;
+    search_state.research_full_depth = 0;
+    search_state.research_pvs = 0;
+    search_state.children_searched = 0;
+    search_state.no_cutoff_nodes = 0;
+    search_state.no_cutoff_children = 0;
+    search_state.cutoffs = 0;
+    search_state.cutoffs_first_move = 0;
+    search_state.cutoff_by_kind = [0; 7];
+    search_state.cutoff_by_index = [0; 5];
     search_state.nodes_limit = u64::MAX;
     set_stop(&search_state.stop, false);
 
@@ -616,6 +648,22 @@ fn cmd_go(
         // Clone search_state for each thread, sharing hash tables and stop flag
         let mut thread_search_state = search_state.clone();
         thread_search_state.nodes = 0;
+        thread_search_state.qnodes = 0;
+        thread_search_state.tt_probes = 0;
+        thread_search_state.tt_hits = 0;
+        thread_search_state.tt_deep_enough = 0;
+        thread_search_state.tt_slot_taken = 0;
+        thread_search_state.scout_searches = 0;
+        thread_search_state.research_lmr_full = 0;
+        thread_search_state.research_full_depth = 0;
+        thread_search_state.research_pvs = 0;
+        thread_search_state.children_searched = 0;
+        thread_search_state.no_cutoff_nodes = 0;
+        thread_search_state.no_cutoff_children = 0;
+        thread_search_state.cutoffs = 0;
+        thread_search_state.cutoffs_first_move = 0;
+        thread_search_state.cutoff_by_kind = [0; 7];
+        thread_search_state.cutoff_by_index = [0; 5];
         thread_search_state.nodes_limit = nodes_limit;
         thread_search_state.end_time = end_time;
         thread_search_state.soft_time_limit = soft_time_limit;
@@ -934,6 +982,38 @@ fn cmd_ucinewgame(
     }
 
     search_state.nodes = 0;
+
+    search_state.qnodes = 0;
+
+    search_state.tt_probes = 0;
+
+    search_state.tt_hits = 0;
+
+    search_state.tt_deep_enough = 0;
+
+    search_state.tt_slot_taken = 0;
+
+    search_state.scout_searches = 0;
+
+    search_state.research_lmr_full = 0;
+
+    search_state.research_full_depth = 0;
+
+    search_state.research_pvs = 0;
+
+    search_state.children_searched = 0;
+
+    search_state.no_cutoff_nodes = 0;
+
+    search_state.no_cutoff_children = 0;
+
+    search_state.cutoffs = 0;
+
+    search_state.cutoffs_first_move = 0;
+
+    search_state.cutoff_by_kind = [0; 7];
+
+    search_state.cutoff_by_index = [0; 5];
     // Clear root_moves and pv to prevent stale data from previous games
     // being output if time expires before the first search iteration completes
     search_state.root_moves.clear();

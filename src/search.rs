@@ -1,5 +1,5 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, ASPIRATION_RADIUS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
     CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS,
     LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_THRESHOLD, LMR_HISTORY_GOOD_THRESHOLD,
     LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH,
@@ -273,8 +273,6 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     // even if time expires before the first search iteration completes
     search_state.current_best = (pv_single(legal_moves[0].0), -MATE_SCORE);
 
-    const ASPIRATION_RADIUS: [Score; 6] = [25, 50, 100, 200, 400, 800];
-
     let mut prev_synced_nodes: u64 = 0;
 
     // Ceiling for the cumulative soft-limit extension, fixed against the ORIGINAL
@@ -469,7 +467,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
     current_best
 }
 
-fn clear_killers(search_state: &mut SearchState) {
+pub fn clear_killers(search_state: &mut SearchState) {
     for i in 0..MAX_DEPTH as usize {
         search_state.mate_killer[i] = 0;
         for j in 0..2 {
@@ -781,6 +779,9 @@ pub fn search(
     }
 
     let mut legal_move_count = 0;
+    // Children actually searched at THIS node (NET-493). Distinct from
+    // legal_move_count, which increments before alpha/LMP pruning.
+    let mut children_here: u32 = 0;
     let mut hash_flag = Upper;
     let mut best_pathscore: PathScore = (pv_single(0), -MATE_SCORE);
 
@@ -792,6 +793,21 @@ pub fn search(
     // decision for stores from this node
     let (hash_height, hash_version, slot_occupied) = search_state.hash_table.entry_meta(hash_index);
     // Track hash entry info for singular extension (needed even if depth isn't sufficient for cutoff)
+    search_state.tt_probes += 1;
+    match probed_entry {
+        Some(e) => {
+            search_state.tt_hits += 1;
+            if e.height >= depth {
+                search_state.tt_deep_enough += 1;
+            }
+        }
+        // Occupied by a different position - the slot exists, the entry we
+        // wanted is gone. Distinguishes "table too small / bad replacement"
+        // from "genuinely never searched this".
+        None if slot_occupied => search_state.tt_slot_taken += 1,
+        None => {}
+    }
+
     let hash_entry_height = probed_entry.map_or(0, |e| e.height);
     let hash_entry_bound = probed_entry.map_or(Upper, |e| e.bound);
     let hash_move = if let Some(hash_entry) = probed_entry {
@@ -1145,6 +1161,13 @@ pub fn search(
 
         if !is_check(position, old_mover) {
             legal_move_count += 1;
+            // The hash move is searched here, outside the staged move loop, so
+            // it must be counted here too (NET-493). Missing this undercounted
+            // every no-cut node by one, and silently dropped from no_cutoff_nodes any
+            // node whose only searched child was the hash move - which biased
+            // the reported children-per-no-cutoff-node figure. Caught in review.
+            children_here += 1;
+            search_state.children_searched += 1;
             let hash_search_depth = real_depth + singular_extension;
             let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, None);
             let score = path_score.1;
@@ -1178,6 +1201,8 @@ pub fn search(
                             &searched_captures,
                             lazy_eval,
                             raw_static_eval,
+                            children_here.min(u8::MAX as u32) as u8,
+                            true,
                         );
                     }
                     hash_flag = Exact;
@@ -1501,6 +1526,8 @@ pub fn search(
             // Apply extensions to search depth
             let search_depth = depth + move_extension;
 
+            children_here += 1;
+            search_state.children_searched += 1;
             let path_score = if scout_search {
                 // Cap the reduction so the child depth (search_depth - 1 - lmr)
                 // cannot wrap below zero: stacked LMR adjustments (table + bad
@@ -1551,6 +1578,8 @@ pub fn search(
                             &searched_captures,
                             lazy_eval,
                             raw_static_eval,
+                            children_here.min(u8::MAX as u32) as u8,
+                            false,
                         );
                     }
                     hash_flag = Exact;
@@ -1567,6 +1596,16 @@ pub fn search(
         } else {
             unmake_move_nnue(position, m, &unmake, search_state);
         }
+    }
+
+    // Reaching here means the move loop finished without a beta cutoff - an
+    // completed no-cut move-loop node. This includes PV nodes and excludes
+    // forward-pruned fail-low nodes, so it is NOT an alpha-beta all-node. Cut
+    // nodes return early
+    // through cutoff_unmake and are not counted.
+    if children_here > 0 {
+        search_state.no_cutoff_nodes += 1;
+        search_state.no_cutoff_children += children_here as u64;
     }
 
     if legal_move_count == 0 {
@@ -1724,6 +1763,7 @@ fn lmr_scout_search(
 ) -> PathScore {
     let alpha = window.0;
     let beta = window.1;
+    search_state.scout_searches += 1;
     let mut scout_path = search_wrapper(
         real_depth,
         ply,
@@ -1736,13 +1776,16 @@ fn lmr_scout_search(
     );
 
     if scout_path.1 > alpha && lmr > 0 {
+        search_state.research_lmr_full += 1;
         // We are in an LMR search and we Need to research with full window. but still with late move reduction
         scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr, 0, known_in_check);
         if scout_path.1 > alpha {
             // Need to research with full window and no reduction
+            search_state.research_full_depth += 1;
             scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
         }
     } else if scout_path.1 > alpha && scout_path.1 < beta {
+        search_state.research_pvs += 1;
         // Not doing a LMR search, but still need to research with a full window
         scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
     }
@@ -1823,12 +1866,84 @@ fn cutoff_unmake(
     // Raw (pre-correction) eval for the TT entry; `static_eval` above is the
     // correction-adjusted value and feeds correction history instead.
     raw_static_eval: Score,
+    // 1-based index *among moves actually searched* of the move that caused
+    // this cutoff, for the ordering statistic (NET-493).
+    //
+    // Deliberately not legal_move_count: that increments before the alpha and
+    // LMP prunes, so moves that were skipped without ever being searched still
+    // advanced it. A cutoff on the 2nd searched move landed in the "4-6" bucket
+    // whenever four moves were pruned ahead of it, making move ordering look
+    // worse than it is. Pruned moves cost no search, so they must not count
+    // towards the ordering position. Caught by review of NET-493.
+    searched_move_count: u8,
+    // True only at the hash-move call site, which is tried before the loop.
+    is_hash_move: bool,
 ) -> PathScore {
     // Singular-verification cutoffs are artifacts of the excluded move and the
     // shifted window - keep them out of the TT and the ordering heuristics
     if excluded_move != 0 {
         return best_pathscore;
     }
+
+    // Counted after the singular-verification bail above, so the statistic
+    // reflects real cutoffs rather than artifacts of the excluded-move window.
+    search_state.cutoffs += 1;
+    if searched_move_count <= 1 {
+        search_state.cutoffs_first_move += 1;
+    }
+
+    // Which heuristic supplied the cutting move (NET-493). This must mirror
+    // the precedence in move_scores.rs::score_move exactly, because the point
+    // of the statistic is "which heuristic got this move searched first". Two
+    // ways it was wrong before, both found in review:
+    //
+    //   - non-capture promotions were falling through to "other quiet", when
+    //     score_move ranks a queen promotion alongside a good capture and the
+    //     under-promotions just below. They are not quiet moves in any sense
+    //     the ordering cares about.
+    //   - ply-2 distant killers were unclassified, so they landed in
+    //     countermove or "other quiet". Distant killers outrank countermoves
+    //     in score_move, so a move that is both was credited to the wrong
+    //     heuristic - the classifier promised generator order and did not
+    //     deliver it.
+    let kind = if is_hash_move {
+        0
+    } else if is_capture {
+        // Covers en passant too: the unmake records a captured piece for it.
+        1
+    } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
+        2
+    } else if m == search_state.mate_killer[ply as usize]
+        || m == search_state.killer_moves[ply as usize][0]
+        || m == search_state.killer_moves[ply as usize][1]
+    {
+        3
+    } else if ply > 2 && (m == search_state.killer_moves[(ply - 2) as usize][0] || m == search_state.killer_moves[(ply - 2) as usize][1]) {
+        // `ply > 2` matches score_move's own guard, not `>= 2`.
+        4
+    } else if ply > 0 && {
+        // Same derivation as update_countermove: index by the opponent's
+        // previous move.
+        let prev = search_state.ply_move[(ply - 1) as usize];
+        prev != 0 && {
+            let prev_piece = piece_type_to_index(prev) + ((position.mover ^ 1) as usize * 6);
+            search_state.countermoves[prev_piece][to_square_part(prev) as usize] == m
+        }
+    } {
+        5
+    } else {
+        6
+    };
+    search_state.cutoff_by_kind[kind] += 1;
+
+    let idx = match searched_move_count {
+        0 | 1 => 0,
+        2 => 1,
+        3 => 2,
+        4..=6 => 3,
+        _ => 4,
+    };
+    search_state.cutoff_by_index[idx] += 1;
     store_hash_entry(
         position,
         depth,

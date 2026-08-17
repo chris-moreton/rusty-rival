@@ -102,6 +102,21 @@ pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
 // SPSA tuned: base=70, per_depth=54 (Run 20)
 pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [77, 121, 165, 209, 253, 297, 341, 385];
 
+// Delta pruning (quiescence): skip a capture when the static eval plus the full
+// captured piece value plus this margin still cannot reach alpha.
+//
+// Lived as a function-local const in `quiesce.rs` until NET-404. It reads the
+// NNUE evaluation, so it has to be tunable, and the SPSA builder only rewrites
+// this file.
+pub const DELTA_MARGIN: Score = 200;
+
+// Aspiration windows: radius around the previous iteration's score, widened one
+// rung each time the search fails high or low. Past the last rung the window
+// opens to +/-MAX_WINDOW.
+//
+// Also moved here from `search.rs` by NET-404, for the same reason.
+pub const ASPIRATION_RADIUS: [Score; 6] = [25, 50, 100, 200, 400, 800];
+
 // =============================================================================
 // MOVE ORDERING CONSTANTS (SPSA tunable)
 // =============================================================================
@@ -168,6 +183,24 @@ const LN_TABLE: [u32; 64] = [
 // Formula: floor(0.75 + ln(depth) * ln(move_count) / 2.5)
 // More conservative than Stockfish's formula to avoid over-pruning
 // Precomputed for depths 0-63 and move counts 0-63
+// The LMR reduction schedule: `reduction = BASE + ln(depth) * ln(moves) / DIVISOR`.
+//
+// These two numbers shape the whole table and had never been measured until
+// NET-603 - they were literals buried in the `const fn` below. They matter: a
+// single LMR gate change moved the bench tree 38%, where NET-404 moved ten
+// eval-scaled margins 25-30% and changed nothing measurable.
+//
+// Scaled by 1000 because the table is built in a `const fn` with integer maths.
+// A LARGER divisor means SHALLOWER reductions.
+pub const LMR_BASE_X1000: u32 = 750; // 0.75
+pub const LMR_DIVISOR_X1000: u32 = 2500; // 2.5
+
+// The table's own gates. Note these are a THIRD set of thresholds alongside
+// LMR_MIN_DEPTH and LMR_LEGAL_MOVES_BEFORE_ATTEMPT, which are applied
+// separately in search.rs and need not agree - see NET-603.
+pub const LMR_TABLE_MIN_DEPTH: usize = 3;
+pub const LMR_TABLE_MIN_MOVES: usize = 4;
+
 pub const LMR_TABLE: [[u8; 64]; 64] = generate_lmr_table();
 
 const fn generate_lmr_table() -> [[u8; 64]; 64] {
@@ -176,12 +209,12 @@ const fn generate_lmr_table() -> [[u8; 64]; 64] {
     while depth < 64 {
         let mut move_count = 0usize;
         while move_count < 64 {
-            if depth >= 3 && move_count >= 4 {
-                // reduction = 0.75 + ln(depth) * ln(move_count) / 2.5
-                // Using integer math: (750 + ln_d * ln_m / 2500) / 1000
+            if depth >= LMR_TABLE_MIN_DEPTH && move_count >= LMR_TABLE_MIN_MOVES {
+                // reduction = BASE + ln(depth) * ln(move_count) / DIVISOR
+                // LN_TABLE holds ln(x) * 1000, so the product is scaled by 1e6.
                 let ln_d = LN_TABLE[depth];
                 let ln_m = LN_TABLE[move_count];
-                let reduction = (750 + (ln_d * ln_m) / 2500) / 1000;
+                let reduction = (LMR_BASE_X1000 + (ln_d * ln_m) / LMR_DIVISOR_X1000) / 1000;
                 table[depth][move_count] = reduction as u8;
             }
             move_count += 1;

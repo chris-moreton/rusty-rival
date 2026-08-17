@@ -1,5 +1,5 @@
 use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_2_BITS, RANK_7_BITS};
-use crate::engine_constants::{PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
+use crate::engine_constants::{DELTA_MARGIN, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
 use crate::evaluate::evaluate_position;
 use crate::move_constants::{
     PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
@@ -158,6 +158,7 @@ pub fn quiesce(
         return (pv_single(0), 0);
     }
     search_state.nodes += 1;
+    search_state.qnodes += 1;
 
     let in_check = known_in_check.unwrap_or_else(|| is_check(position, position.mover));
 
@@ -215,10 +216,6 @@ pub fn quiesce(
     // the bench signature (+1.6% nodes) - not behavior-neutral, so it needs its
     // own SPRT rather than riding a speed-only release.
     move_scores.sort_unstable_by_key(|b| std::cmp::Reverse(b.1));
-
-    // Delta pruning margin: skip captures that can't raise alpha
-    // even with full captured piece value plus this margin
-    const DELTA_MARGIN: Score = 200;
 
     let mut legal_move_count = 0;
 

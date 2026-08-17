@@ -1,5 +1,6 @@
 use crate::fen::{algebraic_move_from_move, get_position};
 use crate::mvm_test_fens::get_test_fens;
+use crate::search::clear_countermoves;
 use crate::types::{Move, Score, SearchState, UciState};
 use crate::uci::run_command_sync;
 use crate::utils::hydrate_move_from_algebraic_move;
@@ -50,17 +51,58 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
 
     let start = Instant::now();
     let mut total_nodes: u64 = 0;
+    let mut total_qnodes: u64 = 0;
+    // Accumulated per position: uci.rs resets these on every `go`, so reading
+    // them after the loop would report the last position only.
+    let (mut tt_probes, mut tt_hits, mut tt_deep, mut tt_taken) = (0u64, 0u64, 0u64, 0u64);
+    let (mut scouts, mut rs_lmr, mut rs_full, mut rs_pvs) = (0u64, 0u64, 0u64, 0u64);
+    let (mut kids, mut no_cutoff_nodes, mut no_cutoff_children) = (0u64, 0u64, 0u64);
+    let (mut cuts, mut cuts_first) = (0u64, 0u64);
+    let (mut by_kind, mut by_index) = ([0u64; 7], [0u64; 5]);
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
-        // ucinewgame clears the TT + history so each position starts from a
-        // known-empty state; without this the signature depends on position order
-        // *and* on leftover entries, and stops being reproducible.
+        // `ucinewgame` clears the TT and history tables, and `iterative_deepening`
+        // clears killers on every `go`. The COUNTERMOVE table is the one thing
+        // nothing resets - deliberately, because clearing it costs ~12% of bench
+        // in real play (NET-396).
+        //
+        // That warmth is right for games and wrong for a signature: it carried
+        // state from one bench position into the next, so a second bench in the
+        // same process returned a different node count (3,310,543 then
+        // 3,148,827) despite the comment that used to sit here claiming
+        // reproducibility. Caught in review by Codex, who also pointed out that
+        // clearing killers here as well was redundant.
+        //
+        // Cleared here rather than in `ucinewgame`, so the engine keeps its
+        // deliberate warmth for real play and only the benchmark is made
+        // deterministic.
         run_command_sync(uci_state, search_state, "ucinewgame");
+        clear_countermoves(search_state);
         run_command_sync(uci_state, search_state, &format!("position fen {}", fen));
         run_command_sync(uci_state, search_state, &format!("go depth {}", depth));
 
         let nodes = search_state.nodes;
         total_nodes += nodes;
+        total_qnodes += search_state.qnodes;
+        tt_probes += search_state.tt_probes;
+        tt_hits += search_state.tt_hits;
+        tt_deep += search_state.tt_deep_enough;
+        tt_taken += search_state.tt_slot_taken;
+        scouts += search_state.scout_searches;
+        rs_lmr += search_state.research_lmr_full;
+        rs_full += search_state.research_full_depth;
+        rs_pvs += search_state.research_pvs;
+        kids += search_state.children_searched;
+        no_cutoff_nodes += search_state.no_cutoff_nodes;
+        no_cutoff_children += search_state.no_cutoff_children;
+        cuts += search_state.cutoffs;
+        cuts_first += search_state.cutoffs_first_move;
+        for (acc, n) in by_kind.iter_mut().zip(search_state.cutoff_by_kind.iter()) {
+            *acc += n;
+        }
+        for (acc, n) in by_index.iter_mut().zip(search_state.cutoff_by_index.iter()) {
+            *acc += n;
+        }
         println!(
             "Position {:>2}/{}: {:>12} nodes",
             i + 1,
@@ -78,6 +120,103 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     println!("Time          : {} ms", millis.to_formatted_string(&Locale::en));
     println!("Nodes searched: {}", total_nodes);
     println!("NPS           : {}", nps.to_formatted_string(&Locale::en));
+
+    // Move-ordering quality (NET-493). Of every beta cutoff, the share that came
+    // from the first move tried. A node that cut on move 6 searched five subtrees
+    // it did not need, so this ratio drives the effective branching factor and
+    // therefore the depth reached in a fixed time.
+    if cuts > 0 {
+        println!(
+            "Cutoffs       : {} ({:.1}% on first move)",
+            cuts.to_formatted_string(&Locale::en),
+            cuts_first as f64 / cuts as f64 * 100.0
+        );
+    }
+
+    // Which heuristic supplied the cutting move, and how far down the list it
+    // sat. Together these say *why* the first-move rate is short of the low-90s
+    // strong engines reach - a weak TT share points at replacement policy, a
+    // long tail past move 3 points at quiet-move ranking.
+    if cuts > 0 {
+        let tot = cuts as f64;
+        let kinds = [
+            "TT move",
+            "capture",
+            "promo",
+            "killer",
+            "distant killer",
+            "countermove",
+            "other quiet",
+        ];
+        print!("  by heuristic :");
+        for (name, n) in kinds.iter().zip(by_kind.iter()) {
+            print!(" {} {:.1}%", name, *n as f64 / tot * 100.0);
+        }
+        println!();
+        let idx = ["1st", "2nd", "3rd", "4-6th", "7th+"];
+        print!("  by position  :");
+        for (name, n) in idx.iter().zip(by_index.iter()) {
+            print!(" {} {:.1}%", name, *n as f64 / tot * 100.0);
+        }
+        println!();
+    }
+
+    // Transposition table effectiveness. A low hit rate means re-searching
+    // subtrees already solved - a constant factor invisible to both the
+    // branching factor and the ordering stats.
+    if tt_probes > 0 {
+        let p = tt_probes as f64;
+        println!(
+            "TT probes     : {} · hit {:.1}% · deep enough {:.1}% · slot taken by other pos {:.1}%",
+            tt_probes.to_formatted_string(&Locale::en),
+            tt_hits as f64 / p * 100.0,
+            tt_deep as f64 / p * 100.0,
+            tt_taken as f64 / p * 100.0
+        );
+    }
+
+    // Re-search cost. Every re-search repeats a subtree already searched once,
+    // and none of it appears in the branching factor or the cutoff histogram.
+    if scouts > 0 {
+        let sc = scouts as f64;
+        println!(
+            "Scout searches: {} · LMR re-search (reduced, full window) {:.1}% · then full depth {:.1}% · PVS re-search {:.1}%",
+            scouts.to_formatted_string(&Locale::en),
+            rs_lmr as f64 / sc * 100.0,
+            rs_full as f64 / sc * 100.0,
+            rs_pvs as f64 / sc * 100.0
+        );
+    }
+
+    // Width at nodes that completed the move loop with no beta cutoff - the
+    // last place a constant factor could hide. Cut nodes
+    // are already known to be well ordered; this is what happens where nothing
+    // cuts and every move must be searched unless pruned or reduced.
+    if no_cutoff_nodes > 0 {
+        println!(
+            "Children      : {} searched · no-cutoff nodes {} · {:.2} children each",
+            kids.to_formatted_string(&Locale::en),
+            no_cutoff_nodes.to_formatted_string(&Locale::en),
+            no_cutoff_children as f64 / no_cutoff_nodes as f64
+        );
+    }
+
+    // Where the tree actually is. A growth-rate problem shows up in the
+    // branching factor; a constant-factor problem shows up as an outsized
+    // quiescence share.
+    if total_qnodes > 0 {
+        let main = total_nodes.saturating_sub(total_qnodes);
+        println!(
+            "  main search : {:>12} ({:.1}%)",
+            main.to_formatted_string(&Locale::en),
+            main as f64 / total_nodes as f64 * 100.0
+        );
+        println!(
+            "  quiescence  : {:>12} ({:.1}%)",
+            total_qnodes.to_formatted_string(&Locale::en),
+            total_qnodes as f64 / total_nodes as f64 * 100.0
+        );
+    }
 
     search_state.show_info = show_info;
     uci_state.fen = saved_fen;
