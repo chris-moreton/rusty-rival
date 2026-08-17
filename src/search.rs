@@ -1201,7 +1201,7 @@ pub fn search(
                             &searched_captures,
                             lazy_eval,
                             raw_static_eval,
-                            legal_move_count,
+                            children_here.min(u8::MAX as u32) as u8,
                             true,
                         );
                     }
@@ -1578,7 +1578,7 @@ pub fn search(
                             &searched_captures,
                             lazy_eval,
                             raw_static_eval,
-                            legal_move_count,
+                            children_here.min(u8::MAX as u32) as u8,
                             false,
                         );
                     }
@@ -1866,9 +1866,16 @@ fn cutoff_unmake(
     // Raw (pre-correction) eval for the TT entry; `static_eval` above is the
     // correction-adjusted value and feeds correction history instead.
     raw_static_eval: Score,
-    // 1-based index of the move that caused this cutoff, for the ordering
-    // statistic (NET-493).
-    legal_move_count: u8,
+    // 1-based index *among moves actually searched* of the move that caused
+    // this cutoff, for the ordering statistic (NET-493).
+    //
+    // Deliberately not legal_move_count: that increments before the alpha and
+    // LMP prunes, so moves that were skipped without ever being searched still
+    // advanced it. A cutoff on the 2nd searched move landed in the "4-6" bucket
+    // whenever four moves were pruned ahead of it, making move ordering look
+    // worse than it is. Pruned moves cost no search, so they must not count
+    // towards the ordering position. Caught by review of NET-493.
+    searched_move_count: u8,
     // True only at the hash-move call site, which is tried before the loop.
     is_hash_move: bool,
 ) -> PathScore {
@@ -1881,7 +1888,7 @@ fn cutoff_unmake(
     // Counted after the singular-verification bail above, so the statistic
     // reflects real cutoffs rather than artifacts of the excluded-move window.
     search_state.cutoffs += 1;
-    if legal_move_count <= 1 {
+    if searched_move_count <= 1 {
         search_state.cutoffs_first_move += 1;
     }
 
@@ -1912,7 +1919,7 @@ fn cutoff_unmake(
     };
     search_state.cutoff_by_kind[kind] += 1;
 
-    let idx = match legal_move_count {
+    let idx = match searched_move_count {
         0 | 1 => 0,
         2 => 1,
         3 => 2,
