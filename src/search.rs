@@ -1892,18 +1892,35 @@ fn cutoff_unmake(
         search_state.cutoffs_first_move += 1;
     }
 
-    // Which heuristic supplied the cutting move (NET-493). Classified in the
-    // order the move generator actually tries them, so a move that is both a
-    // killer and a capture is credited to whichever got it searched first.
+    // Which heuristic supplied the cutting move (NET-493). This must mirror
+    // the precedence in move_scores.rs::score_move exactly, because the point
+    // of the statistic is "which heuristic got this move searched first". Two
+    // ways it was wrong before, both found in review:
+    //
+    //   - non-capture promotions were falling through to "other quiet", when
+    //     score_move ranks a queen promotion alongside a good capture and the
+    //     under-promotions just below. They are not quiet moves in any sense
+    //     the ordering cares about.
+    //   - ply-2 distant killers were unclassified, so they landed in
+    //     countermove or "other quiet". Distant killers outrank countermoves
+    //     in score_move, so a move that is both was credited to the wrong
+    //     heuristic - the classifier promised generator order and did not
+    //     deliver it.
     let kind = if is_hash_move {
         0
     } else if is_capture {
+        // Covers en passant too: the unmake records a captured piece for it.
         1
+    } else if m & PROMOTION_FULL_MOVE_MASK != 0 {
+        2
     } else if m == search_state.mate_killer[ply as usize]
         || m == search_state.killer_moves[ply as usize][0]
         || m == search_state.killer_moves[ply as usize][1]
     {
-        2
+        3
+    } else if ply > 2 && (m == search_state.killer_moves[(ply - 2) as usize][0] || m == search_state.killer_moves[(ply - 2) as usize][1]) {
+        // `ply > 2` matches score_move's own guard, not `>= 2`.
+        4
     } else if ply > 0 && {
         // Same derivation as update_countermove: index by the opponent's
         // previous move.
@@ -1913,9 +1930,9 @@ fn cutoff_unmake(
             search_state.countermoves[prev_piece][to_square_part(prev) as usize] == m
         }
     } {
-        3
+        5
     } else {
-        4
+        6
     };
     search_state.cutoff_by_kind[kind] += 1;
 

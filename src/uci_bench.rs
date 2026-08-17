@@ -58,7 +58,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     let (mut scouts, mut rs_lmr, mut rs_full, mut rs_pvs) = (0u64, 0u64, 0u64, 0u64);
     let (mut kids, mut no_cutoff_nodes, mut no_cutoff_children) = (0u64, 0u64, 0u64);
     let (mut cuts, mut cuts_first) = (0u64, 0u64);
-    let (mut by_kind, mut by_index) = ([0u64; 5], [0u64; 5]);
+    let (mut by_kind, mut by_index) = ([0u64; 7], [0u64; 5]);
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
         // `ucinewgame` clears the TT and history tables, and `iterative_deepening`
@@ -97,9 +97,11 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
         no_cutoff_children += search_state.no_cutoff_children;
         cuts += search_state.cutoffs;
         cuts_first += search_state.cutoffs_first_move;
-        for i in 0..5 {
-            by_kind[i] += search_state.cutoff_by_kind[i];
-            by_index[i] += search_state.cutoff_by_index[i];
+        for (acc, n) in by_kind.iter_mut().zip(search_state.cutoff_by_kind.iter()) {
+            *acc += n;
+        }
+        for (acc, n) in by_index.iter_mut().zip(search_state.cutoff_by_index.iter()) {
+            *acc += n;
         }
         println!(
             "Position {:>2}/{}: {:>12} nodes",
@@ -137,7 +139,15 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     // long tail past move 3 points at quiet-move ranking.
     if cuts > 0 {
         let tot = cuts as f64;
-        let kinds = ["TT move", "capture", "killer", "countermove", "other quiet"];
+        let kinds = [
+            "TT move",
+            "capture",
+            "promo",
+            "killer",
+            "distant killer",
+            "countermove",
+            "other quiet",
+        ];
         print!("  by heuristic :");
         for (name, n) in kinds.iter().zip(by_kind.iter()) {
             print!(" {} {:.1}%", name, *n as f64 / tot * 100.0);

@@ -468,7 +468,7 @@ pub struct SearchState {
     // right move first, which is the difference between a TT replacement
     // problem and a history-ranking one.
     // kind:  0=TT  1=capture  2=killer  3=countermove  4=other quiet
-    pub cutoff_by_kind: [u64; 5],
+    pub cutoff_by_kind: [u64; 7],
     // index: 0=move 1  1=move 2  2=move 3  3=moves 4-6  4=move 7+
     pub cutoff_by_index: [u64; 5],
     // Transposition table effectiveness (NET-493). A poor hit rate re-searches
@@ -570,7 +570,7 @@ impl Clone for SearchState {
             // does not double-count the main thread's cutoffs.
             cutoffs: 0,
             cutoffs_first_move: 0,
-            cutoff_by_kind: [0; 5],
+            cutoff_by_kind: [0; 7],
             cutoff_by_index: [0; 5],
             tt_probes: 0,
             tt_hits: 0,
@@ -642,7 +642,7 @@ pub fn default_search_state() -> SearchState {
         hash_hits_exact: 0,
         cutoffs: 0,
         cutoffs_first_move: 0,
-        cutoff_by_kind: [0; 5],
+        cutoff_by_kind: [0; 7],
         cutoff_by_index: [0; 5],
         tt_probes: 0,
         tt_hits: 0,
