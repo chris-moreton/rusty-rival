@@ -425,7 +425,21 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         search_state.shared_nodes.fetch_add(remaining, Ordering::Relaxed);
     }
 
-    legal_moves[0].0
+    // Return the move whose score was actually validated, not whichever sorts
+    // first (NET-610 review). These agree today - a probe over bench and the
+    // whole suite found no divergence - but only by an invariant nothing
+    // enforces: current_best takes the maximum mv.1, and the sort orders by
+    // mv.1, so index 0 happens to be the same move.
+    //
+    // Root PVS makes that coupling fragile. mv.1 is now heterogeneous: an exact
+    // score for the first move and for any scout that was re-searched, a
+    // fail-low bound for every scout that was not. Sorting exact scores against
+    // bounds is already only approximately meaningful for move ordering, which
+    // is a use that tolerates being wrong. Choosing the returned move is not.
+    //
+    // The time-expiry path a few lines up already returns current_best, so this
+    // also removes a state/return mismatch between the two exits.
+    search_state.current_best.0[0]
 }
 
 pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, window: Window) -> PathScore {
