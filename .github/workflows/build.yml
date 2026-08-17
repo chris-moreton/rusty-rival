@@ -3,6 +3,26 @@ on: [push, pull_request]
 name: Continuous integration
 
 jobs:
+  spsa-lmp-contract:
+    name: SPSA LMP contract
+    runs-on: ubuntu-latest
+    steps:
+      # This checkout is the pull-request commit (or pushed commit) whose
+      # constants are being validated.
+      - uses: actions/checkout@v4
+      # Explicitly use chess-compete's current default branch. Do not use an
+      # optional sibling path or an event ref: engine-only drift must fail.
+      # The repository is public, so this needs no secret or write credential
+      # and also runs for fork pull requests.
+      - uses: actions/checkout@v4
+        with:
+          repository: chris-moreton/chess-compete
+          ref: main
+          path: chess-compete
+          persist-credentials: false
+      - name: Check live SPSA LMP defaults
+        run: python3 chess-compete/scripts/check_lmp_contract.py --engine-root "$GITHUB_WORKSPACE"
+
   check:
     name: Check
     runs-on: ubuntu-latest
