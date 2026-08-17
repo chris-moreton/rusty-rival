@@ -56,7 +56,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     // them after the loop would report the last position only.
     let (mut tt_probes, mut tt_hits, mut tt_deep, mut tt_taken) = (0u64, 0u64, 0u64, 0u64);
     let (mut scouts, mut rs_lmr, mut rs_full, mut rs_pvs) = (0u64, 0u64, 0u64, 0u64);
-    let (mut kids, mut allnodes, mut allkids) = (0u64, 0u64, 0u64);
+    let (mut kids, mut no_cutoff_nodes, mut no_cutoff_children) = (0u64, 0u64, 0u64);
     let (mut cuts, mut cuts_first) = (0u64, 0u64);
     let (mut by_kind, mut by_index) = ([0u64; 5], [0u64; 5]);
 
@@ -93,8 +93,8 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
         rs_full += search_state.research_full_depth;
         rs_pvs += search_state.research_pvs;
         kids += search_state.children_searched;
-        allnodes += search_state.no_cutoff_nodes;
-        allkids += search_state.no_cutoff_children;
+        no_cutoff_nodes += search_state.no_cutoff_nodes;
+        no_cutoff_children += search_state.no_cutoff_children;
         cuts += search_state.cutoffs;
         cuts_first += search_state.cutoffs_first_move;
         for i in 0..5 {
@@ -178,15 +178,16 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
         );
     }
 
-    // All-node width: the last place a constant factor could hide. Cut nodes
+    // Width at nodes that completed the move loop with no beta cutoff - the
+    // last place a constant factor could hide. Cut nodes
     // are already known to be well ordered; this is what happens where nothing
     // cuts and every move must be searched unless pruned or reduced.
-    if allnodes > 0 {
+    if no_cutoff_nodes > 0 {
         println!(
             "Children      : {} searched · no-cutoff nodes {} · {:.2} children each",
             kids.to_formatted_string(&Locale::en),
-            allnodes.to_formatted_string(&Locale::en),
-            allkids as f64 / allnodes as f64
+            no_cutoff_nodes.to_formatted_string(&Locale::en),
+            no_cutoff_children as f64 / no_cutoff_nodes as f64
         );
     }
 
