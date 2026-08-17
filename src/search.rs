@@ -425,28 +425,85 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         search_state.shared_nodes.fetch_add(remaining, Ordering::Relaxed);
     }
 
-    legal_moves[0].0
+    // Return the move whose score was actually validated, not whichever sorts
+    // first (NET-610 review). These agree today - a probe over bench and the
+    // whole suite found no divergence - but only by an invariant nothing
+    // enforces: current_best takes the maximum mv.1, and the sort orders by
+    // mv.1, so index 0 happens to be the same move.
+    //
+    // Root PVS makes that coupling fragile. mv.1 is now heterogeneous: an exact
+    // score for the first move and for any scout that was re-searched, a
+    // fail-low bound for every scout that was not. Sorting exact scores against
+    // bounds is already only approximately meaningful for move ordering, which
+    // is a use that tolerates being wrong. Choosing the returned move is not.
+    //
+    // The time-expiry path a few lines up already returns current_best, so this
+    // also removes a state/return mismatch between the two exits.
+    search_state.current_best.0[0]
 }
 
 pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, window: Window) -> PathScore {
     let mut current_best: PathScore = (pv_single(legal_moves[0].0), window.0);
     let hash_mask = search_state.hash_table.mask();
+    let mut first_root_move = true;
 
     for mv in legal_moves {
         let unmake = make_move_nnue(position, mv.0, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
         search_state.history.push(position.zobrist_lock);
 
-        let mut path_score = search(
-            position,
-            search_state.iterative_depth - 1,
-            1,
-            (-window.1, -current_best.1),
-            search_state,
-            false,
-            0,
-            None,
-        );
+        // Principal-variation search at the root (NET-610). Before this, every
+        // root child got the full aspiration window, which made each of them a
+        // PV node - and since a PV node's first child also gets a full window,
+        // the whole principal variation was searched with `scouting == false`
+        // and therefore with razoring, null-move, probcut, multicut and the
+        // futility prunes all switched off. That is a very expensive way to
+        // protect the PV: it cost about 12% of the tree.
+        //
+        // Scouting the non-first root moves exposed a pre-existing unsoundness
+        // rather than creating one - see the razoring note in RAZOR_MAX_DEPTH.
+        let mut path_score = if first_root_move {
+            search(
+                position,
+                search_state.iterative_depth - 1,
+                1,
+                (-window.1, -current_best.1),
+                search_state,
+                false,
+                0,
+                None,
+            )
+        } else {
+            // Null window around the current best. Note the asymmetry: from
+            // the child's point of view this is a fail-LOW test. The child
+            // returns the negated score, so "this root move beats the current
+            // best" means the child scored at or below its own alpha.
+            let scout = search(
+                position,
+                search_state.iterative_depth - 1,
+                1,
+                (-current_best.1 - 1, -current_best.1),
+                search_state,
+                false,
+                0,
+                None,
+            );
+            if -scout.1 > current_best.1 {
+                search(
+                    position,
+                    search_state.iterative_depth - 1,
+                    1,
+                    (-window.1, -current_best.1),
+                    search_state,
+                    false,
+                    0,
+                    None,
+                )
+            } else {
+                scout
+            }
+        };
+        first_root_move = false;
         path_score.1 = -path_score.1;
 
         search_state.history.pop();

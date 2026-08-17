@@ -111,6 +111,23 @@ fn it_finds_a_mate_in_3() {
     assert_move("4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1", 7, 1000000, "e5e1");
 }
 
+/// NET-610 regression. Position 4 of the mate-in-3 suite is the one that
+/// razoring hides: Re1! Rxe1 Rxe1 Rc1 Qg2# gives up material before it mates,
+/// so the static eval and the verifying quiescence both call the node hopeless.
+///
+/// It is pinned separately from `it_finds_a_mate_in_3` because the failure mode
+/// is specific and the diagnosis was not obvious: with root PVS and
+/// RAZOR_MAX_DEPTH at its old value of 3, the engine returned h3f1 scoring 188
+/// - it did not pick a slower mate, it never saw a mate at all. A suite of four
+/// positions failing as one test does not say that.
+///
+/// Depth 6 rather than 7 so this fails if mate detection slips a further
+/// iteration. Baseline found it at depth 5; root PVS costs one iteration here.
+#[test]
+fn razoring_does_not_hide_the_mate_after_a_sacrifice() {
+    assert_move("4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1", 6, 1000000, "e5e1");
+}
+
 #[test]
 fn it_finds_a_mate_in_4() {
     assert_move("7R/r1p1q1pp/3k4/1p1n1Q2/3N4/8/1PP2PPP/2B3K1 w - - 1 0", 9, 1000000, "h8d8");

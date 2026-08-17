@@ -79,7 +79,21 @@ pub const LMP_MOVE_THRESHOLDS: [u8; 9] = [0, 9, 6, 9, 19, 28, 39, 52, 67]; // 1-
 // from ALPHA_PRUNE_MARGINS, which skips individual late quiet moves inside the
 // move loop; razoring skips the whole subtree before any move is generated.
 // Index by depth: [unused, depth 1, depth 2, depth 3]
-pub const RAZOR_MAX_DEPTH: u8 = 3;
+// Razoring verifies with quiescence before failing low, but quiescence only
+// sees captures and checks - it cannot see a quiet mating move. A node where a
+// sacrifice starts therefore looks hopeless to both the static eval and the
+// verification search, and gets pruned.
+//
+// This was masked for years: the root gave every child a full window, so
+// razoring was off along the entire principal variation. Root PVS (NET-610)
+// removed that mask and the engine immediately stopped seeing the mate in
+// tests/search.rs::it_finds_a_mate_in_3 position 4 (Re1! Rxe1 Rxe1 Rc1 Qg2#,
+// which loses material before it mates). Measured at depth 3 the razor margin
+// is 620, wide enough to swallow the whole combination.
+//
+// Depth 3 -> 1 is what makes root PVS safe. Depth 2 also passes the mate tests
+// but costs more nodes than the baseline, so it is not a middle ground.
+pub const RAZOR_MAX_DEPTH: u8 = 1;
 pub const RAZOR_MARGINS: [Score; 4] = [0, 240, 400, 620];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
