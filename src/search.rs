@@ -431,22 +431,65 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, window: Window) -> PathScore {
     let mut current_best: PathScore = (pv_single(legal_moves[0].0), window.0);
     let hash_mask = search_state.hash_table.mask();
+    let mut first_root_move = true;
 
     for mv in legal_moves {
         let unmake = make_move_nnue(position, mv.0, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
         search_state.history.push(position.zobrist_lock);
 
-        let mut path_score = search(
-            position,
-            search_state.iterative_depth - 1,
-            1,
-            (-window.1, -current_best.1),
-            search_state,
-            false,
-            0,
-            None,
-        );
+        // Principal-variation search at the root (NET-610). Before this, every
+        // root child got the full aspiration window, which made each of them a
+        // PV node - and since a PV node's first child also gets a full window,
+        // the whole principal variation was searched with `scouting == false`
+        // and therefore with razoring, null-move, probcut, multicut and the
+        // futility prunes all switched off. That is a very expensive way to
+        // protect the PV: it cost about 12% of the tree.
+        //
+        // Scouting the non-first root moves exposed a pre-existing unsoundness
+        // rather than creating one - see the razoring note in RAZOR_MAX_DEPTH.
+        let mut path_score = if first_root_move {
+            search(
+                position,
+                search_state.iterative_depth - 1,
+                1,
+                (-window.1, -current_best.1),
+                search_state,
+                false,
+                0,
+                None,
+            )
+        } else {
+            // Null window around the current best. Note the asymmetry: from
+            // the child's point of view this is a fail-LOW test. The child
+            // returns the negated score, so "this root move beats the current
+            // best" means the child scored at or below its own alpha.
+            let scout = search(
+                position,
+                search_state.iterative_depth - 1,
+                1,
+                (-current_best.1 - 1, -current_best.1),
+                search_state,
+                false,
+                0,
+                None,
+            );
+            if -scout.1 > current_best.1 {
+                search(
+                    position,
+                    search_state.iterative_depth - 1,
+                    1,
+                    (-window.1, -current_best.1),
+                    search_state,
+                    false,
+                    0,
+                    None,
+                )
+            } else {
+                scout
+            }
+        };
+        first_root_move = false;
         path_score.1 = -path_score.1;
 
         search_state.history.pop();
