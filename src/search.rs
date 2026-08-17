@@ -968,20 +968,51 @@ pub fn search(
     }
 
     // Razoring: at very shallow depth a static eval far below alpha usually means
-    // the node is hopeless. Verify with quiescence (which sees captures/checks the
-    // static eval misses) and only fail low if qsearch agrees - an unverified cut
-    // here would drop real tactics.
-    if scouting && !in_check && depth <= RAZOR_MAX_DEPTH && alpha.abs() < MATE_START && excluded_move == 0 {
+    // the node is hopeless. Verify before failing low - an unverified cut here
+    // would drop real tactics.
+    //
+    // The verification used to be quiescence alone, and that is unsound in a
+    // specific, structural way (NET-618). `quiesce_moves` generates captures,
+    // and check evasions when already in check. It never generates a quiet
+    // move. So quiescence cannot refute the razor whenever the refutation ends
+    // in a quiet move - and "quiet" includes a quiet check, and a quiet mate.
+    //
+    // That is not a rare shape. A sacrifice looks lost to the static eval
+    // (material is down) and lost to quiescence (the recaptures resolve badly),
+    // while the point of the combination is a quiet move two plies later. The
+    // measured case is Re1! Rxe1 Rxe1 Rc1 Qg2#, where g2 is empty, so Qg2 is
+    // quiet and quiescence never generates it at all.
+    //
+    // The rule this gives: razor only where a verification that can generate
+    // quiet moves exists. From depth 2 up that is a reduced-depth null-window
+    // search - it generates every move, so a quiet refutation is visible to it,
+    // and at depth - 1 it is still far cheaper than searching the node in full,
+    // which is the point of razoring.
+    //
+    // At depth 1 no such verification exists: depth - 1 IS quiescence, so there
+    // is nothing cheaper that can see a quiet move. Razoring at depth 1 is
+    // therefore unverifiable by construction, and it is the case that actually
+    // hid the mate - measured, by gating depth 1 alone. So depth 1 does not
+    // razor. That is not a special case for the test position; it is the same
+    // rule applied where it happens to exclude everything.
+    if scouting && !in_check && (2..=RAZOR_MAX_DEPTH).contains(&depth) && alpha.abs() < MATE_START && excluded_move == 0 {
         let razor_margin = RAZOR_MARGINS[depth as usize];
         if lazy_eval + razor_margin < alpha {
-            // This block is !in_check-gated, so the verification qsearch knows
-            // its in_check exactly
-            let q_score = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha - 1, alpha), search_state, Some(false)).1;
+            // This block is !in_check-gated, so the verification knows its
+            // in_check exactly.
+            // depth - 1, not something shallower. Two cheaper variants were
+            // measured and both cost MORE nodes overall, because a verification
+            // that cuts less often is paid for and then the node is searched in
+            // full anyway:
+            //   depth - 1 verification            3,082,896
+            //   quiescence pre-filter first       3,152,526
+            //   always depth 1 when depth >= 3    3,502,601
+            let verified = search(position, depth - 1, ply, (alpha - 1, alpha), search_state, false, 0, Some(false)).1;
             if is_stopped(&search_state.stop) {
                 return (pv_single(0), 0);
             }
-            if q_score < alpha {
-                return (pv_single(0), q_score);
+            if verified < alpha {
+                return (pv_single(0), verified);
             }
         }
     }

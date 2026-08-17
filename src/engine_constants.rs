@@ -93,7 +93,7 @@ pub const LMP_MOVE_THRESHOLDS: [u8; 9] = [0, 9, 6, 9, 19, 28, 39, 52, 67]; // 1-
 //
 // Depth 3 -> 1 is what makes root PVS safe. Depth 2 also passes the mate tests
 // but costs more nodes than the baseline, so it is not a middle ground.
-pub const RAZOR_MAX_DEPTH: u8 = 1;
+pub const RAZOR_MAX_DEPTH: u8 = 3;
 pub const RAZOR_MARGINS: [Score; 4] = [0, 240, 400, 620];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
