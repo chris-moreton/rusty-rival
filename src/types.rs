@@ -467,7 +467,11 @@ pub struct SearchState {
     // need more than one try; these say *which* heuristic is failing to put the
     // right move first, which is the difference between a TT replacement
     // problem and a history-ranking one.
-    // kind:  0=TT  1=capture  2=killer  3=countermove  4=other quiet
+    // kind:  0=TT  1=capture  2=promotion  3=killer  4=distant killer
+    //        5=countermove  6=other quiet
+    // Mirrors the precedence in move_scores.rs::score_move, so the count says
+    // which heuristic got the move searched first rather than merely which
+    // descriptions it happens to match.
     pub cutoff_by_kind: [u64; 7],
     // index: 0=move 1  1=move 2  2=move 3  3=moves 4-6  4=move 7+
     pub cutoff_by_index: [u64; 5],
