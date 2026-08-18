@@ -576,17 +576,26 @@ impl SearchState {
     ///
     /// The four `Box`ed tables are swapped rather than copied: they are the
     /// large ones (~1.45MB together) and swapping moves a pointer instead of
-    /// memcpying on every `go`. The remaining tables are small inline arrays
-    /// and are copied.
+    /// memcpying on every `go`. `countermoves` and `capture_history` are small
+    /// inline arrays and are copied.
+    ///
+    /// What actually persists, therefore: history_moves, countermove_history,
+    /// followup_history, capture_history, countermoves and correction_history.
+    /// NOT killers - see the note in the body.
     pub fn absorb_learned_tables(&mut self, from: &mut SearchState) {
         std::mem::swap(&mut self.history_moves, &mut from.history_moves);
         std::mem::swap(&mut self.countermove_history, &mut from.countermove_history);
         std::mem::swap(&mut self.followup_history, &mut from.followup_history);
         std::mem::swap(&mut self.correction_history, &mut from.correction_history);
-        self.killer_moves = from.killer_moves;
-        self.mate_killer = from.mate_killer;
         self.countermoves = from.countermoves;
         self.capture_history = from.capture_history;
+        // killer_moves and mate_killer are deliberately NOT merged. Absorbing
+        // them would be dead work: iterative_deepening calls clear_killers
+        // unconditionally at the start of every search (search.rs), so anything
+        // written here is wiped before the next search can read it. Whether
+        // killers SHOULD persist is a separate behavioural experiment - it
+        // means removing that per-search reset, which changes play and needs
+        // its own match.
     }
 }
 

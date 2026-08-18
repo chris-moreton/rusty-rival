@@ -19,7 +19,15 @@ fn correction_ptr(s: &SearchState) -> *const u8 {
 }
 
 /// Drive a full go/join cycle. `joiner` is the command that forces the join.
-fn go_then(joiner: &str, threads: usize) -> (SearchState, *const u8, *const u8) {
+///
+/// Returns the state plus the history/correction pointers from BEFORE and
+/// AFTER the joiner. The "after" snapshot is taken immediately, because a
+/// joiner of `go depth 1` both joins the first search and starts a second one:
+/// that replacement handle is then stopped and joined here rather than dropped.
+/// Dropping a JoinHandle detaches the thread, and a detached search keeps
+/// running into unrelated tests and prints `bestmove` to stdout while they run
+/// - the same lifecycle omission this ticket exists to fix.
+fn go_then(joiner: &str, threads: usize) -> (SearchState, *const u8, *const u8, *const u8, *const u8) {
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
     let mut handle: Option<SearchHandle> = None;
@@ -44,36 +52,43 @@ fn go_then(joiner: &str, threads: usize) -> (SearchState, *const u8, *const u8) 
         assert!(h.handles[0].is_finished(), "thread 0 did not finish `go depth 6` within 30s");
     }
     run_command(&mut uci_state, &mut search_state, &mut handle, joiner);
+    let after_hist = history_ptr(&search_state);
+    let after_corr = correction_ptr(&search_state);
 
-    (search_state, before_hist, before_corr)
+    // Never leave a search detached. Absorb into a scratch state so the
+    // returned state still reflects only the joiner's effect.
+    if let Some(h) = handle.take() {
+        let mut scratch = default_search_state();
+        h.stop_and_wait(&mut scratch);
+    }
+
+    (search_state, before_hist, before_corr, after_hist, after_corr)
 }
 
 #[test]
 fn a_new_go_absorbs_the_previous_searchs_tables() {
     // The ordinary path: one move's learning reaches the next move.
-    let (state, before_hist, before_corr) = go_then("go depth 1", 1);
+    let (_state, before_hist, before_corr, after_hist, after_corr) = go_then("go depth 1", 1);
     assert_ne!(
-        history_ptr(&state),
-        before_hist,
+        after_hist, before_hist,
         "master still owns its original history_moves allocation - thread state was discarded"
     );
-    assert_ne!(correction_ptr(&state), before_corr, "correction_history was not absorbed");
+    assert_ne!(after_corr, before_corr, "correction_history was not absorbed");
 }
 
 #[test]
 fn stop_absorbs_the_tables() {
     // A stopped search has still learned; discarding here loses a move of history.
-    let (state, before_hist, _) = go_then("stop", 1);
-    assert_ne!(history_ptr(&state), before_hist, "stop discarded thread 0's learned tables");
+    let (_state, before_hist, _, after_hist, _) = go_then("stop", 1);
+    assert_ne!(after_hist, before_hist, "stop discarded thread 0's learned tables");
 }
 
 #[test]
 fn absorbing_happens_at_every_thread_count() {
     for threads in [1usize, 2, 8] {
-        let (state, before_hist, _) = go_then("stop", threads);
+        let (_state, before_hist, _, after_hist, _) = go_then("stop", threads);
         assert_ne!(
-            history_ptr(&state),
-            before_hist,
+            after_hist, before_hist,
             "no absorb at Threads={threads} - only thread 0 should merge, but it must always merge"
         );
     }
@@ -83,8 +98,8 @@ fn absorbing_happens_at_every_thread_count() {
 fn ucinewgame_merges_then_clears() {
     // Merge-then-clear, in that order: the join absorbs, then the reset wipes.
     // A new game must not inherit the previous game's move ordering.
-    let (state, before_hist, _) = go_then("ucinewgame", 1);
-    assert_ne!(history_ptr(&state), before_hist, "ucinewgame joined without absorbing");
+    let (state, before_hist, _, after_hist, _) = go_then("ucinewgame", 1);
+    assert_ne!(after_hist, before_hist, "ucinewgame joined without absorbing");
 
     assert!(
         state.history_moves.iter().flatten().flatten().all(|h| *h == 0),
@@ -96,9 +111,10 @@ fn ucinewgame_merges_then_clears() {
     );
     assert!(
         state.killer_moves.iter().flatten().all(|m| *m == 0),
-        "killer_moves not cleared by ucinewgame - a new game would inherit ordering"
+        "killer_moves not cleared by ucinewgame (redundant with the per-search clear, but the boundary should state the full set)"
     );
     assert!(state.mate_killer.iter().all(|m| *m == 0), "mate_killer not cleared by ucinewgame");
+    // countermoves is the one here that genuinely could have carried.
     assert!(
         state.countermoves.iter().flatten().all(|m| *m == 0),
         "countermoves not cleared by ucinewgame - a new game would inherit ordering"
@@ -110,7 +126,7 @@ fn learning_is_actually_present_after_a_search() {
     // Weaker than the pointer tests on ownership, but it is the thing we
     // ultimately care about: the absorbed tables carry real content, not an
     // empty allocation swapped in.
-    let (state, _, _) = go_then("stop", 1);
+    let (state, _, _, _, _) = go_then("stop", 1);
     let nonzero = state.history_moves.iter().flatten().flatten().filter(|h| **h != 0).count();
     assert!(
         nonzero > 0,
@@ -125,8 +141,10 @@ fn absorb_moves_learned_tables_and_leaves_the_rest_alone() {
     let mut other = default_search_state();
 
     other.history_moves[0][0][0] = 4242;
-    other.killer_moves[0][0] = 99;
     other.countermoves[0][0] = 77;
+    // Killers are deliberately not merged - anything written would be wiped by
+    // iterative_deepening's per-search clear_killers before it could be read.
+    other.killer_moves[0][0] = 99;
 
     // Fields that must NOT move.
     master.nodes = 12345;
@@ -137,7 +155,10 @@ fn absorb_moves_learned_tables_and_leaves_the_rest_alone() {
     master.absorb_learned_tables(&mut other);
 
     assert_eq!(master.history_moves[0][0][0], 4242, "learned history did not move");
-    assert_eq!(master.killer_moves[0][0], 99, "killers did not move");
+    assert_eq!(
+        master.killer_moves[0][0], 0,
+        "killers must NOT be merged - the per-search clear makes it dead work"
+    );
     assert_eq!(master.countermoves[0][0], 77, "countermoves did not move");
     assert_eq!(history_ptr(&master), other_hist, "history allocation was copied, not moved");
 

@@ -1055,10 +1055,14 @@ fn cmd_ucinewgame(
     //
     // NET-372 makes that persistence real, and so makes this reset load-bearing
     // for the first time. Before, the master's tables were never written, so
-    // clearing them was a no-op and it did not matter that killers, the mate
-    // killer and countermoves were not cleared here. Now they carry, and
-    // without this a new game would start with the previous game's move
-    // ordering.
+    // clearing them was a no-op. COUNTERMOVES now genuinely carry, and without
+    // this a new game would start with the previous game's countermoves.
+    //
+    // clear_killers is redundant rather than load-bearing: iterative_deepening
+    // already clears killers at the start of every search, so they cannot
+    // survive to a new game by any route. It is kept because this is the one
+    // place a reader looks for the game-boundary reset, and having the boundary
+    // state the full set is worth more than saving four lines.
     //
     // Only the UCI path clears these three. The sync path used by `bench`
     // deliberately still does not, so the deterministic bench signature is
