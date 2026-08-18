@@ -33,6 +33,15 @@ fn repl() -> Result<()> {
             }
         }
     }
+    // EOF or interrupt leaves the REPL by `break`, not through the `quit`
+    // command, so nothing had joined the search: dropping a JoinHandle detaches
+    // the thread rather than waiting for it. Nothing later could consume the
+    // learning here, but the point of taking the master in stop_and_wait is
+    // that a join site cannot be forgotten - so this one is not either
+    // (NET-372 review).
+    if let Some(handle) = search_handle.take() {
+        handle.stop_and_wait(&mut search_state);
+    }
     Ok(())
 }
 

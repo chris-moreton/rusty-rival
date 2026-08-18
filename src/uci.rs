@@ -725,9 +725,14 @@ fn cmd_go(
                         }
                     }
                 } else {
-                    // Helper threads never write back - only thread 0's tables
-                    // are merged, so the result is deterministic in the number
-                    // of threads.
+                    // Helper threads never write back. That gives ONE
+                    // authoritative writer and stops helper histories being
+                    // mixed together - it does NOT make the merged result
+                    // independent of the thread count. Helpers share and mutate
+                    // the TT while thread 0 searches, so thread 0's tree, and
+                    // therefore its learned tables, still depend on how many
+                    // helpers there are, how they are scheduled, and how
+                    // quickly they observe the stop flag.
                     None
                 }
             })

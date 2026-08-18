@@ -30,11 +30,19 @@ fn go_then(joiner: &str, threads: usize) -> (SearchState, *const u8, *const u8) 
     let before_corr = correction_ptr(&search_state);
 
     run_command(&mut uci_state, &mut search_state, &mut handle, "go depth 6");
-    // Let the search actually finish before forcing the join. Without this the
-    // joiner races the spawn and stops thread 0 before it has learned
-    // anything, which makes the "learning is present" assertion flaky for a
-    // reason that has nothing to do with the write-back being correct.
-    std::thread::sleep(std::time::Duration::from_millis(300));
+    // Wait for thread 0 to actually finish before forcing the join. A fixed
+    // sleep would race on a loaded machine: the joiner would stop thread 0
+    // before it had learned anything, and learning_is_actually_present_after_a
+    // _search would fail for a reason unrelated to the write-back. Poll the
+    // real handle instead, with a generous ceiling so a hang fails the test
+    // rather than hanging the suite.
+    if let Some(ref h) = handle {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+        while !h.handles[0].is_finished() && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+        assert!(h.handles[0].is_finished(), "thread 0 did not finish `go depth 6` within 30s");
+    }
     run_command(&mut uci_state, &mut search_state, &mut handle, joiner);
 
     (search_state, before_hist, before_corr)
