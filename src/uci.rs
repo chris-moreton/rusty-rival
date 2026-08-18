@@ -19,7 +19,7 @@ use crate::moves::{generate_moves, is_check};
 
 use crate::datagen::cmd_datagen;
 use crate::perft::perft;
-use crate::search::{clear_history_table, iterative_deepening};
+use crate::search::{clear_countermoves, clear_history_table, clear_killers, iterative_deepening};
 use crate::types::{set_stop, Move, Position, SearchHandle, SearchState, SharedHashTable, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
@@ -269,16 +269,18 @@ pub fn run_command(
         "isready" => cmd_isready(),
         "state" => cmd_state(uci_state, search_state),
         "go" => cmd_go(uci_state, search_state, search_handle, parts),
-        "stop" => cmd_stop(search_handle),
+        "stop" => cmd_stop(search_state, search_handle),
         "ponderhit" => cmd_ponderhit(search_handle),
         "setoption" => cmd_setoption(parts, search_state, uci_state),
         "register" => cmd_register(),
         "ucinewgame" => cmd_ucinewgame(uci_state, search_state, search_handle),
         "debug" => cmd_debug(uci_state, parts),
         "quit" => {
-            // Stop any running search before quitting
+            // Stop any running search before quitting. Absorb anyway: it costs
+            // nothing here and keeps the "no join without write-back" rule
+            // uniform across every site.
             if let Some(handle) = search_handle.take() {
-                handle.stop_and_wait();
+                handle.stop_and_wait(search_state);
             }
             exit(0)
         }
@@ -480,9 +482,11 @@ fn cmd_go(
     search_handle: &mut Option<SearchHandle>,
     parts: Vec<&str>,
 ) -> Either<String, Option<String>> {
-    // If there's already a search running, wait for it first
+    // If there's already a search running, wait for it first, and take its
+    // learned tables with us - this is the ordinary path by which one move's
+    // learning reaches the next (NET-372).
     if let Some(handle) = search_handle.take() {
-        handle.stop_and_wait();
+        handle.stop_and_wait(search_state);
     }
 
     // Bare `go` behaves as `go infinite`.
@@ -696,7 +700,7 @@ fn cmd_go(
 
         let handle = thread::Builder::new()
             .stack_size(16 * 1024 * 1024)
-            .spawn(move || {
+            .spawn(move || -> Option<Box<SearchState>> {
                 // Catch a panic in the search so thread 0 still emits a bestmove
                 // (a silent search thread = time forfeit for the whole game).
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -705,9 +709,31 @@ fn cmd_go(
                 }));
                 if thread_id == 0 {
                     match result {
-                        Ok((mv, ref ss)) => println!("{}", format_bestmove(mv, ss)),
-                        Err(_) => println!("bestmove {}", thread_fallback),
+                        Ok((mv, ss)) => {
+                            println!("{}", format_bestmove(mv, &ss));
+                            // Hand thread 0's learned tables back so the join
+                            // site can move them into the master (NET-372).
+                            // Boxed: SearchState is large and this must not be
+                            // returned on the stack.
+                            Some(Box::new(ss))
+                        }
+                        Err(_) => {
+                            println!("bestmove {}", thread_fallback);
+                            // Panicked: contribute nothing rather than risk
+                            // handing back half-updated tables.
+                            None
+                        }
                     }
+                } else {
+                    // Helper threads never write back. That gives ONE
+                    // authoritative writer and stops helper histories being
+                    // mixed together - it does NOT make the merged result
+                    // independent of the thread count. Helpers share and mutate
+                    // the TT while thread 0 searches, so thread 0's tree, and
+                    // therefore its learned tables, still depend on how many
+                    // helpers there are, how they are scheduled, and how
+                    // quickly they observe the stop flag.
+                    None
                 }
             })
             .expect("Failed to spawn search thread");
@@ -772,9 +798,12 @@ fn parse_searchmoves(line: &str, position: &Position) -> Option<Vec<Move>> {
     }
 }
 
-fn cmd_stop(search_handle: &mut Option<SearchHandle>) -> Either<String, Option<String>> {
+fn cmd_stop(search_state: &mut SearchState, search_handle: &mut Option<SearchHandle>) -> Either<String, Option<String>> {
+    // Takes the master state because a stopped search has still learned
+    // something, and discarding it here would silently lose a move's worth of
+    // history every time the GUI stops us early.
     if let Some(handle) = search_handle.take() {
-        handle.stop_and_wait();
+        handle.stop_and_wait(search_state);
     }
     Right(None)
 }
@@ -976,9 +1005,11 @@ fn cmd_ucinewgame(
     search_state: &mut SearchState,
     search_handle: &mut Option<SearchHandle>,
 ) -> Either<String, Option<String>> {
-    // Stop any running search first
+    // Stop any running search first. It still absorbs, so the merge-then-clear
+    // order is explicit rather than accidental: the tables are moved into the
+    // master and then wiped below, which is what a new game requires.
     if let Some(handle) = search_handle.take() {
-        handle.stop_and_wait();
+        handle.stop_and_wait(search_state);
     }
 
     search_state.nodes = 0;
@@ -1020,8 +1051,25 @@ fn cmd_ucinewgame(
     search_state.pv.clear();
     search_state.hash_table.clear();
     // History tables persist across searches within a game - a new game needs
-    // a full reset, not the usual decay
+    // a full reset, not the usual decay.
+    //
+    // NET-372 makes that persistence real, and so makes this reset load-bearing
+    // for the first time. Before, the master's tables were never written, so
+    // clearing them was a no-op. COUNTERMOVES now genuinely carry, and without
+    // this a new game would start with the previous game's countermoves.
+    //
+    // clear_killers is redundant rather than load-bearing: iterative_deepening
+    // already clears killers at the start of every search, so they cannot
+    // survive to a new game by any route. It is kept because this is the one
+    // place a reader looks for the game-boundary reset, and having the boundary
+    // state the full set is worth more than saving four lines.
+    //
+    // Only the UCI path clears these three. The sync path used by `bench`
+    // deliberately still does not, so the deterministic bench signature is
+    // unaffected - `bench` clears countermoves itself, per position.
     clear_history_table(search_state);
+    clear_killers(search_state);
+    clear_countermoves(search_state);
     uci_state.fen = START_POS.parse().unwrap();
     Right(None)
 }

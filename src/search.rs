@@ -577,11 +577,24 @@ pub fn clear_history_table(search_state: &mut SearchState) {
 /// cleared per search, but a countermove learned in the first game is still
 /// steering move ordering in the fiftieth.
 ///
-/// That is deliberately *not* done by `clear_history_table`, so `ucinewgame`
-/// keeps the warm table: clearing it costs 12% more nodes on `bench`, which
-/// runs sixteen unrelated positions and so pays the cold-table price fifteen
-/// times over. Whether a real match would rather have the clean table is an
-/// open question (NET-396) and needs a match to answer, not a node count.
+/// `clear_history_table` still does not touch it, but the policy above changed
+/// with NET-372. Now that thread 0's tables are actually written back to the
+/// master, `cmd_ucinewgame` calls this explicitly, so countermoves persist
+/// within a game and are cleared between games.
+///
+/// That is deliberate: NET-372 introduces the persistence, and letting it also
+/// leak across games would mean the strength match measures within-game
+/// carry-over and uncontrolled, order-dependent cross-game state at the same
+/// time. Bounding it to one game keeps the match answering one question.
+///
+/// The sync path used by `bench` deliberately does NOT call this from
+/// `ucinewgame` - `bench` clears countermoves itself, per position - so the
+/// deterministic signature is unaffected. Clearing costs about 12% more nodes
+/// on `bench`, which runs sixteen unrelated positions and so pays the
+/// cold-table price fifteen times over.
+///
+/// Whether a real match would rather keep the warm table ACROSS games is still
+/// open (NET-396); that ticket can test removing this reset, separately.
 ///
 /// Self-play datagen calls this per game regardless, because there the warmth
 /// is a liability: it makes a game's labels depend on which *other* games that

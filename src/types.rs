@@ -419,15 +419,32 @@ pub struct SearchHandle {
     pub pondering: Arc<AtomicBool>,
     pub ponder_soft_ms: Arc<AtomicU64>,
     pub ponder_hard_ms: Arc<AtomicU64>,
-    pub handles: Vec<JoinHandle<()>>,
+    pub handles: Vec<JoinHandle<Option<Box<SearchState>>>>,
 }
 
 impl SearchHandle {
     /// Signal the search to stop and wait for all threads to finish
-    pub fn stop_and_wait(self) {
+    /// Stop the search, join every thread, and move thread 0's learned tables
+    /// into the master state (NET-372).
+    ///
+    /// The master is a required argument rather than an optional follow-up
+    /// step: before this, joining discarded the thread's state entirely, so
+    /// every `go` began from cold history and the cross-move carry-over the
+    /// persistent-SearchState design intends never happened at any thread
+    /// count. Taking `master` here means a join site cannot forget the
+    /// write-back, because there is no way to join without one.
+    pub fn stop_and_wait(self, master: &mut SearchState) {
         set_stop(&self.stop, true);
         for handle in self.handles {
-            let _ = handle.join();
+            match handle.join() {
+                // Only thread 0 returns Some, so at most one absorb happens.
+                Ok(Some(mut learned)) => master.absorb_learned_tables(&mut learned),
+                // Helper thread, or thread 0 panicked and took the fallback
+                // path: it contributes nothing and the master keeps what it
+                // had. A panicking search must not corrupt learned state.
+                Ok(None) => {}
+                Err(_) => {}
+            }
         }
     }
 }
@@ -542,6 +559,44 @@ pub struct SearchState {
     pub nnue_pieces: Vec<[Pieces; 2]>,
     pub nnue_computed: Vec<bool>,
     pub nnue_ply: usize,
+}
+
+impl SearchState {
+    /// Move thread 0's learned move-ordering and correction tables into this
+    /// (master) state, so the next `go` starts from what the last search
+    /// learned instead of from zero (NET-372).
+    ///
+    /// ONLY learned tables move. Deliberately untouched:
+    ///   - `hash_table`, `stop`, `shared_nodes`, `pondering` - Arc-shared or
+    ///     per-search ownership; replacing them would detach the master from
+    ///     the live search or clobber a fresh flag with a stale one
+    ///   - node/cutoff/TT counters - per-search statistics, not learning
+    ///   - `pv`, `root_moves`, `current_best` - results of one search
+    ///   - clocks and time-management fields - per-search budget
+    ///
+    /// The four `Box`ed tables are swapped rather than copied: they are the
+    /// large ones (~1.45MB together) and swapping moves a pointer instead of
+    /// memcpying on every `go`. `countermoves` and `capture_history` are small
+    /// inline arrays and are copied.
+    ///
+    /// What actually persists, therefore: history_moves, countermove_history,
+    /// followup_history, capture_history, countermoves and correction_history.
+    /// NOT killers - see the note in the body.
+    pub fn absorb_learned_tables(&mut self, from: &mut SearchState) {
+        std::mem::swap(&mut self.history_moves, &mut from.history_moves);
+        std::mem::swap(&mut self.countermove_history, &mut from.countermove_history);
+        std::mem::swap(&mut self.followup_history, &mut from.followup_history);
+        std::mem::swap(&mut self.correction_history, &mut from.correction_history);
+        self.countermoves = from.countermoves;
+        self.capture_history = from.capture_history;
+        // killer_moves and mate_killer are deliberately NOT merged. Absorbing
+        // them would be dead work: iterative_deepening calls clear_killers
+        // unconditionally at the start of every search (search.rs), so anything
+        // written here is wiped before the next search can read it. Whether
+        // killers SHOULD persist is a separate behavioural experiment - it
+        // means removing that per-search reset, which changes play and needs
+        // its own match.
+    }
 }
 
 impl Clone for SearchState {
