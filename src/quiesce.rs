@@ -12,8 +12,8 @@ use crate::moves::{
 use crate::search::MATE_SCORE;
 use crate::see::{captured_piece_value_see, make_see_move, see};
 use crate::types::{
-    is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
-    Window, BLACK, WHITE,
+    is_stopped, set_stop, Bitboard, Move, MoveList, MoveScore, MoveScoreArray, Pieces, Position, Score, SearchState, Square, Window, BLACK,
+    WHITE,
 };
 use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
@@ -147,15 +147,15 @@ pub fn quiesce(
     // Whether the side to move is in check, when the caller already knows it
     // (NET-355) - e.g. search's depth==0 forward or the !in_check razor path
     known_in_check: Option<bool>,
-) -> PathScore {
+) -> MoveScore {
     // Check stop flag at TOP before any moves are made - safe to return here
     if is_stopped(&search_state.stop) {
-        return (pv_single(0), 0);
+        return (0, 0);
     }
 
     check_time!(search_state);
     if is_stopped(&search_state.stop) {
-        return (pv_single(0), 0);
+        return (0, 0);
     }
     search_state.nodes += 1;
 
@@ -181,7 +181,7 @@ pub fn quiesce(
     // Depth cap terminates evasion chains; otherwise stand-pat is only a
     // valid bound when not in check
     if depth == 0 || (!in_check && eval >= window.1) {
-        return (pv_single(0), eval);
+        return (0, eval);
     }
 
     let mut alpha = if in_check { window.0 } else { window.0.max(eval) };
@@ -196,11 +196,7 @@ pub fn quiesce(
 
     if ms.is_empty() {
         // No pseudo-legal evasions while in check = mated at the horizon
-        return if in_check {
-            (pv_single(0), -MATE_SCORE + ply as Score)
-        } else {
-            (pv_single(0), eval)
-        };
+        return if in_check { (0, -MATE_SCORE + ply as Score) } else { (0, eval) };
     }
 
     let mut move_scores: MoveScoreArray = MoveScoreArray::new();
@@ -263,7 +259,7 @@ pub fn quiesce(
             }
 
             if score >= window.1 {
-                return (pv_single(m), window.1);
+                return (m, window.1);
             }
             if score > alpha {
                 alpha = score;
@@ -276,8 +272,8 @@ pub fn quiesce(
 
     // All evasions were illegal (pins) - the check is mate
     if in_check && legal_move_count == 0 {
-        return (pv_single(0), -MATE_SCORE + ply as Score);
+        return (0, -MATE_SCORE + ply as Score);
     }
 
-    (pv_single(best_move), alpha)
+    (best_move, alpha)
 }

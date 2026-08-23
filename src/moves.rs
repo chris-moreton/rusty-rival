@@ -83,13 +83,14 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
             return bit(from_square) & friendly.knight_bitboard != 0 && bit(to_square_part(m)) & landing_squares != 0;
         }
         _ => {
-            generate_pawn_moves(
-                position,
-                &mut move_list,
-                !all_pieces,
-                position.mover as usize,
-                friendly.pawn_bitboard,
-            );
+            // A TT move names one source square, so validate only that pawn.
+            // Generating moves for every friendly pawn here made each pawn hash
+            // move probe pay for up to eight unrelated pawns (NET-360).
+            let from_pawn = friendly.pawn_bitboard & bit(from_square_part(m));
+            if from_pawn == 0 {
+                return false;
+            }
+            generate_pawn_moves(position, &mut move_list, !all_pieces, position.mover as usize, from_pawn);
         }
     }
 

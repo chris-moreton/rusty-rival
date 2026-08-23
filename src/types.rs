@@ -457,6 +457,28 @@ pub struct SearchState {
     pub hash_hits_exact: u64,
     pub pv: HashMap<Move, PathScore>,
     pub hash_clashes: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_root_nodes: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_root_children: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_pv_nodes: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_pv_children: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_cut_nodes: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_cut_children: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_all_nodes: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_all_children: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_lmr_scouts: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_lmr_researches: u64,
+    #[cfg(feature = "search-stats")]
+    pub stats_lmr_full_researches: u64,
     pub history: PositionHistory,
     pub multi_pv: u8,
     pub contempt: Score,
@@ -517,6 +539,28 @@ impl Clone for SearchState {
             hash_hits_exact: self.hash_hits_exact,
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
+            #[cfg(feature = "search-stats")]
+            stats_root_nodes: self.stats_root_nodes,
+            #[cfg(feature = "search-stats")]
+            stats_root_children: self.stats_root_children,
+            #[cfg(feature = "search-stats")]
+            stats_pv_nodes: self.stats_pv_nodes,
+            #[cfg(feature = "search-stats")]
+            stats_pv_children: self.stats_pv_children,
+            #[cfg(feature = "search-stats")]
+            stats_cut_nodes: self.stats_cut_nodes,
+            #[cfg(feature = "search-stats")]
+            stats_cut_children: self.stats_cut_children,
+            #[cfg(feature = "search-stats")]
+            stats_all_nodes: self.stats_all_nodes,
+            #[cfg(feature = "search-stats")]
+            stats_all_children: self.stats_all_children,
+            #[cfg(feature = "search-stats")]
+            stats_lmr_scouts: self.stats_lmr_scouts,
+            #[cfg(feature = "search-stats")]
+            stats_lmr_researches: self.stats_lmr_researches,
+            #[cfg(feature = "search-stats")]
+            stats_lmr_full_researches: self.stats_lmr_full_researches,
             history: self.history.clone(),
             multi_pv: self.multi_pv,
             contempt: self.contempt,
@@ -573,6 +617,28 @@ pub fn default_search_state() -> SearchState {
         hash_hits_exact: 0,
         pv: HashMap::new(),
         hash_clashes: 0,
+        #[cfg(feature = "search-stats")]
+        stats_root_nodes: 0,
+        #[cfg(feature = "search-stats")]
+        stats_root_children: 0,
+        #[cfg(feature = "search-stats")]
+        stats_pv_nodes: 0,
+        #[cfg(feature = "search-stats")]
+        stats_pv_children: 0,
+        #[cfg(feature = "search-stats")]
+        stats_cut_nodes: 0,
+        #[cfg(feature = "search-stats")]
+        stats_cut_children: 0,
+        #[cfg(feature = "search-stats")]
+        stats_all_nodes: 0,
+        #[cfg(feature = "search-stats")]
+        stats_all_children: 0,
+        #[cfg(feature = "search-stats")]
+        stats_lmr_scouts: 0,
+        #[cfg(feature = "search-stats")]
+        stats_lmr_researches: 0,
+        #[cfg(feature = "search-stats")]
+        stats_lmr_full_researches: 0,
         history: vec![],
         multi_pv: 1,
         contempt: 0,

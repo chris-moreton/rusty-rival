@@ -155,6 +155,34 @@ pub const LMR_HISTORY_BAD_THRESHOLD: i32 = -2178;
 pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8237; // SPSA tuned, Run 20
 pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -9943; // SPSA tuned, Run 20
 
+// LMR schedule shape, in thousandths. These can be overridden at compile time
+// for deterministic sweeps, for example:
+// RIVAL_LMR_BASE_X1000=900 RIVAL_LMR_DIVISOR_X1000=2300 cargo build --release
+const fn parse_build_u32(value: Option<&str>, default: u32) -> u32 {
+    let Some(value) = value else {
+        return default;
+    };
+    let bytes = value.as_bytes();
+    let mut parsed = 0u32;
+    let mut i = 0;
+    while i < bytes.len() {
+        let digit = bytes[i];
+        if digit < b'0' || digit > b'9' {
+            return default;
+        }
+        parsed = parsed * 10 + (digit - b'0') as u32;
+        i += 1;
+    }
+    if parsed == 0 {
+        default
+    } else {
+        parsed
+    }
+}
+
+pub const LMR_BASE_X1000: u32 = parse_build_u32(option_env!("RIVAL_LMR_BASE_X1000"), 750);
+pub const LMR_DIVISOR_X1000: u32 = parse_build_u32(option_env!("RIVAL_LMR_DIVISOR_X1000"), 2500);
+
 // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
 // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
 // Used by both LMR table and mobility table generation.
@@ -165,7 +193,7 @@ const LN_TABLE: [u32; 64] = [
 ];
 
 // LMR reduction table: indexed by [depth][move_count]
-// Formula: floor(0.75 + ln(depth) * ln(move_count) / 2.5)
+// Formula: floor(base + ln(depth) * ln(move_count) / divisor)
 // More conservative than Stockfish's formula to avoid over-pruning
 // Precomputed for depths 0-63 and move counts 0-63
 pub const LMR_TABLE: [[u8; 64]; 64] = generate_lmr_table();
@@ -177,11 +205,10 @@ const fn generate_lmr_table() -> [[u8; 64]; 64] {
         let mut move_count = 0usize;
         while move_count < 64 {
             if depth >= 3 && move_count >= 4 {
-                // reduction = 0.75 + ln(depth) * ln(move_count) / 2.5
-                // Using integer math: (750 + ln_d * ln_m / 2500) / 1000
+                // Using integer math with ln values scaled by 1000.
                 let ln_d = LN_TABLE[depth];
                 let ln_m = LN_TABLE[move_count];
-                let reduction = (750 + (ln_d * ln_m) / 2500) / 1000;
+                let reduction = (LMR_BASE_X1000 + (ln_d * ln_m) / LMR_DIVISOR_X1000) / 1000;
                 table[depth][move_count] = reduction as u8;
             }
             move_count += 1;

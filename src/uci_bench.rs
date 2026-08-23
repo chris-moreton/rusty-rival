@@ -50,6 +50,8 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
 
     let start = Instant::now();
     let mut total_nodes: u64 = 0;
+    #[cfg(feature = "search-stats")]
+    let mut totals = [0u64; 11];
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
         // ucinewgame clears the TT + history so each position starts from a
@@ -61,6 +63,25 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
 
         let nodes = search_state.nodes;
         total_nodes += nodes;
+        #[cfg(feature = "search-stats")]
+        {
+            let values = [
+                search_state.stats_root_nodes,
+                search_state.stats_root_children,
+                search_state.stats_pv_nodes,
+                search_state.stats_pv_children,
+                search_state.stats_cut_nodes,
+                search_state.stats_cut_children,
+                search_state.stats_all_nodes,
+                search_state.stats_all_children,
+                search_state.stats_lmr_scouts,
+                search_state.stats_lmr_researches,
+                search_state.stats_lmr_full_researches,
+            ];
+            for (total, value) in totals.iter_mut().zip(values) {
+                *total += value;
+            }
+        }
         println!(
             "Position {:>2}/{}: {:>12} nodes",
             i + 1,
@@ -78,6 +99,44 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     println!("Time          : {} ms", millis.to_formatted_string(&Locale::en));
     println!("Nodes searched: {}", total_nodes);
     println!("NPS           : {}", nps.to_formatted_string(&Locale::en));
+    #[cfg(feature = "search-stats")]
+    {
+        let average = |children: u64, nodes: u64| {
+            if nodes == 0 {
+                0.0
+            } else {
+                children as f64 / nodes as f64
+            }
+        };
+        println!(
+            "Root nodes    : {} · {} children · {:.2}/node",
+            totals[0],
+            totals[1],
+            average(totals[1], totals[0])
+        );
+        println!(
+            "PV/full nodes : {} · {} children · {:.2}/node",
+            totals[2],
+            totals[3],
+            average(totals[3], totals[2])
+        );
+        println!(
+            "Cut nodes     : {} · {} children · {:.2}/node",
+            totals[4],
+            totals[5],
+            average(totals[5], totals[4])
+        );
+        println!(
+            "All nodes     : {} · {} children · {:.2}/node",
+            totals[6],
+            totals[7],
+            average(totals[7], totals[6])
+        );
+        println!(
+            "LMR scouts    : {} · {} reduced re-searches · {} full re-searches",
+            totals[8], totals[9], totals[10]
+        );
+    }
 
     search_state.show_info = show_info;
     uci_state.fen = saved_fen;

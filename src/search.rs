@@ -184,6 +184,20 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     search_state.best_move_stability = 0;
     search_state.prev_best_move = 0;
     search_state.prev_score = 0;
+    #[cfg(feature = "search-stats")]
+    {
+        search_state.stats_root_nodes = 0;
+        search_state.stats_root_children = 0;
+        search_state.stats_pv_nodes = 0;
+        search_state.stats_pv_children = 0;
+        search_state.stats_cut_nodes = 0;
+        search_state.stats_cut_children = 0;
+        search_state.stats_all_nodes = 0;
+        search_state.stats_all_children = 0;
+        search_state.stats_lmr_scouts = 0;
+        search_state.stats_lmr_researches = 0;
+        search_state.stats_lmr_full_researches = 0;
+    }
 
     // Initialize NNUE accumulator from root position
     if search_state.use_nnue {
@@ -433,12 +447,18 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, window: Window) -> PathScore {
     let mut current_best: PathScore = (pv_single(legal_moves[0].0), window.0);
     let hash_mask = search_state.hash_table.mask();
+    #[cfg(feature = "search-stats")]
+    let mut searched_children = 0u64;
 
     for mv in legal_moves {
         let unmake = make_move_nnue(position, mv.0, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
         search_state.history.push(position.zobrist_lock);
 
+        #[cfg(feature = "search-stats")]
+        {
+            searched_children += 1;
+        }
         let mut path_score = search(
             position,
             search_state.iterative_depth - 1,
@@ -465,6 +485,11 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
         if time_expired!(search_state) {
             return current_best;
         }
+    }
+    #[cfg(feature = "search-stats")]
+    {
+        search_state.stats_root_nodes += 1;
+        search_state.stats_root_children += searched_children;
     }
     current_best
 }
@@ -765,13 +790,16 @@ pub fn search(
     let scouting = window.1 - window.0 == 1;
 
     if depth == 0 {
-        return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state, known_in_check);
+        let (best_move, score) = quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state, known_in_check);
+        return (pv_single(best_move), score);
     }
 
     search_state.nodes += 1;
 
     let mut alpha = window.0;
     let mut beta = window.1;
+    #[cfg(feature = "search-stats")]
+    let mut searched_children = 0u64;
 
     // Mate distance pruning: tighten bounds based on ply
     alpha = max(alpha, -MATE_SCORE + ply as Score);
@@ -1146,6 +1174,10 @@ pub fn search(
         if !is_check(position, old_mover) {
             legal_move_count += 1;
             let hash_search_depth = real_depth + singular_extension;
+            #[cfg(feature = "search-stats")]
+            {
+                searched_children += 1;
+            }
             let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, None);
             let score = path_score.1;
             let singular_depth = hash_search_depth;
@@ -1161,6 +1193,11 @@ pub fn search(
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
+                        #[cfg(feature = "search-stats")]
+                        if excluded_move == 0 {
+                            search_state.stats_cut_nodes += 1;
+                            search_state.stats_cut_children += searched_children;
+                        }
                         return cutoff_unmake(
                             position,
                             singular_depth,
@@ -1501,6 +1538,10 @@ pub fn search(
             // Apply extensions to search depth
             let search_depth = depth + move_extension;
 
+            #[cfg(feature = "search-stats")]
+            {
+                searched_children += 1;
+            }
             let path_score = if scout_search {
                 // Cap the reduction so the child depth (search_depth - 1 - lmr)
                 // cannot wrap below zero: stacked LMR adjustments (table + bad
@@ -1534,6 +1575,11 @@ pub fn search(
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
+                        #[cfg(feature = "search-stats")]
+                        if excluded_move == 0 {
+                            search_state.stats_cut_nodes += 1;
+                            search_state.stats_cut_children += searched_children;
+                        }
                         return cutoff_unmake(
                             position,
                             real_depth,
@@ -1645,6 +1691,17 @@ pub fn search(
         );
     }
 
+    #[cfg(feature = "search-stats")]
+    if excluded_move == 0 {
+        if scouting {
+            search_state.stats_all_nodes += 1;
+            search_state.stats_all_children += searched_children;
+        } else {
+            search_state.stats_pv_nodes += 1;
+            search_state.stats_pv_children += searched_children;
+        }
+    }
+
     best_pathscore
 }
 
@@ -1724,6 +1781,10 @@ fn lmr_scout_search(
 ) -> PathScore {
     let alpha = window.0;
     let beta = window.1;
+    #[cfg(feature = "search-stats")]
+    {
+        search_state.stats_lmr_scouts += 1;
+    }
     let mut scout_path = search_wrapper(
         real_depth,
         ply,
@@ -1736,10 +1797,20 @@ fn lmr_scout_search(
     );
 
     if scout_path.1 > alpha && lmr > 0 {
-        // We are in an LMR search and we Need to research with full window. but still with late move reduction
+        #[cfg(feature = "search-stats")]
+        {
+            search_state.stats_lmr_researches += 1;
+        }
+        // Re-search with the parent's window while keeping the reduction. This
+        // filters false-positive reduced scouts before full-depth verification;
+        // removing it grows the bench tree even when the two windows are both
+        // null windows, because the intervening TT state can change the result.
         scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr, 0, known_in_check);
         if scout_path.1 > alpha {
-            // Need to research with full window and no reduction
+            #[cfg(feature = "search-stats")]
+            {
+                search_state.stats_lmr_full_researches += 1;
+            }
             scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
         }
     } else if scout_path.1 > alpha && scout_path.1 < beta {
