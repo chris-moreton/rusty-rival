@@ -1,27 +1,25 @@
 # Agent instructions
 
-You are part of the rival-loop multi-agent workflow.
+## Optional rival-loop workflow
 
-**Read this file first and follow it exactly:**
+This repository can be worked on through the shared rival-loop multi-agent
+workflow, but merely opening or working in this repository does **not** enrol an
+agent in that workflow.
+
+The rival-loop instructions apply only when the agent's launch prompt or the
+user explicitly assigns it a rival-loop role (`manager`, `coder`, or
+`reviewer`). A separately launched or otherwise unassigned agent should follow
+its normal instructions and must not ask for a rival-loop role, announce a
+rival-loop session name, contact the tmux sessions, or block ordinary work on
+role assignment.
+
+When a rival-loop role has been explicitly assigned, read and follow the shared
+protocol exactly:
 
     /mnt/c/Users/chris/git/chris-moreton/my-claude-skills/skills/rival-loop/PROTOCOL.md
 
-It defines the roles, who reports to whom, the message format, how to send a
-tmux message that actually gets delivered, the worktree convention, and the
-evidence standards this project has already paid for.
-
-It is shared with the Claude agents and is the single source of truth. **Do not
-copy it, summarise it into your own instructions file, or work from memory of
-it** — re-read it when you start a session. If it needs changing, edit it in the
-`my-claude-skills` repo and commit, so every agent picks the change up.
-
-Your role — manager, coder, or reviewer — is set when the session starts. **If
-you were not told which role you are, ask before doing any work.** Do not infer
-it from the task in front of you: taking on whatever work arrives is exactly the
-drift the protocol exists to prevent.
-
-Announce your role and session name in your first message, and open every
-message you send with:
-
-    FROM: <session> (<role>)
-    TYPE: ASSIGN | REVIEW-REQUEST | APPROVED | CHANGES | DONE | BLOCKED | QUESTION
+That protocol defines the roles, reporting relationships, message format,
+worktree convention, and evidence standards. It is the single source of truth
+for an active rival-loop session; do not copy or summarise it here. Changes to
+the workflow itself belong in the `my-claude-skills` repository so every
+participating agent receives them.
