@@ -10,7 +10,7 @@ use crate::moves::{
     generate_check_evasions, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check,
 };
 use crate::search::MATE_SCORE;
-use crate::see::{captured_piece_value_see, make_see_move, see};
+use crate::see::{captured_piece_value_see, static_exchange_evaluation_with_value};
 use crate::types::{
     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
     Window, BLACK, WHITE,
@@ -233,13 +233,10 @@ pub fn quiesce(
 
             // SEE gate BEFORE the move is made (NET-352): a losing capture
             // must not pay make/unmake plus NNUE bookkeeping just to be
-            // discarded. Equivalent to the old post-make `see(...)` gate:
-            // see() reads only piece bitboards/king/mover/EP, on which a
-            // full make and make_see_move agree for the captures gated here.
+            // discarded. The compact SEE state reads the same
+            // piece-bitboard/king/mover/EP subset as the old copy here.
             // (Equal exchanges pass and are searched, as before.)
-            let mut see_position = *position;
-            make_see_move(m, &mut see_position);
-            if see(see_value, bit(to_square_part(m)), &see_position) < 0 {
+            if static_exchange_evaluation_with_value(position, m, see_value) < 0 {
                 continue;
             }
         }
