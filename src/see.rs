@@ -1,8 +1,7 @@
 use crate::bitboards::{bit, BISHOP_RAYS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, ROOK_RAYS};
 
 use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
-use crate::moves::is_check;
-use crate::types::{Bitboard, Move, MoveList, Position, Score, Square, BLACK, WHITE};
+use crate::types::{Bitboard, Move, MoveList, Mover, Pieces, Position, Score, Square, BLACK, WHITE};
 use crate::utils::{from_square_mask, from_square_part, to_square_part};
 use std::cmp::min;
 
@@ -14,23 +13,53 @@ use crate::move_constants::{
 };
 use crate::{get_and_unset_lsb, get_lsb, opponent};
 
-#[inline(always)]
-pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
-    let mut new_position = *position;
-    make_see_move(mv, &mut new_position);
-    see(captured_piece_value_see(position, mv), bit(to_square_part(mv)), &new_position)
+/// The exchange search only reads piece placement, side to move and en
+/// passant. Keeping the unrelated clocks, castling flags and Zobrist keys out
+/// of its recursive state reduces each by-value copy from the full Position to
+/// the exact data SEE consumes, without changing its legality-aware semantics.
+#[derive(Copy, Clone)]
+struct SeePosition {
+    pieces: [Pieces; 2],
+    mover: Mover,
+    en_passant_square: Square,
+}
+
+impl From<&Position> for SeePosition {
+    #[inline(always)]
+    fn from(position: &Position) -> Self {
+        Self {
+            pieces: position.pieces,
+            mover: position.mover,
+            en_passant_square: position.en_passant_square,
+        }
+    }
 }
 
 #[inline(always)]
-pub fn see(score: Score, capture_square: Bitboard, position: &Position) -> Score {
+pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
+    let score = captured_piece_value_see(position, mv);
+    static_exchange_evaluation_with_value(position, mv, score)
+}
+
+#[inline(always)]
+pub(crate) fn static_exchange_evaluation_with_value(position: &Position, mv: Move, score: Score) -> Score {
+    let mut new_position = SeePosition::from(position);
+    make_see_move(mv, &mut new_position);
+    see(score, bit(to_square_part(mv)), &mut new_position)
+}
+
+#[inline(always)]
+fn see(score: Score, capture_square: Bitboard, position: &mut SeePosition) -> Score {
     for m in see_moves(position, capture_square) {
-        let mut new_position = *position;
-        make_see_move(m, &mut new_position);
-        if !is_check(&new_position, position.mover) {
-            return min(
-                score,
-                score - see(captured_piece_value_see(position, m), capture_square, &new_position),
-            );
+        let captured = captured_piece_value_compact(position, m);
+        let mover = position.mover;
+        // see_moves deliberately returns at most one candidate. Both branches
+        // below immediately return from this exchange level (the illegal case
+        // falls through to `score`), so no caller can observe the mutated
+        // state and an undo/copy would be dead work.
+        make_see_move(m, position);
+        if !is_check_see(position, mover) {
+            return min(score, score - see(captured, capture_square, position));
         }
     }
 
@@ -38,7 +67,7 @@ pub fn see(score: Score, capture_square: Bitboard, position: &Position) -> Score
 }
 
 #[inline(always)]
-pub fn make_see_move(mv: Move, new_position: &mut Position) {
+fn make_see_move(mv: Move, new_position: &mut SeePosition) {
     let from = from_square_part(mv);
     let to = to_square_part(mv);
 
@@ -98,6 +127,17 @@ pub fn make_see_move(mv: Move, new_position: &mut Position) {
 #[inline(always)]
 pub fn captured_piece_value_see(position: &Position, mv: Move) -> Score {
     let enemy = &position.pieces[opponent!(position.mover) as usize];
+    captured_piece_value(enemy, position.en_passant_square, mv)
+}
+
+#[inline(always)]
+fn captured_piece_value_compact(position: &SeePosition, mv: Move) -> Score {
+    let enemy = &position.pieces[opponent!(position.mover) as usize];
+    captured_piece_value(enemy, position.en_passant_square, mv)
+}
+
+#[inline(always)]
+fn captured_piece_value(enemy: &Pieces, en_passant_square: Square, mv: Move) -> Score {
     let tsp = to_square_part(mv);
     let to_bb = bit(tsp);
 
@@ -112,7 +152,7 @@ pub fn captured_piece_value_see(position: &Position, mv: Move) -> Score {
     };
 
     promote_value
-        + (if (mv & PIECE_MASK_FULL == PIECE_MASK_PAWN && tsp == position.en_passant_square) || enemy.pawn_bitboard & to_bb != 0 {
+        + (if (mv & PIECE_MASK_FULL == PIECE_MASK_PAWN && tsp == en_passant_square) || enemy.pawn_bitboard & to_bb != 0 {
             PAWN_VALUE_AVERAGE
         } else if enemy.knight_bitboard & to_bb != 0 {
             KNIGHT_VALUE_AVERAGE
@@ -184,7 +224,7 @@ pub fn generate_straight_slider_moves_see(
 }
 
 #[inline(always)]
-pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList {
+fn see_moves(position: &SeePosition, valid_destinations: Bitboard) -> MoveList {
     let mut move_list = MoveList::new();
     let capture_square = valid_destinations.trailing_zeros() as usize;
 
@@ -246,4 +286,26 @@ pub fn see_moves(position: &Position, valid_destinations: Bitboard) -> MoveList 
     }
 
     move_list
+}
+
+#[inline(always)]
+fn is_check_see(position: &SeePosition, mover: Mover) -> bool {
+    let attacked_square = position.pieces[mover as usize].king_square;
+    let enemy = position.pieces[opponent!(mover) as usize];
+
+    enemy.pawn_bitboard & PAWN_MOVES_CAPTURE[mover as usize][attacked_square as usize] != 0
+        || (enemy.knight_bitboard != 0 && enemy.knight_bitboard & KNIGHT_MOVES_BITBOARDS[attacked_square as usize] != 0)
+        || bit(enemy.king_square) & KING_MOVES_BITBOARDS[attacked_square as usize] != 0
+        || {
+            let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+            let straight = enemy.rook_bitboard | enemy.queen_bitboard;
+            let diagonal = enemy.bishop_bitboard | enemy.queen_bitboard;
+
+            (straight != 0
+                && ROOK_RAYS[attacked_square as usize] & straight != 0
+                && magic_moves_rook(attacked_square, all_pieces) & straight != 0)
+                || (diagonal != 0
+                    && BISHOP_RAYS[attacked_square as usize] & diagonal != 0
+                    && magic_moves_bishop(attacked_square, all_pieces) & diagonal != 0)
+        }
 }
