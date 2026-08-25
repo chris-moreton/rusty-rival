@@ -91,10 +91,10 @@ pub struct NnueNetwork {
     ///
     /// 1. **Bucket-major is what bullet writes** *only because* the trainer's
     ///    `l1w` save entry has `.transpose()`. Derived from pinned rev 7bc395f3:
-    ///    `new_affine` builds `Shape::new(out, in)` = (8, 512), and
+    ///    `new_affine` builds `Shape::new(out, in)` = (8, 1024), and
     ///    `transpose_impl` writes `new_buf[cols*i + j] = weights[rows*j + i]`,
-    ///    i.e. `[bucket][512]`. Drop the `.transpose()` and this silently
-    ///    becomes `[512][bucket]`.
+    ///    i.e. `[bucket][1024]`. Drop the `.transpose()` and this silently
+    ///    becomes `[1024][bucket]`.
     /// 2. **The perspective halves are STM-first**, matching the trainer's
     ///    `stm.concat(ntm)`: indices `0..HIDDEN_SIZE` are STM and the second
     ///    half are NTM. `nnue_eval_signs_are_correct` guards this convention
@@ -154,7 +154,7 @@ impl NnueNetwork {
 
         let mut offset = 0;
 
-        // L0 weights: stored as [feature][neuron] = 768 features × 256 neurons
+        // L0 weights: stored as [feature][neuron] = 768 features × 512 neurons
         let mut l0_weights = Box::new([[0i16; HIDDEN_SIZE]; INPUT_SIZE]);
         for feature in 0..INPUT_SIZE {
             for neuron in 0..HIDDEN_SIZE {
@@ -177,7 +177,7 @@ impl NnueNetwork {
         let mut l1_biases = [0i16; NUM_OUTPUT_BUCKETS];
 
         if is_bucketed {
-            // Bucket-major: each bucket's 512 weights are contiguous.
+            // Bucket-major: each bucket's 1024 weights are contiguous.
             for bucket in l1_weights.iter_mut() {
                 for item in bucket.iter_mut() {
                     *item = read_i16(data, &mut offset);
@@ -278,7 +278,7 @@ impl NnueNetwork {
             let n = (ntm_acc[i] as i32).clamp(0, QA);
             // SCReLU: squared clipped ReLU, divided by QA to prevent overflow
             //
-            // L1 layout: STM first [0..255], NTM second [256..511]. These two
+            // L1 layout: STM first [0..512], NTM second [512..1024]. These two
             // indices were transposed until v1.0.53 (NET-400). Swapping the two
             // perspectives of a dual-perspective net *negates* its output, and
             // does so symmetrically - a position and its colour mirror still
