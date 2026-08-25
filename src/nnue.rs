@@ -1,9 +1,9 @@
 //! NNUE (Efficiently Updatable Neural Network) evaluation.
 //!
-//! Architecture: (768 → 256)x2 → 1 with SCReLU activation
+//! Architecture: (768 → 512)x2 → 8 with SCReLU activation
 //! - 768 inputs: Chess768 piece-square features (64 squares × 6 pieces × 2 colors)
-//! - 256 hidden neurons, dual perspective (side-to-move + not-side-to-move)
-//! - 1 output: evaluation score
+//! - 512 hidden neurons, dual perspective (side-to-move + not-side-to-move)
+//! - 8 material-count output buckets
 //!
 //! The network weights are quantized to i16 and embedded in the binary.
 //! Accumulators are incrementally updated using bitboard diffs.
@@ -17,7 +17,7 @@ pub const INPUT_SIZE: usize = 768;
 /// detection distinguishes single-bucket from bucketed, *not* 256 from 512, so
 /// a 512-wide net read with this set to 256 loads without error and evaluates
 /// garbage. Change this and `EMBEDDED_NET` together (NET-324).
-pub const HIDDEN_SIZE: usize = 256;
+pub const HIDDEN_SIZE: usize = 512;
 
 /// Number of output buckets, selected by material count (NET-321).
 ///
@@ -51,9 +51,10 @@ const EVAL_SCALE: i32 = 400; // Converts network output to centipawns
 
 /// Embedded network weights (trained with bullet, quantised.bin format).
 ///
-/// `rival-256x2-ob8-v53.bin` — 8 output buckets by material count (NET-321),
-/// 600 superbatches over 512,363,260 Stockfish depth-9 positions, retrained on
-/// a **relabelled** corpus (NET-400).
+/// `rival-512x2-ob8-corrected-net1095.bin` — 8 output buckets by material
+/// count, 600 superbatches over the full Stockfish depth-9 corpus. Every shard
+/// was validated before mutation and its white-relative WDL field corrected;
+/// measured score/result coherence moved from roughly 4.5% to 95.5%.
 ///
 /// ⚠ **Every other net in `nets/` is incompatible with this build.** They were
 /// all trained against the inverted WDL label that the transposed L1 indexing
@@ -68,7 +69,7 @@ const EVAL_SCALE: i32 = 400; // Converts network output to centipawns
 /// does not want side-to-move-relative input, despite what the field order
 /// suggests. The corpus in S3 is not stored that way and needs its result field
 /// flipped first — see NET-400 for the transform and the verification.
-const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2-ob8-v53.bin");
+const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-512x2-ob8-corrected-net1095.bin");
 
 // =============================================================================
 // Network
@@ -77,14 +78,14 @@ const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2-ob8-v53.bin");
 /// Quantised NNUE network weights, loaded once at startup.
 pub struct NnueNetwork {
     /// L0 weights indexed as [feature][neuron] for cache-friendly incremental updates.
-    /// Each feature's 256 weights are contiguous in memory.
+    /// Each feature's `HIDDEN_SIZE` weights are contiguous in memory.
     l0_weights: Box<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
     /// L0 biases: initial accumulator values before any features are added.
     l0_biases: [i16; HIDDEN_SIZE],
-    /// L1 weights, one 512-wide row per output bucket (bucket-major).
+    /// L1 weights, one `2 * HIDDEN_SIZE`-wide row per output bucket (bucket-major).
     ///
-    /// Within a row: first 256 are **not**-side-to-move, last 256 are
-    /// side-to-move — `evaluate()` indexes `[HIDDEN_SIZE + i]` for STM.
+    /// Within a row: first `HIDDEN_SIZE` are side-to-move, the second half are
+    /// not-side-to-move, matching the trainer's `stm.concat(ntm)` layout.
     ///
     /// ## Two layout facts that will bite a retrain if ignored
     ///
