@@ -271,32 +271,111 @@ impl NnueNetwork {
         let bucket = output_bucket(piece_count);
         let l1_weights = &self.l1_weights[bucket];
 
-        let mut output: i32 = 0;
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        let mut output = unsafe { evaluate_hidden_avx2(stm_acc, ntm_acc, l1_weights) };
 
-        for i in 0..HIDDEN_SIZE {
-            let s = (stm_acc[i] as i32).clamp(0, QA);
-            let n = (ntm_acc[i] as i32).clamp(0, QA);
-            // SCReLU: squared clipped ReLU, divided by QA to prevent overflow
-            //
-            // L1 layout: STM first [0..512], NTM second [512..1024]. These two
-            // indices were transposed until v1.0.53 (NET-400). Swapping the two
-            // perspectives of a dual-perspective net *negates* its output, and
-            // does so symmetrically - a position and its colour mirror still
-            // agreed - so nothing in the test suite caught it. What masked it in
-            // play was that the training corpus had its WDL label inverted too,
-            // and the two errors cancelled.
-            //
-            // The cancellation was not free: bullet blends the target 75% result
-            // / 25% score, and only the result half was inverted, so a quarter of
-            // every training target fought the other three. Correcting both ends
-            // together was worth +198 +/-7 Elo over 3000 games.
-            output += s * s / QA * l1_weights[i] as i32;
-            output += n * n / QA * l1_weights[HIDDEN_SIZE + i] as i32;
-        }
+        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
+        let mut output: i32 = {
+            let mut output = 0;
+            for i in 0..HIDDEN_SIZE {
+                let s = (stm_acc[i] as i32).clamp(0, QA);
+                let n = (ntm_acc[i] as i32).clamp(0, QA);
+                // SCReLU: squared clipped ReLU, divided by QA to prevent overflow
+                //
+                // L1 layout: STM first [0..512], NTM second [512..1024]. These two
+                // indices were transposed until v1.0.53 (NET-400). Swapping the two
+                // perspectives of a dual-perspective net *negates* its output, and
+                // does so symmetrically - a position and its colour mirror still
+                // agreed - so nothing in the test suite caught it. What masked it in
+                // play was that the training corpus had its WDL label inverted too,
+                // and the two errors cancelled.
+                //
+                // The cancellation was not free: bullet blends the target 75% result
+                // / 25% score, and only the result half was inverted, so a quarter of
+                // every training target fought the other three. Correcting both ends
+                // together was worth +198 +/-7 Elo over 3000 games.
+                output += s * s / QA * l1_weights[i] as i32;
+                output += n * n / QA * l1_weights[HIDDEN_SIZE + i] as i32;
+            }
+            output
+        };
 
         // Add bias (already in scale QA*QB) and convert to centipawns
         output += self.l1_biases[bucket] as i32;
         (output as i64 * EVAL_SCALE as i64 / (QA * QB) as i64) as Score
+    }
+}
+
+/// AVX2 SCReLU dot product, 16 neurons per vector.
+///
+/// For `n=x*x` and a clipped activation `x` in 0..=255, `floor(n/255)` is
+/// exactly `(n + 1 + (n >> 8)) >> 8`. The intermediate fits in u16, and the
+/// result is again an i16 in 0..=255, ready for `_mm256_madd_epi16` with signed
+/// L1 weights.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+#[inline(always)]
+unsafe fn evaluate_hidden_avx2(stm: &[i16; HIDDEN_SIZE], ntm: &[i16; HIDDEN_SIZE], weights: &[i16; 2 * HIDDEN_SIZE]) -> i32 {
+    use std::arch::x86_64::*;
+
+    debug_assert_eq!(HIDDEN_SIZE % 16, 0);
+    let zero = _mm256_setzero_si256();
+    let one = _mm256_set1_epi16(1);
+    let max = _mm256_set1_epi16(QA as i16);
+    let mut sum = _mm256_setzero_si256();
+
+    for i in (0..HIDDEN_SIZE).step_by(16) {
+        let s = _mm256_loadu_si256(stm.as_ptr().add(i).cast());
+        let n = _mm256_loadu_si256(ntm.as_ptr().add(i).cast());
+        let s = _mm256_min_epi16(_mm256_max_epi16(s, zero), max);
+        let n = _mm256_min_epi16(_mm256_max_epi16(n, zero), max);
+        let s = _mm256_mullo_epi16(s, s);
+        let n = _mm256_mullo_epi16(n, n);
+        let s = _mm256_srli_epi16::<8>(_mm256_add_epi16(_mm256_add_epi16(s, _mm256_srli_epi16::<8>(s)), one));
+        let n = _mm256_srli_epi16::<8>(_mm256_add_epi16(_mm256_add_epi16(n, _mm256_srli_epi16::<8>(n)), one));
+        let sw = _mm256_loadu_si256(weights.as_ptr().add(i).cast());
+        let nw = _mm256_loadu_si256(weights.as_ptr().add(HIDDEN_SIZE + i).cast());
+        sum = _mm256_add_epi32(sum, _mm256_madd_epi16(s, sw));
+        sum = _mm256_add_epi32(sum, _mm256_madd_epi16(n, nw));
+    }
+
+    let mut lanes = [0i32; 8];
+    _mm256_storeu_si256(lanes.as_mut_ptr().cast(), sum);
+    lanes.into_iter().sum()
+}
+
+#[cfg(all(test, target_arch = "x86_64", target_feature = "avx2"))]
+mod avx2_tests {
+    use super::*;
+
+    #[test]
+    fn avx2_hidden_eval_matches_scalar_for_all_clipped_inputs() {
+        let mut stm = [0i16; HIDDEN_SIZE];
+        let mut ntm = [0i16; HIDDEN_SIZE];
+        let mut weights = [0i16; 2 * HIDDEN_SIZE];
+        for i in 0..HIDDEN_SIZE {
+            // Cover every clipped value twice, plus both clamp boundaries.
+            stm[i] = (i % 256) as i16;
+            ntm[i] = if i == 0 {
+                -123
+            } else if i == 1 {
+                999
+            } else {
+                255 - (i % 256) as i16
+            };
+            weights[i] = (i as i16 % 257) - 128;
+            weights[HIDDEN_SIZE + i] = 113 - (i as i16 % 227);
+        }
+
+        let mut expected = 0i32;
+        for i in 0..HIDDEN_SIZE {
+            let s = (stm[i] as i32).clamp(0, QA);
+            let n = (ntm[i] as i32).clamp(0, QA);
+            expected += s * s / QA * weights[i] as i32;
+            expected += n * n / QA * weights[HIDDEN_SIZE + i] as i32;
+        }
+
+        let actual = unsafe { evaluate_hidden_avx2(&stm, &ntm, &weights) };
+        assert_eq!(actual, expected);
     }
 }
 
