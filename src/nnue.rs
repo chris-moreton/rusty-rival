@@ -95,14 +95,10 @@ pub struct NnueNetwork {
     ///    `transpose_impl` writes `new_buf[cols*i + j] = weights[rows*j + i]`,
     ///    i.e. `[bucket][512]`. Drop the `.transpose()` and this silently
     ///    becomes `[512][bucket]`.
-    /// 2. **The perspective halves are NTM-first here, but the trainer
-    ///    concatenates `stm.concat(ntm)`** — i.e. STM-first. The shipped net is
-    ///    self-consistent with this loader (a queen-up position evaluates
-    ///    strongly positive, which a swapped net could not do), so the two
-    ///    conventions currently cancel. **A retrain could land either way.**
-    ///    `nnue_eval_signs_are_correct` is the guard: it fails loudly on a
-    ///    swapped net. If it fails after a retrain, swap the two indices here
-    ///    rather than assuming the net is bad.
+    /// 2. **The perspective halves are STM-first**, matching the trainer's
+    ///    `stm.concat(ntm)`: indices `0..HIDDEN_SIZE` are STM and the second
+    ///    half are NTM. `nnue_eval_signs_are_correct` guards this convention
+    ///    and fails loudly if a retrained net has its halves transposed.
     l1_weights: Box<[[i16; 2 * HIDDEN_SIZE]; NUM_OUTPUT_BUCKETS]>,
     /// L1 bias per bucket (scale QA*QB).
     l1_biases: [i16; NUM_OUTPUT_BUCKETS],
@@ -122,17 +118,18 @@ impl NnueNetwork {
 
     /// Load network from raw quantised.bin bytes.
     ///
-    /// Accepts **both** net formats and normalises to the bucketed representation:
+    /// Accepts **both output formats at the compiled `HIDDEN_SIZE`** and
+    /// normalises to the bucketed representation:
     ///
-    /// * single-bucket: `l0w[768][256] + l0b[256] + l1w[512] + l1b[1]`
-    /// * 8-bucket:      `l0w[768][256] + l0b[256] + l1w[8][512] + l1b[8]`
+    /// * single-bucket: `l0w[768][H] + l0b[H] + l1w[2H] + l1b[1]`
+    /// * 8-bucket:      `l0w[768][H] + l0b[H] + l1w[8][2H] + l1b[8]`
     ///
-    /// A single-bucket net is replicated into all 8 buckets, so it evaluates
-    /// bit-identically to the pre-bucket implementation. That is what keeps
-    /// `nnue_golden_values_are_bit_identical` passing across this change, and it
-    /// means the engine stays shippable before the bucketed net is trained.
+    /// A single-bucket net at the current width is replicated into all 8
+    /// buckets. Width is a compile-time property: a 256-wide file is
+    /// deliberately rejected by this 512-wide build rather than ambiguously
+    /// parsed as another format.
     ///
-    /// All values are little-endian i16. l0_weights is transposed to [768][256]
+    /// All values are little-endian i16. l0_weights is stored as [768][H]
     /// during loading for cache-friendly feature-indexed access.
     ///
     /// Note the format is detected by size rather than matched exactly: the
@@ -219,8 +216,8 @@ impl NnueNetwork {
     /// so the worst case is `2 * HIDDEN_SIZE * QA * max|w|`. With the shipped
     /// net that is nowhere near i32::MAX, but nothing checked it: a retrained
     /// net with larger L1 weights would silently wrap (or panic in debug) and
-    /// produce garbage evaluations with no other symptom. There is a second
-    /// latent overflow at `output * EVAL_SCALE`, checked here too.
+    /// produce garbage evaluations with no other symptom. Scaling is widened
+    /// to i64, and the second bound ensures the final result still fits Score.
     ///
     /// Done at load rather than in the loop because `evaluate()` is the hottest
     /// path in the engine and this costs nothing there.
@@ -243,7 +240,7 @@ impl NnueNetwork {
         );
         assert!(
             worst.saturating_mul(EVAL_SCALE as i64) <= i32::MAX as i64 * QA as i64 * QB as i64,
-            "NNUE output can overflow at `output * EVAL_SCALE`: worst case {} with EVAL_SCALE {}.",
+            "NNUE scaled output can exceed Score: worst case {} with EVAL_SCALE {}.",
             worst,
             EVAL_SCALE
         );
@@ -299,7 +296,7 @@ impl NnueNetwork {
 
         // Add bias (already in scale QA*QB) and convert to centipawns
         output += self.l1_biases[bucket] as i32;
-        (output * EVAL_SCALE / (QA * QB)) as Score
+        (output as i64 * EVAL_SCALE as i64 / (QA * QB) as i64) as Score
     }
 }
 
