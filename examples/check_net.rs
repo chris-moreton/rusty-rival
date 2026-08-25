@@ -6,10 +6,10 @@
 //! A freshly trained net can load cleanly and still be wrong — the two ways
 //! that have actually bitten this project are:
 //!
-//! * **swapped perspectives.** The trainer concatenates `stm.concat(ntm)` while
-//!   the loader indexes NTM-first. The shipped net is self-consistent with the
-//!   loader, but a retrain could land either way. A swapped net evaluates a
-//!   material advantage as a *disadvantage*, which this tool reports plainly.
+//! * **swapped perspectives.** The trainer concatenates `stm.concat(ntm)` and
+//!   the loader must index the same STM-first layout. A transposed inference
+//!   path evaluates a material advantage as a *disadvantage*, which this tool
+//!   reports plainly.
 //! * **wrong bucket layout.** `l1w` is written `[bucket][512]` only because the
 //!   trainer's save entry has `.transpose()`. Get it wrong and every bucket
 //!   reads a slice of the wrong weights, producing plausible-looking noise.

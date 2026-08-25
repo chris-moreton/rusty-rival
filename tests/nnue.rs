@@ -14,7 +14,8 @@ fn nnue_eval_signs_are_correct() {
     // Material edge in a REALISTIC position. Bare KQvK is a trap: Stockfish
     // game data barely contains such positions, so every net in this family
     // scores them near zero regardless of health. The 512x2 net scores KQvK at
-    // 74 cp and the shipped 256 net at 153 - neither is evidence of anything.
+    // 325 cp; that isolated endgame value is still a much weaker health signal
+    // than the realistic middlegame fixtures below.
     // With a full middlegame around it, a queen is worth hundreds to any sane
     // net, and a swapped-perspective net inverts the sign.
     let mut acc = Accumulator::new();
@@ -166,8 +167,8 @@ fn debug_knight_eval() {
 /// forward pass for a fixed set of positions against the embedded net.
 ///
 /// These numbers are not "correct" in any absolute sense — they are simply what
-/// `nets/rival-256x2-ob8-v53.bin` (8 output buckets, NET-321, relabelled corpus
-/// and corrected L1 indexing, NET-400) produces today.
+/// `nets/rival-512x2-ob8-corrected-net1095.bin` (8 output buckets, corrected
+/// white-relative labels and corrected L1 indexing) produces today.
 /// They were regenerated deliberately when that net replaced the single-bucket
 /// `rival-256x2.bin`, after `check_net` confirmed it loads with correct signs. The point is that any change to the
 /// inference path (SIMD, i64 accumulation, quantisation, weight layout) must be
@@ -176,43 +177,42 @@ fn debug_knight_eval() {
 /// If the net itself is retrained, these values must be regenerated deliberately
 /// — never "fixed" by pasting in whatever the new code happens to print.
 #[test]
-fn nnue_golden_values_are_bit_identical() {
+fn nnue_golden_values_match_net1095() {
     let net = NnueNetwork::embedded();
     let mut acc = Accumulator::new();
 
     // (expected_cp, fen) — evaluated from the side to move's perspective.
     //
-    // Regenerated for v1.0.53 (NET-400), which changed both the net and the L1
-    // indexing. Each value was checked for plausibility before being pinned,
+    // Regenerated for NET-1095, which changed the hidden width and net. Each
+    // value was checked for plausibility before being pinned,
     // not pasted in blind: the two positions where a side is up material score
-    // strongly positive for that side (+598 a rook up to move, +386 a queen up),
+    // strongly positive for that side (+779 a rook up to move, +325 a queen up),
     // and the balanced positions sit near zero.
     //
-    // The bare-kings entry is the one that looks wrong at +95 rather than ~0.
+    // The bare-kings entry is the one that looks wrong at +63 rather than ~0.
     // It is left as measured: `insufficient_material` adjudicates K-v-K as a
     // draw before the evaluation is ever consulted, so it cannot affect play,
     // and bucket 0 sees almost no such positions in training.
     let golden: &[(i32, &str)] = &[
-        (64, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
-        (-4, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
-        (8, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
-        (70, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
-        (598, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
-        (386, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
-        (95, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
-        (-27, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
+        (74, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
+        (-55, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
+        (78, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
+        (-69, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
+        (779, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
+        (325, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
+        (63, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
+        (0, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
     ];
 
-    for &(expected, fen) in golden {
+    let mut actuals = Vec::with_capacity(golden.len());
+    for &(_, fen) in golden {
         let pos = get_position(fen);
         acc.compute(&net, &pos);
         let actual = net.evaluate(&acc, pos.mover, piece_count(&pos)) as i32;
-        assert_eq!(
-            actual, expected,
-            "NNUE eval changed for {}: expected {}, got {}",
-            fen, expected, actual
-        );
+        actuals.push(actual);
     }
+    let expected: Vec<i32> = golden.iter().map(|&(value, _)| value).collect();
+    assert_eq!(actuals, expected, "NNUE golden values changed: actual values on the left");
 }
 
 /// Regression test for the incremental accumulator chain (NET-212): walking the
@@ -431,6 +431,32 @@ fn single_bucket_net_is_piece_count_independent() {
             claimed
         );
     }
+}
+
+/// The scaled numerator can exceed i32 even when the unscaled L1 accumulator
+/// is valid. Evaluation must widen before multiplying by EVAL_SCALE.
+#[test]
+fn nnue_output_scaling_uses_i64() {
+    let mut bytes: Vec<u8> = Vec::new();
+    let mut push = |v: i16| bytes.extend_from_slice(&v.to_le_bytes());
+    for _ in 0..(INPUT_SIZE * HIDDEN_SIZE) {
+        push(0);
+    }
+    for _ in 0..HIDDEN_SIZE {
+        push(255);
+    }
+    for _ in 0..(2 * HIDDEN_SIZE) {
+        push(100);
+    }
+    push(0);
+
+    let net = NnueNetwork::from_bytes(&bytes);
+    let pos = get_position("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
+    let mut acc = Accumulator::new();
+    acc.compute(&net, &pos);
+
+    // 2 * 512 * 255 * 100 * 400 / (255 * 64) = 640_000.
+    assert_eq!(net.evaluate(&acc, WHITE, piece_count(&pos)), 640_000);
 }
 
 /// NET-350: the fused parent->child accumulator update must be bit-identical

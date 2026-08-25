@@ -1,9 +1,9 @@
 //! NNUE (Efficiently Updatable Neural Network) evaluation.
 //!
-//! Architecture: (768 → 256)x2 → 1 with SCReLU activation
+//! Architecture: (768 → 512)x2 → 8 with SCReLU activation
 //! - 768 inputs: Chess768 piece-square features (64 squares × 6 pieces × 2 colors)
-//! - 256 hidden neurons, dual perspective (side-to-move + not-side-to-move)
-//! - 1 output: evaluation score
+//! - 512 hidden neurons, dual perspective (side-to-move + not-side-to-move)
+//! - 8 material-count output buckets
 //!
 //! The network weights are quantized to i16 and embedded in the binary.
 //! Accumulators are incrementally updated using bitboard diffs.
@@ -17,7 +17,7 @@ pub const INPUT_SIZE: usize = 768;
 /// detection distinguishes single-bucket from bucketed, *not* 256 from 512, so
 /// a 512-wide net read with this set to 256 loads without error and evaluates
 /// garbage. Change this and `EMBEDDED_NET` together (NET-324).
-pub const HIDDEN_SIZE: usize = 256;
+pub const HIDDEN_SIZE: usize = 512;
 
 /// Number of output buckets, selected by material count (NET-321).
 ///
@@ -51,9 +51,10 @@ const EVAL_SCALE: i32 = 400; // Converts network output to centipawns
 
 /// Embedded network weights (trained with bullet, quantised.bin format).
 ///
-/// `rival-256x2-ob8-v53.bin` — 8 output buckets by material count (NET-321),
-/// 600 superbatches over 512,363,260 Stockfish depth-9 positions, retrained on
-/// a **relabelled** corpus (NET-400).
+/// `rival-512x2-ob8-corrected-net1095.bin` — 8 output buckets by material
+/// count, 600 superbatches over the full Stockfish depth-9 corpus. Every shard
+/// was validated before mutation and its white-relative WDL field corrected;
+/// measured score/result coherence moved from roughly 4.5% to 95.5%.
 ///
 /// ⚠ **Every other net in `nets/` is incompatible with this build.** They were
 /// all trained against the inverted WDL label that the transposed L1 indexing
@@ -68,7 +69,7 @@ const EVAL_SCALE: i32 = 400; // Converts network output to centipawns
 /// does not want side-to-move-relative input, despite what the field order
 /// suggests. The corpus in S3 is not stored that way and needs its result field
 /// flipped first — see NET-400 for the transform and the verification.
-const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2-ob8-v53.bin");
+const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-512x2-ob8-corrected-net1095.bin");
 
 // =============================================================================
 // Network
@@ -77,31 +78,27 @@ const EMBEDDED_NET: &[u8] = include_bytes!("../nets/rival-256x2-ob8-v53.bin");
 /// Quantised NNUE network weights, loaded once at startup.
 pub struct NnueNetwork {
     /// L0 weights indexed as [feature][neuron] for cache-friendly incremental updates.
-    /// Each feature's 256 weights are contiguous in memory.
+    /// Each feature's `HIDDEN_SIZE` weights are contiguous in memory.
     l0_weights: Box<[[i16; HIDDEN_SIZE]; INPUT_SIZE]>,
     /// L0 biases: initial accumulator values before any features are added.
     l0_biases: [i16; HIDDEN_SIZE],
-    /// L1 weights, one 512-wide row per output bucket (bucket-major).
+    /// L1 weights, one `2 * HIDDEN_SIZE`-wide row per output bucket (bucket-major).
     ///
-    /// Within a row: first 256 are **not**-side-to-move, last 256 are
-    /// side-to-move — `evaluate()` indexes `[HIDDEN_SIZE + i]` for STM.
+    /// Within a row: first `HIDDEN_SIZE` are side-to-move, the second half are
+    /// not-side-to-move, matching the trainer's `stm.concat(ntm)` layout.
     ///
     /// ## Two layout facts that will bite a retrain if ignored
     ///
     /// 1. **Bucket-major is what bullet writes** *only because* the trainer's
     ///    `l1w` save entry has `.transpose()`. Derived from pinned rev 7bc395f3:
-    ///    `new_affine` builds `Shape::new(out, in)` = (8, 512), and
+    ///    `new_affine` builds `Shape::new(out, in)` = (8, 1024), and
     ///    `transpose_impl` writes `new_buf[cols*i + j] = weights[rows*j + i]`,
-    ///    i.e. `[bucket][512]`. Drop the `.transpose()` and this silently
-    ///    becomes `[512][bucket]`.
-    /// 2. **The perspective halves are NTM-first here, but the trainer
-    ///    concatenates `stm.concat(ntm)`** — i.e. STM-first. The shipped net is
-    ///    self-consistent with this loader (a queen-up position evaluates
-    ///    strongly positive, which a swapped net could not do), so the two
-    ///    conventions currently cancel. **A retrain could land either way.**
-    ///    `nnue_eval_signs_are_correct` is the guard: it fails loudly on a
-    ///    swapped net. If it fails after a retrain, swap the two indices here
-    ///    rather than assuming the net is bad.
+    ///    i.e. `[bucket][1024]`. Drop the `.transpose()` and this silently
+    ///    becomes `[1024][bucket]`.
+    /// 2. **The perspective halves are STM-first**, matching the trainer's
+    ///    `stm.concat(ntm)`: indices `0..HIDDEN_SIZE` are STM and the second
+    ///    half are NTM. `nnue_eval_signs_are_correct` guards this convention
+    ///    and fails loudly if a retrained net has its halves transposed.
     l1_weights: Box<[[i16; 2 * HIDDEN_SIZE]; NUM_OUTPUT_BUCKETS]>,
     /// L1 bias per bucket (scale QA*QB).
     l1_biases: [i16; NUM_OUTPUT_BUCKETS],
@@ -121,17 +118,18 @@ impl NnueNetwork {
 
     /// Load network from raw quantised.bin bytes.
     ///
-    /// Accepts **both** net formats and normalises to the bucketed representation:
+    /// Accepts **both output formats at the compiled `HIDDEN_SIZE`** and
+    /// normalises to the bucketed representation:
     ///
-    /// * single-bucket: `l0w[768][256] + l0b[256] + l1w[512] + l1b[1]`
-    /// * 8-bucket:      `l0w[768][256] + l0b[256] + l1w[8][512] + l1b[8]`
+    /// * single-bucket: `l0w[768][H] + l0b[H] + l1w[2H] + l1b[1]`
+    /// * 8-bucket:      `l0w[768][H] + l0b[H] + l1w[8][2H] + l1b[8]`
     ///
-    /// A single-bucket net is replicated into all 8 buckets, so it evaluates
-    /// bit-identically to the pre-bucket implementation. That is what keeps
-    /// `nnue_golden_values_are_bit_identical` passing across this change, and it
-    /// means the engine stays shippable before the bucketed net is trained.
+    /// A single-bucket net at the current width is replicated into all 8
+    /// buckets. Width is a compile-time property: a 256-wide file is
+    /// deliberately rejected by this 512-wide build rather than ambiguously
+    /// parsed as another format.
     ///
-    /// All values are little-endian i16. l0_weights is transposed to [768][256]
+    /// All values are little-endian i16. l0_weights is stored as [768][H]
     /// during loading for cache-friendly feature-indexed access.
     ///
     /// Note the format is detected by size rather than matched exactly: the
@@ -156,7 +154,7 @@ impl NnueNetwork {
 
         let mut offset = 0;
 
-        // L0 weights: stored as [feature][neuron] = 768 features × 256 neurons
+        // L0 weights: stored as [feature][neuron] = 768 features × 512 neurons
         let mut l0_weights = Box::new([[0i16; HIDDEN_SIZE]; INPUT_SIZE]);
         for feature in 0..INPUT_SIZE {
             for neuron in 0..HIDDEN_SIZE {
@@ -179,7 +177,7 @@ impl NnueNetwork {
         let mut l1_biases = [0i16; NUM_OUTPUT_BUCKETS];
 
         if is_bucketed {
-            // Bucket-major: each bucket's 512 weights are contiguous.
+            // Bucket-major: each bucket's 1024 weights are contiguous.
             for bucket in l1_weights.iter_mut() {
                 for item in bucket.iter_mut() {
                     *item = read_i16(data, &mut offset);
@@ -218,8 +216,8 @@ impl NnueNetwork {
     /// so the worst case is `2 * HIDDEN_SIZE * QA * max|w|`. With the shipped
     /// net that is nowhere near i32::MAX, but nothing checked it: a retrained
     /// net with larger L1 weights would silently wrap (or panic in debug) and
-    /// produce garbage evaluations with no other symptom. There is a second
-    /// latent overflow at `output * EVAL_SCALE`, checked here too.
+    /// produce garbage evaluations with no other symptom. Scaling is widened
+    /// to i64, and the second bound ensures the final result still fits Score.
     ///
     /// Done at load rather than in the loop because `evaluate()` is the hottest
     /// path in the engine and this costs nothing there.
@@ -242,7 +240,7 @@ impl NnueNetwork {
         );
         assert!(
             worst.saturating_mul(EVAL_SCALE as i64) <= i32::MAX as i64 * QA as i64 * QB as i64,
-            "NNUE output can overflow at `output * EVAL_SCALE`: worst case {} with EVAL_SCALE {}.",
+            "NNUE scaled output can exceed Score: worst case {} with EVAL_SCALE {}.",
             worst,
             EVAL_SCALE
         );
@@ -280,7 +278,7 @@ impl NnueNetwork {
             let n = (ntm_acc[i] as i32).clamp(0, QA);
             // SCReLU: squared clipped ReLU, divided by QA to prevent overflow
             //
-            // L1 layout: STM first [0..255], NTM second [256..511]. These two
+            // L1 layout: STM first [0..512], NTM second [512..1024]. These two
             // indices were transposed until v1.0.53 (NET-400). Swapping the two
             // perspectives of a dual-perspective net *negates* its output, and
             // does so symmetrically - a position and its colour mirror still
@@ -298,7 +296,7 @@ impl NnueNetwork {
 
         // Add bias (already in scale QA*QB) and convert to centipawns
         output += self.l1_biases[bucket] as i32;
-        (output * EVAL_SCALE / (QA * QB)) as Score
+        (output as i64 * EVAL_SCALE as i64 / (QA * QB) as i64) as Score
     }
 }
 
