@@ -72,8 +72,10 @@ def white_to_move(position_command: str) -> bool:
     if " startpos" in position_command:
         moves = position_command.partition(" moves ")[2].split()
         return len(moves) % 2 == 0
-    fen = position_command.partition(" fen ")[2].partition(" moves ")[0].split()
-    return len(fen) >= 2 and fen[1] == "w"
+    fen_and_moves = position_command.partition(" fen ")[2]
+    fen = fen_and_moves.partition(" moves ")[0].split()
+    moves = fen_and_moves.partition(" moves ")[2].split()
+    return len(fen) >= 2 and (fen[1] == "w") == (len(moves) % 2 == 0)
 
 
 def rival_raw(engine: UciEngine, use_nnue: bool) -> int:
@@ -83,6 +85,9 @@ def rival_raw(engine: UciEngine, use_nnue: bool) -> int:
     match = re.search(r"white_cp (-?\d+)", lines[-1])
     if match is None:
         raise RuntimeError("could not parse Rival raw evaluation")
+    expected_evaluator = "nnue" if use_nnue else "hce"
+    if not lines[-1].endswith(f"evaluator {expected_evaluator}"):
+        raise RuntimeError(f"Rival did not activate {expected_evaluator}")
     return int(match.group(1))
 
 
@@ -107,12 +112,19 @@ def stockfish_static(engine: UciEngine) -> int:
     return round(float(match.group(1)) * 100)
 
 
+def positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return parsed
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rival", required=True)
     parser.add_argument("--stockfish", required=True)
     parser.add_argument("--positions", type=Path, required=True)
-    parser.add_argument("--nodes", type=int, default=200_000)
+    parser.add_argument("--nodes", type=positive_int, default=200_000)
     args = parser.parse_args()
 
     rival = UciEngine(args.rival)
