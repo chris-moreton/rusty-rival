@@ -7,7 +7,7 @@ use regex::Regex;
 use std::cmp::{max, min};
 use std::ops::Add;
 use std::process::exit;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -20,7 +20,7 @@ use crate::moves::{generate_moves, is_check};
 use crate::datagen::cmd_datagen;
 use crate::perft::perft;
 use crate::search::{clear_countermoves, clear_history_table, clear_killers, iterative_deepening};
-use crate::types::{set_stop, Move, Position, SearchHandle, SearchState, SharedHashTable, UciState, BLACK, WHITE};
+use crate::types::{set_stop, Move, Position, SearchHandle, SearchState, SharedHashTable, StopReason, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
 
@@ -145,6 +145,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
     search_state.cutoff_by_index = [0; 5];
     search_state.nodes_limit = u64::MAX;
     set_stop(&search_state.stop, false);
+    search_state.stop_reason.store(StopReason::None as u8, Ordering::Relaxed);
 
     match t {
         "perft" => {
@@ -642,6 +643,7 @@ fn cmd_go(
 
     // Create shared flags for this search
     let stop_flag = Arc::new(AtomicBool::new(false));
+    let stop_reason = Arc::new(AtomicU8::new(StopReason::None as u8));
     let shared_nodes = Arc::new(AtomicU64::new(0));
     let pondering = Arc::new(AtomicBool::new(is_ponder));
     let ponder_soft_ms = Arc::new(AtomicU64::new(ponder_soft));
@@ -676,6 +678,7 @@ fn cmd_go(
         thread_search_state.original_soft_time_limit = soft_time_limit;
         thread_search_state.time_management_active = tm_active;
         thread_search_state.stop = stop_flag.clone();
+        thread_search_state.stop_reason = stop_reason.clone();
         thread_search_state.shared_nodes = shared_nodes.clone();
         thread_search_state.thread_id = thread_id;
         thread_search_state.pondering = pondering.clone();

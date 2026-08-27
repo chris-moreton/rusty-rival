@@ -106,7 +106,11 @@ macro_rules! time_remains {
 #[macro_export]
 macro_rules! time_expired {
     ($search_state:expr) => {
-        if is_stopped(&$search_state.stop) || Instant::now() >= $search_state.end_time {
+        if is_stopped(&$search_state.stop) {
+            $crate::types::set_stop_reason(&$search_state.stop_reason, $crate::types::StopReason::External);
+            true
+        } else if Instant::now() >= $search_state.end_time {
+            $crate::types::set_stop_reason(&$search_state.stop_reason, $crate::types::StopReason::HardDeadline);
             if !is_stopped(&$search_state.stop) {
                 set_stop(&$search_state.stop, true);
                 send_info($search_state, false);
@@ -400,6 +404,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 
             // Early stop: stable best move and past soft limit
             if search_state.best_move_stability >= TM_STABILITY_THRESHOLD && now >= search_state.soft_time_limit {
+                crate::types::set_stop_reason(&search_state.stop_reason, crate::types::StopReason::SoftDeadline);
                 set_stop(&search_state.stop, true);
                 break;
             }
@@ -422,6 +427,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 
             // Past soft limit (possibly extended) — stop
             if now >= search_state.soft_time_limit {
+                crate::types::set_stop_reason(&search_state.stop_reason, crate::types::StopReason::SoftDeadline);
                 set_stop(&search_state.stop, true);
                 break;
             }
@@ -1011,7 +1017,7 @@ pub fn search(
         true
     };
 
-    if scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
+    if excluded_move == 0 && scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
         // An improving eval supports the fail-high conclusion, so a smaller
         // margin suffices; when not improving demand more
         let margin = BETA_PRUNE_MARGIN_PER_DEPTH * (depth as Score - improving as Score);
@@ -1444,6 +1450,7 @@ pub fn search(
         // node would be adjudicated stalemate/mate - a fabricated score, which
         // then gets stored in the TT.
         if legal_move_count >= 1
+            && excluded_move == 0
             && bad_captures_added
             && scouting
             && is_tactical
@@ -1519,6 +1526,7 @@ pub fn search(
             // More aggressive than LMR - completely skips the move instead of reducing
             // Don't prune in endgames (every move matters) or near mate scores
             if scouting
+                && excluded_move == 0
                 && depth <= LMP_MAX_DEPTH
                 && !in_check
                 && !is_tactical

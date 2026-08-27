@@ -32,6 +32,7 @@ pub enum StopReason {
     HardDeadline = 3,
     External = 4,
     NodeLimit = 5,
+    SoftDeadline = 6,
 }
 
 pub fn set_stop_reason(reason: &AtomicU8, value: StopReason) {
