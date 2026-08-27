@@ -80,6 +80,20 @@ pub const MATE_START: Score = MATE_SCORE - MATE_MARGIN;
 
 pub const LAST_EXTENSION_LAYER: u8 = 4;
 
+fn emit_net365_diagnostic(search_state: &SearchState) {
+    if std::env::var_os("RIVAL_NET365_DIAGNOSTIC").is_none() || search_state.thread_id != 0 {
+        return;
+    }
+    let elapsed = Instant::now().saturating_duration_since(search_state.start_time).as_millis();
+    let soft = search_state
+        .original_soft_time_limit
+        .saturating_duration_since(search_state.start_time)
+        .as_millis();
+    let hard = search_state.end_time.saturating_duration_since(search_state.start_time).as_millis();
+    let ratio = if soft == 0 { 0.0 } else { elapsed as f64 / soft as f64 };
+    eprintln!("{{\"net365\":true,\"soft_ms\":{},\"hard_ms\":{},\"elapsed_ms\":{},\"ratio\":{:.4},\"completed_depth\":{},\"thread\":{},\"tm\":{},\"ponder\":{},\"stop_reason\":{}}}", soft, hard, elapsed, ratio, search_state.last_completed_depth, search_state.thread_id, search_state.time_management_active, search_state.is_ponder_search, search_state.stop_reason.load(Ordering::Relaxed));
+}
+
 pub const MAX_NEW_EXTENSIONS_TREE_PART: [u8; 5] = [1, 0, 0, 0, 0];
 
 #[macro_export]
@@ -107,6 +121,9 @@ macro_rules! time_expired {
 #[macro_export]
 macro_rules! check_time {
     ($search_state:expr) => {
+        if is_stopped(&$search_state.stop) {
+            $crate::types::set_stop_reason(&$search_state.stop_reason, $crate::types::StopReason::External);
+        }
         if !is_stopped(&$search_state.stop) && $search_state.nodes % 1000 == 0 {
             if $search_state.is_ponder_search && !$search_state.ponder_applied {
                 if !$search_state.pondering.load(std::sync::atomic::Ordering::Relaxed) {
@@ -116,6 +133,7 @@ macro_rules! check_time {
                     if hard_ms > 0 {
                         $search_state.end_time = now + std::time::Duration::from_millis(hard_ms);
                         $search_state.soft_time_limit = now + std::time::Duration::from_millis(soft_ms);
+                        $search_state.original_soft_time_limit = $search_state.soft_time_limit;
                         // Rebase the extension ceiling on the REAL soft budget
                         // (NET-362): the value computed at search start came from
                         // the 24h ponder placeholder, which would disable the
@@ -134,13 +152,31 @@ macro_rules! check_time {
                         // move found so far rather than hang the engine (time forfeit).
                         $search_state.end_time = now;
                         $search_state.soft_time_limit = now;
+                        $search_state.original_soft_time_limit = now;
                         $search_state.max_soft_time_limit = now;
                         $search_state.time_management_active = true;
                     }
                     $search_state.ponder_applied = true;
                 }
             }
-            if $search_state.end_time < Instant::now() || $search_state.nodes >= $search_state.nodes_limit {
+            let now = std::time::Instant::now();
+            // NET-365: do not let an unexpectedly expensive iteration consume
+            // the hard-clock reserve.  This is the existing completed-iteration
+            // policy ceiling, not a new tuned multiplier.  Only thread 0 owns
+            // the move result and may stop Lazy-SMP helpers; ponder waits until
+            // ponderhit has installed the real clock budget.
+            let soft_guard_expired = $search_state.thread_id == 0
+                && $search_state.time_management_active
+                && (!$search_state.is_ponder_search || $search_state.ponder_applied)
+                && now >= std::cmp::min($search_state.end_time, $search_state.max_soft_time_limit);
+            if $search_state.end_time < now || $search_state.nodes >= $search_state.nodes_limit || soft_guard_expired {
+                if $search_state.end_time < now {
+                    $crate::types::set_stop_reason(&$search_state.stop_reason, $crate::types::StopReason::HardDeadline);
+                } else if $search_state.nodes >= $search_state.nodes_limit {
+                    $crate::types::set_stop_reason(&$search_state.stop_reason, $crate::types::StopReason::NodeLimit);
+                } else {
+                    $crate::types::set_stop_reason(&$search_state.stop_reason, $crate::types::StopReason::MaxSoft);
+                }
                 set_stop(&$search_state.stop, true);
                 send_info($search_state, false);
             }
@@ -301,12 +337,14 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
             //println!("Searching with aspiration window {} {} at [{}]", aspiration_window.0, aspiration_window.1, c);
             let aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window);
             if time_expired!(search_state) {
+                emit_net365_diagnostic(search_state);
                 return search_state.current_best.0[0];
             }
 
             if aspire_best.1 > aspiration_window.0 && aspire_best.1 < aspiration_window.1 {
                 //println!("Found a move within the aspiration window {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1);
                 search_state.current_best = aspire_best;
+                search_state.last_completed_depth = iterative_depth;
                 //println!("Current best move is {} {}", algebraic_move_from_move(search_state.current_best.0[0]), search_state.current_best.1);
                 break;
             } else {
@@ -406,6 +444,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
             let last_iteration = now.saturating_duration_since(iteration_start);
             let remaining_to_soft = search_state.soft_time_limit.saturating_duration_since(now);
             if !next_iteration_fits(last_iteration, remaining_to_soft, TM_ITERATION_GROWTH) {
+                crate::types::set_stop_reason(&search_state.stop_reason, crate::types::StopReason::Predictor);
                 set_stop(&search_state.stop, true);
                 break;
             }
@@ -439,6 +478,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     //
     // The time-expiry path a few lines up already returns current_best, so this
     // also removes a state/return mismatch between the two exits.
+    emit_net365_diagnostic(search_state);
     search_state.current_best.0[0]
 }
 
@@ -999,17 +1039,18 @@ pub fn search(
         }
     }
 
-    let alpha_prune_flag = if depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
-        lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
-    } else {
-        false
-    };
+    let alpha_prune_flag =
+        if excluded_move == 0 && depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
+            lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
+        } else {
+            false
+        };
 
     // Threat detection: when null move fails badly, opponent has a dangerous threat
     // We'll use this to reduce LMR aggressiveness rather than extending
     let mut threat_detected = false;
 
-    if !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
+    if excluded_move == 0 && !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let old_ep = make_null_move(position);
         // No real previous move exists for the null-move child's countermove context
         search_state.ply_move[ply as usize] = 0;
@@ -1055,7 +1096,7 @@ pub fn search(
 
     // Probcut: at high depth, do a shallow search with raised beta
     // If a capture fails high, the position is probably winning and can be cut
-    if scouting && !in_check && depth >= PROBCUT_MIN_DEPTH && beta.abs() < MATE_START {
+    if excluded_move == 0 && scouting && !in_check && depth >= PROBCUT_MIN_DEPTH && beta.abs() < MATE_START {
         let probcut_beta = beta + PROBCUT_MARGIN;
         let probcut_depth = depth - PROBCUT_DEPTH_REDUCTION;
 
@@ -1107,7 +1148,7 @@ pub fn search(
 
     // Multi-cut: at high depth, if multiple moves fail high at shallow depth,
     // the position is probably good and can be cut
-    if scouting && !in_check && depth >= MULTICUT_MIN_DEPTH && beta.abs() < MATE_START {
+    if excluded_move == 0 && scouting && !in_check && depth >= MULTICUT_MIN_DEPTH && beta.abs() < MATE_START {
         let multicut_depth = depth - MULTICUT_DEPTH_REDUCTION;
         let mut fail_high_count: u8 = 0;
 

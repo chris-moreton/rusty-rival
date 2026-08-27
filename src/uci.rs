@@ -231,12 +231,14 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
                 let now = Instant::now();
                 search_state.end_time = now.add(Duration::from_millis(hard_ms));
                 search_state.soft_time_limit = now.add(Duration::from_millis(soft_ms));
+                search_state.original_soft_time_limit = search_state.soft_time_limit;
                 search_state.time_management_active = true;
             } else {
                 // Exact deadline: explicit movetime, or no clock at all.
                 let end = Instant::now().add(Duration::from_millis(uci_state.move_time));
                 search_state.end_time = end;
                 search_state.soft_time_limit = end;
+                search_state.original_soft_time_limit = end;
                 search_state.time_management_active = false;
             }
 
@@ -671,6 +673,7 @@ fn cmd_go(
         thread_search_state.nodes_limit = nodes_limit;
         thread_search_state.end_time = end_time;
         thread_search_state.soft_time_limit = soft_time_limit;
+        thread_search_state.original_soft_time_limit = soft_time_limit;
         thread_search_state.time_management_active = tm_active;
         thread_search_state.stop = stop_flag.clone();
         thread_search_state.shared_nodes = shared_nodes.clone();
