@@ -7,7 +7,7 @@ use regex::Regex;
 use std::cmp::{max, min};
 use std::ops::Add;
 use std::process::exit;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -20,7 +20,7 @@ use crate::moves::{generate_moves, is_check};
 use crate::datagen::cmd_datagen;
 use crate::perft::perft;
 use crate::search::{clear_countermoves, clear_history_table, clear_killers, iterative_deepening};
-use crate::types::{set_stop, Move, Position, SearchHandle, SearchState, SharedHashTable, UciState, BLACK, WHITE};
+use crate::types::{set_stop, Move, Position, SearchHandle, SearchState, SharedHashTable, StopReason, UciState, BLACK, WHITE};
 use crate::uci_bench::cmd_benchmark;
 use crate::utils::hydrate_move_from_algebraic_move;
 
@@ -145,6 +145,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
     search_state.cutoff_by_index = [0; 5];
     search_state.nodes_limit = u64::MAX;
     set_stop(&search_state.stop, false);
+    search_state.stop_reason.store(StopReason::None as u8, Ordering::Relaxed);
 
     match t {
         "perft" => {
@@ -157,7 +158,10 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
         }
         "infinite" => {
             let mut position = get_position(uci_state.fen.trim());
-            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            let end = Instant::now().add(Duration::from_secs(86400));
+            search_state.end_time = end;
+            search_state.soft_time_limit = end;
+            search_state.original_soft_time_limit = end;
             search_state.time_management_active = false;
             let mv = iterative_deepening(&mut position, 200, search_state, 1);
             Right(Some(format_bestmove(mv, search_state)))
@@ -165,7 +169,10 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
         "mate" => {
             let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
             let mut position = get_position(uci_state.fen.trim());
-            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            let end = Instant::now().add(Duration::from_secs(86400));
+            search_state.end_time = end;
+            search_state.soft_time_limit = end;
+            search_state.original_soft_time_limit = end;
             search_state.time_management_active = false;
             let mv = iterative_deepening(&mut position, mate_depth.saturating_mul(2), search_state, 1);
             Right(Some(format_bestmove(mv, search_state)))
@@ -231,12 +238,14 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
                 let now = Instant::now();
                 search_state.end_time = now.add(Duration::from_millis(hard_ms));
                 search_state.soft_time_limit = now.add(Duration::from_millis(soft_ms));
+                search_state.original_soft_time_limit = search_state.soft_time_limit;
                 search_state.time_management_active = true;
             } else {
                 // Exact deadline: explicit movetime, or no clock at all.
                 let end = Instant::now().add(Duration::from_millis(uci_state.move_time));
                 search_state.end_time = end;
                 search_state.soft_time_limit = end;
+                search_state.original_soft_time_limit = end;
                 search_state.time_management_active = false;
             }
 
@@ -640,6 +649,7 @@ fn cmd_go(
 
     // Create shared flags for this search
     let stop_flag = Arc::new(AtomicBool::new(false));
+    let stop_reason = Arc::new(AtomicU8::new(StopReason::None as u8));
     let shared_nodes = Arc::new(AtomicU64::new(0));
     let pondering = Arc::new(AtomicBool::new(is_ponder));
     let ponder_soft_ms = Arc::new(AtomicU64::new(ponder_soft));
@@ -671,8 +681,10 @@ fn cmd_go(
         thread_search_state.nodes_limit = nodes_limit;
         thread_search_state.end_time = end_time;
         thread_search_state.soft_time_limit = soft_time_limit;
+        thread_search_state.original_soft_time_limit = soft_time_limit;
         thread_search_state.time_management_active = tm_active;
         thread_search_state.stop = stop_flag.clone();
+        thread_search_state.stop_reason = stop_reason.clone();
         thread_search_state.shared_nodes = shared_nodes.clone();
         thread_search_state.thread_id = thread_id;
         thread_search_state.pondering = pondering.clone();

@@ -5,7 +5,7 @@ use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTL
 use crate::nnue;
 use arrayvec::ArrayVec;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Instant;
@@ -22,6 +22,22 @@ pub type Window = (Bound, Bound);
 pub type Score = i32;
 pub type HashLock = u128;
 pub type HashIndex = u32;
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StopReason {
+    None = 0,
+    Predictor = 1,
+    MaxSoft = 2,
+    HardDeadline = 3,
+    External = 4,
+    NodeLimit = 5,
+    SoftDeadline = 6,
+}
+
+pub fn set_stop_reason(reason: &AtomicU8, value: StopReason) {
+    let _ = reason.compare_exchange(StopReason::None as u8, value as u8, Ordering::Relaxed, Ordering::Relaxed);
+}
 /// Lockless shared transposition table.
 ///
 /// Each entry is three relaxed AtomicU64 words: two data words plus a
@@ -456,6 +472,7 @@ pub struct SearchState {
     pub start_time: Instant,
     pub end_time: Instant,
     pub iterative_depth: u8,
+    pub last_completed_depth: u8,
     pub hash_table: Arc<SharedHashTable>,
     pub pawn_hash_table: Arc<PawnHashTable>,
     pub killer_moves: [[Move; NUM_KILLER_MOVES]; MAX_DEPTH as usize],
@@ -534,10 +551,12 @@ pub struct SearchState {
     pub ignore_root_move: Move,
     pub search_moves: Option<Vec<Move>>,
     pub stop: Arc<AtomicBool>,
+    pub stop_reason: Arc<AtomicU8>,
     pub last_info_nodes: u64,
     pub shared_nodes: Arc<AtomicU64>,
     pub thread_id: usize,
     pub soft_time_limit: Instant,
+    pub original_soft_time_limit: Instant,
     // Ceiling for cumulative soft-limit extensions (NET-339). Lives on SearchState
     // (not a local in iterative_deepening) so the ponderhit conversion in
     // check_time! can rebase it on the REAL budget instead of the 24h ponder
@@ -607,6 +626,7 @@ impl Clone for SearchState {
             start_time: self.start_time,
             end_time: self.end_time,
             iterative_depth: self.iterative_depth,
+            last_completed_depth: self.last_completed_depth,
             // Share the hash table via Arc - no 128MB copy!
             hash_table: Arc::clone(&self.hash_table),
             pawn_hash_table: Arc::clone(&self.pawn_hash_table),
@@ -651,10 +671,12 @@ impl Clone for SearchState {
             ignore_root_move: self.ignore_root_move,
             search_moves: self.search_moves.clone(),
             stop: Arc::clone(&self.stop),
+            stop_reason: Arc::clone(&self.stop_reason),
             last_info_nodes: self.last_info_nodes,
             shared_nodes: Arc::clone(&self.shared_nodes),
             thread_id: self.thread_id,
             soft_time_limit: self.soft_time_limit,
+            original_soft_time_limit: self.original_soft_time_limit,
             max_soft_time_limit: self.max_soft_time_limit,
             best_move_stability: self.best_move_stability,
             prev_best_move: self.prev_best_move,
@@ -683,6 +705,7 @@ pub fn default_search_state() -> SearchState {
         start_time: Instant::now(),
         end_time: Instant::now(),
         iterative_depth: 0,
+        last_completed_depth: 0,
         hash_table: Arc::new(SharedHashTable::new()),
         pawn_hash_table: Arc::new(PawnHashTable::new()),
         killer_moves: [[0, 0]; MAX_DEPTH as usize],
@@ -723,10 +746,12 @@ pub fn default_search_state() -> SearchState {
         ignore_root_move: 0,
         search_moves: None,
         stop: Arc::new(AtomicBool::new(false)),
+        stop_reason: Arc::new(AtomicU8::new(StopReason::None as u8)),
         last_info_nodes: 0,
         shared_nodes: Arc::new(AtomicU64::new(0)),
         thread_id: 0,
         soft_time_limit: Instant::now(),
+        original_soft_time_limit: Instant::now(),
         max_soft_time_limit: Instant::now(),
         best_move_stability: 0,
         prev_best_move: 0,

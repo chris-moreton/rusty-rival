@@ -17,7 +17,6 @@ use crate::types::{
 };
 use crate::utils::{from_square_mask, send_info, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
-use std::time::Instant;
 
 #[inline(always)]
 pub fn quiesce_moves(position: &Position) -> MoveList {
