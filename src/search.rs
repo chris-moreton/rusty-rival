@@ -49,7 +49,7 @@ fn apply_eval_noise(score: Score, hash: u64, noise_max: Score) -> Score {
 }
 
 use crate::fen::algebraic_move_from_move;
-use crate::tablebase::{probe_dtz, tablebase_available, TB_MAX_PIECES};
+use crate::tablebase::{can_probe, probe_dtz, tablebase_available};
 
 use crate::bitboards::{bit, north_fill, south_fill, FILE_A_BITS, FILE_H_BITS};
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
@@ -79,6 +79,14 @@ pub const MATE_MARGIN: Score = 1000;
 pub const MATE_START: Score = MATE_SCORE - MATE_MARGIN;
 
 pub const LAST_EXTENSION_LAYER: u8 = 4;
+
+#[inline(always)]
+fn better_tablebase_score(best: Option<Score>, candidate: Score) -> bool {
+    match best {
+        Some(score) => candidate > score,
+        None => true,
+    }
+}
 
 fn emit_net365_diagnostic(search_state: &SearchState) {
     if std::env::var_os("RIVAL_NET365_DIAGNOSTIC").is_none() || search_state.thread_id != 0 {
@@ -274,26 +282,23 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     // unsolicited bestmove (UCI violation / desync — e.g. Ponder + SyzygyPath on
     // Lichess into any ≤6-man position). Those searches fall through to the normal
     // search, which still handles the TB position correctly and respects stop.
-    let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
-    if search_state.time_management_active && tablebase_available() && all_pieces.count_ones() <= TB_MAX_PIECES {
-        let mut best_move: Move = 0;
-        let mut best_score: Score = -MATE_SCORE;
+    if search_state.time_management_active && tablebase_available() && can_probe(position) {
+        let mut best: Option<(Move, Score)> = None;
 
         for (m, _) in &legal_moves {
             let unmake = make_move_in_place(position, *m);
             // Probe DTZ after the move (from opponent's perspective, so negate score)
             if let Some(tb_score) = probe_dtz(position) {
                 let score = -tb_score;
-                if score > best_score {
-                    best_score = score;
-                    best_move = *m;
+                if better_tablebase_score(best.map(|(_, best_score)| best_score), score) {
+                    best = Some((*m, score));
                 }
             }
             unmake_move(position, *m, &unmake);
         }
 
         // If we found a valid TB move, return it immediately
-        if best_move != 0 {
+        if let Some((best_move, best_score)) = best {
             if search_state.thread_id == 0 {
                 println!("info depth 1 score cp {} pv {}", best_score, algebraic_move_from_move(best_move));
             }
@@ -2370,4 +2375,16 @@ fn side_total_non_pawn_count(position: &Position, side: Mover) -> u32 {
         | position.pieces[side as usize].rook_bitboard
         | position.pieces[side as usize].queen_bitboard)
         .count_ones()
+}
+
+#[cfg(test)]
+mod tablebase_root_tests {
+    use super::*;
+
+    #[test]
+    fn an_all_losing_root_still_accepts_its_first_tablebase_score() {
+        assert!(better_tablebase_score(None, -8999));
+        assert!(better_tablebase_score(Some(-8999), -8500));
+        assert!(!better_tablebase_score(Some(-8500), -8999));
+    }
 }

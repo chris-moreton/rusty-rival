@@ -13,11 +13,13 @@ use std::sync::RwLock;
 /// Maximum number of pieces for tablebase probe (6-man tables)
 pub const TB_MAX_PIECES: u32 = 6;
 
-/// Score to return for tablebase wins (high but below mate and below MAX_WINDOW)
-pub const TB_WIN_SCORE: Score = 19000;
+/// Score to return for tablebase wins. This must remain strictly below the
+/// engine's mate band (`MATE_START == 9000`) so TB results are never formatted
+/// or ordered as synthetic mates.
+pub const TB_WIN_SCORE: Score = 8999;
 
 /// Score to return for tablebase losses
-pub const TB_LOSS_SCORE: Score = -19000;
+pub const TB_LOSS_SCORE: Score = -TB_WIN_SCORE;
 
 /// Global tablebase instance (lazy loaded when path is set)
 static TABLEBASE: RwLock<Option<Tablebase<Chess>>> = RwLock::new(None);
@@ -238,13 +240,23 @@ pub fn count_pieces(pos: &Position) -> u32 {
         + 1 // black king
 }
 
+/// Whether a position is safe to probe with the installed Syzygy tables.
+///
+/// Syzygy does not encode castling rights. Dropping live rights while converting
+/// the position would probe a different game state, so reject the whole root
+/// rather than mixing probed and unprobed child moves.
+#[inline(always)]
+pub fn can_probe(pos: &Position) -> bool {
+    count_pieces(pos) <= TB_MAX_PIECES && pos.castle_flags == 0
+}
+
 /// Fast WDL-only probe for use during search (no DTZ probing).
 /// Returns a flat score: TB_WIN_SCORE for wins, TB_LOSS_SCORE for losses, 0 for draws.
 /// This is much faster than probe_dtz() since it avoids the expensive DTZ table lookup.
 #[inline]
 pub fn probe_wdl_only(pos: &Position) -> Option<Score> {
     // Quick check: only probe if we have few enough pieces
-    if count_pieces(pos) > TB_MAX_PIECES {
+    if !can_probe(pos) {
         return None;
     }
 
@@ -275,7 +287,7 @@ pub fn probe_wdl_only(pos: &Position) -> Option<Score> {
 /// prefer probe_wdl_only() which is faster.
 pub fn probe_dtz(pos: &Position) -> Option<Score> {
     // Quick check: only probe if we have few enough pieces
-    if count_pieces(pos) > TB_MAX_PIECES {
+    if !can_probe(pos) {
         return None;
     }
 
@@ -369,5 +381,20 @@ mod tests {
         assert_eq!(convert_square(63), Square::A8);
         // e4 in our system: rank=3, file=4 (e), so square = 3*8 + (7-4) = 27
         assert_eq!(convert_square(27), Square::E4);
+    }
+
+    #[test]
+    fn tablebase_scores_stay_outside_the_mate_band() {
+        assert!(TB_WIN_SCORE < crate::search::MATE_START);
+        assert!(TB_LOSS_SCORE > -crate::search::MATE_START);
+    }
+
+    #[test]
+    fn positions_with_castling_rights_are_not_probeable() {
+        let with_rights = get_position("4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1");
+        let without_rights = get_position("4k3/8/8/8/8/8/8/R3K2R w - - 0 1");
+
+        assert!(!can_probe(&with_rights));
+        assert!(can_probe(&without_rights));
     }
 }
