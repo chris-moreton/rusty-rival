@@ -211,6 +211,7 @@ pub fn next_iteration_fits(last_iteration: Duration, remaining_to_soft: Duration
 
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
     search_state.start_time = Instant::now();
+    search_state.last_completed_depth = 0;
     // NOTE: the stop flag is NOT reset here. Each real `go` creates a fresh stop
     // flag (see cmd_go), so resetting here would race with a stop/quit/second-go
     // that arrived before this line ran, erasing the request and hanging the

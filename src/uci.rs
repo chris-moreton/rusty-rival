@@ -158,7 +158,10 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
         }
         "infinite" => {
             let mut position = get_position(uci_state.fen.trim());
-            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            let end = Instant::now().add(Duration::from_secs(86400));
+            search_state.end_time = end;
+            search_state.soft_time_limit = end;
+            search_state.original_soft_time_limit = end;
             search_state.time_management_active = false;
             let mv = iterative_deepening(&mut position, 200, search_state, 1);
             Right(Some(format_bestmove(mv, search_state)))
@@ -166,7 +169,10 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
         "mate" => {
             let mate_depth = parts.get(2).and_then(|s| s.parse::<u8>().ok()).unwrap_or(100);
             let mut position = get_position(uci_state.fen.trim());
-            search_state.end_time = Instant::now().add(Duration::from_secs(86400));
+            let end = Instant::now().add(Duration::from_secs(86400));
+            search_state.end_time = end;
+            search_state.soft_time_limit = end;
+            search_state.original_soft_time_limit = end;
             search_state.time_management_active = false;
             let mv = iterative_deepening(&mut position, mate_depth.saturating_mul(2), search_state, 1);
             Right(Some(format_bestmove(mv, search_state)))
