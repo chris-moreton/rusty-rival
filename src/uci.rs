@@ -12,6 +12,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use crate::evaluate::evaluate_position;
 use crate::fen::{algebraic_move_from_move, get_fen, get_position};
 use crate::make_move::make_move;
 use crate::move_constants::START_POS;
@@ -277,6 +278,7 @@ pub fn run_command(
         "uci" => cmd_uci(),
         "isready" => cmd_isready(),
         "state" => cmd_state(uci_state, search_state),
+        "eval" => cmd_eval(uci_state, search_state),
         "go" => cmd_go(uci_state, search_state, search_handle, parts),
         "stop" => cmd_stop(search_state, search_handle),
         "ponderhit" => cmd_ponderhit(search_handle),
@@ -432,6 +434,27 @@ pub fn extract_go_param(needle: &str, haystack: &str, default: u64) -> u64 {
 
 fn cmd_state(mut _uci_state: &mut UciState, search_state: &mut SearchState) -> Either<String, Option<String>> {
     Right(Some(format!(r#"Nodes {}"#, search_state.nodes)))
+}
+
+/// Report the raw evaluator output without search or correction history.
+///
+/// Both side-to-move and White-relative scores are included so analysis tools
+/// do not have to infer the perspective from the FEN. This intentionally uses
+/// the same evaluator entry point as search while excluding all search effects.
+fn cmd_eval(uci_state: &UciState, search_state: &mut SearchState) -> Either<String, Option<String>> {
+    let position = get_position(&uci_state.fen);
+    let stm_score = evaluate_position(&position, search_state);
+    let white_score = if position.mover == WHITE { stm_score } else { -stm_score };
+    let evaluator = if search_state.use_nnue && search_state.nnue_network.is_some() {
+        "nnue"
+    } else {
+        "hce"
+    };
+
+    Right(Some(format!(
+        "info string eval raw cp {} white_cp {} evaluator {}",
+        stm_score, white_score, evaluator
+    )))
 }
 
 fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {

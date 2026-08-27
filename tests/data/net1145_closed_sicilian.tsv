@@ -1,0 +1,12 @@
+# NET-1145 source positions from https://lichess.org/BgmRePNr
+# Each row is: label<TAB>UCI position command. Labels identify the position immediately after White's move.
+after_09_Bd2	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2
+after_12_exd5	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2 b7b5 c4a2 c8e6 c3d5 e6d5 e4d5
+after_15_g4	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2 b7b5 c4a2 c8e6 c3d5 e6d5 e4d5 c6d4 f3h2 d4f5 c2c3 g7g6 g2g4
+after_17_Nf3	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2 b7b5 c4a2 c8e6 c3d5 e6d5 e4d5 c6d4 f3h2 d4f5 c2c3 g7g6 g2g4 f5g7 d1e2 f6d7 h2f3
+after_18_Bh6	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2 b7b5 c4a2 c8e6 c3d5 e6d5 e4d5 c6d4 f3h2 d4f5 c2c3 g7g6 g2g4 f5g7 d1e2 f6d7 h2f3 f7f5 d2h6
+after_19_Kh1	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2 b7b5 c4a2 c8e6 c3d5 e6d5 e4d5 c6d4 f3h2 d4f5 c2c3 g7g6 g2g4 f5g7 d1e2 f6d7 h2f3 f7f5 d2h6 a6a5 g1h1
+after_22_hxg4	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2 b7b5 c4a2 c8e6 c3d5 e6d5 e4d5 c6d4 f3h2 d4f5 c2c3 g7g6 g2g4 f5g7 d1e2 f6d7 h2f3 f7f5 d2h6 a6a5 g1h1 f8f7 a1e1 d8b6 f3h2 f5g4 h3g4
+after_26_cxd4	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2 b7b5 c4a2 c8e6 c3d5 e6d5 e4d5 c6d4 f3h2 d4f5 c2c3 g7g6 g2g4 f5g7 d1e2 f6d7 h2f3 f7f5 d2h6 a6a5 g1h1 f8f7 a1e1 d8b6 f3h2 f5g4 h3g4 a8f8 e2d2 e7h4 e1e2 b6d8 d3d4 c5d4 c3d4
+after_29_Kg2	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2 b7b5 c4a2 c8e6 c3d5 e6d5 e4d5 c6d4 f3h2 d4f5 c2c3 g7g6 g2g4 f5g7 d1e2 f6d7 h2f3 f7f5 d2h6 a6a5 g1h1 f8f7 a1e1 d8b6 f3h2 f5g4 h3g4 a8f8 e2d2 e7h4 e1e2 b6d8 d3d4 c5d4 c3d4 e5d4 f2f4 h4g3 h6g5 d8c8 h1g2
+after_33_Bxf8	position startpos moves e2e4 c7c5 b1c3 b8c6 g1f3 e7e5 f1c4 d7d6 h2h3 f8e7 d2d3 g8f6 a2a3 e8g8 e1g1 a7a6 c1d2 b7b5 c4a2 c8e6 c3d5 e6d5 e4d5 c6d4 f3h2 d4f5 c2c3 g7g6 g2g4 f5g7 d1e2 f6d7 h2f3 f7f5 d2h6 a6a5 g1h1 f8f7 a1e1 d8b6 f3h2 f5g4 h3g4 a8f8 e2d2 e7h4 e1e2 b6d8 d3d4 c5d4 c3d4 e5d4 f2f4 h4g3 h6g5 d8c8 h1g2 g3h2 g2h2 d7c5 b2b4 h7h6 g5e7 d4d3 e7f8

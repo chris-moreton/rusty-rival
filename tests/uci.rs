@@ -404,6 +404,40 @@ pub fn it_handles_the_uci_command() {
 }
 
 #[test]
+pub fn it_reports_raw_eval_with_an_explicit_perspective() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+
+    let white = run_command_test(&mut uci_state, &mut search_state, "eval");
+    assert_success_message(white, |message| {
+        message.starts_with("info string eval raw cp ") && message.contains(" white_cp ") && message.ends_with(" evaluator nnue")
+    });
+
+    assert_eq!(
+        run_command_test(
+            &mut uci_state,
+            &mut search_state,
+            "position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1"
+        ),
+        Right(None)
+    );
+    let black = run_command_test(&mut uci_state, &mut search_state, "eval");
+    assert_success_message(black, |message| {
+        let fields = message.split_whitespace().collect::<Vec<_>>();
+        let stm = fields[5].parse::<i32>().unwrap();
+        let white = fields[7].parse::<i32>().unwrap();
+        stm == -white
+    });
+
+    assert_eq!(
+        run_command_test(&mut uci_state, &mut search_state, "setoption name UseNNUE value false"),
+        Right(None)
+    );
+    let hce = run_command_test(&mut uci_state, &mut search_state, "eval");
+    assert_success_message(hce, |message| message.ends_with(" evaluator hce"));
+}
+
+#[test]
 pub fn it_handles_the_debug_command() {
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
