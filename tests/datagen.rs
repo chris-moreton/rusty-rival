@@ -175,8 +175,8 @@ fn parallel_datagen_produces_well_formed_output() {
     clean_shards(&base);
 }
 
-/// Two runs with the same arguments must produce the same data, even across
-/// several worker threads.
+/// The same arguments must produce byte-for-byte-equivalent records regardless
+/// of worker count.
 ///
 /// This is not a nicety — it is the property that makes an interrupted run
 /// resumable, because resume replays game indices and trusts them to reproduce
@@ -197,15 +197,11 @@ fn datagen_output_is_reproducible_across_threads() {
     // countermove table to accumulate, and enough nodes for move ordering to
     // change which move comes back. At 8 games of 800 nodes the two runs agreed
     // even with the bug present.
-    let a = run_datagen_at(&base_a, "24", "4", "3000");
+    let a = run_datagen_at(&base_a, "24", "1", "3000");
     let b = run_datagen_at(&base_b, "24", "4", "3000");
 
     assert!(!a.is_empty(), "datagen produced no positions");
-    assert_eq!(
-        sorted(a),
-        sorted(b),
-        "two identical runs produced different data - some per-game state is leaking between games"
-    );
+    assert_eq!(a, b, "changing the worker count changed the data or its game-index order");
 
     clean_shards(&base_a);
     clean_shards(&base_b);
@@ -267,4 +263,108 @@ fn datagen_extends_a_dataset_to_exactly_the_requested_size() {
 
     clean_shards(&grown);
     clean_shards(&fresh);
+}
+
+/// More than one extension must count every earlier partial shard.
+///
+/// Before this regression test, the scanner stopped after the first partial
+/// shard. A 2 -> 4 -> 6 sequence therefore treated the third invocation as if
+/// only two games existed and overwrote the shard written by the second one.
+#[test]
+fn datagen_survives_repeated_partial_shard_extensions() {
+    let dir = std::env::temp_dir();
+    let grown = dir.join("rusty_rival_datagen_grow_repeated").to_string_lossy().to_string();
+    let fresh = dir.join("rusty_rival_datagen_fresh_repeated").to_string_lossy().to_string();
+    clean_shards(&grown);
+    clean_shards(&fresh);
+
+    run_datagen(&grown, "2", "2");
+    run_datagen(&grown, "4", "2");
+    let extended = run_datagen(&grown, "6", "2");
+    let one_go = run_datagen(&fresh, "6", "2");
+
+    assert_eq!(
+        sorted(extended),
+        sorted(one_go),
+        "a repeatedly extended dataset differs from six games generated in one run"
+    );
+    assert_eq!(
+        shard_files(&grown).len(),
+        3,
+        "each two-game invocation should remain an auditable shard"
+    );
+
+    clean_shards(&grown);
+    clean_shards(&fresh);
+}
+
+/// A malformed file in the generator's reserved shard namespace must stop
+/// resume rather than being ignored and potentially overwritten.
+#[test]
+fn datagen_rejects_malformed_partial_shard_names() {
+    let base = std::env::temp_dir()
+        .join("rusty_rival_datagen_malformed_partial")
+        .to_string_lossy()
+        .to_string();
+    clean_shards(&base);
+    let malformed = format!("{}.00000.pinvalid.zst", base);
+    std::fs::write(&malformed, b"not a shard").expect("cannot create malformed shard fixture");
+
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    let parts = vec!["datagen", "2", "800", &base, "6", "1"];
+    let result = cmd_datagen(&mut uci_state, &mut search_state, parts);
+
+    assert!(
+        result.left().is_some_and(|e| e.contains("invalid partial shard")),
+        "malformed partial shard should fail closed"
+    );
+    clean_shards(&base);
+}
+
+/// A directory cannot stand in for a durable sealed shard.
+#[test]
+fn datagen_rejects_directory_named_as_sealed_shard() {
+    let base = std::env::temp_dir()
+        .join("rusty_rival_datagen_sealed_directory")
+        .to_string_lossy()
+        .to_string();
+    clean_shards(&base);
+    let sealed = format!("{}.00000.zst", base);
+    let _ = std::fs::remove_dir(&sealed);
+    std::fs::create_dir(&sealed).expect("cannot create sealed-shard directory fixture");
+
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    let parts = vec!["datagen", "2", "800", &base, "6", "1"];
+    let result = cmd_datagen(&mut uci_state, &mut search_state, parts);
+
+    assert!(
+        result.left().is_some_and(|e| e.contains("not a regular file")),
+        "sealed-shard directory should fail closed"
+    );
+    std::fs::remove_dir(&sealed).expect("cannot remove sealed-shard directory fixture");
+}
+
+/// A sealed and partial shard cannot both claim the same game-index range.
+#[test]
+fn datagen_rejects_ambiguous_sealed_and_partial_shards() {
+    let base = std::env::temp_dir()
+        .join("rusty_rival_datagen_ambiguous_shards")
+        .to_string_lossy()
+        .to_string();
+    clean_shards(&base);
+    std::fs::write(format!("{}.00000.zst", base), b"sealed").expect("cannot create sealed fixture");
+    std::fs::write(format!("{}.00000.p2.zst", base), b"partial").expect("cannot create partial fixture");
+
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    let parts = vec!["datagen", "2", "800", &base, "6", "1"];
+    let result = cmd_datagen(&mut uci_state, &mut search_state, parts);
+
+    assert!(
+        result.left().is_some_and(|e| e.contains("ambiguous shard")),
+        "conflicting shard files should fail closed"
+    );
+    clean_shards(&base);
 }

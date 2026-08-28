@@ -42,6 +42,7 @@ use either::{Either, Left, Right};
 use num_format::{Locale, ToFormattedString};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -319,43 +320,87 @@ fn short_shard_path(base: &str, n: usize, games: usize) -> String {
 
 /// Games already on disk for this output base, and the shard index to write next.
 ///
-/// Sealed shards are counted from zero and stop at the first gap, so a run that
-/// died mid-write resumes from a contiguous prefix rather than trusting stray
-/// files. A short shard is only ever written at the end of a run, so at most one
-/// can exist and it always sits at the first free index.
-fn scan_shards(base: &str) -> (usize, usize) {
-    let mut sealed = 0;
-    while std::path::Path::new(&shard_path(base, sealed)).exists() {
-        sealed += 1;
-    }
-    match short_shard_games(base, sealed) {
-        Some(games) => (sealed * GAMES_PER_SHARD + games, sealed + 1),
-        None => (sealed * GAMES_PER_SHARD, sealed),
+/// Shards are counted from zero and stop at the first gap, so a run that died
+/// mid-write resumes from a contiguous prefix rather than trusting stray files.
+/// Repeatedly extending a dataset can leave several short shards, one from each
+/// invocation, so every contiguous index must be inspected rather than assuming
+/// there can only be one partial shard.
+fn scan_shards(base: &str) -> Result<(usize, usize), String> {
+    let mut games = 0usize;
+    let mut index = 0usize;
+
+    loop {
+        let sealed_path = shard_path(base, index);
+        let sealed = match std::fs::metadata(&sealed_path) {
+            Ok(metadata) if metadata.is_file() => true,
+            Ok(_) => return Err(format!("datagen: shard path is not a regular file: {}", sealed_path)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+            Err(e) => return Err(format!("datagen: cannot inspect {}: {}", sealed_path, e)),
+        };
+        let short = short_shard_games(base, index)?;
+        match (sealed, short) {
+            (true, None) => games += GAMES_PER_SHARD,
+            (false, Some(short_games)) => games += short_games,
+            (false, None) => return Ok((games, index)),
+            (true, Some(_)) => {
+                return Err(format!("datagen: ambiguous shard {}: both sealed and partial files exist", index));
+            }
+        }
+        index += 1;
     }
 }
 
 /// Game count of the short shard at `index`, if one is present.
-fn short_shard_games(base: &str, index: usize) -> Option<usize> {
+fn short_shard_games(base: &str, index: usize) -> Result<Option<usize>, String> {
     let path = std::path::Path::new(base);
     let dir = match path.parent() {
         Some(p) if !p.as_os_str().is_empty() => p.to_path_buf(),
         _ => std::path::PathBuf::from("."),
     };
-    let stem = path.file_name()?.to_str()?;
+    let stem = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| format!("datagen: invalid output base {}", base))?;
     let prefix = format!("{}.{:05}.p", stem, index);
+    let entries = match std::fs::read_dir(&dir) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("datagen: cannot scan {}: {}", dir.display(), e)),
+    };
+    let mut found = None;
 
-    for entry in std::fs::read_dir(dir).ok()?.flatten() {
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("datagen: cannot read entry in {}: {}", dir.display(), e))?;
         let name = entry.file_name();
-        let name = name.to_str()?;
+        let Some(name) = name.to_str() else { continue };
         if let Some(rest) = name.strip_prefix(&prefix) {
-            if let Some(digits) = rest.strip_suffix(".zst") {
-                if let Ok(games) = digits.parse::<usize>() {
-                    return Some(games);
-                }
+            // flush_shard commits by renaming `<final>.tmp`. A crash may leave
+            // that generator-owned staging file behind; it is not durable data
+            // and must not block the next resume attempt.
+            if name.ends_with(".zst.tmp") {
+                continue;
+            }
+            let digits = rest
+                .strip_suffix(".zst")
+                .ok_or_else(|| format!("datagen: invalid partial shard {}", name))?;
+            let games = digits
+                .parse::<usize>()
+                .map_err(|_| format!("datagen: invalid partial shard {}", name))?;
+            let metadata = entry
+                .metadata()
+                .map_err(|e| format!("datagen: cannot inspect {}: {}", entry.path().display(), e))?;
+            if !metadata.is_file() {
+                return Err(format!("datagen: shard path is not a regular file: {}", entry.path().display()));
+            }
+            if games == 0 || games >= GAMES_PER_SHARD {
+                return Err(format!("datagen: invalid partial shard {} ({} games)", name, games));
+            }
+            if found.replace(games).is_some() {
+                return Err(format!("datagen: multiple partial shards exist at index {}", index));
             }
         }
     }
-    None
+    Ok(found)
 }
 
 /// Per-worker transposition table size. Datagen searches are tiny (a few
@@ -414,7 +459,10 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
     // Resuming is only sound because a game index reproduces the same game
     // regardless of thread count or scheduling - see `game_seed` and the
     // per-game reset in `play_game`.
-    let (resumed_games, next_shard) = scan_shards(&path);
+    let (resumed_games, next_shard) = match scan_shards(&path) {
+        Ok(state) => state,
+        Err(e) => return Left(e),
+    };
     let mut shard_index = next_shard;
     if resumed_games >= games {
         return Right(Some(format!(
@@ -433,16 +481,22 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
 
     let start = Instant::now();
     let stop = Arc::new(AtomicBool::new(false));
-    let (tx, rx) = mpsc::channel::<(Vec<Sample>, Outcome)>();
+    let (tx, rx) = mpsc::channel::<(usize, Result<(Vec<Sample>, Outcome), String>)>();
     // Workers claim game indices from here, so no two play the same game and
     // the assignment does not depend on the thread count.
     let next_game = Arc::new(std::sync::atomic::AtomicUsize::new(resumed_games));
+    // Bound how far workers may run ahead of the durable prefix. Without this,
+    // one unusually slow early game can leave the collector holding the rest of
+    // a multi-day run in memory while it waits to write in index order.
+    let committed_prefix = Arc::new(std::sync::atomic::AtomicUsize::new(resumed_games));
+    let claim_window = threads.saturating_mul(2).max(1);
 
     let mut handles = Vec::with_capacity(threads);
     for worker in 0..threads {
         let tx = tx.clone();
         let stop = Arc::clone(&stop);
         let next_game = Arc::clone(&next_game);
+        let committed_prefix = Arc::clone(&committed_prefix);
         let handle = thread::Builder::new().stack_size(WORKER_STACK_BYTES).spawn(move || {
             let mut uci_state = default_uci_state();
             let mut search_state = default_search_state();
@@ -454,6 +508,12 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
             );
 
             while !stop.load(Ordering::Relaxed) {
+                while next_game.load(Ordering::Acquire) >= committed_prefix.load(Ordering::Acquire).saturating_add(claim_window) {
+                    if stop.load(Ordering::Relaxed) {
+                        return;
+                    }
+                    thread::yield_now();
+                }
                 // Claim the next game index; its seed is a pure function of that
                 // index, so the game played is identical on any thread count and
                 // on a resumed run.
@@ -483,12 +543,16 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
                         break;
                     }
                 }
-                if let Some(outcome) = produced {
-                    // A send error means the collector has finished and dropped
-                    // the receiver, so there is nothing left to do.
-                    if tx.send((samples, outcome)).is_err() {
-                        break;
-                    }
+                let result = produced.map(|outcome| (samples, outcome)).ok_or_else(|| {
+                    format!(
+                        "datagen: game index {} produced no valid opening after {} attempts",
+                        index, MAX_OPENING_ATTEMPTS
+                    )
+                });
+                // A send error means the collector has finished and dropped
+                // the receiver, so there is nothing left to do.
+                if tx.send((index, result)).is_err() {
+                    break;
                 }
             }
         });
@@ -508,47 +572,71 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
     // Positions buffered for the shard currently being filled.
     let mut shard_buf: Vec<u8> = Vec::new();
     let mut games_in_shard = 0usize;
+    // Completion order depends on thread scheduling, but a durable shard must
+    // represent a contiguous game-index range: resume starts at the number of
+    // games on disk. Buffer the small out-of-order frontier and commit only the
+    // next expected index, otherwise a crash can make resume duplicate a slow
+    // early game and permanently skip a fast later one.
+    let mut completed = BTreeMap::new();
+    let mut next_to_write = resumed_games;
+    let games_to_play = games - resumed_games;
 
-    for (samples, outcome) in rx {
-        for s in &samples {
-            if writeln!(shard_buf, "{} | {} | {}", s.fen, s.score, outcome.wdl()).is_err() {
-                write_error = Some("datagen: formatting failed".to_string());
-                break;
-            }
-        }
-        if write_error.is_some() {
-            break;
-        }
-        games_in_shard += 1;
-        if games_in_shard == GAMES_PER_SHARD {
-            if let Err(e) = flush_shard(&shard_path(&path, shard_index), &shard_buf) {
+    for (index, result) in rx {
+        let (samples, outcome) = match result {
+            Ok(game) => game,
+            Err(e) => {
                 write_error = Some(e);
                 break;
             }
-            shard_index += 1;
-            shard_buf.clear();
-            games_in_shard = 0;
+        };
+        completed.insert(index, (samples, outcome));
+
+        while let Some((samples, outcome)) = completed.remove(&next_to_write) {
+            for s in &samples {
+                if writeln!(shard_buf, "{} | {} | {}", s.fen, s.score, outcome.wdl()).is_err() {
+                    write_error = Some("datagen: formatting failed".to_string());
+                    break;
+                }
+            }
+            if write_error.is_some() {
+                break;
+            }
+            games_in_shard += 1;
+            if games_in_shard == GAMES_PER_SHARD {
+                if let Err(e) = flush_shard(&shard_path(&path, shard_index), &shard_buf) {
+                    write_error = Some(e);
+                    break;
+                }
+                shard_index += 1;
+                shard_buf.clear();
+                games_in_shard = 0;
+            }
+
+            total_positions += samples.len() as u64;
+            played_games += 1;
+            next_to_write += 1;
+            committed_prefix.store(next_to_write, Ordering::Release);
+            results[match outcome {
+                Outcome::WhiteWin => 0,
+                Outcome::Draw => 1,
+                Outcome::BlackWin => 2,
+            }] += 1;
+
+            if played_games.is_multiple_of(10) {
+                println!(
+                    "{} games, {} positions ({:.0} pos/game), {:.1}s",
+                    played_games,
+                    total_positions.to_formatted_string(&Locale::en),
+                    total_positions as f64 / played_games as f64,
+                    start.elapsed().as_secs_f64()
+                );
+            }
+
+            if played_games >= games_to_play {
+                break;
+            }
         }
-
-        total_positions += samples.len() as u64;
-        played_games += 1;
-        results[match outcome {
-            Outcome::WhiteWin => 0,
-            Outcome::Draw => 1,
-            Outcome::BlackWin => 2,
-        }] += 1;
-
-        if played_games.is_multiple_of(10) {
-            println!(
-                "{} games, {} positions ({:.0} pos/game), {:.1}s",
-                played_games,
-                total_positions.to_formatted_string(&Locale::en),
-                total_positions as f64 / played_games as f64,
-                start.elapsed().as_secs_f64()
-            );
-        }
-
-        if played_games >= games {
+        if write_error.is_some() || played_games >= games_to_play {
             break;
         }
     }
@@ -561,6 +649,13 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
         let _ = h.join();
     }
 
+    let incomplete_error = (played_games != games_to_play).then(|| {
+        format!(
+            "datagen: generated {} of {} requested games; first missing game index is {}",
+            played_games, games_to_play, next_to_write
+        )
+    });
+
     // Trailing short shard - the run finished (or was stopped) mid-shard. Its
     // game count goes in the filename so a later run can resume from an exact
     // total rather than assuming a full shard's worth (see `short_shard_path`).
@@ -570,6 +665,13 @@ pub fn cmd_datagen(_uci_state: &mut UciState, _search_state: &mut SearchState, p
         } else {
             shard_index += 1;
         }
+    }
+
+    // Preserve every contiguous completed game before reporting a later gap.
+    // A retry can then resume at this exact durable prefix instead of replaying
+    // work that was already valid and available in shard_buf.
+    if write_error.is_none() {
+        write_error = incomplete_error;
     }
 
     if let Some(e) = write_error {
