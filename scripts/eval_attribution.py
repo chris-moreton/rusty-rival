@@ -26,12 +26,19 @@ class UciEngine:
         )
         assert self.process.stdin is not None
         assert self.process.stdout is not None
-        self.send("uci")
-        self.read_until(lambda line: line == "uciok")
-        self.send("setoption name Threads value 1")
-        self.send("setoption name Hash value 64")
-        self.send("isready")
-        self.read_until(lambda line: line == "readyok")
+        try:
+            self.send("uci")
+            self.read_until(lambda line: line == "uciok")
+            self.send("setoption name Threads value 1")
+            self.send("setoption name Hash value 64")
+            self.send("isready")
+            self.read_until(lambda line: line == "readyok")
+        except BaseException:
+            try:
+                self.close()
+            except Exception:
+                pass
+            raise
 
     def send(self, command: str) -> None:
         assert self.process.stdin is not None
@@ -49,8 +56,20 @@ class UciEngine:
         raise RuntimeError("engine exited before completing command")
 
     def close(self) -> None:
-        self.send("quit")
-        self.process.wait(timeout=5)
+        if self.process.poll() is not None:
+            return
+        try:
+            self.send("quit")
+            self.process.wait(timeout=5)
+        except (BrokenPipeError, subprocess.TimeoutExpired):
+            if self.process.poll() is not None:
+                return
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait(timeout=2)
 
 
 def load_positions(path: Path) -> list[tuple[str, str]]:
@@ -62,7 +81,14 @@ def load_positions(path: Path) -> list[tuple[str, str]]:
             label, command = raw.split("\t", 1)
         except ValueError as exc:
             raise ValueError(f"{path}:{number}: expected label<TAB>position command") from exc
-        if not command.startswith("position "):
+        if command.startswith("position startpos"):
+            pass
+        elif command.startswith("position fen "):
+            fen_text = command.partition("position fen ")[2].partition(" moves ")[0]
+            fen = fen_text.split()
+            if len(fen) not in (4, 6) or fen[1] not in ("w", "b"):
+                raise ValueError(f"{path}:{number}: malformed FEN position command")
+        else:
             raise ValueError(f"{path}:{number}: expected a UCI position command")
         positions.append((label, command))
     return positions
@@ -127,22 +153,24 @@ def main() -> int:
     parser.add_argument("--nodes", type=positive_int, default=200_000)
     args = parser.parse_args()
 
-    rival = UciEngine(args.rival)
-    stockfish = UciEngine(args.stockfish)
-    writer = csv.writer(sys.stdout)
-    writer.writerow(
-        [
-            "label",
-            "rival_nnue_cp",
-            "rival_hce_cp",
-            "rival_search_cp",
-            "stockfish_static_cp",
-            "stockfish_search_cp",
-            "raw_nnue_gap_cp",
-            "search_gap_cp",
-        ]
-    )
+    rival = None
+    stockfish = None
     try:
+        rival = UciEngine(args.rival)
+        stockfish = UciEngine(args.stockfish)
+        writer = csv.writer(sys.stdout)
+        writer.writerow(
+            [
+                "label",
+                "rival_nnue_cp",
+                "rival_hce_cp",
+                "rival_search_cp",
+                "stockfish_static_cp",
+                "stockfish_search_cp",
+                "raw_nnue_gap_cp",
+                "search_gap_cp",
+            ]
+        )
         for label, position in load_positions(args.positions):
             white_stm = white_to_move(position)
             rival.send(position)
@@ -167,8 +195,12 @@ def main() -> int:
             )
             sys.stdout.flush()
     finally:
-        rival.close()
-        stockfish.close()
+        try:
+            if rival is not None:
+                rival.close()
+        finally:
+            if stockfish is not None:
+                stockfish.close()
     return 0
 
 
