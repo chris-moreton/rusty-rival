@@ -23,6 +23,14 @@ jobs:
       - name: Check live SPSA LMP defaults
         run: python3 chess-compete/scripts/check_lmp_contract.py --engine-root "$GITHUB_WORKSPACE"
 
+  python-tools:
+    name: Python tools
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test evaluation attribution parser
+        run: python3 -m unittest scripts/test_eval_attribution.py
+
   check:
     name: Check
     runs-on: ubuntu-latest
