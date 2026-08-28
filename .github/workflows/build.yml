@@ -26,8 +26,12 @@ jobs:
   python-tools:
     name: Python tools
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
       - name: Test evaluation attribution parser
         run: python3 -m unittest scripts/test_eval_attribution.py
 

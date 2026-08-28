@@ -138,11 +138,11 @@ def parse_exact_score(
         line
         for line in lines
         if re.search(r"\bscore cp -?\d+", line)
-        and " lowerbound" not in line
-        and " upperbound" not in line
     ]
     if not score_lines:
         raise RuntimeError("search produced no centipawn score")
+    if " lowerbound" in score_lines[-1] or " upperbound" in score_lines[-1]:
+        raise RuntimeError("final search score is bounded")
     score = re.search(r"\bscore cp (-?\d+)", score_lines[-1])
     if score is None:
         raise RuntimeError("could not parse final exact search score")
@@ -159,10 +159,10 @@ def parse_exact_score(
         searched_depth = re.search(r"\bdepth (\d+)", score_lines[-1])
         if searched_depth is None:
             raise RuntimeError("final search score did not report its depth")
-        if int(searched_depth.group(1)) < depth:
+        if int(searched_depth.group(1)) != depth:
             raise RuntimeError(
                 f"final exact score was reported at depth {searched_depth.group(1)}; "
-                f"expected at least {depth}"
+                f"expected exactly {depth}"
             )
     stm_score = int(score.group(1))
     return stm_score if white_stm else -stm_score
@@ -180,13 +180,7 @@ def searched_score(
     engine.send(f"go {limit}")
     lines = engine.read_until(lambda line: line.startswith("bestmove "))
     score = parse_exact_score(lines, white_stm, nodes=nodes, depth=depth)
-    exact_lines = [
-        line
-        for line in lines
-        if re.search(r"\bscore cp -?\d+", line)
-        and " lowerbound" not in line
-        and " upperbound" not in line
-    ]
+    exact_lines = [line for line in lines if re.search(r"\bscore cp -?\d+", line)]
     pv_match = re.search(r"\bpv (.+)$", exact_lines[-1])
     bestmove_parts = lines[-1].split()
     bestmove = bestmove_parts[1] if len(bestmove_parts) > 1 else ""
