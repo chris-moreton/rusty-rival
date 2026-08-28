@@ -121,11 +121,18 @@ def searched_score(engine: UciEngine, nodes: int, white_stm: bool) -> int:
     engine.send("setoption name Clear Hash")
     engine.send(f"go nodes {nodes}")
     lines = engine.read_until(lambda line: line.startswith("bestmove "))
-    scores = [re.search(r"\bscore cp (-?\d+)", line) for line in lines]
-    scores = [match for match in scores if match is not None]
-    if not scores:
+    score_lines = [line for line in lines if re.search(r"\bscore cp -?\d+", line)]
+    if not score_lines:
         raise RuntimeError("search produced no centipawn score")
-    stm_score = int(scores[-1].group(1))
+    score = re.search(r"\bscore cp (-?\d+)", score_lines[-1])
+    searched_nodes = re.search(r"\bnodes (\d+)", score_lines[-1])
+    if score is None or searched_nodes is None:
+        raise RuntimeError("final search score did not report its node count")
+    if int(searched_nodes.group(1)) < nodes:
+        raise RuntimeError(
+            f"search stopped after {searched_nodes.group(1)} nodes; expected at least {nodes}"
+        )
+    stm_score = int(score.group(1))
     return stm_score if white_stm else -stm_score
 
 
