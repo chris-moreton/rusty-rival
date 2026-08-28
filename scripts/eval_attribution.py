@@ -121,7 +121,13 @@ def searched_score(engine: UciEngine, nodes: int, white_stm: bool) -> int:
     engine.send("setoption name Clear Hash")
     engine.send(f"go nodes {nodes}")
     lines = engine.read_until(lambda line: line.startswith("bestmove "))
-    score_lines = [line for line in lines if re.search(r"\bscore cp -?\d+", line)]
+    score_lines = [
+        line
+        for line in lines
+        if re.search(r"\bscore cp -?\d+", line)
+        and " lowerbound" not in line
+        and " upperbound" not in line
+    ]
     if not score_lines:
         raise RuntimeError("search produced no centipawn score")
     score = re.search(r"\bscore cp (-?\d+)", score_lines[-1])
