@@ -1,4 +1,5 @@
 import unittest
+from collections.abc import Callable
 
 from scripts.eval_attribution import UciEngine, parse_exact_score
 
@@ -8,10 +9,10 @@ class ParseExactScoreTest(unittest.TestCase):
         engine = object.__new__(UciEngine)
         events = []
 
-        def send(command):
+        def send(command: str) -> None:
             events.append(("send", command))
 
-        def read_until(done):
+        def read_until(done: Callable[[str], bool]) -> list[str]:
             events.append(("read", done("readyok")))
             return ["readyok"]
 
