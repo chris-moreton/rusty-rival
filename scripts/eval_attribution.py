@@ -12,6 +12,13 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import NamedTuple
+
+
+class SearchResult(NamedTuple):
+    score: int
+    bestmove: str
+    pv: str
 
 
 class UciEngine:
@@ -71,6 +78,12 @@ class UciEngine:
                 self.process.kill()
                 self.process.wait(timeout=2)
 
+    def new_game(self) -> None:
+        """Reset engine heuristics before measuring an independent position."""
+        self.send("ucinewgame")
+        self.send("isready")
+        self.read_until(lambda line: line == "readyok")
+
 
 def load_positions(path: Path) -> list[tuple[str, str]]:
     positions = []
@@ -117,29 +130,61 @@ def rival_raw(engine: UciEngine, use_nnue: bool) -> int:
     return int(match.group(1))
 
 
-def searched_score(engine: UciEngine, nodes: int, white_stm: bool) -> int:
-    engine.send("setoption name Clear Hash")
-    engine.send(f"go nodes {nodes}")
-    lines = engine.read_until(lambda line: line.startswith("bestmove "))
+def parse_exact_score(
+    lines: list[str], white_stm: bool, *, nodes: int | None = None, depth: int | None = None
+) -> int:
+    """Return the final exact score after validating the requested search limit."""
     score_lines = [
         line
         for line in lines
         if re.search(r"\bscore cp -?\d+", line)
-        and " lowerbound" not in line
-        and " upperbound" not in line
     ]
     if not score_lines:
         raise RuntimeError("search produced no centipawn score")
+    if " lowerbound" in score_lines[-1] or " upperbound" in score_lines[-1]:
+        raise RuntimeError("final search score is bounded")
     score = re.search(r"\bscore cp (-?\d+)", score_lines[-1])
-    searched_nodes = re.search(r"\bnodes (\d+)", score_lines[-1])
-    if score is None or searched_nodes is None:
-        raise RuntimeError("final search score did not report its node count")
-    if int(searched_nodes.group(1)) < nodes:
-        raise RuntimeError(
-            f"search stopped after {searched_nodes.group(1)} nodes; expected at least {nodes}"
-        )
+    if score is None:
+        raise RuntimeError("could not parse final exact search score")
+    if nodes is not None:
+        searched_nodes = re.search(r"\bnodes (\d+)", score_lines[-1])
+        if searched_nodes is None:
+            raise RuntimeError("final search score did not report its node count")
+        if int(searched_nodes.group(1)) < nodes:
+            raise RuntimeError(
+                f"final exact score was reported after {searched_nodes.group(1)} nodes; "
+                f"expected at least {nodes}"
+            )
+    if depth is not None:
+        searched_depth = re.search(r"\bdepth (\d+)", score_lines[-1])
+        if searched_depth is None:
+            raise RuntimeError("final search score did not report its depth")
+        if int(searched_depth.group(1)) != depth:
+            raise RuntimeError(
+                f"final exact score was reported at depth {searched_depth.group(1)}; "
+                f"expected exactly {depth}"
+            )
     stm_score = int(score.group(1))
     return stm_score if white_stm else -stm_score
+
+
+def searched_score(
+    engine: UciEngine, white_stm: bool, *, nodes: int | None = None, depth: int | None = None
+) -> SearchResult:
+    if (nodes is None) == (depth is None):
+        raise RuntimeError(
+            "searched_score requires exactly one of nodes or depth"
+        )
+    engine.send("setoption name Clear Hash")
+    limit = f"nodes {nodes}" if nodes is not None else f"depth {depth}"
+    engine.send(f"go {limit}")
+    lines = engine.read_until(lambda line: line.startswith("bestmove "))
+    score = parse_exact_score(lines, white_stm, nodes=nodes, depth=depth)
+    exact_lines = [line for line in lines if re.search(r"\bscore cp -?\d+", line)]
+    pv_match = re.search(r"\bpv (.+)$", exact_lines[-1])
+    bestmove_parts = lines[-1].split()
+    bestmove = bestmove_parts[1] if len(bestmove_parts) > 1 else ""
+    return SearchResult(score, bestmove, pv_match.group(1) if pv_match else "")
 
 
 def stockfish_static(engine: UciEngine) -> int:
@@ -163,8 +208,12 @@ def main() -> int:
     parser.add_argument("--rival", required=True)
     parser.add_argument("--stockfish", required=True)
     parser.add_argument("--positions", type=Path, required=True)
-    parser.add_argument("--nodes", type=positive_int, default=200_000)
+    limits = parser.add_mutually_exclusive_group()
+    limits.add_argument("--nodes", type=positive_int)
+    limits.add_argument("--depth", type=positive_int)
     args = parser.parse_args()
+    if args.nodes is None and args.depth is None:
+        args.nodes = 200_000
 
     rival = None
     stockfish = None
@@ -178,32 +227,42 @@ def main() -> int:
                 "rival_nnue_cp",
                 "rival_hce_cp",
                 "rival_search_cp",
+                "rival_bestmove",
+                "rival_pv",
                 "stockfish_static_cp",
                 "stockfish_search_cp",
+                "stockfish_bestmove",
+                "stockfish_pv",
                 "raw_nnue_gap_cp",
                 "search_gap_cp",
             ]
         )
         for label, position in load_positions(args.positions):
             white_stm = white_to_move(position)
+            rival.new_game()
+            stockfish.new_game()
             rival.send(position)
             stockfish.send(position)
             rr_nnue = rival_raw(rival, True)
             rr_hce = rival_raw(rival, False)
             rival.send("setoption name UseNNUE value true")
-            rr_search = searched_score(rival, args.nodes, white_stm)
+            rr_search = searched_score(rival, white_stm, nodes=args.nodes, depth=args.depth)
             sf_static = stockfish_static(stockfish)
-            sf_search = searched_score(stockfish, args.nodes, white_stm)
+            sf_search = searched_score(stockfish, white_stm, nodes=args.nodes, depth=args.depth)
             writer.writerow(
                 [
                     label,
                     rr_nnue,
                     rr_hce,
-                    rr_search,
+                    rr_search.score,
+                    rr_search.bestmove,
+                    rr_search.pv,
                     sf_static,
-                    sf_search,
+                    sf_search.score,
+                    sf_search.bestmove,
+                    sf_search.pv,
                     rr_nnue - sf_static,
-                    rr_search - sf_search,
+                    rr_search.score - sf_search.score,
                 ]
             )
             sys.stdout.flush()
