@@ -6,13 +6,24 @@ from scripts.eval_attribution import UciEngine, parse_exact_score
 class ParseExactScoreTest(unittest.TestCase):
     def test_new_game_waits_for_engine_reset(self):
         engine = object.__new__(UciEngine)
-        commands = []
-        engine.send = commands.append
-        engine.read_until = lambda done: ["readyok"] if done("readyok") else []
+        events = []
+
+        def send(command):
+            events.append(("send", command))
+
+        def read_until(done):
+            events.append(("read", done("readyok")))
+            return ["readyok"]
+
+        engine.send = send
+        engine.read_until = read_until
 
         engine.new_game()
 
-        self.assertEqual(commands, ["ucinewgame", "isready"])
+        self.assertEqual(
+            events,
+            [("send", "ucinewgame"), ("send", "isready"), ("read", True)],
+        )
 
     def test_accepts_exact_score_at_requested_node_count(self):
         lines = [
