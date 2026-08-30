@@ -474,7 +474,7 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
     for g in 0..count {
         let engine_1_colour = if g % 2 == 0 { WHITE } else { BLACK };
         let mut position = get_position(START_POS);
-        let final_position = loop {
+        let (final_position, final_legal_move_count) = loop {
             set_stop(&search_state.stop, false);
             search_state.end_time = Instant::now().add(Duration::from_millis(millis));
             let mv = iterative_deepening(&mut position, 100_u8, search_state, 1);
@@ -489,13 +489,15 @@ fn cmd_mvm(search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, O
                     legal_move_count += 1;
                 }
             }
-            if new_position.half_moves > 100 || legal_move_count == 0 {
-                break new_position;
+            if new_position.half_moves >= 100 || legal_move_count == 0 {
+                break (new_position, legal_move_count);
             }
 
             position = new_position
         };
-        if final_position.half_moves > 100 || !is_check(&final_position, final_position.mover) {
+        if (final_position.half_moves >= 100 && final_legal_move_count > 0)
+            || (final_legal_move_count == 0 && !is_check(&final_position, final_position.mover))
+        {
             draws += 1;
         } else if final_position.mover == engine_1_colour {
             engine_2_wins += 1;
