@@ -546,6 +546,9 @@ pub struct SearchState {
     pub pv: HashMap<Move, PathScore>,
     pub hash_clashes: u64,
     pub history: PositionHistory,
+    /// Earliest real-game history entry visible to repetition detection.
+    /// Temporarily advanced while searching below a synthetic null move.
+    pub(crate) repetition_history_start: usize,
     pub multi_pv: u8,
     pub contempt: Score,
     pub ignore_root_move: Move,
@@ -666,6 +669,7 @@ impl Clone for SearchState {
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
             history: self.history.clone(),
+            repetition_history_start: self.repetition_history_start,
             multi_pv: self.multi_pv,
             contempt: self.contempt,
             ignore_root_move: self.ignore_root_move,
@@ -741,6 +745,7 @@ pub fn default_search_state() -> SearchState {
         pv: HashMap::new(),
         hash_clashes: 0,
         history: vec![],
+        repetition_history_start: 0,
         multi_pv: 1,
         contempt: 0,
         ignore_root_move: 0,
