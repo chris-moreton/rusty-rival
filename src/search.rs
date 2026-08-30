@@ -1815,10 +1815,11 @@ pub fn search(
 #[inline(always)]
 pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> bool {
     // Order checks from cheapest to most expensive (short-circuit evaluation)
-    // 1. 50-move rule: single comparison
+    // 1. 50-move rule: single comparison except for the rare in-check boundary,
+    //    where checkmate must take precedence over a draw claim (NET-225)
     // 2. Repetition: iterates history but usually short
     // 3. Insufficient material: piece counting, only at ply > 6
-    position.half_moves >= 100
+    is_fifty_move_draw(position)
         || is_repeat_position(position, search_state)
         || (ply > 6
             && insufficient_material(
@@ -1827,6 +1828,30 @@ pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> 
                     + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8,
                 true,
             ))
+}
+
+#[inline]
+fn is_fifty_move_draw(position: &Position) -> bool {
+    if position.half_moves < 100 {
+        return false;
+    }
+
+    // A mating move ends the game before a 50-move draw can be claimed. Most
+    // boundary positions are not in check and retain the original one-compare
+    // fast path; only an in-check position needs to test for a legal evasion.
+    if !is_check(position, position.mover) {
+        return true;
+    }
+
+    for mv in generate_moves(position) {
+        let mut child = *position;
+        make_move_in_place(&mut child, mv);
+        if !is_check(&child, position.mover) {
+            return true;
+        }
+    }
+
+    false
 }
 
 #[inline(always)]

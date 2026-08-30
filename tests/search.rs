@@ -199,6 +199,12 @@ fn it_recognises_a_draw() {
     let mut search_state = default_search_state();
     assert!(is_draw(&position, &mut search_state, 5));
 
+    // Checkmate ends the game before a 50-move draw can be claimed, even when
+    // the mating move lands exactly on the 100th reversible halfmove.
+    let position = get_position("7k/6Q1/5K2/8/8/8/8/8 b - - 100 1");
+    let mut search_state = default_search_state();
+    assert!(!is_draw(&position, &mut search_state, 5));
+
     let position = get_position("6k1/8/8/4K3/8/7n/7P/8 b - - 0 1");
     let mut search_state = default_search_state();
     assert!(!is_draw(&position, &mut search_state, 5));
