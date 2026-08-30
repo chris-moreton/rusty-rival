@@ -1,4 +1,4 @@
-use crate::bitboards::{bit, test_bit, A1_BIT, A8_BIT, H1_BIT, H8_BIT};
+use crate::bitboards::{bit, test_bit, A1_BIT, A8_BIT, H1_BIT, H8_BIT, PAWN_MOVES_CAPTURE};
 use crate::hash::{
     en_passant_zobrist_key_index, ZOBRIST_KEYS_CASTLE, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEYS_PIECES, ZOBRIST_KEY_MOVER_SWITCH,
     ZOBRIST_PIECE_INDEX_BISHOP, ZOBRIST_PIECE_INDEX_KING, ZOBRIST_PIECE_INDEX_KNIGHT, ZOBRIST_PIECE_INDEX_PAWN, ZOBRIST_PIECE_INDEX_QUEEN,
@@ -125,7 +125,13 @@ fn make_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
     position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
 
     position.en_passant_square = if from ^ to == 16 {
-        from + if position.mover == WHITE { 8 } else { -8 }
+        let ep_square = from + if position.mover == WHITE { 8 } else { -8 };
+        let enemy_pawns = position.pieces[opponent!(position.mover) as usize].pawn_bitboard;
+        if enemy_pawns & PAWN_MOVES_CAPTURE[position.mover as usize][ep_square as usize] != 0 {
+            ep_square
+        } else {
+            EN_PASSANT_NOT_AVAILABLE
+        }
     } else {
         EN_PASSANT_NOT_AVAILABLE
     };

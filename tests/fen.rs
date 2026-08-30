@@ -172,7 +172,19 @@ fn it_creates_a_position_from_a_fen() {
     assert_eq!(position.pieces[BLACK as usize].bishop_bitboard, 0);
     assert_eq!(position.pieces[BLACK as usize].queen_bitboard, 8796093022208);
     assert_eq!(position.pieces[BLACK as usize].rook_bitboard, 16384);
-    assert_eq!(position.en_passant_square, 17);
+    assert_eq!(position.en_passant_square, EN_PASSANT_NOT_AVAILABLE);
+}
+
+#[test]
+fn it_keeps_only_capturable_en_passant_from_fen() {
+    let capturable = get_position("4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1");
+    assert_eq!(capturable.en_passant_square, bitref_from_algebraic_squareref("e3".to_string()));
+
+    let phantom = get_position("4k3/8/8/8/4P3/8/8/4K3 b - e3 0 1");
+    assert_eq!(phantom.en_passant_square, EN_PASSANT_NOT_AVAILABLE);
+
+    let canonical = get_position("4k3/8/8/8/4P3/8/8/4K3 b - - 0 1");
+    assert_eq!(phantom.zobrist_lock, canonical.zobrist_lock);
 }
 
 #[test]

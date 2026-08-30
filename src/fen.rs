@@ -1,4 +1,4 @@
-use crate::bitboards::bit;
+use crate::bitboards::{bit, PAWN_MOVES_CAPTURE};
 use crate::hash::zobrist_lock;
 use crate::move_constants::{
     BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK,
@@ -219,8 +219,9 @@ pub fn get_position(fen: &str) -> Position {
     //
     // Geometry: squares 16..=23 mean White has just double-pushed (so Black is
     // to move and the capturable White pawn sits at ep+8); 40..=47 is the
-    // mirror. This deliberately keeps "phantom" EP squares that are legal but
-    // uncapturable - narrowing those is NET-220 and changes search behaviour.
+    // mirror. Uncapturable ("phantom") EP squares are canonicalised away so
+    // identical positions share repetition and transposition-table keys
+    // (NET-220).
     let raw_ep = en_passant_bit_ref(en_passant_fen_part(fen));
     let en_passant_square = if raw_ep == EN_PASSANT_UNAVAILABLE {
         EN_PASSANT_UNAVAILABLE
@@ -232,7 +233,9 @@ pub fn get_position(fen: &str) -> Position {
             40..=47 => mover == WHITE && (bp & bit(pawn_sq)) != 0,
             _ => false,
         };
-        if plausible && all_occupied & ep_bit == 0 {
+        let capturer_pawns = if mover == WHITE { wp } else { bp };
+        let capturable = plausible && capturer_pawns & PAWN_MOVES_CAPTURE[(mover ^ 1) as usize][raw_ep as usize] != 0;
+        if capturable && all_occupied & ep_bit == 0 {
             raw_ep
         } else {
             EN_PASSANT_UNAVAILABLE

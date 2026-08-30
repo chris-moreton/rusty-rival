@@ -86,7 +86,7 @@ pub fn it_handles_the_movelist() {
         run_command_test(&mut uci_state, &mut search_state, "position startpos moves e2e4 e7e5 d2d4"),
         Right(None)
     );
-    assert_eq!(uci_state.fen, "rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2");
+    assert_eq!(uci_state.fen, "rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq - 0 2");
 
     assert_eq!(run_command_test(&mut uci_state, &mut search_state, "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 e1g1 f6e4 f1e1 e4d6 f3e5 f8e7 b5f1 c6e5 e1e5 e8g8 d2d4 e7f6 e5e1 f8e8 c2c3 e8e1 d1e1 d6e8 c1f4 d7d5 b1d2 g7g6 d2f3 e8g7 e1e3 c7c6 a1e1 c8e6 f3e5 d8a5 a2a3 a8e8 e5d3 a5d8 e3d2 e6f5 e1e8 d8e8 d2e3 e8e3 f4e3 g6g5 f1e2 f5g4 e2g4 f6e7 g4c8 g7f5 c8f5 e7f8 f5c8 f8h6 c8b7 g8h8 h2h4 h8g8 h4g5"), Right(None));
     assert_eq!(run_command_test(&mut uci_state, &mut search_state, "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 d2d3 f8c5 b5c6 d7c6 b1d2 c8e6 e1g1 c5d6 b2b3 e8g8 d2c4 e6c4 b3c4 f6d7 a1b1 b7b6 g2g3 f7f5 e4f5 f8f5 c1e3 d8e8 f3d2 e8g6 d2e4 a8f8 g1g2 d7f6 d1e2 f6e4 d3e4 f5f3 g2g1 g6e4 f1e1 c6c5 e2d3 e4g4 e1e2 h7h5 d3d5 g8h8 b1e1 a7a5 e3d2 f3a3 d2c1 a3a2 e2e5 d6e5 e1e5 g7g6 c1f4 a2a1"), Right(None));
