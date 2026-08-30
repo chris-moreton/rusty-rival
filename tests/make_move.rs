@@ -53,7 +53,7 @@ pub fn it_calculates_correct_zobrist_after_simple_pawn_move() {
         &mut new_position,
     );
     assert_eq!(
-        "rnbqkbrQ/ppp1pp2/5n2/3p4/1P1P4/2N5/P1P1P1PP/R1BQKBNR b KQq b3 0 1",
+        "rnbqkbrQ/ppp1pp2/5n2/3p4/1P1P4/2N5/P1P1P1PP/R1BQKBNR b KQq - 0 1",
         get_fen(&new_position)
     );
     assert_eq!(zobrist_lock(&new_position), new_position.zobrist_lock);
@@ -66,7 +66,7 @@ pub fn it_calculates_correct_zobrist_after_simple_pawn_move() {
         &mut new_position,
     );
     assert_eq!(
-        "rnbqkbrQ/pp2pp2/5n2/2pp4/1P1P4/2N5/P1P1P1PP/R1BQKBNR w KQq c6 0 2",
+        "rnbqkbrQ/pp2pp2/5n2/2pp4/1P1P4/2N5/P1P1P1PP/R1BQKBNR w KQq - 0 2",
         get_fen(&new_position)
     );
     assert_eq!(zobrist_lock(&new_position), new_position.zobrist_lock);

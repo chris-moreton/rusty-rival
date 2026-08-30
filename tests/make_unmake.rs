@@ -61,7 +61,7 @@ fn test_double_pawn_push_white() {
     test_make_unmake(
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "e2e4",
-        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
     );
 }
 
@@ -70,8 +70,15 @@ fn test_double_pawn_push_black() {
     test_make_unmake(
         "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
         "d7d5",
-        "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
+        "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
     );
+}
+
+#[test]
+fn double_pawn_push_keeps_a_capturable_en_passant_square() {
+    test_make_unmake("4k3/8/8/8/3p4/8/4P3/4K3 w - - 0 1", "e2e4", "4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1");
+
+    test_make_unmake("4k3/3p4/8/4P3/8/8/8/4K3 b - - 0 1", "d7d5", "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 2");
 }
 
 #[test]
@@ -312,7 +319,7 @@ fn test_pawn_move_resets_halfmove() {
     test_make_unmake(
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 5 3",
         "e2e4",
-        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 3",
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3",
     );
 }
 
