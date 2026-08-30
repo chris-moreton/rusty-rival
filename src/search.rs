@@ -312,6 +312,10 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     if search_state.history.is_empty() {
         search_state.history.push(position.zobrist_lock)
     }
+    // A null-move boundary is scoped to one recursive null subtree and is
+    // always restored on return. Defensive reset keeps a reused SearchState's
+    // root history fully visible even after an interrupted prior search.
+    search_state.repetition_history_start = 0;
 
     let mut aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
 
@@ -1064,16 +1068,13 @@ pub fn search(
 
     if excluded_move == 0 && !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let old_ep = make_null_move(position);
+        let old_repetition_history_start = search_state.repetition_history_start;
+        search_state.repetition_history_start = search_state.history.len();
         // No real previous move exists for the null-move child's countermove context
         search_state.ply_move[ply as usize] = 0;
-        // NOTE: deliberately NOT pushing the null position onto the repetition
-        // history. Positions either side of a null move do not form a legal
-        // sequence, so matching across one yields a FICTITIOUS repetition.
-        // Standard practice (Stockfish et al.) is the opposite of pushing:
-        // bound the scan so it cannot cross a null move at all, via a
-        // plies-from-null counter. This engine has no such bound yet, so the
-        // scan already crosses nulls; pushing here made that worse and
-        // measured -19 (+/-25) over 200 games. See NET-367.
+        // A null move is not a legal game move, so positions before it cannot
+        // participate in a repetition inside this subtree. Remember the first
+        // history slot after the null rather than pushing a synthetic lock.
 
         let score = -search(
             position,
@@ -1089,6 +1090,7 @@ pub fn search(
         )
         .1;
 
+        search_state.repetition_history_start = old_repetition_history_start;
         unmake_null_move(position, old_ep);
 
         if is_stopped(&search_state.stop) {
@@ -1857,25 +1859,15 @@ fn is_fifty_move_draw(position: &Position) -> bool {
 #[inline(always)]
 fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bool {
     let mut repeats = 0;
-    // KNOWN INCOMPLETE - see NET-391 before changing this line. Two defects are
-    // understood and deliberately NOT fixed here, because each is correct in
-    // principle but measured a large bench-node cost that no match has yet
-    // shown to be worth paying:
-    //
-    //   1. The window is one short. Reverse index 0 is the current position
-    //      itself (every caller pushes the child's lock before recursing), so
-    //      a slot is spent self-matching and a recurrence at distance exactly
-    //      half_moves - the position right after the last irreversible move -
-    //      can never be seen. `half_moves + 1` is the provably correct window
-    //      and cost +15.4% nodes.
-    //   2. There is no plies-from-null bound, so this scan reaches ACROSS null
-    //      moves. Positions either side of a null do not form a legal
-    //      sequence, so such a match is fictitious. Adding the bound (the
-    //      standard rule) cost +12.9% nodes.
-    //
-    // Both make the engine more correct about draws and both make the tree
-    // markedly bigger; NET-391 exists to settle whether either is affordable.
-    for lock in search_state.history.iter().rev().take(position.half_moves as usize) {
+    // The scan deliberately remains one slot short (NET-391): index 0 is the
+    // current position, so a recurrence exactly at `half_moves` is missed.
+    // Correcting that expanded the current-main tree by 16.08% and produced
+    // only +6.3 Elo [-13.5, +26.2] over 604 games, so it is not affordable.
+    for lock in search_state.history[search_state.repetition_history_start..]
+        .iter()
+        .rev()
+        .take(position.half_moves as usize)
+    {
         if position.zobrist_lock == *lock {
             repeats += 1;
             if repeats > 1 {
@@ -2403,7 +2395,7 @@ fn side_total_non_pawn_count(position: &Position, side: Mover) -> u32 {
 }
 
 #[cfg(test)]
-mod tablebase_root_tests {
+mod search_unit_tests {
     use super::*;
 
     #[test]
@@ -2411,5 +2403,19 @@ mod tablebase_root_tests {
         assert!(better_tablebase_score(None, -8999));
         assert!(better_tablebase_score(Some(-8999), -8500));
         assert!(!better_tablebase_score(Some(-8500), -8999));
+    }
+
+    #[test]
+    fn repetition_scan_does_not_cross_a_null_move_boundary() {
+        let mut position = crate::fen::get_position(crate::move_constants::START_POS);
+        position.half_moves = 10;
+        let lock = position.zobrist_lock;
+        let mut state = crate::types::default_search_state();
+        state.history = vec![lock, lock];
+
+        assert!(is_repeat_position(&position, &mut state));
+
+        state.repetition_history_start = 1;
+        assert!(!is_repeat_position(&position, &mut state));
     }
 }
