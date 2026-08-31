@@ -4,6 +4,7 @@
 //! endgame play in positions with 6 or fewer pieces.
 
 use crate::types::{Bitboard, Position, Score, BLACK, WHITE};
+use shakmaty::uci::UciMove;
 use shakmaty::{CastlingMode, Chess, Color, FromSetup, Piece, Role, Setup, Square};
 use shakmaty_syzygy::{AmbiguousWdl, MaybeRounded, Tablebase};
 use std::path::Path;
@@ -344,6 +345,32 @@ pub fn probe_dtz(pos: &Position) -> Option<Score> {
             }
         }
     }
+}
+
+/// Ask Syzygy for its root move recommendation.
+///
+/// This deliberately uses `Tablebase::best_move` instead of ranking the DTZ
+/// values of child positions ourselves. A capture or pawn move is a zeroing
+/// move *at the root*; looking only at the child loses that information and
+/// can prefer a reversible move whose zeroing move is perpetually two plies
+/// away (NET-1153).
+pub fn probe_root_move(pos: &Position) -> Option<(String, Score)> {
+    if count_pieces(pos) > TB_MAX_PIECES {
+        return None;
+    }
+
+    let tb_guard = TABLEBASE.read().unwrap();
+    let tb = tb_guard.as_ref()?;
+    let chess = position_to_chess(pos).ok()?;
+
+    let score = match tb.probe_wdl(&chess).ok()? {
+        AmbiguousWdl::Win => TB_WIN_SCORE,
+        AmbiguousWdl::Loss => TB_LOSS_SCORE,
+        _ => 0,
+    };
+    let (best_move, _) = tb.best_move(&chess).ok()??;
+
+    Some((UciMove::from_standard(&best_move).to_string(), score))
 }
 
 #[cfg(test)]
