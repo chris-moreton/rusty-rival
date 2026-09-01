@@ -581,6 +581,26 @@ pub struct SearchState {
     pub nnue_pieces: Vec<[Pieces; 2]>,
     pub nnue_computed: Vec<bool>,
     pub nnue_ply: usize,
+    // Search-width diagnostics (NET-1155) live at the end deliberately: normal
+    // builds compile out every write, and appending them preserves the layout
+    // and cache offsets of all production SearchState fields above.
+    // Child kinds: 0=quiet, 1=capture, 2=promotion (capture-promotions included).
+    pub children_by_kind: [u64; 3],
+    // Depth buckets: 0-2, 3-5, 6-9, 10-15, 16+.
+    pub children_by_depth: [u64; 5],
+    // Node buckets: 0=full-window, 1=scout/null-window.
+    pub children_by_node_type: [u64; 2],
+    pub no_cutoff_children_by_kind: [u64; 3],
+    pub cutoff_node_children_by_kind: [u64; 3],
+    // Prune reasons: 0=SEE, 1=alpha/futility, 2=LMP.
+    pub pruned_by_reason: [u64; 3],
+    // LMR buckets: 0=quiet, 1=capture/noisy. Noisy eligibility measures moves
+    // rejected solely by today's explicit !is_tactical gate.
+    pub lmr_eligible_by_kind: [u64; 2],
+    pub lmr_applied_by_kind: [u64; 2],
+    pub lmr_researched_by_kind: [u64; 2],
+    // Extension types: 0=check, 1=seventh-rank pawn, 2=passed pawn, 3=singular.
+    pub extension_children: [u64; 4],
 }
 
 impl SearchState {
@@ -665,6 +685,16 @@ impl Clone for SearchState {
             children_searched: 0,
             no_cutoff_nodes: 0,
             no_cutoff_children: 0,
+            children_by_kind: [0; 3],
+            children_by_depth: [0; 5],
+            children_by_node_type: [0; 2],
+            no_cutoff_children_by_kind: [0; 3],
+            cutoff_node_children_by_kind: [0; 3],
+            pruned_by_reason: [0; 3],
+            lmr_eligible_by_kind: [0; 2],
+            lmr_applied_by_kind: [0; 2],
+            lmr_researched_by_kind: [0; 2],
+            extension_children: [0; 4],
             qnodes: 0,
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
@@ -741,6 +771,16 @@ pub fn default_search_state() -> SearchState {
         children_searched: 0,
         no_cutoff_nodes: 0,
         no_cutoff_children: 0,
+        children_by_kind: [0; 3],
+        children_by_depth: [0; 5],
+        children_by_node_type: [0; 2],
+        no_cutoff_children_by_kind: [0; 3],
+        cutoff_node_children_by_kind: [0; 3],
+        pruned_by_reason: [0; 3],
+        lmr_eligible_by_kind: [0; 2],
+        lmr_applied_by_kind: [0; 2],
+        lmr_researched_by_kind: [0; 2],
+        extension_children: [0; 4],
         qnodes: 0,
         pv: HashMap::new(),
         hash_clashes: 0,

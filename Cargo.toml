@@ -12,6 +12,11 @@ opt-level = 3
 lto = true
 codegen-units = 1
 
+[features]
+# Expensive, behaviour-neutral search-width counters for NET-1155. Production
+# builds deliberately omit their hot-path bookkeeping.
+search-width-diagnostics = []
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

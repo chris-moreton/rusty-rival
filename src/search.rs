@@ -80,6 +80,38 @@ pub const MATE_START: Score = MATE_SCORE - MATE_MARGIN;
 
 pub const LAST_EXTENSION_LAYER: u8 = 4;
 
+#[inline(always)]
+fn width_kind(is_capture: bool, is_promotion: bool) -> usize {
+    if is_promotion {
+        2
+    } else if is_capture {
+        1
+    } else {
+        0
+    }
+}
+
+#[inline(always)]
+fn width_depth_bucket(depth: u8) -> usize {
+    match depth {
+        0..=2 => 0,
+        3..=5 => 1,
+        6..=9 => 2,
+        10..=15 => 3,
+        _ => 4,
+    }
+}
+
+#[inline(always)]
+fn record_searched_child(search_state: &mut SearchState, kind: usize, depth: u8, scouting: bool) {
+    search_state.children_searched += 1;
+    if cfg!(feature = "search-width-diagnostics") {
+        search_state.children_by_kind[kind] += 1;
+        search_state.children_by_depth[width_depth_bucket(depth)] += 1;
+        search_state.children_by_node_type[scouting as usize] += 1;
+    }
+}
+
 #[inline]
 fn root_move_claims_threefold(position: &mut Position, search_state: &SearchState, m: Move) -> bool {
     let unmake = make_move_in_place(position, m);
@@ -910,6 +942,7 @@ pub fn search(
     // Children actually searched at THIS node (NET-493). Distinct from
     // legal_move_count, which increments before alpha/LMP pruning.
     let mut children_here: u32 = 0;
+    let mut children_here_by_kind = [0u32; 3];
     let mut hash_flag = Upper;
     let mut best_pathscore: PathScore = (pv_single(0), -MATE_SCORE);
 
@@ -1294,8 +1327,20 @@ pub fn search(
             // node whose only searched child was the hash move - which biased
             // the reported children-per-no-cutoff-node figure. Caught in review.
             children_here += 1;
-            search_state.children_searched += 1;
             let hash_search_depth = real_depth + singular_extension;
+            let child_kind = width_kind(hash_is_capture, hash_move & PROMOTION_FULL_MOVE_MASK != 0);
+            if cfg!(feature = "search-width-diagnostics") {
+                children_here_by_kind[child_kind] += 1;
+            }
+            // The hash move inherits this node's incoming window. Unlike later
+            // PVS moves it is never forced through a new null-window scout.
+            record_searched_child(search_state, child_kind, hash_search_depth, scouting);
+            if cfg!(feature = "search-width-diagnostics") && check_extension != 0 {
+                search_state.extension_children[0] += 1;
+            }
+            if cfg!(feature = "search-width-diagnostics") && singular_extension != 0 {
+                search_state.extension_children[3] += 1;
+            }
             let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, None);
             let score = path_score.1;
             let singular_depth = hash_search_depth;
@@ -1330,6 +1375,7 @@ pub fn search(
                             raw_static_eval,
                             children_here.min(u8::MAX as u32) as u8,
                             true,
+                            &children_here_by_kind,
                         );
                     }
                     hash_flag = Exact;
@@ -1472,6 +1518,9 @@ pub fn search(
             let see_threshold = -(SEE_PRUNE_MARGIN * (depth as Score) * (depth as Score));
             let stored_see = bad_captures.iter().find(|e| e.0 == m).map_or(0, |e| e.2);
             if stored_see < see_threshold {
+                if cfg!(feature = "search-width-diagnostics") {
+                    search_state.pruned_by_reason[0] += 1;
+                }
                 continue;
             }
         }
@@ -1527,7 +1576,21 @@ pub fn search(
             };
             let gives_check = gives_check_known == Some(true);
 
+            // Normal search deliberately avoids calculating check status for
+            // tactical moves because none of today's pruning/reduction paths
+            // consumes it. Diagnostics do need it: a checking capture is not a
+            // candidate for conservative capture LMR and must not be described
+            // as rejected solely by the tactical-move gate.
+            let diagnostic_gives_check = if cfg!(feature = "search-width-diagnostics") && is_tactical {
+                is_check(position, position.mover)
+            } else {
+                gives_check
+            };
+
             if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !gives_check {
+                if cfg!(feature = "search-width-diagnostics") {
+                    search_state.pruned_by_reason[1] += 1;
+                }
                 unmake_move_nnue(position, m, &unmake, search_state);
                 continue;
             }
@@ -1554,8 +1617,23 @@ pub fn search(
                 && !gives_check
                 && alpha.abs() < MATE_START
             {
+                if cfg!(feature = "search-width-diagnostics") {
+                    search_state.pruned_by_reason[2] += 1;
+                }
                 unmake_move_nnue(position, m, &unmake, search_state);
                 continue;
+            }
+
+            let lmr_common = move_extension == 0
+                && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
+                && real_depth > LMR_MIN_DEPTH
+                && !is_promotion
+                && m != search_state.killer_moves[ply as usize][0]
+                && m != search_state.killer_moves[ply as usize][1]
+                && !diagnostic_gives_check;
+            let lmr_kind = is_tactical as usize;
+            if cfg!(feature = "search-width-diagnostics") && lmr_common {
+                search_state.lmr_eligible_by_kind[lmr_kind] += 1;
             }
 
             let lmr = if move_extension == 0
@@ -1651,12 +1729,32 @@ pub fn search(
             } else {
                 0
             };
+            if cfg!(feature = "search-width-diagnostics") && lmr > 0 {
+                search_state.lmr_applied_by_kind[lmr_kind] += 1;
+            }
 
             // Apply extensions to search depth
             let search_depth = depth + move_extension;
 
             children_here += 1;
-            search_state.children_searched += 1;
+            let child_kind = width_kind(move_is_capture, is_promotion);
+            if cfg!(feature = "search-width-diagnostics") {
+                children_here_by_kind[child_kind] += 1;
+            }
+            // Record the window used for this child call, rather than the
+            // incoming window of the parent node. After the first legal move,
+            // PVS searches children with a null window even at a full-window
+            // parent and re-searches only when the scout raises alpha.
+            record_searched_child(search_state, child_kind, search_depth, scout_search);
+            if cfg!(feature = "search-width-diagnostics") && check_extension != 0 {
+                search_state.extension_children[0] += 1;
+            }
+            if cfg!(feature = "search-width-diagnostics") && pawn_push_ext != 0 {
+                search_state.extension_children[1] += 1;
+            }
+            if cfg!(feature = "search-width-diagnostics") && passed_pawn_ext != 0 {
+                search_state.extension_children[2] += 1;
+            }
             let path_score = if scout_search {
                 // Cap the reduction so the child depth (search_depth - 1 - lmr)
                 // cannot wrap below zero: stacked LMR adjustments (table + bad
@@ -1669,6 +1767,7 @@ pub fn search(
                     search_depth,
                     position,
                     gives_check_known,
+                    lmr_kind,
                 )
             } else {
                 search_wrapper(search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, gives_check_known)
@@ -1709,6 +1808,7 @@ pub fn search(
                             raw_static_eval,
                             children_here.min(u8::MAX as u32) as u8,
                             false,
+                            &children_here_by_kind,
                         );
                     }
                     hash_flag = Exact;
@@ -1735,6 +1835,11 @@ pub fn search(
     if children_here > 0 {
         search_state.no_cutoff_nodes += 1;
         search_state.no_cutoff_children += children_here as u64;
+        if cfg!(feature = "search-width-diagnostics") {
+            for (total, local) in search_state.no_cutoff_children_by_kind.iter_mut().zip(children_here_by_kind) {
+                *total += local as u64;
+            }
+        }
     }
 
     if legal_move_count == 0 {
@@ -1896,6 +2001,7 @@ pub fn pick_high_score_move(move_scores: &mut MoveScoreArray) -> Move {
 }
 
 #[inline(always)]
+#[allow(clippy::too_many_arguments)]
 fn lmr_scout_search(
     lmr: u8,
     ply: u8,
@@ -1904,6 +2010,7 @@ fn lmr_scout_search(
     real_depth: u8,
     new_position: &mut Position,
     known_in_check: Option<bool>,
+    lmr_kind: usize,
 ) -> PathScore {
     let alpha = window.0;
     let beta = window.1;
@@ -1921,6 +2028,9 @@ fn lmr_scout_search(
 
     if scout_path.1 > alpha && lmr > 0 {
         search_state.research_lmr_full += 1;
+        if cfg!(feature = "search-width-diagnostics") {
+            search_state.lmr_researched_by_kind[lmr_kind] += 1;
+        }
         // We are in an LMR search and we Need to research with full window. but still with late move reduction
         scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr, 0, known_in_check);
         if scout_path.1 > alpha {
@@ -2022,6 +2132,7 @@ fn cutoff_unmake(
     searched_move_count: u8,
     // True only at the hash-move call site, which is tried before the loop.
     is_hash_move: bool,
+    children_here_by_kind: &[u32; 3],
 ) -> PathScore {
     // Singular-verification cutoffs are artifacts of the excluded move and the
     // shifted window - keep them out of the TT and the ordering heuristics
@@ -2032,6 +2143,11 @@ fn cutoff_unmake(
     // Counted after the singular-verification bail above, so the statistic
     // reflects real cutoffs rather than artifacts of the excluded-move window.
     search_state.cutoffs += 1;
+    if cfg!(feature = "search-width-diagnostics") {
+        for (total, local) in search_state.cutoff_node_children_by_kind.iter_mut().zip(children_here_by_kind) {
+            *total += *local as u64;
+        }
+    }
     if searched_move_count <= 1 {
         search_state.cutoffs_first_move += 1;
     }
