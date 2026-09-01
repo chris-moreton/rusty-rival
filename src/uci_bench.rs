@@ -59,6 +59,10 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     let (mut kids, mut no_cutoff_nodes, mut no_cutoff_children) = (0u64, 0u64, 0u64);
     let (mut cuts, mut cuts_first) = (0u64, 0u64);
     let (mut by_kind, mut by_index) = ([0u64; 7], [0u64; 5]);
+    let (mut child_kind, mut child_depth, mut child_node) = ([0u64; 3], [0u64; 5], [0u64; 2]);
+    let (mut no_cut_kind, mut cut_kind) = ([0u64; 3], [0u64; 3]);
+    let (mut pruned, mut lmr_eligible, mut lmr_applied, mut lmr_researched) = ([0u64; 3], [0u64; 2], [0u64; 2], [0u64; 2]);
+    let mut extensions = [0u64; 4];
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
         // `ucinewgame` clears the TT and history tables, and `iterative_deepening`
@@ -101,6 +105,36 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             *acc += n;
         }
         for (acc, n) in by_index.iter_mut().zip(search_state.cutoff_by_index.iter()) {
+            *acc += n;
+        }
+        for (acc, n) in child_kind.iter_mut().zip(search_state.children_by_kind) {
+            *acc += n;
+        }
+        for (acc, n) in child_depth.iter_mut().zip(search_state.children_by_depth) {
+            *acc += n;
+        }
+        for (acc, n) in child_node.iter_mut().zip(search_state.children_by_node_type) {
+            *acc += n;
+        }
+        for (acc, n) in no_cut_kind.iter_mut().zip(search_state.no_cutoff_children_by_kind) {
+            *acc += n;
+        }
+        for (acc, n) in cut_kind.iter_mut().zip(search_state.cutoff_node_children_by_kind) {
+            *acc += n;
+        }
+        for (acc, n) in pruned.iter_mut().zip(search_state.pruned_by_reason) {
+            *acc += n;
+        }
+        for (acc, n) in lmr_eligible.iter_mut().zip(search_state.lmr_eligible_by_kind) {
+            *acc += n;
+        }
+        for (acc, n) in lmr_applied.iter_mut().zip(search_state.lmr_applied_by_kind) {
+            *acc += n;
+        }
+        for (acc, n) in lmr_researched.iter_mut().zip(search_state.lmr_researched_by_kind) {
+            *acc += n;
+        }
+        for (acc, n) in extensions.iter_mut().zip(search_state.extension_children) {
             *acc += n;
         }
         println!(
@@ -198,6 +232,72 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             kids.to_formatted_string(&Locale::en),
             no_cutoff_nodes.to_formatted_string(&Locale::en),
             no_cutoff_children as f64 / no_cutoff_nodes as f64
+        );
+    }
+
+    // NET-1155: the detailed build is deliberately separate from production;
+    // these counters have measurable low-single-digit cost when enabled. The three child-kind and both
+    // node-type buckets are exclusive and must each reconcile exactly to
+    // children_searched.
+    #[cfg(feature = "search-width-diagnostics")]
+    {
+        assert_eq!(child_kind.iter().sum::<u64>(), kids, "child-kind counters must reconcile");
+        assert_eq!(child_depth.iter().sum::<u64>(), kids, "child-depth counters must reconcile");
+        assert_eq!(child_node.iter().sum::<u64>(), kids, "node-window counters must reconcile");
+        assert_eq!(
+            no_cut_kind.iter().sum::<u64>(),
+            no_cutoff_children,
+            "no-cut child kinds must reconcile"
+        );
+        println!(
+            "  child kinds  : quiet {} · capture {} · promotion {} · total {}",
+            child_kind[0].to_formatted_string(&Locale::en),
+            child_kind[1].to_formatted_string(&Locale::en),
+            child_kind[2].to_formatted_string(&Locale::en),
+            child_kind.iter().sum::<u64>().to_formatted_string(&Locale::en),
+        );
+        println!(
+            "  node windows : full {} · scout {} · total {}",
+            child_node[0].to_formatted_string(&Locale::en),
+            child_node[1].to_formatted_string(&Locale::en),
+            child_node.iter().sum::<u64>().to_formatted_string(&Locale::en),
+        );
+        println!(
+            "  depth buckets: 0-2 {} · 3-5 {} · 6-9 {} · 10-15 {} · 16+ {}",
+            child_depth[0].to_formatted_string(&Locale::en),
+            child_depth[1].to_formatted_string(&Locale::en),
+            child_depth[2].to_formatted_string(&Locale::en),
+            child_depth[3].to_formatted_string(&Locale::en),
+            child_depth[4].to_formatted_string(&Locale::en),
+        );
+        println!(
+            "  completed    : no-cut quiet/capture/promo {}/{}/{} · cutoff-node {}/{}/{}",
+            no_cut_kind[0], no_cut_kind[1], no_cut_kind[2], cut_kind[0], cut_kind[1], cut_kind[2],
+        );
+        println!(
+            "  pruned moves : SEE {} · alpha/futility {} · LMP {}",
+            pruned[0].to_formatted_string(&Locale::en),
+            pruned[1].to_formatted_string(&Locale::en),
+            pruned[2].to_formatted_string(&Locale::en),
+        );
+        println!(
+            "  LMR quiet    : eligible {} · applied {} · re-searched {}",
+            lmr_eligible[0].to_formatted_string(&Locale::en),
+            lmr_applied[0].to_formatted_string(&Locale::en),
+            lmr_researched[0].to_formatted_string(&Locale::en),
+        );
+        println!(
+            "  LMR captures : eligible {} · applied {} · re-searched {}",
+            lmr_eligible[1].to_formatted_string(&Locale::en),
+            lmr_applied[1].to_formatted_string(&Locale::en),
+            lmr_researched[1].to_formatted_string(&Locale::en),
+        );
+        println!(
+            "  extensions   : check {} · pawn7 {} · passed {} · singular {}",
+            extensions[0].to_formatted_string(&Locale::en),
+            extensions[1].to_formatted_string(&Locale::en),
+            extensions[2].to_formatted_string(&Locale::en),
+            extensions[3].to_formatted_string(&Locale::en),
         );
     }
 
