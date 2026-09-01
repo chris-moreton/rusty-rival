@@ -49,7 +49,7 @@ fn apply_eval_noise(score: Score, hash: u64, noise_max: Score) -> Score {
 }
 
 use crate::fen::algebraic_move_from_move;
-use crate::tablebase::{can_probe, probe_dtz, tablebase_available};
+use crate::tablebase::{can_probe, probe_root_move, tablebase_available};
 
 use crate::bitboards::{bit, north_fill, south_fill, FILE_A_BITS, FILE_H_BITS};
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
@@ -80,12 +80,16 @@ pub const MATE_START: Score = MATE_SCORE - MATE_MARGIN;
 
 pub const LAST_EXTENSION_LAYER: u8 = 4;
 
-#[inline(always)]
-fn better_tablebase_score(best: Option<Score>, candidate: Score) -> bool {
-    match best {
-        Some(score) => candidate > score,
-        None => true,
-    }
+#[inline]
+fn root_move_claims_threefold(position: &mut Position, search_state: &SearchState, m: Move) -> bool {
+    let unmake = make_move_in_place(position, m);
+    let child_lock = position.zobrist_lock;
+    unmake_move(position, m, &unmake);
+
+    // `position` commands retain the current position and all earlier game
+    // positions in history. The candidate would be a claimable threefold if
+    // its resulting position has already occurred twice.
+    search_state.history.iter().filter(|&&lock| lock == child_lock).take(2).count() >= 2
 }
 
 fn emit_net365_diagnostic(search_state: &SearchState) {
@@ -283,26 +287,24 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     // Lichess into any ≤6-man position). Those searches fall through to the normal
     // search, which still handles the TB position correctly and respects stop.
     if search_state.time_management_active && tablebase_available() && can_probe(position) {
-        let mut best: Option<(Move, Score)> = None;
+        if let Some((uci_move, best_score)) = probe_root_move(position) {
+            let best_move = crate::utils::hydrate_move_from_algebraic_move(position, uci_move);
 
-        for (m, _) in &legal_moves {
-            let unmake = make_move_in_place(position, *m);
-            // Probe DTZ after the move (from opponent's perspective, so negate score)
-            if let Some(tb_score) = probe_dtz(position) {
-                let score = -tb_score;
-                if better_tablebase_score(best.map(|(_, best_score)| best_score), score) {
-                    best = Some((*m, score));
+            // Syzygy has no knowledge of the positions played before this root.
+            // Never let the shortcut convert a theoretical win into an actual
+            // threefold draw. Falling through gives the repetition-aware normal
+            // search a chance to choose a different winning move.
+            if best_move == 0
+                || !legal_moves.iter().any(|(m, _)| *m == best_move)
+                || (best_score > 0 && root_move_claims_threefold(position, search_state, best_move))
+            {
+                // Fall through to normal search.
+            } else {
+                if search_state.thread_id == 0 {
+                    println!("info depth 1 score cp {} pv {}", best_score, algebraic_move_from_move(best_move));
                 }
+                return best_move;
             }
-            unmake_move(position, *m, &unmake);
-        }
-
-        // If we found a valid TB move, return it immediately
-        if let Some((best_move, best_score)) = best {
-            if search_state.thread_id == 0 {
-                println!("info depth 1 score cp {} pv {}", best_score, algebraic_move_from_move(best_move));
-            }
-            return best_move;
         }
     }
 
@@ -2399,10 +2401,26 @@ mod search_unit_tests {
     use super::*;
 
     #[test]
-    fn an_all_losing_root_still_accepts_its_first_tablebase_score() {
-        assert!(better_tablebase_score(None, -8999));
-        assert!(better_tablebase_score(Some(-8999), -8500));
-        assert!(!better_tablebase_score(Some(-8500), -8999));
+    fn tablebase_root_rejects_the_incident_threefold_move() {
+        // Position before 73.Kg1 in https://lichess.org/tsivYCHe. The same
+        // resulting position occurred after 69.Kg1 and 71.Kg1.
+        let mut position = crate::fen::get_position("Q7/8/5k2/8/3N4/2P5/2P5/7K w - - 17 73");
+        let candidate = crate::utils::hydrate_move_from_algebraic_move(&position, "h1g1".to_string());
+        let repeated = crate::fen::get_position("Q7/8/5k2/8/3N4/2P5/2P5/6K1 b - - 18 73");
+        let mut state = crate::types::default_search_state();
+        state.history = vec![repeated.zobrist_lock, repeated.zobrist_lock, position.zobrist_lock];
+
+        assert!(root_move_claims_threefold(&mut position, &state, candidate));
+    }
+
+    #[test]
+    fn tablebase_root_allows_a_non_repeating_move() {
+        let mut position = crate::fen::get_position("Q7/8/5k2/8/3N4/2P5/2P5/7K w - - 17 73");
+        let candidate = crate::utils::hydrate_move_from_algebraic_move(&position, "c3c4".to_string());
+        let mut state = crate::types::default_search_state();
+        state.history = vec![position.zobrist_lock];
+
+        assert!(!root_move_claims_threefold(&mut position, &state, candidate));
     }
 
     #[test]
