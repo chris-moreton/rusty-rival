@@ -355,7 +355,7 @@ pub fn probe_dtz(pos: &Position) -> Option<Score> {
 /// can prefer a reversible move whose zeroing move is perpetually two plies
 /// away (NET-1153).
 pub fn probe_root_move(pos: &Position) -> Option<(String, Score)> {
-    if count_pieces(pos) > TB_MAX_PIECES {
+    if !can_probe(pos) {
         return None;
     }
 
