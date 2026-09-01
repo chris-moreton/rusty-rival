@@ -1332,6 +1332,8 @@ pub fn search(
             if cfg!(feature = "search-width-diagnostics") {
                 children_here_by_kind[child_kind] += 1;
             }
+            // The hash move inherits this node's incoming window. Unlike later
+            // PVS moves it is never forced through a new null-window scout.
             record_searched_child(search_state, child_kind, hash_search_depth, scouting);
             if cfg!(feature = "search-width-diagnostics") && check_extension != 0 {
                 search_state.extension_children[0] += 1;
@@ -1574,6 +1576,17 @@ pub fn search(
             };
             let gives_check = gives_check_known == Some(true);
 
+            // Normal search deliberately avoids calculating check status for
+            // tactical moves because none of today's pruning/reduction paths
+            // consumes it. Diagnostics do need it: a checking capture is not a
+            // candidate for conservative capture LMR and must not be described
+            // as rejected solely by the tactical-move gate.
+            let diagnostic_gives_check = if cfg!(feature = "search-width-diagnostics") && is_tactical {
+                is_check(position, position.mover)
+            } else {
+                gives_check
+            };
+
             if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !gives_check {
                 if cfg!(feature = "search-width-diagnostics") {
                     search_state.pruned_by_reason[1] += 1;
@@ -1617,7 +1630,7 @@ pub fn search(
                 && !is_promotion
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
-                && !gives_check;
+                && !diagnostic_gives_check;
             let lmr_kind = is_tactical as usize;
             if cfg!(feature = "search-width-diagnostics") && lmr_common {
                 search_state.lmr_eligible_by_kind[lmr_kind] += 1;
@@ -1728,7 +1741,11 @@ pub fn search(
             if cfg!(feature = "search-width-diagnostics") {
                 children_here_by_kind[child_kind] += 1;
             }
-            record_searched_child(search_state, child_kind, search_depth, scouting);
+            // Record the window used for this child call, rather than the
+            // incoming window of the parent node. After the first legal move,
+            // PVS searches children with a null window even at a full-window
+            // parent and re-searches only when the scout raises alpha.
+            record_searched_child(search_state, child_kind, search_depth, scout_search);
             if cfg!(feature = "search-width-diagnostics") && check_extension != 0 {
                 search_state.extension_children[0] += 1;
             }
