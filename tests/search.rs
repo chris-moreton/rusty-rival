@@ -221,17 +221,19 @@ fn it_recognises_a_draw() {
 
 #[test]
 fn it_calculates_the_null_move_reduced_depth() {
-    fn expected(depth: u8) -> u8 {
-        let base = NULL_MOVE_REDUCE_DEPTH_BASE;
-        match depth {
-            d if d > base + 1 => depth - 1 - (base + d / 6),
-            _ => 1,
-        }
-    }
-
-    for depth in 0..=24 {
-        assert_eq!(null_move_reduced_depth(depth), expected(depth), "mismatch at depth {depth}");
-    }
+    assert_eq!(NULL_MOVE_REDUCE_DEPTH_BASE, 2);
+    // At depth 12 the legacy reduction searches depth 7. Each complete 200cp
+    // above beta removes one more ply, capped at two.
+    assert_eq!(null_move_reduced_depth(12, -400), 7);
+    assert_eq!(null_move_reduced_depth(12, 0), 7);
+    assert_eq!(null_move_reduced_depth(12, 199), 7);
+    assert_eq!(null_move_reduced_depth(12, 200), 6);
+    assert_eq!(null_move_reduced_depth(12, 399), 6);
+    assert_eq!(null_move_reduced_depth(12, 400), 5);
+    assert_eq!(null_move_reduced_depth(12, 2_000), 5);
+    // Shallow searches never underflow or enter quiescence directly.
+    assert_eq!(null_move_reduced_depth(0, 2_000), 1);
+    assert_eq!(null_move_reduced_depth(4, 2_000), 1);
 }
 
 #[test]
