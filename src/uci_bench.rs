@@ -275,7 +275,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             no_cut_kind[0], no_cut_kind[1], no_cut_kind[2], cut_kind[0], cut_kind[1], cut_kind[2],
         );
         println!(
-            "  pruned moves : SEE {} · alpha/futility {} · LMP {} · rejected before make {}",
+            "  pruned moves : SEE {} · alpha/futility {} · LMP {} · of which rejected before make {}",
             pruned[0].to_formatted_string(&Locale::en),
             pruned[1].to_formatted_string(&Locale::en),
             pruned[2].to_formatted_string(&Locale::en),

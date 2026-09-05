@@ -91,9 +91,10 @@ struct PreMakeMasks {
     discovered_candidates: Bitboard,
     /// Squares from which a piece of each type gives direct check with the
     /// current occupancy, indexed by `(m & PIECE_MASK_FULL) >> 22`. This is
-    /// exact for a quiet move: the only occupancy change is the vacated
-    /// `from`, and a piece whose line to the enemy king ran through its own
-    /// `from` square would already have been giving check.
+    /// exact for a quiet move: the only occupancy a quiet move removes is its
+    /// own `from` square (`to` becomes occupied by the mover itself), and a
+    /// piece whose line to the enemy king ran through its own `from` square
+    /// would already have been giving check.
     check_squares: [Bitboard; 8],
 }
 
@@ -108,7 +109,7 @@ fn slider_blockers(king: Square, rook_snipers: Bitboard, bishop_snipers: Bitboar
         let sniper = snipers.trailing_zeros() as Square;
         snipers &= snipers - 1;
         let between = between_squares(king, sniper) & all_pieces;
-        if between != 0 && between & (between - 1) == 0 {
+        if between.is_power_of_two() {
             blockers |= between;
         }
     }
