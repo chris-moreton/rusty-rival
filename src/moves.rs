@@ -545,7 +545,7 @@ pub fn get_checkers(position: &Position, mover: Mover) -> Bitboard {
 
 /// Returns a bitboard of squares between two squares (exclusive), for slider blocking
 #[inline(always)]
-fn between_squares(sq1: Square, sq2: Square) -> Bitboard {
+pub fn between_squares(sq1: Square, sq2: Square) -> Bitboard {
     // Pre-compute this in a lookup table would be faster, but for now compute it
     let all_pieces = bit(sq1) | bit(sq2);
 

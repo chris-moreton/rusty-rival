@@ -51,24 +51,120 @@ fn apply_eval_noise(score: Score, hash: u64, noise_max: Score) -> Score {
 use crate::fen::algebraic_move_from_move;
 use crate::tablebase::{can_probe, probe_root_move, tablebase_available};
 
-use crate::bitboards::{bit, north_fill, south_fill, FILE_A_BITS, FILE_H_BITS};
+use crate::bitboards::{
+    bit, north_fill, south_fill, BISHOP_RAYS, FILE_A_BITS, FILE_H_BITS, KNIGHT_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, ROOK_RAYS,
+};
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
+use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
 use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
 };
 use crate::move_scores::{score_move, score_move_with_see, victim_piece_index};
-use crate::moves::{generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move};
+use crate::moves::{
+    between_squares, generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move,
+};
 use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    is_stopped, pv_prepend, pv_single, set_stop, BoundType, HashEntry, Move, MoveList, MoveScore, MoveScoreArray, MoveScoreList, Mover,
-    PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, STATIC_EVAL_NONE, WHITE,
+    is_stopped, pv_prepend, pv_single, set_stop, Bitboard, BoundType, HashEntry, Move, MoveList, MoveScore, MoveScoreArray, MoveScoreList,
+    Mover, PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, STATIC_EVAL_NONE, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
+
+/// NET-1188: per-node masks that certify, without making the move, that a
+/// quiet non-king move is legal and cannot give check, so futility and LMP can
+/// reject it before make/unmake. A move that fails a test simply takes the
+/// make-then-test path, so the prune set is identical to the post-make checks.
+#[derive(Default)]
+struct PreMakeMasks {
+    ready: bool,
+    /// Our pieces that are the only piece between our king and an enemy
+    /// slider (absolutely pinned). A non-king move by any other piece cannot
+    /// expose our king, so it is legal when we are not in check.
+    pin_candidates: Bitboard,
+    /// Our pieces that are the only piece between the enemy king and one of
+    /// our sliders: the only pieces whose move can give a discovered check.
+    discovered_candidates: Bitboard,
+    /// Squares from which a piece of each type gives direct check with the
+    /// current occupancy, indexed by `(m & PIECE_MASK_FULL) >> 22`. This is
+    /// exact for a quiet move: the only occupancy a quiet move removes is its
+    /// own `from` square (`to` becomes occupied by the mover itself), and a
+    /// piece whose line to the enemy king ran through its own `from` square
+    /// would already have been giving check.
+    check_squares: [Bitboard; 8],
+}
+
+/// Pieces of either colour that are the sole blocker between `king` and a
+/// sniper (a rook/queen on the king's rank or file, or a bishop/queen on its
+/// diagonals), as in Stockfish's `slider_blockers`.
+#[inline(always)]
+fn slider_blockers(king: Square, rook_snipers: Bitboard, bishop_snipers: Bitboard, all_pieces: Bitboard) -> Bitboard {
+    let mut blockers: Bitboard = 0;
+    let mut snipers = (ROOK_RAYS[king as usize] & rook_snipers) | (BISHOP_RAYS[king as usize] & bishop_snipers);
+    while snipers != 0 {
+        let sniper = snipers.trailing_zeros() as Square;
+        snipers &= snipers - 1;
+        let between = between_squares(king, sniper) & all_pieces;
+        if between.is_power_of_two() {
+            blockers |= between;
+        }
+    }
+    blockers
+}
+
+impl PreMakeMasks {
+    #[inline(always)]
+    fn compute(&mut self, position: &Position) {
+        let us = &position.pieces[position.mover as usize];
+        let them = &position.pieces[opponent!(position.mover) as usize];
+        let all_pieces = us.all_pieces_bitboard | them.all_pieces_bitboard;
+        let enemy_king = them.king_square;
+        let rook_attacks = magic_moves_rook(enemy_king, all_pieces);
+        let bishop_attacks = magic_moves_bishop(enemy_king, all_pieces);
+        self.check_squares = [0; 8];
+        // Squares from which one of our pawns attacks the enemy king: the
+        // reverse-colour convention used by is_square_attacked.
+        self.check_squares[(PIECE_MASK_PAWN >> 22) as usize] = PAWN_MOVES_CAPTURE[opponent!(position.mover) as usize][enemy_king as usize];
+        self.check_squares[(PIECE_MASK_KNIGHT >> 22) as usize] = KNIGHT_MOVES_BITBOARDS[enemy_king as usize];
+        self.check_squares[(PIECE_MASK_BISHOP >> 22) as usize] = bishop_attacks;
+        self.check_squares[(PIECE_MASK_ROOK >> 22) as usize] = rook_attacks;
+        self.check_squares[(PIECE_MASK_QUEEN >> 22) as usize] = rook_attacks | bishop_attacks;
+        // King moves never take the fast path; make the entry reject anyway.
+        self.check_squares[(PIECE_MASK_KING >> 22) as usize] = !0;
+        self.discovered_candidates = us.all_pieces_bitboard
+            & slider_blockers(
+                enemy_king,
+                us.rook_bitboard | us.queen_bitboard,
+                us.bishop_bitboard | us.queen_bitboard,
+                all_pieces,
+            );
+        self.pin_candidates = us.all_pieces_bitboard
+            & slider_blockers(
+                us.king_square,
+                them.rook_bitboard | them.queen_bitboard,
+                them.bishop_bitboard | them.queen_bitboard,
+                all_pieces,
+            );
+        self.ready = true;
+    }
+
+    /// True only if the quiet non-king move is provably legal (not in check,
+    /// mover not pinned) and provably not a check (mover not a discovered-check
+    /// blocker, destination not a direct-check square). A pinned or blocking
+    /// piece moving along its line would be fine too, but is left to the
+    /// make-then-test path.
+    #[inline(always)]
+    fn certainly_legal_and_quiet(&self, m: Move) -> bool {
+        let from_bb = bit(from_square_part(m));
+        let to_bb = bit(to_square_part(m));
+        from_bb & (self.pin_candidates | self.discovered_candidates) == 0
+            && to_bb & self.check_squares[((m & PIECE_MASK_FULL) >> 22) as usize] == 0
+    }
+}
 use std::cmp::{max, min};
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
@@ -1449,6 +1545,9 @@ pub fn search(
 
     // Cache endgame status for current position - used in extension decisions
     let current_is_end_game = is_end_game(position);
+    // NET-1188: computed lazily, on the first quiet move that futility or LMP
+    // would reject if it turns out to be legal and non-checking.
+    let mut pre_make = PreMakeMasks::default();
 
     loop {
         // Stage order: good captures -> quiets -> SEE-losing captures.
@@ -1552,6 +1651,54 @@ pub fn search(
         };
 
         let move_extension = check_extension + pawn_push_ext + passed_pawn_ext;
+
+        // NET-1188: reject a quiet move before make/unmake when futility or LMP
+        // would reject it anyway and the per-node masks certify that it is
+        // legal and cannot give check. The conditions mirror the two prunes
+        // below exactly (with next_legal standing for the post-increment
+        // legal_move_count); anything the certificates cannot prove still goes
+        // through make, the legality test and the gives-check test as before.
+        if !in_check && !is_tactical && !is_promotion && m & PIECE_MASK_FULL != PIECE_MASK_KING {
+            let next_legal = legal_move_count + 1;
+            let would_futility_prune = next_legal > 1 && alpha_prune_flag;
+            let would_lmp_prune = scouting
+                && excluded_move == 0
+                && depth <= LMP_MAX_DEPTH
+                && !current_is_end_game
+                && next_legal
+                    > if improving {
+                        LMP_MOVE_THRESHOLDS[depth as usize]
+                    } else {
+                        LMP_MOVE_THRESHOLDS[depth as usize] / 2
+                    }
+                && m != search_state.killer_moves[ply as usize][0]
+                && m != search_state.killer_moves[ply as usize][1]
+                && alpha.abs() < MATE_START;
+            if would_futility_prune || would_lmp_prune {
+                if !pre_make.ready {
+                    pre_make.compute(position);
+                }
+                if pre_make.certainly_legal_and_quiet(m) {
+                    #[cfg(debug_assertions)]
+                    {
+                        let unmake = make_move_nnue(position, m, search_state);
+                        debug_assert!(!is_check(position, old_mover), "NET-1188: false legality certificate for {m:#x}");
+                        debug_assert!(
+                            !is_check(position, position.mover),
+                            "NET-1188: false no-check certificate for {m:#x}"
+                        );
+                        unmake_move_nnue(position, m, &unmake, search_state);
+                    }
+                    legal_move_count += 1;
+                    search_state.ply_move[ply as usize] = m;
+                    if cfg!(feature = "search-width-diagnostics") {
+                        search_state.pruned_by_reason[if would_futility_prune { 1 } else { 2 }] += 1;
+                        search_state.pruned_by_reason[3] += 1;
+                    }
+                    continue;
+                }
+            }
+        }
 
         let unmake = make_move_nnue(position, m, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry

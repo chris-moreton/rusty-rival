@@ -592,8 +592,8 @@ pub struct SearchState {
     pub children_by_node_type: [u64; 2],
     pub no_cutoff_children_by_kind: [u64; 3],
     pub cutoff_node_children_by_kind: [u64; 3],
-    // Prune reasons: 0=SEE, 1=alpha/futility, 2=LMP.
-    pub pruned_by_reason: [u64; 3],
+    // Prune reasons: 0=SEE, 1=alpha/futility, 2=LMP, 3=of which rejected before make (NET-1188).
+    pub pruned_by_reason: [u64; 4],
     // LMR buckets: 0=quiet, 1=capture/noisy. Noisy eligibility measures moves
     // rejected solely by today's explicit !is_tactical gate.
     pub lmr_eligible_by_kind: [u64; 2],
@@ -690,7 +690,7 @@ impl Clone for SearchState {
             children_by_node_type: [0; 2],
             no_cutoff_children_by_kind: [0; 3],
             cutoff_node_children_by_kind: [0; 3],
-            pruned_by_reason: [0; 3],
+            pruned_by_reason: [0; 4],
             lmr_eligible_by_kind: [0; 2],
             lmr_applied_by_kind: [0; 2],
             lmr_researched_by_kind: [0; 2],
@@ -776,7 +776,7 @@ pub fn default_search_state() -> SearchState {
         children_by_node_type: [0; 2],
         no_cutoff_children_by_kind: [0; 3],
         cutoff_node_children_by_kind: [0; 3],
-        pruned_by_reason: [0; 3],
+        pruned_by_reason: [0; 4],
         lmr_eligible_by_kind: [0; 2],
         lmr_applied_by_kind: [0; 2],
         lmr_researched_by_kind: [0; 2],

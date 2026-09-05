@@ -61,7 +61,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     let (mut by_kind, mut by_index) = ([0u64; 7], [0u64; 5]);
     let (mut child_kind, mut child_depth, mut child_node) = ([0u64; 3], [0u64; 5], [0u64; 2]);
     let (mut no_cut_kind, mut cut_kind) = ([0u64; 3], [0u64; 3]);
-    let (mut pruned, mut lmr_eligible, mut lmr_applied, mut lmr_researched) = ([0u64; 3], [0u64; 2], [0u64; 2], [0u64; 2]);
+    let (mut pruned, mut lmr_eligible, mut lmr_applied, mut lmr_researched) = ([0u64; 4], [0u64; 2], [0u64; 2], [0u64; 2]);
     let mut extensions = [0u64; 4];
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
@@ -275,10 +275,11 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             no_cut_kind[0], no_cut_kind[1], no_cut_kind[2], cut_kind[0], cut_kind[1], cut_kind[2],
         );
         println!(
-            "  pruned moves : SEE {} · alpha/futility {} · LMP {}",
+            "  pruned moves : SEE {} · alpha/futility {} · LMP {} · of which rejected before make {}",
             pruned[0].to_formatted_string(&Locale::en),
             pruned[1].to_formatted_string(&Locale::en),
             pruned[2].to_formatted_string(&Locale::en),
+            pruned[3].to_formatted_string(&Locale::en),
         );
         println!(
             "  LMR quiet    : eligible {} · applied {} · re-searched {}",
