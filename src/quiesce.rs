@@ -7,7 +7,7 @@ use crate::move_constants::{
 };
 use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
 use crate::moves::{
-    generate_check_evasions, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check,
+    generate_check_evasions_into, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check,
 };
 use crate::search::MATE_SCORE;
 use crate::see::{captured_piece_value_see, static_exchange_evaluation_with_value};
@@ -21,41 +21,29 @@ use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
 #[inline(always)]
 pub fn quiesce_moves(position: &Position) -> MoveList {
     let mut move_list = MoveList::new();
+    quiesce_moves_into(position, &mut move_list);
+    move_list
+}
 
+/// Fills `move_list` in place. Returning the 1,028-byte `MoveList` by value
+/// cost a full-capacity copy at every quiescence node (NET-1189).
+pub fn quiesce_moves_into(position: &Position, move_list: &mut MoveList) {
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
     let valid_destinations = position.pieces[opponent!(position.mover) as usize].all_pieces_bitboard;
 
-    generate_capture_pawn_moves(position, &mut move_list, position.mover as usize, friendly.pawn_bitboard);
-    generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
+    generate_capture_pawn_moves(position, move_list, position.mover as usize, friendly.pawn_bitboard);
+    generate_knight_moves(move_list, valid_destinations, friendly.knight_bitboard);
     generate_diagonal_slider_moves(
         friendly.bishop_bitboard,
         all_pieces,
-        &mut move_list,
+        move_list,
         valid_destinations,
         PIECE_MASK_BISHOP,
     );
-    generate_straight_slider_moves(
-        friendly.rook_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_ROOK,
-    );
-    generate_straight_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_QUEEN,
-    );
-    generate_diagonal_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_QUEEN,
-    );
+    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, move_list, valid_destinations, PIECE_MASK_ROOK);
+    generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, move_list, valid_destinations, PIECE_MASK_QUEEN);
+    generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, move_list, valid_destinations, PIECE_MASK_QUEEN);
 
     add_moves!(
         move_list,
@@ -79,8 +67,6 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
             move_list.push(from_square_mask(from_square) | to_square as Move | PROMOTION_QUEEN_MOVE_MASK);
         }
     }
-
-    move_list
 }
 
 #[inline(always)]
@@ -188,11 +174,12 @@ pub fn quiesce(
     let mut best_move: Move = 0;
 
     // In check: every evasion must be considered, not just captures
-    let ms = if in_check {
-        generate_check_evasions(position)
+    let mut ms = MoveList::new();
+    if in_check {
+        generate_check_evasions_into(position, &mut ms);
     } else {
-        quiesce_moves(position)
-    };
+        quiesce_moves_into(position, &mut ms);
+    }
 
     if ms.is_empty() {
         // No pseudo-legal evasions while in check = mated at the horizon
@@ -218,7 +205,7 @@ pub fn quiesce(
 
     let mut legal_move_count = 0;
 
-    for (m, _) in move_scores {
+    for &(m, _) in &move_scores {
         let is_promotion = m & PROMOTION_FULL_MOVE_MASK != 0;
         let see_value = captured_piece_value_see(position, m);
 

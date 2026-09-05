@@ -573,6 +573,13 @@ fn between_squares(sq1: Square, sq2: Square) -> Bitboard {
 #[inline(always)]
 pub fn generate_check_evasions(position: &Position) -> MoveList {
     let mut move_list = MoveList::new();
+    generate_check_evasions_into(position, &mut move_list);
+    move_list
+}
+
+/// Fills `move_list` in place. Returning the 1,028-byte `MoveList` by value
+/// cost a full-capacity copy at every in-check quiescence node (NET-1189).
+pub fn generate_check_evasions_into(position: &Position, move_list: &mut MoveList) {
     let mover = position.mover;
     let friendly = position.pieces[mover as usize];
     let enemy = position.pieces[opponent!(mover) as usize];
@@ -588,7 +595,7 @@ pub fn generate_check_evasions(position: &Position) -> MoveList {
 
     // If double check, only king moves are legal
     if num_checkers > 1 {
-        return move_list;
+        return;
     }
 
     // Single check - can also block or capture the checker
@@ -608,60 +615,40 @@ pub fn generate_check_evasions(position: &Position) -> MoveList {
     // Generate captures/blocks with each piece type
 
     // Knights
-    generate_knight_moves(&mut move_list, valid_destinations, friendly.knight_bitboard);
+    generate_knight_moves(move_list, valid_destinations, friendly.knight_bitboard);
 
     // Rooks
-    generate_straight_slider_moves(
-        friendly.rook_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_ROOK,
-    );
+    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, move_list, valid_destinations, PIECE_MASK_ROOK);
 
     // Bishops
     generate_diagonal_slider_moves(
         friendly.bishop_bitboard,
         all_pieces,
-        &mut move_list,
+        move_list,
         valid_destinations,
         PIECE_MASK_BISHOP,
     );
 
     // Queens
-    generate_straight_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_QUEEN,
-    );
-    generate_diagonal_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        valid_destinations,
-        PIECE_MASK_QUEEN,
-    );
+    generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, move_list, valid_destinations, PIECE_MASK_QUEEN);
+    generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, move_list, valid_destinations, PIECE_MASK_QUEEN);
 
     // Pawns - captures of checker
     if checker_bit != 0 {
-        generate_pawn_evasion_captures(position, &mut move_list, mover as usize, friendly.pawn_bitboard, checker_square);
+        generate_pawn_evasion_captures(position, move_list, mover as usize, friendly.pawn_bitboard, checker_square);
     }
 
     // Pawns - blocks (forward moves to block squares)
     if block_squares != 0 {
         generate_pawn_evasion_blocks(
             position,
-            &mut move_list,
+            move_list,
             !all_pieces,
             mover as usize,
             friendly.pawn_bitboard,
             block_squares,
         );
     }
-
-    move_list
 }
 
 /// Generate pawn captures that capture the checking piece
