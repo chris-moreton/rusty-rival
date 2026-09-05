@@ -1154,7 +1154,7 @@ pub fn search(
 
         // Generate captures and try them at reduced depth
         let captures = generate_captures(position);
-        for m in captures {
+        for &m in &captures {
             // Only try captures with non-negative SEE
             if static_exchange_evaluation(position, m) < 0 {
                 continue;
@@ -1208,7 +1208,7 @@ pub fn search(
         let captures = generate_captures(position);
         let enemy = &position.pieces[opponent!(position.mover) as usize];
         let mut scored_captures: MoveScoreArray = MoveScoreArray::new();
-        for m in captures {
+        for &m in &captures {
             scored_captures.push((m, score_move(position, m, search_state, ply as usize, enemy)));
         }
 
@@ -1420,7 +1420,7 @@ pub fn search(
             evasions.retain(|m| *m != excluded_move);
         }
         move_scores = MoveScoreArray::new();
-        for m in evasions {
+        for &m in &evasions {
             move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
         }
         quiets_added = true; // No staged generation when in check
@@ -1435,7 +1435,7 @@ pub fn search(
             captures.retain(|m| *m != excluded_move);
         }
         move_scores = MoveScoreArray::new();
-        for m in captures {
+        for &m in &captures {
             let (score, see_score) = score_move_with_see(position, m, search_state, ply as usize, &enemy);
             // Promotions change material too much to demote on SEE alone
             if see_score < 0 && m & PROMOTION_FULL_MOVE_MASK == 0 {
@@ -1466,7 +1466,7 @@ pub fn search(
                 if excluded_move != 0 {
                     quiets.retain(|m| *m != excluded_move);
                 }
-                for m in quiets {
+                for &m in &quiets {
                     move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
                 }
             } else if !bad_captures_added {
