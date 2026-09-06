@@ -2603,12 +2603,14 @@ fn update_correction_history(position: &Position, search_state: &mut SearchState
 }
 
 /// NET-1192: the reward (and, negated, the penalty) applied to every history
-/// table for a move searched at `depth`. Peers update on the same 16,384
-/// gravity scale with 20-40x larger steps than the old `depth * depth`
-/// (depth 5: 25, depth 12: 144), which left the history-modulated LMR
-/// thresholds almost never reached. Divisors, thresholds and decay are
-/// unchanged: gravity fixes the equilibrium range, so only the response time
-/// and the deep-versus-shallow weighting move.
+/// table for a move searched at `depth`. This is 16x the old `depth * depth`
+/// until the 2,048 cap (depth 5: 25 -> 400; depth 12: 144 -> 2,048, about
+/// 14x), which puts the step size in the range peers use on the same 16,384
+/// gravity scale (Ethereal 16d^2 + 128(d-1); Stash and Berserk capped near
+/// 2,461 and 1,708). The old steps left the history-modulated LMR thresholds
+/// almost never reached. Divisors, thresholds and decay are unchanged:
+/// gravity fixes the equilibrium range, so only the response time and the
+/// deep-versus-shallow weighting move.
 #[inline(always)]
 pub fn history_bonus(depth: u8) -> i32 {
     (16 * depth as i32 * depth as i32).min(2048)
