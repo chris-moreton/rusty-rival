@@ -1,6 +1,6 @@
 use rusty_rival::engine_constants::NULL_MOVE_REDUCE_DEPTH_BASE;
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::search::{is_draw, is_passed_pawn_push, iterative_deepening, null_move_reduced_depth, piece_index_12};
+use rusty_rival::search::{is_draw, is_passed_pawn_push, iterative_deepening, null_move_reduced_depth, piece_index_12, search, MAX_WINDOW};
 use rusty_rival::types::default_search_state;
 use rusty_rival::utils::{hydrate_move_from_algebraic_move, pawn_push};
 use std::ops::Add;
@@ -321,4 +321,74 @@ fn search_leaves_the_repetition_history_balanced() {
             search_state.history.len()
         );
     }
+}
+
+// NET-1187: a singular-verification search (excluded_move != 0) must not
+// search the excluded move through the hash-move path, and when the exclusion
+// leaves no legal alternative it must fail low rather than report the terminal
+// score of a position that is not terminal.
+#[test]
+fn it_fails_low_when_the_excluded_move_is_the_only_legal_move() {
+    // White is in check from the queen on h2; Kxh2 is the only legal move.
+    let fen = "k7/8/8/8/8/8/7q/7K w - - 0 1";
+    let mut search_state = default_search_state();
+    search_state.use_nnue = false;
+    search_state.show_info = false;
+    search_state.end_time = Instant::now().add(Duration::from_secs(30));
+    let mut position = get_position(fen);
+    let kxh2 = hydrate_move_from_algebraic_move(&position, "h1h2".to_string());
+
+    // A normal search of this node first, so the transposition table holds
+    // Kxh2 as the hash move for this position - exactly the state a
+    // verification search probes into. (The root of iterative_deepening is
+    // never stored, so search() is called directly, as the singular
+    // extension itself does.)
+    let normal = search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut search_state, false, 0, None);
+    assert_eq!(normal.0[0], kxh2);
+    let hash_index = (position.zobrist_lock as u64 & search_state.hash_table.mask()) as usize;
+    let before = search_state
+        .hash_table
+        .probe(hash_index, position.zobrist_lock)
+        .expect("entry stored");
+    assert_eq!(before.mv, kxh2);
+
+    // Verification search excluding Kxh2 with a narrow window: the only legal
+    // move is excluded, so the result must be a fail-low at alpha. Before the
+    // fix the hash-move path searched Kxh2 anyway and returned its (winning)
+    // score, or, with the hash path guarded but no terminal fix, a mate score.
+    let window = (-50, 50);
+    let result = search(&mut position, 4, 1, window, &mut search_state, false, kxh2, None);
+    assert_eq!(result.1, window.0, "exclusion with no alternative must fail low at alpha");
+
+    // The verification search must not disturb the position's own entry.
+    let after = search_state
+        .hash_table
+        .probe(hash_index, position.zobrist_lock)
+        .expect("entry still stored");
+    assert_eq!(after.mv, before.mv);
+    assert_eq!(after.height, before.height);
+    assert_eq!(after.score, before.score);
+}
+
+#[test]
+fn it_searches_the_alternatives_when_the_excluded_move_is_the_hash_move() {
+    // White Kg1 is in check from the queen on h2. Legal moves: Kxh2 (wins the
+    // queen, and is the hash move after a normal search) and Kf1.
+    let fen = "k7/8/8/8/8/8/7q/6K1 w - - 0 1";
+    let mut search_state = default_search_state();
+    search_state.use_nnue = false;
+    search_state.show_info = false;
+    search_state.end_time = Instant::now().add(Duration::from_secs(30));
+    let mut position = get_position(fen);
+    let kxh2 = hydrate_move_from_algebraic_move(&position, "g1h2".to_string());
+    let kf1 = hydrate_move_from_algebraic_move(&position, "g1f1".to_string());
+    let normal = search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut search_state, false, 0, None);
+    assert_eq!(normal.0[0], kxh2);
+
+    // Excluding the hash move leaves Kf1 as the only alternative; the
+    // verification search must return that line, never the excluded move
+    // (before the fix the hash-move path searched Kxh2 first and it won).
+    let result = search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut search_state, false, kxh2, None);
+    assert_eq!(result.0[0], kf1, "the excluded hash move must not be searched");
+    assert!(result.1 < normal.1, "without the queen capture the score must drop");
 }
