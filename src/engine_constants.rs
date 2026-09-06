@@ -57,10 +57,16 @@ pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 8; // SPSA tuned, Run 20
 // We do a reduced search excluding the hash move; if all alternatives fail low
 // by SINGULAR_MARGIN below alpha, the hash move is "singular" and gets extended.
 // Conservative settings to avoid over-extending
-pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 13;
-pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 6;
-pub const SINGULAR_EXTENSION_DEPTH_REDUCTION: u8 = 5;
-pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 6;
+// NET-1193: the singular extension has never functioned before the NET-1187
+// exclusion fix, so these gates were never really tested. Peer-aligned seed:
+// Stash extends from depth 7, Ethereal from about 8, Stockfish from 4-6; all
+// anchor the verification window on the TT score and verify at about half
+// depth.
+pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 8;
+// TT entry must be at least this close to the current depth
+pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 3;
+// Verification window: tt_score - SINGULAR_EXTENSION_MARGIN_MULTIPLIER * depth
+pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 2;
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
 // After searching N moves at depth D, skip remaining quiet moves entirely
