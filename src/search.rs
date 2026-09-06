@@ -1377,9 +1377,9 @@ pub fn search(
     // - Not in check (check extension handles that)
     // - Depth is sufficient (overhead of singular search not worth it at low depth)
     // - Hash entry has sufficient depth (reliable information)
-    // - Hash entry has Lower bound (hash move caused a fail-high, so it's proven good)
+    // - Hash entry has a Lower or Exact bound (its score is a lower bound for the hash move)
     // - Not already in a singular search (excluded_move == 0)
-    // - Not searching for mate (mate lines need full exploration)
+    // - Not searching for mate, and not too deep in an extension chain
     let singular_extension: u8 = if verified_hash_move
         && !in_check
         && depth >= SINGULAR_EXTENSION_MIN_DEPTH

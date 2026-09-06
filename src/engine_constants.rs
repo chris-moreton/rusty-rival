@@ -52,11 +52,11 @@ pub const MULTICUT_DEPTH_REDUCTION: u8 = 11; // SPSA tuned, Run 20
 pub const MULTICUT_MOVES_TO_TRY: u8 = 14; // SPSA tuned, Run 20
 pub const MULTICUT_REQUIRED_CUTOFFS: u8 = 8; // SPSA tuned, Run 20
 
-// Singular extension: if the hash move is significantly better than all alternatives,
-// extend its search by 1 ply. This catches critical forcing sequences.
-// We do a reduced search excluding the hash move; if all alternatives fail low
-// by SINGULAR_MARGIN below alpha, the hash move is "singular" and gets extended.
-// Conservative settings to avoid over-extending
+// Singular extension: if the hash move is significantly better than all
+// alternatives, extend its search by 1 ply. This catches critical forcing
+// sequences. A half-depth search excluding the hash move is run against a
+// window just below the TT score; if every alternative fails low, the hash
+// move is "singular" and gets extended.
 // NET-1193: the singular extension has never functioned before the NET-1187
 // exclusion fix, so these gates were never really tested. Peer-aligned seed:
 // Stash extends from depth 7, Ethereal from about 8, Stockfish from 4-6; all
