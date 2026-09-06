@@ -1348,7 +1348,12 @@ pub fn search(
     let mut searched_quiets: MoveList = MoveList::new();
     let mut searched_captures: MoveScoreArray = MoveScoreArray::new();
 
-    let verified_hash_move = hash_move != 0 && verify_move(position, hash_move);
+    // NET-1187: a singular-verification search must not search the move it is
+    // meant to exclude. The TT probe inside the verification call returns the
+    // same entry, so hash_move == excluded_move here; only the generated move
+    // lists were being filtered before, and the excluded move was searched
+    // first through this path at every verification.
+    let verified_hash_move = hash_move != 0 && hash_move != excluded_move && verify_move(position, hash_move);
 
     // Check extension: extend by 1 ply when in check
     let check_extension: u8 = if in_check && (ply as u16) < (search_state.iterative_depth as u16) * 2 {
@@ -1993,7 +1998,12 @@ pub fn search(
     }
 
     if legal_move_count == 0 {
-        if in_check {
+        if excluded_move != 0 {
+            // NET-1187: the exclusion left no legal alternative. The position
+            // is not terminal, so report a fail-low for the verification
+            // window instead of a mate or draw score (as Stockfish does).
+            best_pathscore.1 = alpha;
+        } else if in_check {
             best_pathscore.1 = -MATE_SCORE + ply as Score
         } else {
             best_pathscore.1 = draw_value(position, search_state)
