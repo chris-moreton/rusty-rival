@@ -2005,7 +2005,7 @@ pub fn search(
     if hash_flag == Exact && excluded_move == 0 {
         let best_move = best_pathscore.0[0];
         let best_captured = captured_piece_value(position, best_move);
-        let bonus = (real_depth as i32) * (real_depth as i32);
+        let bonus = history_bonus(real_depth);
         update_history(position, search_state, best_move, bonus, best_captured);
         update_countermove_history_for_move(
             position,
@@ -2366,7 +2366,7 @@ fn cutoff_unmake(
         hash_index,
         raw_static_eval,
     );
-    let bonus = (depth as i32) * (depth as i32);
+    let bonus = history_bonus(depth);
     update_history(position, search_state, m, bonus, captured_value);
     update_killers(ply, search_state, m, best_pathscore.1, is_capture);
     update_countermove(position, ply, search_state, m, is_capture, depth);
@@ -2435,7 +2435,7 @@ fn update_countermove(position: &Position, ply: u8, search_state: &mut SearchSta
     // Update countermove history with gravity formula
     let curr_piece = piece_type_to_index(m);
     let curr_to = to_square_part(m) as usize;
-    let bonus = (depth as i32) * (depth as i32);
+    let bonus = history_bonus(depth);
     update_countermove_history(search_state, prev_piece, prev_to, curr_piece, curr_to, bonus);
 }
 
@@ -2600,6 +2600,18 @@ fn update_correction_history(position: &Position, search_state: &mut SearchState
     let current = *entry as i32;
     let new_value = (current * (256 - weight) + diff * weight) / 256;
     *entry = new_value.clamp(-CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_MAX) as i16;
+}
+
+/// NET-1192: the reward (and, negated, the penalty) applied to every history
+/// table for a move searched at `depth`. Peers update on the same 16,384
+/// gravity scale with 20-40x larger steps than the old `depth * depth`
+/// (depth 5: 25, depth 12: 144), which left the history-modulated LMR
+/// thresholds almost never reached. Divisors, thresholds and decay are
+/// unchanged: gravity fixes the equilibrium range, so only the response time
+/// and the deep-versus-shallow weighting move.
+#[inline(always)]
+pub fn history_bonus(depth: u8) -> i32 {
+    (16 * depth as i32 * depth as i32).min(2048)
 }
 
 #[inline(always)]
