@@ -493,13 +493,19 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 break;
             } else {
                 //println!("Move score was outside the aspiration window {} {} {} {}", aspire_best.1, aspiration_window.0, aspiration_window.1, c);
+                let failed_high = aspire_best.1 >= aspiration_window.1;
                 c += 1;
                 if c == ASPIRATION_RADIUS.len() {
                     aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
                 } else if aspire_best.1 <= aspiration_window.0 {
                     aspiration_window.0 = max(-MAX_WINDOW, aspiration_window.0 - ASPIRATION_RADIUS[c]);
-                } else if aspire_best.1 >= aspiration_window.1 {
+                } else if failed_high {
                     aspiration_window.1 = min(MAX_WINDOW, aspiration_window.1 + ASPIRATION_RADIUS[c]);
+                }
+                if failed_high {
+                    // NET-1190: start_search returned as soon as this move beat
+                    // beta; search it first on the retry.
+                    rotate_root_move_to_front(&mut legal_moves, aspire_best.0[0]);
                 }
                 //println!("New aspiration window {} {}", aspiration_window.0, aspiration_window.1);
             };
@@ -706,8 +712,28 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
         if time_expired!(search_state) {
             return current_best;
         }
+
+        // NET-1190: a root move that reaches the aspiration beta ends this
+        // attempt. iterative_deepening widens beta and searches again with this
+        // move first, so scouting the remaining moves against a bound the
+        // window cannot contain would only produce results the retry discards.
+        // A full window (multi-PV, or the final widening) cannot fail high, so
+        // the exit is confined to single-PV aspiration attempts.
+        if mv.1 >= window.1 && window.1 < MAX_WINDOW {
+            return current_best;
+        }
     }
     current_best
+}
+
+/// NET-1190: after a root fail-high, put the failing move first for the retry
+/// without disturbing the relative order of the others. The partially searched
+/// list must not be sorted by score: entries the attempt never reached still
+/// hold scores from an earlier attempt or the previous iteration.
+pub fn rotate_root_move_to_front(legal_moves: &mut MoveScoreList, m: Move) {
+    if let Some(index) = legal_moves.iter().position(|(candidate, _)| *candidate == m) {
+        legal_moves[..=index].rotate_right(1);
+    }
 }
 
 pub fn clear_killers(search_state: &mut SearchState) {
