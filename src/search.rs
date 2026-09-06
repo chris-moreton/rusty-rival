@@ -1200,7 +1200,18 @@ pub fn search(
     // We'll use this to reduce LMR aggressiveness rather than extending
     let mut threat_detected = false;
 
-    if excluded_move == 0 && !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
+    // NET-1191: null move only when the static eval already stands at or above
+    // beta, as in every peer engine. Below-beta null searches cut 0.2-0.4% of
+    // the time; their only product was the threat signal, which now comes
+    // solely from above-beta null searches that fail badly.
+    if excluded_move == 0
+        && !on_null_move
+        && scouting
+        && depth >= NULL_MOVE_MIN_DEPTH
+        && null_move_material(position)
+        && !in_check
+        && lazy_eval >= beta
+    {
         let old_ep = make_null_move(position);
         let old_repetition_history_start = search_state.repetition_history_start;
         search_state.repetition_history_start = search_state.history.len();
