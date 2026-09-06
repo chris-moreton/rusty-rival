@@ -1,5 +1,6 @@
 use rusty_rival::engine_constants::NULL_MOVE_REDUCE_DEPTH_BASE;
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
+use rusty_rival::moves::is_check;
 use rusty_rival::search::{is_draw, is_passed_pawn_push, iterative_deepening, null_move_reduced_depth, piece_index_12, search, MAX_WINDOW};
 use rusty_rival::types::default_search_state;
 use rusty_rival::utils::{hydrate_move_from_algebraic_move, pawn_push};
@@ -368,6 +369,29 @@ fn it_fails_low_when_the_excluded_move_is_the_only_legal_move() {
     assert_eq!(after.mv, before.mv);
     assert_eq!(after.height, before.height);
     assert_eq!(after.score, before.score);
+    assert_eq!(after.bound, before.bound);
+}
+
+// Same guarantee when not in check, which is the state a real singular
+// verification runs in (the singular block requires !in_check), and with the
+// null window the verification actually uses.
+#[test]
+fn it_fails_low_when_the_excluded_move_is_the_only_legal_move_outside_check() {
+    // White Kh1 is stalemated by the queen on f2 except for the pawn push a6a7.
+    let fen = "k7/8/P7/8/8/8/5q2/7K w - - 0 1";
+    let mut search_state = default_search_state();
+    search_state.use_nnue = false;
+    search_state.show_info = false;
+    search_state.end_time = Instant::now().add(Duration::from_secs(30));
+    let mut position = get_position(fen);
+    assert!(!is_check(&position, position.mover));
+    let a6a7 = hydrate_move_from_algebraic_move(&position, "a6a7".to_string());
+    let normal = search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut search_state, false, 0, None);
+    assert_eq!(normal.0[0], a6a7);
+
+    let window = (-1, 0);
+    let result = search(&mut position, 4, 1, window, &mut search_state, false, a6a7, None);
+    assert_eq!(result.1, window.0, "exclusion with no alternative must fail low at alpha");
 }
 
 #[test]
