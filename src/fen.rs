@@ -78,8 +78,9 @@ pub fn algebraic_move_from_move(m: Move) -> String {
 pub fn algebraic_path_from_path(p: &[Move]) -> String {
     p.iter()
         .filter(|m| **m != 0)
-        .map(|m| algebraic_move_from_move(*m) + " ")
-        .collect::<String>()
+        .map(|m| algebraic_move_from_move(*m))
+        .collect::<Vec<String>>()
+        .join(" ")
 }
 
 pub fn promotion_mask(piece_char: String) -> Move {

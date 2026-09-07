@@ -92,6 +92,9 @@ pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState
         "ucinewgame" => {
             // Simplified ucinewgame for sync mode (no search handle needed)
             search_state.nodes = 0;
+            search_state.synced_nodes = 0;
+            search_state.sel_depth = 0;
+            search_state.shared_nodes.store(0, Ordering::Relaxed);
             search_state.qnodes = 0;
             search_state.tt_probes = 0;
             search_state.tt_hits = 0;
@@ -138,6 +141,9 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
     // Bare `go` behaves as `go infinite`.
     let t = *parts.get(1).unwrap_or(&"infinite");
     search_state.nodes = 0;
+    search_state.synced_nodes = 0;
+    search_state.sel_depth = 0;
+    search_state.shared_nodes.store(0, Ordering::Relaxed);
     search_state.qnodes = 0;
     search_state.tt_probes = 0;
     search_state.tt_hits = 0;
@@ -707,6 +713,8 @@ fn cmd_go(
         // Clone search_state for each thread, sharing hash tables and stop flag
         let mut thread_search_state = search_state.clone();
         thread_search_state.nodes = 0;
+        thread_search_state.synced_nodes = 0;
+        thread_search_state.sel_depth = 0;
         thread_search_state.qnodes = 0;
         thread_search_state.tt_probes = 0;
         thread_search_state.tt_hits = 0;
@@ -1080,6 +1088,12 @@ fn cmd_ucinewgame(
     }
 
     search_state.nodes = 0;
+
+    search_state.synced_nodes = 0;
+
+    search_state.sel_depth = 0;
+
+    search_state.shared_nodes.store(0, Ordering::Relaxed);
 
     search_state.qnodes = 0;
 

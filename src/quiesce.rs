@@ -15,7 +15,7 @@ use crate::types::{
     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
     Window, BLACK, WHITE,
 };
-use crate::utils::{from_square_mask, send_info, to_square_part};
+use crate::utils::{from_square_mask, to_square_part};
 use crate::{add_moves, check_time, get_and_unset_lsb, opponent};
 
 #[inline(always)]
@@ -144,6 +144,9 @@ pub fn quiesce(
     }
     search_state.nodes += 1;
     search_state.qnodes += 1;
+    if ply > search_state.sel_depth {
+        search_state.sel_depth = ply;
+    }
 
     let in_check = known_in_check.unwrap_or_else(|| is_check(position, position.mover));
 

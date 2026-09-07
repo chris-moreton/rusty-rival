@@ -73,7 +73,7 @@ use crate::types::{
     is_stopped, pv_prepend, pv_single, set_stop, Bitboard, BoundType, HashEntry, Move, MoveList, MoveScore, MoveScoreArray, MoveScoreList,
     Mover, PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, STATIC_EVAL_NONE, WHITE,
 };
-use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part};
+use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part, InfoBound, INFO_BOUND_MIN_MS};
 
 /// NET-1188: per-node masks that certify, without making the move, that a
 /// quiet non-king move is legal and cannot give check, so futility and LMP can
@@ -253,7 +253,6 @@ macro_rules! time_expired {
             $crate::types::set_stop_reason(&$search_state.stop_reason, $crate::types::StopReason::HardDeadline);
             if !is_stopped(&$search_state.stop) {
                 set_stop(&$search_state.stop, true);
-                send_info($search_state, false);
             }
             true
         } else {
@@ -269,6 +268,9 @@ macro_rules! check_time {
             $crate::types::set_stop_reason(&$search_state.stop_reason, $crate::types::StopReason::External);
         }
         if !is_stopped(&$search_state.stop) && $search_state.nodes % 1000 == 0 {
+            // Keep the shared node total current for `info nodes`/`nps`
+            // (NET-1244): one relaxed add per 1,000 nodes per thread.
+            $crate::search::sync_nodes($search_state);
             if $search_state.is_ponder_search && !$search_state.ponder_applied {
                 if !$search_state.pondering.load(std::sync::atomic::Ordering::Relaxed) {
                     let hard_ms = $search_state.ponder_hard_ms.load(std::sync::atomic::Ordering::Relaxed);
@@ -322,7 +324,6 @@ macro_rules! check_time {
                     $crate::types::set_stop_reason(&$search_state.stop_reason, $crate::types::StopReason::MaxSoft);
                 }
                 set_stop(&$search_state.stop, true);
-                send_info($search_state, false);
             }
         }
     };
@@ -347,6 +348,19 @@ macro_rules! debug_out {
 /// the engine is actually supposed to spend - was being exceeded ~4x.
 pub fn next_iteration_fits(last_iteration: Duration, remaining_to_soft: Duration, growth: f64) -> bool {
     last_iteration.mul_f64(growth) <= remaining_to_soft
+}
+
+/// Add this thread's nodes since the last sync to the shared counter. Called
+/// every 1,000 nodes from `check_time!`, at the end of each iteration and
+/// before every `info` line (NET-1244), so the printed total covers every
+/// thread at the moment of printing.
+#[inline(always)]
+pub fn sync_nodes(search_state: &mut SearchState) {
+    let unsynced = search_state.nodes.saturating_sub(search_state.synced_nodes);
+    if unsynced > 0 {
+        search_state.shared_nodes.fetch_add(unsynced, Ordering::Relaxed);
+    }
+    search_state.synced_nodes = search_state.nodes;
 }
 
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
@@ -453,7 +467,9 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     // even if time expires before the first search iteration completes
     search_state.current_best = (pv_single(legal_moves[0].0), -MATE_SCORE);
 
-    let mut prev_synced_nodes: u64 = 0;
+    // A caller that reset `nodes` without `synced_nodes` must not underflow
+    // the first sync
+    search_state.synced_nodes = search_state.synced_nodes.min(search_state.nodes);
 
     // Ceiling for the cumulative soft-limit extension, fixed against the ORIGINAL
     // soft budget before any iteration can move it (NET-339). Without this the
@@ -472,6 +488,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         //println!("Iterative depth {}", iterative_depth);
         let mut c = 0;
         search_state.iterative_depth = iterative_depth;
+        search_state.sel_depth = 0;
         // Cost of this iteration, used to predict whether the next one fits in
         // the soft budget. Includes any aspiration re-searches, which is what we
         // want - a re-search storm is exactly the case that overruns.
@@ -481,6 +498,22 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
             //println!("Searching with aspiration window {} {} at [{}]", aspiration_window.0, aspiration_window.1, c);
             let aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window);
             if time_expired!(search_state) {
+                // Every thread flushes its remaining nodes on this exit too,
+                // not only the printing one (Codex review: helpers used to
+                // drop up to 999 nodes here)
+                sync_nodes(search_state);
+                // Final line for the GUI's node/time totals. Reports the
+                // last COMPLETED depth and its line and seldepth, never the
+                // interrupted iteration's; principal line only, because the
+                // MultiPV runner-ups live in the `pv` map that the interrupted
+                // root loop was still overwriting.
+                let (pv, score, completed) = (
+                    search_state.current_best.0.clone(),
+                    search_state.current_best.1,
+                    search_state.last_completed_depth,
+                );
+                search_state.sel_depth = search_state.completed_sel_depth;
+                send_info(search_state, completed, score, &pv, InfoBound::Exact, false);
                 emit_net365_diagnostic(search_state);
                 return search_state.current_best.0[0];
             }
@@ -489,10 +522,24 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 //println!("Found a move within the aspiration window {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1);
                 search_state.current_best = aspire_best;
                 search_state.last_completed_depth = iterative_depth;
+                search_state.completed_sel_depth = search_state.sel_depth;
                 //println!("Current best move is {} {}", algebraic_move_from_move(search_state.current_best.0[0]), search_state.current_best.1);
                 break;
             } else {
-                //println!("Move score was outside the aspiration window {} {} {} {}", aspire_best.1, aspiration_window.0, aspiration_window.1, c);
+                // Aspiration fail: report the bound the way Stockfish does,
+                // but only on a search long enough for someone to be watching.
+                // Fail-high shows the failing move's line as a lower bound;
+                // fail-low shows the previous iteration's line with the new
+                // upper bound, because nothing better is known yet.
+                if search_state.start_time.elapsed().as_millis() >= INFO_BOUND_MIN_MS {
+                    let failed_low = aspire_best.1 <= aspiration_window.0;
+                    let (pv, bound) = if failed_low {
+                        (search_state.current_best.0.clone(), InfoBound::Upper)
+                    } else {
+                        (aspire_best.0.clone(), InfoBound::Lower)
+                    };
+                    send_info(search_state, iterative_depth, aspire_best.1, &pv, bound, false);
+                }
                 c += 1;
                 if c == ASPIRATION_RADIUS.len() {
                     aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
@@ -518,7 +565,10 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
             );
         }
 
-        send_info(search_state, true);
+        // The one line per completed iteration, from the move the search
+        // actually believes in (NET-1244)
+        let (pv, score) = (search_state.current_best.0.clone(), search_state.current_best.1);
+        send_info(search_state, iterative_depth, score, &pv, InfoBound::Exact, true);
 
         // Time management decisions (thread 0 only)
         if search_state.time_management_active && search_state.thread_id == 0 && iterative_depth >= TM_MIN_DEPTH_FOR_TM {
@@ -597,18 +647,11 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         }
 
         // Sync local node count to the shared counter
-        let new_nodes = search_state.nodes - prev_synced_nodes;
-        if new_nodes > 0 {
-            search_state.shared_nodes.fetch_add(new_nodes, Ordering::Relaxed);
-            prev_synced_nodes = search_state.nodes;
-        }
+        sync_nodes(search_state);
     }
 
     // Final sync of any remaining nodes
-    let remaining = search_state.nodes - prev_synced_nodes;
-    if remaining > 0 {
-        search_state.shared_nodes.fetch_add(remaining, Ordering::Relaxed);
-    }
+    sync_nodes(search_state);
 
     // Return the move whose score was actually validated, not whichever sorts
     // first (NET-610 review). These agree today - a probe over bench and the
@@ -700,7 +743,6 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
 
         if mv.1 > current_best.1 && time_remains!(search_state.end_time) {
             current_best = (pv_prepend(mv.0, &path_score.0), mv.1);
-            send_info(search_state, false);
         }
 
         if time_expired!(search_state) {
@@ -998,6 +1040,10 @@ pub fn search(
     check_time!(search_state);
     if is_stopped(&search_state.stop) {
         return (pv_single(0), 0);
+    }
+
+    if ply > search_state.sel_depth {
+        search_state.sel_depth = ply;
     }
 
     if is_draw(position, search_state, ply) {

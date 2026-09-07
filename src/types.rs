@@ -134,6 +134,26 @@ impl SharedHashTable {
         self.version.fetch_add(1, Ordering::Relaxed);
     }
 
+    /// Permille of the table written during the current search generation,
+    /// estimated from the first 1,000 slots, for `info hashfull` (NET-1244).
+    /// Same sampling as Stockfish; entries left over from earlier searches
+    /// do not count, so the figure says how much of the table this search
+    /// has claimed rather than how much is merely non-zero.
+    pub fn hashfull(&self) -> u32 {
+        let sample = self.num_entries.min(1000);
+        if sample == 0 {
+            return 0;
+        }
+        let version = self.version();
+        let used = (0..sample)
+            .filter(|&index| {
+                let (_, entry_version, occupied) = self.entry_meta(index);
+                occupied && entry_version == version
+            })
+            .count();
+        (used * 1000 / sample) as u32
+    }
+
     /// Probe for the given lock. Returns the decoded entry only when the
     /// checksum confirms an untorn entry written for this exact lock.
     #[inline(always)]
@@ -555,7 +575,18 @@ pub struct SearchState {
     pub search_moves: Option<Vec<Move>>,
     pub stop: Arc<AtomicBool>,
     pub stop_reason: Arc<AtomicU8>,
-    pub last_info_nodes: u64,
+    /// Deepest ply reached in the current iteration, search and quiesce
+    /// together, for `info seldepth` (NET-1244). Reset per iteration.
+    pub sel_depth: u8,
+    /// `sel_depth` as it stood when the last iteration completed, so the
+    /// final line printed after a hard stop describes the iteration it
+    /// reports rather than the interrupted one (Codex review of NET-1244).
+    pub completed_sel_depth: u8,
+    /// This thread's node count already added to `shared_nodes`. The delta
+    /// is flushed every 1,000 nodes from `check_time!` so `info nodes` and
+    /// `nps` cover every thread at every line, instead of stepping once per
+    /// iteration (NET-1244).
+    pub synced_nodes: u64,
     pub shared_nodes: Arc<AtomicU64>,
     pub thread_id: usize,
     pub soft_time_limit: Instant,
@@ -706,7 +737,9 @@ impl Clone for SearchState {
             search_moves: self.search_moves.clone(),
             stop: Arc::clone(&self.stop),
             stop_reason: Arc::clone(&self.stop_reason),
-            last_info_nodes: self.last_info_nodes,
+            sel_depth: self.sel_depth,
+            completed_sel_depth: self.completed_sel_depth,
+            synced_nodes: self.synced_nodes,
             shared_nodes: Arc::clone(&self.shared_nodes),
             thread_id: self.thread_id,
             soft_time_limit: self.soft_time_limit,
@@ -792,7 +825,9 @@ pub fn default_search_state() -> SearchState {
         search_moves: None,
         stop: Arc::new(AtomicBool::new(false)),
         stop_reason: Arc::new(AtomicU8::new(StopReason::None as u8)),
-        last_info_nodes: 0,
+        sel_depth: 0,
+        completed_sel_depth: 0,
+        synced_nodes: 0,
         shared_nodes: Arc::new(AtomicU64::new(0)),
         thread_id: 0,
         soft_time_limit: Instant::now(),
