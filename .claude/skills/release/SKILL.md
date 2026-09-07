@@ -87,7 +87,7 @@ gh run list --limit 5 --json workflowName,status,conclusion,headBranch,databaseI
 gh run view <RELEASE_RUN_ID> --json status,conclusion
 ```
 
-Expect six assets: linux-x86_64 (±avx2), macos-aarch64, macos-x86_64, windows-x86_64 (±avx2).
+Expect seven assets: linux-x86_64 (±avx2), macos-aarch64, macos-x86_64, windows-x86_64 (±avx2), and `LICENSE` (the GPL-3.0 text, required because the binaries link GPL crates — NET-1245).
 
 ## Pre-release marking is automatic
 

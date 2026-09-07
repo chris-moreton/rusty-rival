@@ -142,6 +142,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Check out the repository (for LICENSE)
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
@@ -158,5 +161,6 @@ jobs:
             rusty-rival-${{ github.ref_name }}-windows-x86_64-avx2.exe/rusty-rival-${{ github.ref_name }}-windows-x86_64-avx2.exe
             rusty-rival-${{ github.ref_name }}-macos-x86_64/rusty-rival-${{ github.ref_name }}-macos-x86_64
             rusty-rival-${{ github.ref_name }}-macos-aarch64/rusty-rival-${{ github.ref_name }}-macos-aarch64
+            LICENSE
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}

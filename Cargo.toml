@@ -2,6 +2,9 @@
 name = "rusty-rival"
 version = "1.0.61"
 edition = "2021"
+description = "Rusty Rival: a UCI chess engine written in Rust with NNUE evaluation"
+repository = "https://github.com/chris-moreton/rusty-rival"
+license = "GPL-3.0-or-later"
 
 [profile.dev]
 opt-level = 0

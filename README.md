@@ -73,3 +73,11 @@ git tag v020-my-feature
 | `Ponder` | check | false | — | Enable pondering (thinking on the opponent's time). |
 | `Move Overhead` | spin | 10 | 0–5000 | Time in ms reserved per move for communication overhead. |
 | `UCI_ShowWDL` | check | false | — | Show win/draw/loss probabilities in search output. |
+
+## License
+
+Copyright (C) 2021-2026 Chris Moreton.
+
+Rusty Rival is free software, released under the GNU General Public License, version 3 or (at your option) any later version. See [LICENSE](LICENSE) for the full text.
+
+The engine links the GPL-3.0-or-later crates [shakmaty](https://crates.io/crates/shakmaty) and [shakmaty-syzygy](https://crates.io/crates/shakmaty-syzygy) for Syzygy tablebase probing, so binaries built from this repository must be distributed under the same terms. The `LICENSE` file is attached to every GitHub release alongside the binaries.
