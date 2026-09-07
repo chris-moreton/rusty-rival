@@ -5,9 +5,9 @@ use crate::engine_constants::{
     LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH,
     MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION,
     PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
-    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_DEPTH_REDUCTION, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
-    SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR,
-    TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
+    TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND,
+    TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 use arrayvec::ArrayVec;
@@ -1070,6 +1070,13 @@ pub fn search(
 
     let hash_entry_height = probed_entry.map_or(0, |e| e.height);
     let hash_entry_bound = probed_entry.map_or(Upper, |e| e.bound);
+    // Stored score adjusted to the current ply (same rule as the cutoff path
+    // below); anchors the singular verification window (NET-1193).
+    let hash_entry_score = probed_entry.map_or(0, |e| match e.score {
+        s if s > MATE_START => s - ply as Score,
+        s if s < -MATE_START => s + ply as Score,
+        s => s,
+    });
     let hash_move = if let Some(hash_entry) = probed_entry {
         // Adjust any mate score so that the score appears calculated from the current root rather than the root when the position was stored
         // When we found the mate, we set the score to reflect the distance from the root, and then, when we stored the score in the TT, we
@@ -1348,7 +1355,12 @@ pub fn search(
     let mut searched_quiets: MoveList = MoveList::new();
     let mut searched_captures: MoveScoreArray = MoveScoreArray::new();
 
-    let verified_hash_move = hash_move != 0 && verify_move(position, hash_move);
+    // NET-1187: a singular-verification search must not search the move it is
+    // meant to exclude. The TT probe inside the verification call returns the
+    // same entry, so hash_move == excluded_move here; only the generated move
+    // lists were being filtered before, and the excluded move was searched
+    // first through this path at every verification.
+    let verified_hash_move = hash_move != 0 && hash_move != excluded_move && verify_move(position, hash_move);
 
     // Check extension: extend by 1 ply when in check
     let check_extension: u8 = if in_check && (ply as u16) < (search_state.iterative_depth as u16) * 2 {
@@ -1365,22 +1377,25 @@ pub fn search(
     // - Not in check (check extension handles that)
     // - Depth is sufficient (overhead of singular search not worth it at low depth)
     // - Hash entry has sufficient depth (reliable information)
-    // - Hash entry has Lower bound (hash move caused a fail-high, so it's proven good)
+    // - Hash entry has a Lower or Exact bound (its score is a lower bound for the hash move)
     // - Not already in a singular search (excluded_move == 0)
-    // - Not searching for mate (mate lines need full exploration)
+    // - Not searching for mate, and not too deep in an extension chain
     let singular_extension: u8 = if verified_hash_move
         && !in_check
         && depth >= SINGULAR_EXTENSION_MIN_DEPTH
         && hash_entry_height >= depth.saturating_sub(SINGULAR_EXTENSION_DEPTH_MARGIN)
-        && hash_entry_bound == Lower // Only extend if hash move caused a fail-high
+        && (hash_entry_bound == Lower || hash_entry_bound == Exact) // NET-1193: peers accept both
         && excluded_move == 0 // Don't do singular search within singular search
         && alpha.abs() < MATE_START
-    // Don't interfere with mate searches
+        && hash_entry_score.abs() < MATE_START // Don't interfere with mate searches
+        && (ply as u16) < (search_state.iterative_depth as u16) * 2
+    // same chain guard as the other extensions
     {
-        // Do a reduced search excluding the hash move
-        // If all alternatives fail low, the hash move is singular
-        let singular_beta = alpha - (depth as Score * SINGULAR_EXTENSION_MARGIN_MULTIPLIER);
-        let singular_depth = (depth - SINGULAR_EXTENSION_DEPTH_REDUCTION).max(1);
+        // NET-1193: verify at about half depth against a window anchored on the
+        // TT score, as Stash/Ethereal/Stockfish do. If every alternative fails
+        // below tt_score - margin, the hash move is singular.
+        let singular_beta = hash_entry_score - (depth as Score * SINGULAR_EXTENSION_MARGIN_MULTIPLIER);
+        let singular_depth = ((depth - 1) / 2).max(1);
 
         // Note: no history push/pop needed here - we're searching from the current position
         // and search() handles history internally for each move it tries
@@ -1993,7 +2008,12 @@ pub fn search(
     }
 
     if legal_move_count == 0 {
-        if in_check {
+        if excluded_move != 0 {
+            // NET-1187: the exclusion left no legal alternative. The position
+            // is not terminal, so report a fail-low for the verification
+            // window instead of a mate or draw score (as Stockfish does).
+            best_pathscore.1 = alpha;
+        } else if in_check {
             best_pathscore.1 = -MATE_SCORE + ply as Score
         } else {
             best_pathscore.1 = draw_value(position, search_state)
