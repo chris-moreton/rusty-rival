@@ -5,10 +5,11 @@ use rusty_rival::move_constants::{
     BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_ROOK,
     START_POS, WHITE_KING_CASTLE_MOVE, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK,
 };
-use rusty_rival::types::Move;
+use rusty_rival::search::{MATE_SCORE, MATE_START};
+use rusty_rival::types::{BoundType, HashEntry, HashLock, Move, SharedHashTable};
 use rusty_rival::utils::{
-    captured_piece_value, castle_mask, from_square_mask, from_square_part, hydrate_move_from_algebraic_move, invert_fen, moving_piece_mask,
-    to_square_part,
+    captured_piece_value, castle_mask, format_uci_score, from_square_mask, from_square_part, hydrate_move_from_algebraic_move, invert_fen,
+    moving_piece_mask, to_square_part,
 };
 
 #[test]
@@ -125,4 +126,49 @@ fn it_inverts_a_fen() {
         invert_fen("6k1/1P2P3/7p/P1pP4/5R2/5B2/1r2N2P/R1Q1K3 w Q - 0 1"),
         "r1q1k3/1R2n2p/5b2/5r2/p1Pp4/7P/1p2p3/6K1 b q - 0 1"
     );
+}
+
+#[test]
+fn it_formats_uci_scores_as_cp_or_mate_in_moves() {
+    assert_eq!(format_uci_score(15), "cp 15");
+    assert_eq!(format_uci_score(-320), "cp -320");
+    assert_eq!(format_uci_score(0), "cp 0");
+    // Boundary: MATE_START itself is still a centipawn score
+    assert_eq!(format_uci_score(MATE_START), format!("cp {}", MATE_START));
+    assert_eq!(format_uci_score(-MATE_START), format!("cp {}", -MATE_START));
+    // We mate: found at ply 1 = mate in 1 move, ply 3 = mate in 2, ply 5 = mate in 3
+    assert_eq!(format_uci_score(MATE_SCORE - 1), "mate 1");
+    assert_eq!(format_uci_score(MATE_SCORE - 3), "mate 2");
+    assert_eq!(format_uci_score(MATE_SCORE - 5), "mate 3");
+    // We are mated: at ply 2 (our move, their mate) = mate -1, ply 4 = mate -2
+    assert_eq!(format_uci_score(-(MATE_SCORE - 2)), "mate -1");
+    assert_eq!(format_uci_score(-(MATE_SCORE - 4)), "mate -2");
+}
+
+#[test]
+fn hashfull_counts_only_entries_of_the_current_generation() {
+    let table = SharedHashTable::new_with_entries(4096);
+    assert_eq!(table.hashfull(), 0);
+    table.bump_version();
+    let version = table.version();
+    for index in 0..250 {
+        table.store(
+            index,
+            HashEntry {
+                score: 0,
+                version,
+                height: 1,
+                mv: 0,
+                bound: BoundType::Exact,
+                lock: index as HashLock + 1,
+                static_eval: 0,
+            },
+        );
+    }
+    // 250 of the 1,000 sampled slots hold a current-generation entry
+    assert_eq!(table.hashfull(), 250);
+    // A new search generation starts from an empty count even though the
+    // entries are still physically there
+    table.bump_version();
+    assert_eq!(table.hashfull(), 0);
 }

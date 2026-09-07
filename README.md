@@ -66,7 +66,7 @@ git tag v020-my-feature
 | `Clear Hash` | button | — | — | Clears the transposition table. |
 | `Threads` | spin | 1 | 1–256 | Number of search threads (Lazy SMP). |
 | `UseNNUE` | check | true | — | Use the NNUE neural network evaluation. When disabled, falls back to handcrafted evaluation. |
-| `MultiPV` | spin | 1 | 1–20 | Number of principal variations to report. |
+| `MultiPV` | spin | 1 | 1–20 | Number of lines to report. Line 1 is the searched principal variation. Lines 2 and up are the root loop's null-window results for the runners-up, reported as `upperbound` scores with their refutation lines; they are not fully searched variations. |
 | `SyzygyPath` | string | `<empty>` | — | Path to Syzygy endgame tablebase files. |
 | `Contempt` | spin | 0 | -1000–1000 | Contempt factor for draw avoidance. Positive values make the engine avoid draws. |
 | `EvalNoise` | spin | 0 | 0–100 | Adds random noise to the evaluation for varied play. |

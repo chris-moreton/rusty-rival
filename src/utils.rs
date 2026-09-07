@@ -7,8 +7,8 @@ use crate::move_constants::{
     PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK,
 };
 use crate::opponent;
+use crate::search::{sync_nodes, MATE_SCORE, MATE_START};
 use crate::types::{Bitboard, Move, Position, Score, SearchState, Square, BLACK, WHITE};
-use std::borrow::Borrow;
 use std::sync::atomic::Ordering;
 
 #[inline(always)]
@@ -225,53 +225,106 @@ pub fn pawn_push(position: &Position, m: Move) -> bool {
     false
 }
 
-pub fn send_info(search_state: &mut SearchState, show_multi_pv: bool) {
-    // Don't output info if no nodes have been searched yet - PV data would be stale
-    // from a previous iteration or game
-    if !search_state.show_info || search_state.root_moves.is_empty() || search_state.nodes == 0 {
+/// Bound annotation on an `info score`, as the UCI protocol defines it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum InfoBound {
+    Exact,
+    Lower,
+    Upper,
+}
+
+/// Aspiration fail-high/fail-low lines are only worth printing once a search
+/// has run long enough for someone to be watching it. Stockfish uses 3 s too.
+pub const INFO_BOUND_MIN_MS: u128 = 3000;
+
+/// The `info score` value: `cp N`, or `mate N` in full moves, negative when we
+/// are the side being mated. Same arithmetic as Stockfish's `to_score`.
+pub fn format_uci_score(score: Score) -> String {
+    if score > MATE_START {
+        format!("mate {}", (MATE_SCORE - score + 1) / 2)
+    } else if score < -MATE_START {
+        format!("mate {}", -(MATE_SCORE + score) / 2)
+    } else {
+        format!("cp {}", score)
+    }
+}
+
+/// Emit one `info` line for `depth` (plus MultiPV lines when the bound is
+/// exact).
+///
+/// Called once per completed iteration from `iterative_deepening`, once more
+/// when a hard stop interrupts an iteration (with the last COMPLETED depth, so
+/// the line never claims a depth that was not finished), and for aspiration
+/// bound lines after `INFO_BOUND_MIN_MS`. `pv` and `score` are passed in
+/// rather than read from `current_best` because the bound lines report
+/// something else: the failing move's line on a fail-high, the previous
+/// iteration's line with the new upper bound on a fail-low.
+///
+/// NET-1244 replaced the old scheme, which printed whichever root move topped
+/// the `pv` map - a mixture of exact scores, null-window fail-low bounds (equal
+/// to alpha because quiesce fails hard) and stale entries from the previous
+/// iteration - after every root move that beat the window floor. Whenever the
+/// score dropped between iterations a stale bound won the sort, and the GUI was
+/// shown a move and score the search did not believe; 22 of 80 completed
+/// depths on the bench set opened with the wrong move.
+pub fn send_info(search_state: &mut SearchState, depth: u8, score: Score, pv: &[Move], bound: InfoBound) {
+    if !search_state.show_info || depth == 0 || pv.is_empty() || pv[0] == 0 {
         return;
     }
-    // Skip duplicate output at the same node count
-    if search_state.nodes == search_state.last_info_nodes {
+    // Flush this thread's nodes so the total covers every thread
+    sync_nodes(search_state);
+    let total_nodes = search_state.shared_nodes.load(Ordering::Relaxed).max(search_state.nodes);
+    let elapsed_ms = search_state.start_time.elapsed().as_millis().max(1);
+    let nps = total_nodes as u128 * 1000 / elapsed_ms;
+    let hashfull = search_state.hash_table.hashfull();
+    let bound_text = match bound {
+        InfoBound::Exact => "",
+        InfoBound::Lower => " lowerbound",
+        InfoBound::Upper => " upperbound",
+    };
+    println!(
+        "info depth {} seldepth {} multipv 1 score {}{} nodes {} nps {} hashfull {} time {} pv {}",
+        depth,
+        search_state.sel_depth,
+        format_uci_score(score),
+        bound_text,
+        total_nodes,
+        nps,
+        hashfull,
+        elapsed_ms,
+        algebraic_path_from_path(pv)
+    );
+    if bound != InfoBound::Exact || search_state.multi_pv <= 1 {
         return;
     }
-    search_state.last_info_nodes = search_state.nodes;
-    let multi_pv = if show_multi_pv { search_state.multi_pv } else { 1 };
-    // Limit multi_pv to actual number of root moves to avoid index out of bounds
-    let multi_pv = multi_pv.min(search_state.root_moves.len() as u8);
-    let elapsed_ms = search_state.start_time.elapsed().as_millis();
-    if elapsed_ms > 0 {
-        let mut scored_moves: Vec<(Move, Score)> = search_state
-            .root_moves
-            .iter()
-            .map(|(m, _)| (*m, search_state.pv.get(m).unwrap().1))
-            .collect();
-        scored_moves.sort_by(|(_, a), (_, b)| b.cmp(a));
-        for (i, (m, score)) in scored_moves.iter().enumerate() {
-            search_state.root_moves[i] = (*m, *score);
+    // MultiPV lines 2 and up. The root loop scouts every move after the best
+    // with a null window, so what it knows about a runner-up is an UPPER bound
+    // (the move scored at most this much) and the line is its refutation. A
+    // true multi-PV search that re-searches the runners-up with a full window
+    // is phase 2 of NET-1244; until then a bound is reported as a bound rather
+    // than dressed up as a score.
+    let mut index = 2u8;
+    for &(m, _) in search_state.root_moves.iter() {
+        if index > search_state.multi_pv {
+            break;
         }
-        // Use shared node count from all threads for NPS display
-        // max() ensures single-threaded mode still works (shared_nodes may be 0 if not yet synced)
-        let total_nodes = std::cmp::max(search_state.nodes, search_state.shared_nodes.load(Ordering::Relaxed));
-        let nps = (total_nodes as f64 / elapsed_ms as f64) * 1000.0;
-        for pv in 1..=multi_pv {
-            let multi_pv_move = search_state.root_moves[pv as usize - 1];
-            let pv_path_score = search_state.pv.get(multi_pv_move.0.borrow()).unwrap();
-            let s = "info score cp ".to_string()
-                + &*(pv_path_score.1 as i64).to_string()
-                + &*" depth ".to_string()
-                + &*search_state.iterative_depth.to_string()
-                + &*" time ".to_string()
-                + &*elapsed_ms.to_string()
-                + &*" nodes ".to_string()
-                + &*total_nodes.to_string()
-                + &*" nps ".to_string()
-                + &*(nps as u64).to_string()
-                + &*" multipv ".to_string()
-                + &*pv.to_string()
-                + &*" pv ".to_string()
-                + &*algebraic_path_from_path(&pv_path_score.0);
-            println!("{}", s);
+        if m == pv[0] {
+            continue;
+        }
+        if let Some((line, line_score)) = search_state.pv.get(&m) {
+            println!(
+                "info depth {} seldepth {} multipv {} score {} upperbound nodes {} nps {} hashfull {} time {} pv {}",
+                depth,
+                search_state.sel_depth,
+                index,
+                format_uci_score(*line_score),
+                total_nodes,
+                nps,
+                hashfull,
+                elapsed_ms,
+                algebraic_path_from_path(line)
+            );
+            index += 1;
         }
     }
 }
