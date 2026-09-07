@@ -578,6 +578,10 @@ pub struct SearchState {
     /// Deepest ply reached in the current iteration, search and quiesce
     /// together, for `info seldepth` (NET-1244). Reset per iteration.
     pub sel_depth: u8,
+    /// `sel_depth` as it stood when the last iteration completed, so the
+    /// final line printed after a hard stop describes the iteration it
+    /// reports rather than the interrupted one (Codex review of NET-1244).
+    pub completed_sel_depth: u8,
     /// This thread's node count already added to `shared_nodes`. The delta
     /// is flushed every 1,000 nodes from `check_time!` so `info nodes` and
     /// `nps` cover every thread at every line, instead of stepping once per
@@ -734,6 +738,7 @@ impl Clone for SearchState {
             stop: Arc::clone(&self.stop),
             stop_reason: Arc::clone(&self.stop_reason),
             sel_depth: self.sel_depth,
+            completed_sel_depth: self.completed_sel_depth,
             synced_nodes: self.synced_nodes,
             shared_nodes: Arc::clone(&self.shared_nodes),
             thread_id: self.thread_id,
@@ -821,6 +826,7 @@ pub fn default_search_state() -> SearchState {
         stop: Arc::new(AtomicBool::new(false)),
         stop_reason: Arc::new(AtomicU8::new(StopReason::None as u8)),
         sel_depth: 0,
+        completed_sel_depth: 0,
         synced_nodes: 0,
         shared_nodes: Arc::new(AtomicU64::new(0)),
         thread_id: 0,

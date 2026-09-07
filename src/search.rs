@@ -498,14 +498,22 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
             //println!("Searching with aspiration window {} {} at [{}]", aspiration_window.0, aspiration_window.1, c);
             let aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window);
             if time_expired!(search_state) {
+                // Every thread flushes its remaining nodes on this exit too,
+                // not only the printing one (Codex review: helpers used to
+                // drop up to 999 nodes here)
+                sync_nodes(search_state);
                 // Final line for the GUI's node/time totals. Reports the
-                // last COMPLETED depth and its line, never the interrupted one.
+                // last COMPLETED depth and its line and seldepth, never the
+                // interrupted iteration's; principal line only, because the
+                // MultiPV runner-ups live in the `pv` map that the interrupted
+                // root loop was still overwriting.
                 let (pv, score, completed) = (
                     search_state.current_best.0.clone(),
                     search_state.current_best.1,
                     search_state.last_completed_depth,
                 );
-                send_info(search_state, completed, score, &pv, InfoBound::Exact);
+                search_state.sel_depth = search_state.completed_sel_depth;
+                send_info(search_state, completed, score, &pv, InfoBound::Exact, false);
                 emit_net365_diagnostic(search_state);
                 return search_state.current_best.0[0];
             }
@@ -514,6 +522,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 //println!("Found a move within the aspiration window {} {}", algebraic_move_from_move(aspire_best.0[0]), aspire_best.1);
                 search_state.current_best = aspire_best;
                 search_state.last_completed_depth = iterative_depth;
+                search_state.completed_sel_depth = search_state.sel_depth;
                 //println!("Current best move is {} {}", algebraic_move_from_move(search_state.current_best.0[0]), search_state.current_best.1);
                 break;
             } else {
@@ -529,7 +538,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                     } else {
                         (aspire_best.0.clone(), InfoBound::Lower)
                     };
-                    send_info(search_state, iterative_depth, aspire_best.1, &pv, bound);
+                    send_info(search_state, iterative_depth, aspire_best.1, &pv, bound, false);
                 }
                 c += 1;
                 if c == ASPIRATION_RADIUS.len() {
@@ -559,7 +568,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         // The one line per completed iteration, from the move the search
         // actually believes in (NET-1244)
         let (pv, score) = (search_state.current_best.0.clone(), search_state.current_best.1);
-        send_info(search_state, iterative_depth, score, &pv, InfoBound::Exact);
+        send_info(search_state, iterative_depth, score, &pv, InfoBound::Exact, true);
 
         // Time management decisions (thread 0 only)
         if search_state.time_management_active && search_state.thread_id == 0 && iterative_depth >= TM_MIN_DEPTH_FOR_TM {

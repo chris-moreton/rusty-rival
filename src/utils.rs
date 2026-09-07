@@ -258,7 +258,10 @@ pub fn format_uci_score(score: Score) -> String {
 /// bound lines after `INFO_BOUND_MIN_MS`. `pv` and `score` are passed in
 /// rather than read from `current_best` because the bound lines report
 /// something else: the failing move's line on a fail-high, the previous
-/// iteration's line with the new upper bound on a fail-low.
+/// iteration's line with the new upper bound on a fail-low. `multi_pv_lines`
+/// is set only by the completed-iteration call: the runner-up lines come
+/// from the `pv` map, which `start_search` keeps overwriting until the moment
+/// of a stop, so at stop time only the saved principal line is trustworthy.
 ///
 /// NET-1244 replaced the old scheme, which printed whichever root move topped
 /// the `pv` map - a mixture of exact scores, null-window fail-low bounds (equal
@@ -267,7 +270,7 @@ pub fn format_uci_score(score: Score) -> String {
 /// score dropped between iterations a stale bound won the sort, and the GUI was
 /// shown a move and score the search did not believe; 22 of 80 completed
 /// depths on the bench set opened with the wrong move.
-pub fn send_info(search_state: &mut SearchState, depth: u8, score: Score, pv: &[Move], bound: InfoBound) {
+pub fn send_info(search_state: &mut SearchState, depth: u8, score: Score, pv: &[Move], bound: InfoBound, multi_pv_lines: bool) {
     if !search_state.show_info || depth == 0 || pv.is_empty() || pv[0] == 0 {
         return;
     }
@@ -294,7 +297,7 @@ pub fn send_info(search_state: &mut SearchState, depth: u8, score: Score, pv: &[
         elapsed_ms,
         algebraic_path_from_path(pv)
     );
-    if bound != InfoBound::Exact || search_state.multi_pv <= 1 {
+    if !multi_pv_lines || bound != InfoBound::Exact || search_state.multi_pv <= 1 {
         return;
     }
     // MultiPV lines 2 and up. The root loop scouts every move after the best
