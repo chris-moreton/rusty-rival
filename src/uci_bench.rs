@@ -61,8 +61,10 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     let (mut by_kind, mut by_index) = ([0u64; 7], [0u64; 5]);
     let (mut child_kind, mut child_depth, mut child_node) = ([0u64; 3], [0u64; 5], [0u64; 2]);
     let (mut no_cut_kind, mut cut_kind) = ([0u64; 3], [0u64; 3]);
-    let (mut pruned, mut lmr_eligible, mut lmr_applied, mut lmr_researched) = ([0u64; 4], [0u64; 2], [0u64; 2], [0u64; 2]);
+    let (mut pruned, mut lmr_eligible, mut lmr_applied, mut lmr_researched) = ([0u64; 4], [0u64; 4], [0u64; 4], [0u64; 4]);
     let mut extensions = [0u64; 4];
+    let (mut lmr_hist, mut lmr_early, mut lmr_hist_sum) = ([[0u64; 6]; 4], [0u64; 4], [0i64; 4]);
+    let (mut lmr_quot, mut lmr_clamp) = ([[0u64; 7]; 4], [[0u64; 2]; 4]);
 
     for (i, fen) in BENCH_FENS.iter().enumerate() {
         // `ucinewgame` clears the TT and history tables, and `iterative_deepening`
@@ -133,6 +135,27 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
         }
         for (acc, n) in lmr_researched.iter_mut().zip(search_state.lmr_researched_by_kind) {
             *acc += n;
+        }
+        for (hist, per_kind) in lmr_hist.iter_mut().zip(search_state.lmr_reduction_hist) {
+            for (acc, n) in hist.iter_mut().zip(per_kind) {
+                *acc += n;
+            }
+        }
+        for (acc, n) in lmr_early.iter_mut().zip(search_state.lmr_applied_early) {
+            *acc += n;
+        }
+        for (acc, n) in lmr_hist_sum.iter_mut().zip(search_state.lmr_history_sum) {
+            *acc += n;
+        }
+        for (hist, per_kind) in lmr_quot.iter_mut().zip(search_state.lmr_quotient_hist) {
+            for (acc, n) in hist.iter_mut().zip(per_kind) {
+                *acc += n;
+            }
+        }
+        for (hist, per_kind) in lmr_clamp.iter_mut().zip(search_state.lmr_clamp_hits) {
+            for (acc, n) in hist.iter_mut().zip(per_kind) {
+                *acc += n;
+            }
         }
         for (acc, n) in extensions.iter_mut().zip(search_state.extension_children) {
             *acc += n;
@@ -214,7 +237,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     if scouts > 0 {
         let sc = scouts as f64;
         println!(
-            "Scout searches: {} · LMR re-search (reduced, full window) {:.1}% · then full depth {:.1}% · PVS re-search {:.1}%",
+            "Scout searches: {} · LMR verify (full depth, null window) {:.1}% · then full window {:.1}% · PVS re-search {:.1}%",
             scouts.to_formatted_string(&Locale::en),
             rs_lmr as f64 / sc * 100.0,
             rs_full as f64 / sc * 100.0,
@@ -281,18 +304,39 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             pruned[2].to_formatted_string(&Locale::en),
             pruned[3].to_formatted_string(&Locale::en),
         );
-        println!(
-            "  LMR quiet    : eligible {} · applied {} · re-searched {}",
-            lmr_eligible[0].to_formatted_string(&Locale::en),
-            lmr_applied[0].to_formatted_string(&Locale::en),
-            lmr_researched[0].to_formatted_string(&Locale::en),
-        );
-        println!(
-            "  LMR captures : eligible {} · applied {} · re-searched {}",
-            lmr_eligible[1].to_formatted_string(&Locale::en),
-            lmr_applied[1].to_formatted_string(&Locale::en),
-            lmr_researched[1].to_formatted_string(&Locale::en),
-        );
+        for (kind, label) in ["LMR quiet    ", "LMR good caps", "LMR bad caps ", "LMR promos   "]
+            .into_iter()
+            .enumerate()
+        {
+            let mean_hist = lmr_hist_sum[kind] as f64 / lmr_eligible[kind].max(1) as f64;
+            println!(
+                "  {}: eligible {} · applied {} (at index 2-3: {}) · verify tries {} · mean hist {:.0} · extra plies 0:{} 1:{} 2:{} 3:{} 4:{} 5+:{}",
+                label,
+                lmr_eligible[kind].to_formatted_string(&Locale::en),
+                lmr_applied[kind].to_formatted_string(&Locale::en),
+                lmr_early[kind].to_formatted_string(&Locale::en),
+                lmr_researched[kind].to_formatted_string(&Locale::en),
+                mean_hist,
+                lmr_hist[kind][0].to_formatted_string(&Locale::en),
+                lmr_hist[kind][1].to_formatted_string(&Locale::en),
+                lmr_hist[kind][2].to_formatted_string(&Locale::en),
+                lmr_hist[kind][3].to_formatted_string(&Locale::en),
+                lmr_hist[kind][4].to_formatted_string(&Locale::en),
+                lmr_hist[kind][5].to_formatted_string(&Locale::en),
+            );
+            println!(
+                "                 hist quotient <=-3:{} -2:{} -1:{} 0:{} 1:{} 2:{} >=3:{} · clamped low {} · high {}",
+                lmr_quot[kind][0].to_formatted_string(&Locale::en),
+                lmr_quot[kind][1].to_formatted_string(&Locale::en),
+                lmr_quot[kind][2].to_formatted_string(&Locale::en),
+                lmr_quot[kind][3].to_formatted_string(&Locale::en),
+                lmr_quot[kind][4].to_formatted_string(&Locale::en),
+                lmr_quot[kind][5].to_formatted_string(&Locale::en),
+                lmr_quot[kind][6].to_formatted_string(&Locale::en),
+                lmr_clamp[kind][0].to_formatted_string(&Locale::en),
+                lmr_clamp[kind][1].to_formatted_string(&Locale::en),
+            );
+        }
         println!(
             "  extensions   : check {} · pawn7 {} · passed {} · singular {}",
             extensions[0].to_formatted_string(&Locale::en),
