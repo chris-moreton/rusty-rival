@@ -195,16 +195,20 @@ pub const LMR_CAPTURE_HISTORY_DIVISOR: i32 = 4952;
 // gives-check bonus, as in Ethereal's Step 18B.
 pub const LMR_CAPTURE_BASE: i32 = 3;
 
-// NET-1194 ablation switches. The full bundle lost its first SPRT (-39 +/- 26
-// Elo at 1+0.01 on 2026-09-08), so each structural component can be reversed
-// on its own to find the shippable subset. Defaults are the full bundle; the
-// arms tested are recorded on the ticket.
-pub const LMR_TACTICAL: bool = true; // reduce captures and underpromotions
+// NET-1194 component switches. The full bundle lost its first SPRT (-39 +/- 26
+// Elo at 1+0.01, 2026-09-08); the arms recorded on the ticket found that the
+// tactical reductions were the damage (arm A, captures off: +5.5 +/- 7.6,
+// inconclusive) and that giving plies back anywhere else hurt (threat term,
+// in-check exemption, old gates). Arm E - captures off AND no PV-node
+// discount - passed: +11 +/- 10 Elo, H1 accepted at 3,230 games. Defaults are
+// arm E; the switches stay so the other components can be re-tested in one
+// line (a milder capture base is the obvious follow-up).
+pub const LMR_TACTICAL: bool = false; // reduce captures and underpromotions
 pub const LMR_IN_CHECK: bool = true; // reduce at in-check (check-extended) nodes
 pub const LMR_FROM_SECOND_MOVE: bool = true; // candidates from the second searched child, else the fourth
 pub const LMR_SOFT_EXEMPTIONS: bool = true; // killers and checking quiets get -1, else they are exempt
 pub const LMR_THREAT_TERM: bool = false; // pre-bundle -1 when the null move failed by more than a piece
-pub const LMR_PV_FLAG: bool = true; // +1 only at scout nodes; off applies it everywhere, as the dead PV branch on main did
+pub const LMR_PV_FLAG: bool = false; // +1 only at scout nodes; off applies it everywhere, as the dead PV branch on main did
 
 // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
 // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
