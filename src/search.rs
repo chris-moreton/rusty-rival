@@ -1,12 +1,13 @@
 use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, ASPIRATION_RADIUS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
     CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS,
-    LMR_CAPTURE_BASE, LMR_CAPTURE_HISTORY_DIVISOR, LMR_MIN_DEPTH, LMR_QUIET_HISTORY_DIVISOR, MAX_DEPTH, MAX_QUIESCE_DEPTH,
-    MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH,
-    NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH,
-    ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
-    SINGULAR_EXTENSION_MIN_DEPTH, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM,
-    TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    LMR_CAPTURE_BASE, LMR_CAPTURE_HISTORY_DIVISOR, LMR_FROM_SECOND_MOVE, LMR_IN_CHECK, LMR_MIN_DEPTH, LMR_QUIET_HISTORY_DIVISOR,
+    LMR_SOFT_EXEMPTIONS, LMR_TACTICAL, LMR_THREAT_TERM, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH,
+    MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION,
+    PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
+    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
+    TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND,
+    TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 use arrayvec::ArrayVec;
@@ -1248,6 +1249,11 @@ pub fn search(
             false
         };
 
+    // NET-1194 ablation switch: the pre-bundle threat flag (a null move that
+    // fails by more than a piece) takes one ply off every quiet reduction at
+    // this node while LMR_THREAT_TERM is on
+    let mut threat_detected = false;
+
     if excluded_move == 0 && !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
         let old_ep = make_null_move(position);
         let old_repetition_history_start = search_state.repetition_history_start;
@@ -1281,6 +1287,9 @@ pub fn search(
 
         if score >= beta {
             return (pv_single(0), beta);
+        }
+        if LMR_THREAT_TERM && score < alpha - THREAT_EXTENSION_MARGIN {
+            threat_detected = true;
         }
     }
 
@@ -1784,7 +1793,8 @@ pub fn search(
             // there. Either way the value is passed down as the child's
             // in_check, so the parent-side is_check replaces the child's entry
             // recompute rather than adding one.
-            let lmr_candidate = depth > LMR_MIN_DEPTH && children_here >= 1;
+            let lmr_candidate =
+                depth > LMR_MIN_DEPTH && children_here >= if LMR_FROM_SECOND_MOVE { 1 } else { 3 } && (LMR_IN_CHECK || !in_check);
             let gives_check_known: Option<bool> = if (is_tactical || check_extension != 0) && !lmr_candidate {
                 None
             } else {
@@ -1853,7 +1863,8 @@ pub fn search(
             } else {
                 1
             };
-            let lmr_considered = lmr_candidate && m & PROMOTION_FULL_MOVE_MASK != PROMOTION_QUEEN_MOVE_MASK;
+            let lmr_considered =
+                lmr_candidate && (LMR_TACTICAL || !is_tactical) && m & PROMOTION_FULL_MOVE_MASK != PROMOTION_QUEEN_MOVE_MASK;
             let (lmr, lmr_raw_hist, lmr_raw_r): (u8, i32, i32) = if lmr_considered {
                 let (r, raw_hist): (i32, i32) = if is_tactical {
                     (
@@ -1883,9 +1894,8 @@ pub fn search(
                     } else {
                         (false, 0, 0)
                     };
-                    let killer_or_counter = m == search_state.killer_moves[ply as usize][0]
-                        || m == search_state.killer_moves[ply as usize][1]
-                        || (has_prev_move && search_state.countermoves[prev_piece_12][prev_to] == m);
+                    let is_killer = m == search_state.killer_moves[ply as usize][0] || m == search_state.killer_moves[ply as usize][1];
+                    let killer_or_counter = is_killer || (has_prev_move && search_state.countermoves[prev_piece_12][prev_to] == m);
 
                     // Combined quiet history on the shared gravity scale:
                     // butterfly (indexed by old_mover, the side that played m)
@@ -1911,7 +1921,10 @@ pub fn search(
                         + king_evasion as i32
                         - killer_or_counter as i32
                         - gives_check as i32
+                        - threat_detected as i32
                         - hist / LMR_QUIET_HISTORY_DIVISOR;
+                    // NET-1194 ablation switch: the pre-bundle absolute exemptions
+                    let r = if !LMR_SOFT_EXEMPTIONS && (is_killer || gives_check) { 1 } else { r };
                     (r, hist)
                 };
                 ((r.clamp(1, depth as i32 - 1) - 1) as u8, raw_hist, r)
