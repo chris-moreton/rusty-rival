@@ -541,9 +541,9 @@ pub struct SearchState {
     // the branching factor and the cutoff histogram: a node that needs three
     // searches instead of one costs 3x and shows up in neither.
     pub scout_searches: u64,      // null-window scout searches attempted
-    pub research_lmr_full: u64,   // scout failed high under LMR -> reduced, FULL window
-    pub research_full_depth: u64, // ...and that failed too -> full depth, full window
-    pub research_pvs: u64,        // non-LMR scout failed high -> full window
+    pub research_lmr_full: u64,   // reduced scout failed high -> full depth, null window (NET-1194)
+    pub research_full_depth: u64, // ...and that failed too at a PV node -> full depth, full window
+    pub research_pvs: u64,        // unreduced scout failed high at a PV node -> full window
     // Width at nodes that did NOT produce a beta cutoff (NET-493). Every other
     // metric describes nodes that cut off; this describes the rest, where every
     // move is searched unless pruned or reduced.
@@ -625,11 +625,22 @@ pub struct SearchState {
     pub cutoff_node_children_by_kind: [u64; 3],
     // Prune reasons: 0=SEE, 1=alpha/futility, 2=LMP, 3=of which rejected before make (NET-1188).
     pub pruned_by_reason: [u64; 4],
-    // LMR buckets: 0=quiet, 1=capture/noisy. Noisy eligibility measures moves
-    // rejected solely by today's explicit !is_tactical gate.
-    pub lmr_eligible_by_kind: [u64; 2],
-    pub lmr_applied_by_kind: [u64; 2],
-    pub lmr_researched_by_kind: [u64; 2],
+    // LMR classes (NET-1194): 0=quiet, 1=capture from the good-capture stage
+    // or a check evasion, 2=capture from the SEE-losing stage, 3=promotion.
+    // Eligible counts every candidate that went through the formula.
+    pub lmr_eligible_by_kind: [u64; 4],
+    pub lmr_applied_by_kind: [u64; 4],
+    pub lmr_researched_by_kind: [u64; 4],
+    // NET-1194: per class, the extra-reduction histogram (lmr = R - 1; buckets 0..=4, 5 = 5+), the
+    // reductions applied at searched index 2-3, and the sum of the raw history
+    // term over every decision (mean = sum / eligible).
+    pub lmr_reduction_hist: [[u64; 6]; 4],
+    pub lmr_applied_early: [u64; 4],
+    pub lmr_history_sum: [i64; 4],
+    // Per class: histogram of the history quotient (<=-3 .. >=3) and how often
+    // the raw descent hit the lower (r < 1) or upper (r > depth - 1) clamp.
+    pub lmr_quotient_hist: [[u64; 7]; 4],
+    pub lmr_clamp_hits: [[u64; 2]; 4],
     // Extension types: 0=check, 1=seventh-rank pawn, 2=passed pawn, 3=singular.
     pub extension_children: [u64; 4],
 }
@@ -722,9 +733,14 @@ impl Clone for SearchState {
             no_cutoff_children_by_kind: [0; 3],
             cutoff_node_children_by_kind: [0; 3],
             pruned_by_reason: [0; 4],
-            lmr_eligible_by_kind: [0; 2],
-            lmr_applied_by_kind: [0; 2],
-            lmr_researched_by_kind: [0; 2],
+            lmr_eligible_by_kind: [0; 4],
+            lmr_applied_by_kind: [0; 4],
+            lmr_researched_by_kind: [0; 4],
+            lmr_reduction_hist: [[0; 6]; 4],
+            lmr_applied_early: [0; 4],
+            lmr_history_sum: [0; 4],
+            lmr_quotient_hist: [[0; 7]; 4],
+            lmr_clamp_hits: [[0; 2]; 4],
             extension_children: [0; 4],
             qnodes: 0,
             pv: self.pv.clone(),
@@ -810,9 +826,14 @@ pub fn default_search_state() -> SearchState {
         no_cutoff_children_by_kind: [0; 3],
         cutoff_node_children_by_kind: [0; 3],
         pruned_by_reason: [0; 4],
-        lmr_eligible_by_kind: [0; 2],
-        lmr_applied_by_kind: [0; 2],
-        lmr_researched_by_kind: [0; 2],
+        lmr_eligible_by_kind: [0; 4],
+        lmr_applied_by_kind: [0; 4],
+        lmr_researched_by_kind: [0; 4],
+        lmr_reduction_hist: [[0; 6]; 4],
+        lmr_applied_early: [0; 4],
+        lmr_history_sum: [0; 4],
+        lmr_quotient_hist: [[0; 7]; 4],
+        lmr_clamp_hits: [[0; 2]; 4],
         extension_children: [0; 4],
         qnodes: 0,
         pv: HashMap::new(),

@@ -1,13 +1,13 @@
 use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, ASPIRATION_RADIUS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
     CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS,
-    LMR_CONTINUATION_BAD_THRESHOLD, LMR_CONTINUATION_GOOD_THRESHOLD, LMR_HISTORY_BAD_THRESHOLD, LMR_HISTORY_GOOD_THRESHOLD,
-    LMR_LEGAL_MOVES_BEFORE_ATTEMPT, LMR_MIN_DEPTH, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH,
-    MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION,
-    PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
-    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH, THREAT_EXTENSION_MARGIN,
-    TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND,
-    TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    LMR_CAPTURE_BASE, LMR_CAPTURE_HISTORY_DIVISOR, LMR_FROM_SECOND_MOVE, LMR_IN_CHECK, LMR_MIN_DEPTH, LMR_PV_FLAG,
+    LMR_QUIET_HISTORY_DIVISOR, LMR_SOFT_EXEMPTIONS, LMR_TACTICAL, LMR_THREAT_TERM, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
+    MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
+    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
+    SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH,
+    THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM,
+    TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 use arrayvec::ArrayVec;
@@ -59,7 +59,7 @@ use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
 use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
-    PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
+    PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK,
 };
 use crate::move_scores::{score_move, score_move_with_see, victim_piece_index};
 use crate::moves::{
@@ -1249,8 +1249,9 @@ pub fn search(
             false
         };
 
-    // Threat detection: when null move fails badly, opponent has a dangerous threat
-    // We'll use this to reduce LMR aggressiveness rather than extending
+    // NET-1194 ablation switch: the pre-bundle threat flag (a null move that
+    // fails by more than a piece) takes one ply off every quiet reduction at
+    // this node while LMR_THREAT_TERM is on
     let mut threat_detected = false;
 
     if excluded_move == 0 && !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
@@ -1287,10 +1288,7 @@ pub fn search(
         if score >= beta {
             return (pv_single(0), beta);
         }
-
-        // If null move fails significantly below alpha, opponent has a threat
-        // Use higher threshold (400 = losing a piece) to be selective
-        if score < alpha - THREAT_EXTENSION_MARGIN {
+        if LMR_THREAT_TERM && score < alpha - THREAT_EXTENSION_MARGIN {
             threat_detected = true;
         }
     }
@@ -1651,6 +1649,28 @@ pub fn search(
         // For alpha pruning and LMR, treat promotions like captures (don't prune/reduce them)
         let is_tactical = captured_value > 0;
         let is_promotion = m & PROMOTION_FULL_MOVE_MASK != 0;
+        // NET-1194: capture history for the tactical LMR term, read from the
+        // pre-move board (the victim is still on its square) with the same
+        // indexing as the move scorer. En passant and non-capturing promotions
+        // are never stored, so they read as 0. Only fetched when the move can
+        // actually enter the tactical formula: the same terms as lmr_considered
+        // below (const-folded away while LMR_TACTICAL is off).
+        let capture_hist: i32 = if LMR_TACTICAL
+            && is_tactical
+            && depth > LMR_MIN_DEPTH
+            && children_here >= if LMR_FROM_SECOND_MOVE { 1 } else { 3 }
+            && (LMR_IN_CHECK || !in_check)
+            && m & PROMOTION_FULL_MOVE_MASK != PROMOTION_QUEEN_MOVE_MASK
+        {
+            let tsq = to_square_part(m);
+            if enemy.all_pieces_bitboard & bit(tsq) != 0 {
+                search_state.capture_history[piece_type_to_index(m)][victim_piece_index(tsq, &enemy)][tsq as usize] as i32
+            } else {
+                0
+            }
+        } else {
+            0
+        };
 
         // SEE pruning: skip bad captures at low depths
         // Only in scout (null-window) searches to avoid missing important PV moves
@@ -1772,31 +1792,22 @@ pub fn search(
         if !is_check(position, old_mover) {
             legal_move_count += 1;
 
-            // Cache whether this move gives check (opponent's king in check)
-            // Used for pruning decisions - moves that give check should not be pruned/reduced
-            //
-            // NET-355: computed lazily - every consumer (alpha-prune, LMP, LMR)
-            // requires !is_tactical, and all are unreachable when the check
-            // extension applies (alpha_prune_flag and LMP are !in_check-gated,
-            // LMR needs move_extension == 0). When computed, the value is passed
-            // to the child as its in_check, saving the entry recompute there.
-            let gives_check_known: Option<bool> = if is_tactical || check_extension != 0 {
+            // Cache whether this move gives check (opponent's king in check).
+            // Used by futility, LMP and both LMR terms (NET-1194), so it is
+            // computed for every legal child that can be reduced; for a
+            // tactical move or a check-extended child that cannot be reduced it
+            // stays unknown, as before (NET-355), because nothing consumes it
+            // there. Either way the value is passed down as the child's
+            // in_check, so the parent-side is_check replaces the child's entry
+            // recompute rather than adding one.
+            let lmr_candidate =
+                depth > LMR_MIN_DEPTH && children_here >= if LMR_FROM_SECOND_MOVE { 1 } else { 3 } && (LMR_IN_CHECK || !in_check);
+            let gives_check_known: Option<bool> = if (is_tactical || check_extension != 0) && !lmr_candidate {
                 None
             } else {
                 Some(is_check(position, position.mover))
             };
             let gives_check = gives_check_known == Some(true);
-
-            // Normal search deliberately avoids calculating check status for
-            // tactical moves because none of today's pruning/reduction paths
-            // consumes it. Diagnostics do need it: a checking capture is not a
-            // candidate for conservative capture LMR and must not be described
-            // as rejected solely by the tactical-move gate.
-            let diagnostic_gives_check = if cfg!(feature = "search-width-diagnostics") && is_tactical {
-                is_check(position, position.mover)
-            } else {
-                gives_check
-            };
 
             if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !gives_check {
                 if cfg!(feature = "search-width-diagnostics") {
@@ -1835,111 +1846,121 @@ pub fn search(
                 continue;
             }
 
-            let lmr_common = move_extension == 0
-                && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
-                && real_depth > LMR_MIN_DEPTH
-                && !is_promotion
-                && m != search_state.killer_moves[ply as usize][0]
-                && m != search_state.killer_moves[ply as usize][1]
-                && !diagnostic_gives_check;
-            let lmr_kind = is_tactical as usize;
-            if cfg!(feature = "search-width-diagnostics") && lmr_common {
-                search_state.lmr_eligible_by_kind[lmr_kind] += 1;
-            }
+            // NET-1194: structural LMR. Every child after the first searched
+            // one at incoming depth > LMR_MIN_DEPTH is a candidate, quiet or
+            // tactical; the old absolute exemptions (killers, checking moves,
+            // extended moves, captures) are +/-1 terms now. `r` is the total
+            // descent below this node in Ethereal's convention (r == 1 is the
+            // ordinary depth - 1 child), built with signed arithmetic and
+            // clamped to [1, depth - 1], so a reduced child never searches
+            // deeper than the unreduced one and never drops straight into
+            // quiescence (an extension, if any, survives on top). Queen
+            // promotions are never reduced; Ethereal gets the same effect by
+            // inflating their capture history out of reduction range.
+            let searched_index = children_here + 1;
+            // Diagnostics classes: 0 quiet, 1 capture from the good-capture
+            // stage (or a check evasion), 2 capture from the SEE-losing stage,
+            // 3 promotion
+            let lmr_kind = if !is_tactical {
+                0
+            } else if is_promotion {
+                3
+            } else if bad_captures_added {
+                2
+            } else {
+                1
+            };
+            let lmr_considered =
+                lmr_candidate && (LMR_TACTICAL || !is_tactical) && m & PROMOTION_FULL_MOVE_MASK != PROMOTION_QUEEN_MOVE_MASK;
+            let (lmr, lmr_raw_hist, lmr_raw_r): (u8, i32, i32) = if lmr_considered {
+                let (r, raw_hist): (i32, i32) = if is_tactical {
+                    (
+                        LMR_CAPTURE_BASE - capture_hist / LMR_CAPTURE_HISTORY_DIVISOR - gives_check as i32,
+                        capture_hist,
+                    )
+                } else {
+                    let curr_piece = piece_type_to_index(m);
+                    let curr_to = to_square_part(m) as usize;
+                    let curr_from = from_square_part(m) as usize;
 
-            let lmr = if move_extension == 0
-                && legal_move_count > LMR_LEGAL_MOVES_BEFORE_ATTEMPT
-                && real_depth > LMR_MIN_DEPTH
-                && !is_tactical
-                && m != search_state.killer_moves[ply as usize][0]
-                && m != search_state.killer_moves[ply as usize][1]
-                && !gives_check
-            {
-                let mut reduction = lmr_reduction(real_depth, legal_move_count);
-                // Threat-based LMR: reduce less when opponent has a detected threat
-                // This ensures we don't miss tactical replies to threats
-                if threat_detected && reduction > 0 {
-                    reduction -= 1;
-                }
-                // PV-node LMR: reduce less at principal variation nodes
-                // PV nodes are more likely to contain the best line
-                if !scout_search && reduction > 0 {
-                    reduction -= 1;
-                }
-                // Cache move parts once for all LMR adjustments
-                let curr_piece = piece_type_to_index(m);
-                let curr_to = to_square_part(m) as usize;
-                let curr_from = from_square_part(m) as usize;
-
-                // Cache previous move info (used for countermove and continuation history)
-                let (has_prev_move, prev_piece_12, prev_to) = if ply > 0 {
-                    let prev_move = search_state.ply_move[ply as usize - 1];
-                    if prev_move != 0 {
-                        // m is already made here, so the side that played prev_move is
-                        // old_mover ^ 1, not position.mover ^ 1
-                        let opponent_side = old_mover ^ 1;
-                        (
-                            true,
-                            piece_type_to_index(prev_move) + (opponent_side as usize * 6),
-                            to_square_part(prev_move) as usize,
-                        )
+                    // Previous move info for the countermove and continuation
+                    // terms. m is already made here, so the side that played
+                    // prev_move is old_mover ^ 1, not position.mover ^ 1
+                    let (has_prev_move, prev_piece_12, prev_to) = if ply > 0 {
+                        let prev_move = search_state.ply_move[ply as usize - 1];
+                        if prev_move != 0 {
+                            let opponent_side = old_mover ^ 1;
+                            (
+                                true,
+                                piece_type_to_index(prev_move) + (opponent_side as usize * 6),
+                                to_square_part(prev_move) as usize,
+                            )
+                        } else {
+                            (false, 0, 0)
+                        }
                     } else {
                         (false, 0, 0)
+                    };
+                    let is_killer = m == search_state.killer_moves[ply as usize][0] || m == search_state.killer_moves[ply as usize][1];
+                    let killer_or_counter = is_killer || (has_prev_move && search_state.countermoves[prev_piece_12][prev_to] == m);
+
+                    // Combined quiet history on the shared gravity scale:
+                    // butterfly (indexed by old_mover, the side that played m)
+                    // plus countermove and follow-up continuation history
+                    let piece_12 = curr_piece + (old_mover as usize * 6);
+                    let mut hist = search_state.history_moves[piece_12][curr_from][curr_to] as i32;
+                    if has_prev_move {
+                        hist += search_state.countermove_history[prev_piece_12][prev_to][curr_piece][curr_to] as i32;
                     }
-                } else {
-                    (false, 0, 0)
+                    if ply >= 2 {
+                        let our_prev_move = search_state.ply_move[ply as usize - 2];
+                        if our_prev_move != 0 {
+                            let our_prev_piece = piece_type_to_index(our_prev_move);
+                            let our_prev_to = to_square_part(our_prev_move) as usize;
+                            hist += search_state.followup_history[our_prev_piece][our_prev_to][curr_piece][curr_to] as i32;
+                        }
+                    }
+
+                    let king_evasion = in_check && m & PIECE_MASK_FULL == PIECE_MASK_KING;
+                    let r = lmr_reduction(depth, searched_index.min(63) as u8) as i32
+                        + (scouting || !LMR_PV_FLAG) as i32 // non-PV node
+                        + (!improving) as i32 // our eval is falling
+                        + king_evasion as i32
+                        - killer_or_counter as i32
+                        - gives_check as i32
+                        - threat_detected as i32
+                        - hist / LMR_QUIET_HISTORY_DIVISOR;
+                    // NET-1194 ablation switch: the pre-bundle absolute exemptions
+                    let r = if !LMR_SOFT_EXEMPTIONS && (is_killer || gives_check) { 1 } else { r };
+                    (r, hist)
                 };
-
-                // Countermove bonus: reduce less for the stored countermove
-                // The countermove has historically been a good response to the previous move
-                if has_prev_move && reduction > 0 && search_state.countermoves[prev_piece_12][prev_to] == m {
-                    reduction -= 1;
-                }
-
-                // History-based LMR: adjust reduction based on move's historical performance
-                // Moves that have worked well before get searched deeper (less reduction)
-                // Moves that have failed often get searched shallower (more reduction)
-                // m is already made, so index by old_mover (piece_index_12 would use the
-                // flipped position.mover and read the opponent's table half)
-                let piece_12 = curr_piece + (old_mover as usize * 6);
-                let hist = search_state.history_moves[piece_12][curr_from][curr_to] as i32;
-                if hist > LMR_HISTORY_GOOD_THRESHOLD && reduction > 0 {
-                    reduction -= 1;
-                } else if hist < LMR_HISTORY_BAD_THRESHOLD {
-                    reduction += 1;
-                }
-
-                // Continuation history: use countermove_history and followup_history for additional adjustment
-                // These capture context-specific move quality (what works after certain moves)
-                let mut continuation_score: i32 = 0;
-
-                // Add countermove history contribution (reuse cached prev_piece_12/prev_to)
-                if has_prev_move {
-                    continuation_score += search_state.countermove_history[prev_piece_12][prev_to][curr_piece][curr_to] as i32;
-                }
-                // Add followup history contribution
-                if ply >= 2 {
-                    let our_prev_move = search_state.ply_move[ply as usize - 2];
-                    if our_prev_move != 0 {
-                        let our_prev_piece = piece_type_to_index(our_prev_move);
-                        let our_prev_to = to_square_part(our_prev_move) as usize;
-                        continuation_score += search_state.followup_history[our_prev_piece][our_prev_to][curr_piece][curr_to] as i32;
-                    }
-                }
-                if continuation_score > LMR_CONTINUATION_GOOD_THRESHOLD && reduction > 0 {
-                    reduction -= 1;
-                } else if continuation_score < LMR_CONTINUATION_BAD_THRESHOLD {
-                    reduction += 1;
-                }
-
-                // Reduce late moves one ply deeper when our eval is falling
-                if !improving {
-                    reduction += 1;
-                }
-                reduction
+                ((r.clamp(1, depth as i32 - 1) - 1) as u8, raw_hist, r)
             } else {
-                0
+                (0, 0, 1)
             };
+            debug_assert!(
+                lmr == 0 || lmr as u16 + 2 <= depth as u16,
+                "NET-1194: a reduced child must keep at least extension + 1 plies"
+            );
+            if cfg!(feature = "search-width-diagnostics") && lmr_considered {
+                search_state.lmr_eligible_by_kind[lmr_kind] += 1;
+                search_state.lmr_reduction_hist[lmr_kind][(lmr as usize).min(5)] += 1;
+                search_state.lmr_history_sum[lmr_kind] += lmr_raw_hist as i64;
+                if lmr > 0 && searched_index <= 3 {
+                    search_state.lmr_applied_early[lmr_kind] += 1;
+                }
+                let divisor = if is_tactical {
+                    LMR_CAPTURE_HISTORY_DIVISOR
+                } else {
+                    LMR_QUIET_HISTORY_DIVISOR
+                };
+                search_state.lmr_quotient_hist[lmr_kind][((lmr_raw_hist / divisor).clamp(-3, 3) + 3) as usize] += 1;
+                if lmr_raw_r < 1 {
+                    search_state.lmr_clamp_hits[lmr_kind][0] += 1;
+                } else if lmr_raw_r > depth as i32 - 1 {
+                    search_state.lmr_clamp_hits[lmr_kind][1] += 1;
+                }
+            }
             if cfg!(feature = "search-width-diagnostics") && lmr > 0 {
                 search_state.lmr_applied_by_kind[lmr_kind] += 1;
             }
@@ -1967,9 +1988,8 @@ pub fn search(
                 search_state.extension_children[2] += 1;
             }
             let path_score = if scout_search {
-                // Cap the reduction so the child depth (search_depth - 1 - lmr)
-                // cannot wrap below zero: stacked LMR adjustments (table + bad
-                // history + bad continuation) can exceed the remaining depth
+                // NET-1194 already clamps lmr to depth - 2 <= search_depth - 2
+                // (checked by the debug_assert above); the min is a guard only
                 lmr_scout_search(
                     lmr.min(search_depth - 1),
                     ply,
@@ -2243,16 +2263,30 @@ fn lmr_scout_search(
     );
 
     if scout_path.1 > alpha && lmr > 0 {
+        // The reduced scout beat alpha: verify at full depth on the same null
+        // window (NET-1194). The old middle step re-ran the REDUCED search on
+        // the full window, which at a scout node is the identical search and
+        // at a PV node accepted a reduced-depth score as exact.
         search_state.research_lmr_full += 1;
         if cfg!(feature = "search-width-diagnostics") {
             search_state.lmr_researched_by_kind[lmr_kind] += 1;
         }
-        // We are in an LMR search and we Need to research with full window. but still with late move reduction
-        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, lmr, 0, known_in_check);
-        if scout_path.1 > alpha {
-            // Need to research with full window and no reduction
+        scout_path = search_wrapper(
+            real_depth,
+            ply,
+            search_state,
+            (-alpha - 1, -alpha),
+            new_position,
+            0,
+            0,
+            known_in_check,
+        );
+        if scout_path.1 > alpha && scout_path.1 < beta {
+            // Only reachable at a PV node (a scout node's window has no room
+            // between alpha and beta): the full-depth scout also beat alpha,
+            // so get the exact score on the full window
             search_state.research_full_depth += 1;
-            scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
+            scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check);
         }
     } else if scout_path.1 > alpha && scout_path.1 < beta {
         search_state.research_pvs += 1;

@@ -70,8 +70,8 @@ python -m compete --spsa -c 6
 
 | Parameter | Current Value | Description |
 |-----------|---------------|-------------|
-| `LMR_LEGAL_MOVES_BEFORE_ATTEMPT` | 4 | Moves before LMR kicks in |
-| `LMR_MIN_DEPTH` | 3 | Minimum depth for LMR |
+| `LMR_MIN_DEPTH` | 2 | Minimum depth for LMR (candidates from the second searched move, NET-1194) |
+| `LMR_QUIET_HISTORY_DIVISOR`, `LMR_CAPTURE_HISTORY_DIVISOR` | 6167, 4952 | Continuous history terms in the LMR formula (NET-1194) |
 | LMR formula coefficients | 0.75, 2.5 | `floor(0.75 + ln(d)*ln(m)/2.5)` |
 | `BETA_PRUNE_MARGIN_PER_DEPTH` | 200 | Reverse futility margin |
 | `BETA_PRUNE_MAX_DEPTH` | 3 | Max depth for reverse futility |

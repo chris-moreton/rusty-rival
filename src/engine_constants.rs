@@ -174,21 +174,41 @@ pub const HISTORY_DIVISOR: i32 = 21;
 
 pub const TICKER_MILLIS: u16 = 500;
 
-pub const LMR_LEGAL_MOVES_BEFORE_ATTEMPT: u8 = 3; // SPSA tuned, Run 20
+// LMR structure (NET-1194). A move is a reduction candidate from the second
+// searched child at incoming depth > LMR_MIN_DEPTH. The old move-count gate
+// (LMR_LEGAL_MOVES_BEFORE_ATTEMPT = 3) and the absolute exemptions for
+// killers, checking moves, extended moves and captures are gone, replaced by
+// +/-1 terms and a continuous history term in search.rs.
 pub const LMR_MIN_DEPTH: u8 = 2; // SPSA tuned, Run 20
 
-// History-based LMR thresholds
-// If history score is above good threshold, reduce by 1 less (move has been successful)
-// If history score is below bad threshold, reduce by 1 more (move has failed often)
-// Absolute values on the fixed [-HISTORY_MAX, HISTORY_MAX] gravity scale; a low
-// good threshold fires on far too many moves and collapses LMR (search explosion)
-pub const LMR_HISTORY_GOOD_THRESHOLD: i32 = 7826;
-pub const LMR_HISTORY_BAD_THRESHOLD: i32 = -2178;
+// Continuous history terms on the shared [-HISTORY_MAX, HISTORY_MAX] gravity
+// scale (Ethereal's divisors; its tables use the same 16384 gravity). The quiet
+// term sums butterfly, countermove and follow-up history, so it spans about
+// +/-3 * HISTORY_MAX and can move the descent by several plies before the
+// [1, depth - 1] clamp. These replaced the four +/-1 threshold constants
+// (7826 / -2178 butterfly, 8237 / -9943 continuation) that NET-1240 measured
+// firing on 0.5% and 46.6% of decisions after NET-1192.
+pub const LMR_QUIET_HISTORY_DIVISOR: i32 = 6167;
+pub const LMR_CAPTURE_HISTORY_DIVISOR: i32 = 4952;
+// Captures and non-queen promotions start from a flat descent of 3 (two plies
+// below the unreduced child) and buy it back with capture history and a
+// gives-check bonus, as in Ethereal's Step 18B.
+pub const LMR_CAPTURE_BASE: i32 = 3;
 
-// Continuation history threshold for LMR (countermove_history + followup_history)
-// These are i16 values, so threshold is raw score (not scaled)
-pub const LMR_CONTINUATION_GOOD_THRESHOLD: i32 = 8237; // SPSA tuned, Run 20
-pub const LMR_CONTINUATION_BAD_THRESHOLD: i32 = -9943; // SPSA tuned, Run 20
+// NET-1194 component switches. The full bundle lost its first SPRT (-39 +/- 26
+// Elo at 1+0.01, 2026-09-08); the arms recorded on the ticket found that the
+// tactical reductions were the damage (arm A, captures off: +5.5 +/- 7.6,
+// inconclusive) and that giving plies back anywhere else hurt (threat term,
+// in-check exemption, old gates). Arm E - captures off AND no PV-node
+// discount - passed: +11 +/- 10 Elo, H1 accepted at 3,230 games. Defaults are
+// arm E; the switches stay so the other components can be re-tested in one
+// line (a milder capture base is the obvious follow-up).
+pub const LMR_TACTICAL: bool = false; // reduce captures and underpromotions
+pub const LMR_IN_CHECK: bool = true; // reduce at in-check (check-extended) nodes
+pub const LMR_FROM_SECOND_MOVE: bool = true; // candidates from the second searched child, else the fourth
+pub const LMR_SOFT_EXEMPTIONS: bool = true; // killers and checking quiets get -1, else they are exempt
+pub const LMR_THREAT_TERM: bool = false; // pre-bundle -1 when the null move failed by more than a piece
+pub const LMR_PV_FLAG: bool = false; // +1 only at scout nodes; off applies it everywhere, as the dead PV branch on main did
 
 // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
 // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
@@ -203,6 +223,12 @@ const LN_TABLE: [u32; 64] = [
 // Formula: floor(0.75 + ln(depth) * ln(move_count) / 2.5)
 // More conservative than Stockfish's formula to avoid over-pruning
 // Precomputed for depths 0-63 and move counts 0-63
+//
+// Since NET-1194 the table value is the total descent `R` in Ethereal's
+// convention: the child is searched at `depth + extension - R`, so R == 1 is
+// the ordinary depth - 1 child and the extra reduction is R - 1. search.rs
+// adds +1 at non-PV nodes, so a late quiet at a scout node reduces exactly as
+// it did before (by the table value) while a PV node reduces one ply less.
 // The LMR reduction schedule: `reduction = BASE + ln(depth) * ln(moves) / DIVISOR`.
 //
 // These two numbers shape the whole table and had never been measured until
@@ -215,11 +241,11 @@ const LN_TABLE: [u32; 64] = [
 pub const LMR_BASE_X1000: u32 = 750; // 0.75
 pub const LMR_DIVISOR_X1000: u32 = 2500; // 2.5
 
-// The table's own gates. Note these are a THIRD set of thresholds alongside
-// LMR_MIN_DEPTH and LMR_LEGAL_MOVES_BEFORE_ATTEMPT, which are applied
-// separately in search.rs and need not agree - see NET-603.
+// The table's own gates. The depth gate matches LMR_MIN_DEPTH (depth > 2); the
+// move gate is the second searched child. NET-1194 lowered it from 4 - NET-603
+// noted it had never moved with the SPSA-tuned attempt gate.
 pub const LMR_TABLE_MIN_DEPTH: usize = 3;
-pub const LMR_TABLE_MIN_MOVES: usize = 4;
+pub const LMR_TABLE_MIN_MOVES: usize = 2;
 
 pub const LMR_TABLE: [[u8; 64]; 64] = generate_lmr_table();
 
