@@ -6,8 +6,8 @@ use crate::engine_constants::{
     MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
     PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
     SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH,
-    THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM,
-    TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    SINGULAR_MULTICUT, SINGULAR_NEGATIVE_EXTENSION, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH,
+    TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 use arrayvec::ArrayVec;
@@ -1424,7 +1424,7 @@ pub fn search(
     // - Hash entry has a Lower or Exact bound (its score is a lower bound for the hash move)
     // - Not already in a singular search (excluded_move == 0)
     // - Not searching for mate, and not too deep in an extension chain
-    let singular_extension: u8 = if verified_hash_move
+    let singular_extension: i8 = if verified_hash_move
         && !in_check
         && depth >= SINGULAR_EXTENSION_MIN_DEPTH
         && hash_entry_height >= depth.saturating_sub(SINGULAR_EXTENSION_DEPTH_MARGIN)
@@ -1459,9 +1459,30 @@ pub fn search(
             return (pv_single(0), 0);
         }
 
+        if cfg!(feature = "search-width-diagnostics") {
+            search_state.singular_verifications += 1;
+        }
         // If all alternatives fail low, extend the hash move
         if singular_score < singular_beta {
             1
+        } else if SINGULAR_MULTICUT && singular_beta >= beta {
+            // NET-1239 multicut: without the hash move the alternatives still
+            // reach singular_beta >= beta, so at least two moves beat beta and
+            // this node is a fail-high. Return the bound unsearched. No TT
+            // store, as for every other verification-derived score.
+            if cfg!(feature = "search-width-diagnostics") {
+                search_state.singular_multicuts += 1;
+            }
+            return (pv_single(0), singular_beta);
+        } else if SINGULAR_NEGATIVE_EXTENSION && hash_entry_score >= beta {
+            // NET-1239 negative extension: the alternatives beat singular_beta
+            // but that is below beta, while the TT score says the hash move
+            // fails high on its own. It is one of several good moves, so it
+            // gets one ply less rather than more.
+            if cfg!(feature = "search-width-diagnostics") {
+                search_state.singular_negative_extensions += 1;
+            }
+            -1
         } else {
             0
         }
@@ -1485,7 +1506,11 @@ pub fn search(
             // node whose only searched child was the hash move - which biased
             // the reported children-per-no-cutoff-node figure. Caught in review.
             children_here += 1;
-            let hash_search_depth = real_depth + singular_extension;
+            // real_depth >= SINGULAR_EXTENSION_MIN_DEPTH whenever the extension
+            // is non-zero, so a negative extension never drops the child below
+            // depth 1; the clamp is a guard only
+            let hash_search_depth = (real_depth as i16 + singular_extension as i16).max(2) as u8;
+            debug_assert!(singular_extension >= 0 || real_depth >= SINGULAR_EXTENSION_MIN_DEPTH);
             let child_kind = width_kind(hash_is_capture, hash_move & PROMOTION_FULL_MOVE_MASK != 0);
             if cfg!(feature = "search-width-diagnostics") {
                 children_here_by_kind[child_kind] += 1;
@@ -1496,7 +1521,7 @@ pub fn search(
             if cfg!(feature = "search-width-diagnostics") && check_extension != 0 {
                 search_state.extension_children[0] += 1;
             }
-            if cfg!(feature = "search-width-diagnostics") && singular_extension != 0 {
+            if cfg!(feature = "search-width-diagnostics") && singular_extension > 0 {
                 search_state.extension_children[3] += 1;
             }
             let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, None);

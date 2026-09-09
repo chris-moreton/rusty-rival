@@ -67,6 +67,15 @@ pub const SINGULAR_EXTENSION_MIN_DEPTH: u8 = 8;
 pub const SINGULAR_EXTENSION_DEPTH_MARGIN: u8 = 3;
 // Verification window: tt_score - SINGULAR_EXTENSION_MARGIN_MULTIPLIER * depth
 pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 2;
+// NET-1239: consume the verification result when the hash move turns out NOT
+// to be singular. Multicut: the alternatives already reach singular_beta >=
+// beta without the hash move, so at least two moves fail high and the node
+// returns singular_beta unsearched (Ethereal, Stash, Stockfish). Negative
+// extension: the alternatives beat singular_beta but singular_beta < beta while
+// the TT score itself is >= beta, so the hash move is one of several good moves
+// and is searched one ply shallower (Ethereal/Stash -1).
+pub const SINGULAR_MULTICUT: bool = true;
+pub const SINGULAR_NEGATIVE_EXTENSION: bool = false;
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
 // After searching N moves at depth D, skip remaining quiet moves entirely
