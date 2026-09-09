@@ -1467,9 +1467,10 @@ pub fn search(
             1
         } else if SINGULAR_MULTICUT && singular_beta >= beta {
             // NET-1239 multicut: without the hash move the alternatives still
-            // reach singular_beta >= beta, so at least two moves beat beta and
-            // this node is a fail-high. Return the bound unsearched. No TT
-            // store, as for every other verification-derived score.
+            // reach singular_beta >= beta at half depth, so several moves
+            // appear to beat beta and the node is treated as a fail-high
+            // (selective pruning, not a full-depth proof). Return the bound
+            // unsearched; no TT store, as for every verification-derived score.
             if cfg!(feature = "search-width-diagnostics") {
                 search_state.singular_multicuts += 1;
             }
@@ -1508,8 +1509,10 @@ pub fn search(
             children_here += 1;
             // real_depth >= SINGULAR_EXTENSION_MIN_DEPTH whenever the extension
             // is non-zero, so a negative extension never drops the child below
-            // depth 1; the clamp is a guard only
-            let hash_search_depth = (real_depth as i16 + singular_extension as i16).max(2) as u8;
+            // depth 1; the clamp is a guard only and must not alter the
+            // unextended case (real_depth 1 stays 1 and its child goes to
+            // quiescence as before)
+            let hash_search_depth = (real_depth as i16 + singular_extension as i16).max(1) as u8;
             debug_assert!(singular_extension >= 0 || real_depth >= SINGULAR_EXTENSION_MIN_DEPTH);
             let child_kind = width_kind(hash_is_capture, hash_move & PROMOTION_FULL_MOVE_MASK != 0);
             if cfg!(feature = "search-width-diagnostics") {
