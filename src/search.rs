@@ -1653,8 +1653,15 @@ pub fn search(
         // pre-move board (the victim is still on its square) with the same
         // indexing as the move scorer. En passant and non-capturing promotions
         // are never stored, so they read as 0. Only fetched when the move can
-        // actually be reduced (depth > LMR_MIN_DEPTH, not the first child).
-        let capture_hist: i32 = if is_tactical && depth > LMR_MIN_DEPTH && children_here >= 1 {
+        // actually enter the tactical formula: the same terms as lmr_considered
+        // below (const-folded away while LMR_TACTICAL is off).
+        let capture_hist: i32 = if LMR_TACTICAL
+            && is_tactical
+            && depth > LMR_MIN_DEPTH
+            && children_here >= if LMR_FROM_SECOND_MOVE { 1 } else { 3 }
+            && (LMR_IN_CHECK || !in_check)
+            && m & PROMOTION_FULL_MOVE_MASK != PROMOTION_QUEEN_MOVE_MASK
+        {
             let tsq = to_square_part(m);
             if enemy.all_pieces_bitboard & bit(tsq) != 0 {
                 search_state.capture_history[piece_type_to_index(m)][victim_piece_index(tsq, &enemy)][tsq as usize] as i32
