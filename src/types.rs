@@ -648,6 +648,9 @@ pub struct SearchState {
     pub singular_verifications: u64,
     pub singular_multicuts: u64,
     pub singular_negative_extensions: u64,
+    // NET-1275: nodes searched one ply shallower for lack of a usable TT move.
+    pub iir_reductions: u64,
+    pub deep_nodes: u64, // nodes arriving at incoming depth >= IIR_MIN_DEPTH
 }
 
 impl SearchState {
@@ -750,6 +753,8 @@ impl Clone for SearchState {
             singular_verifications: 0,
             singular_multicuts: 0,
             singular_negative_extensions: 0,
+            iir_reductions: 0,
+            deep_nodes: 0,
             qnodes: 0,
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
@@ -846,6 +851,8 @@ pub fn default_search_state() -> SearchState {
         singular_verifications: 0,
         singular_multicuts: 0,
         singular_negative_extensions: 0,
+        iir_reductions: 0,
+        deep_nodes: 0,
         qnodes: 0,
         pv: HashMap::new(),
         hash_clashes: 0,
