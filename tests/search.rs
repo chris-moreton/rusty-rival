@@ -1,8 +1,12 @@
 use rusty_rival::engine_constants::NULL_MOVE_REDUCE_DEPTH_BASE;
 use rusty_rival::fen::{algebraic_move_from_move, get_position};
-use rusty_rival::moves::is_check;
-use rusty_rival::search::{is_draw, is_passed_pawn_push, iterative_deepening, null_move_reduced_depth, piece_index_12, search, MAX_WINDOW};
-use rusty_rival::types::default_search_state;
+use rusty_rival::make_move::{make_move_in_place, unmake_move};
+use rusty_rival::moves::{generate_moves, is_check};
+use rusty_rival::search::{
+    is_draw, is_passed_pawn_push, iterative_deepening, null_move_reduced_depth, piece_index_12, rotate_root_move_to_front, search,
+    start_search, MATE_SCORE, MAX_WINDOW,
+};
+use rusty_rival::types::{default_search_state, MoveScoreList};
 use rusty_rival::utils::{hydrate_move_from_algebraic_move, pawn_push};
 use std::ops::Add;
 use std::time::{Duration, Instant};
@@ -415,4 +419,69 @@ fn it_searches_the_alternatives_when_the_excluded_move_is_the_hash_move() {
     let result = search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut search_state, false, kxh2, None);
     assert_eq!(result.0[0], kf1, "the excluded hash move must not be searched");
     assert!(result.1 < normal.1, "without the queen capture the score must drop");
+}
+
+#[test]
+fn it_rotates_the_failing_root_move_to_the_front_without_reordering_the_rest() {
+    let mut moves: MoveScoreList = vec![(10, 5), (20, 4), (30, 3), (40, 2), (50, 1)];
+    rotate_root_move_to_front(&mut moves, 40);
+    assert_eq!(moves, vec![(40, 2), (10, 5), (20, 4), (30, 3), (50, 1)]);
+    rotate_root_move_to_front(&mut moves, 40);
+    assert_eq!(moves, vec![(40, 2), (10, 5), (20, 4), (30, 3), (50, 1)]);
+    rotate_root_move_to_front(&mut moves, 99);
+    assert_eq!(moves, vec![(40, 2), (10, 5), (20, 4), (30, 3), (50, 1)]);
+}
+
+fn root_legal_moves(fen: &str) -> MoveScoreList {
+    let mut position = get_position(fen);
+    let mover = position.mover;
+    let mut legal: MoveScoreList = Vec::new();
+    for m in generate_moves(&position) {
+        let unmake = make_move_in_place(&mut position, m);
+        if !is_check(&position, mover) {
+            legal.push((m, -MATE_SCORE));
+        }
+        unmake_move(&mut position, m, &unmake);
+    }
+    legal
+}
+
+// NET-1190: once a root move reaches the aspiration beta, start_search returns
+// that move at once instead of scouting the rest of the list.
+#[test]
+fn it_stops_the_root_loop_on_an_aspiration_fail_high() {
+    let fen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3";
+
+    let mut search_state = default_search_state();
+    search_state.use_nnue = false;
+    search_state.show_info = false;
+    search_state.end_time = Instant::now().add(Duration::from_secs(30));
+    search_state.iterative_depth = 6;
+    let mut position = get_position(fen);
+    let mut legal_moves = root_legal_moves(fen);
+    let full = start_search(&mut position, &mut legal_moves, &mut search_state, (-MAX_WINDOW, MAX_WINDOW));
+    let full_nodes = search_state.nodes;
+    assert!(full.1 > -MAX_WINDOW && full.1 < MAX_WINDOW);
+
+    // Beta well below the real score: the first root move fails high immediately
+    // and the loop must exit with that move as the (lower-bound) best.
+    let mut search_state = default_search_state();
+    search_state.use_nnue = false;
+    search_state.show_info = false;
+    search_state.end_time = Instant::now().add(Duration::from_secs(30));
+    search_state.iterative_depth = 6;
+    let mut position = get_position(fen);
+    let mut legal_moves = root_legal_moves(fen);
+    let first_move = legal_moves[0].0;
+    let beta = full.1 - 300;
+    let early = start_search(&mut position, &mut legal_moves, &mut search_state, (-MAX_WINDOW, beta));
+    assert!(early.1 >= beta, "fail-high attempt must return a score at or above beta");
+    assert_eq!(early.0[0], first_move, "the failing move is the one returned");
+    assert!(
+        search_state.nodes < full_nodes,
+        "the early exit must not search the whole root list"
+    );
+    // Only the first move was scored by the attempt; the rest are untouched.
+    assert!(legal_moves[0].1 >= beta);
+    assert!(legal_moves[1..].iter().all(|(_, score)| *score == -MATE_SCORE));
 }
