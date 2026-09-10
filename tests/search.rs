@@ -344,7 +344,17 @@ fn it_fails_low_when_the_excluded_move_is_the_only_legal_move() {
     // verification search probes into. (The root of iterative_deepening is
     // never stored, so search() is called directly, as the singular
     // extension itself does.)
-    let normal = search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut search_state, false, 0, None);
+    let normal = search(
+        &mut position,
+        4,
+        1,
+        (-MAX_WINDOW, MAX_WINDOW),
+        &mut search_state,
+        false,
+        false,
+        0,
+        None,
+    );
     assert_eq!(normal.0[0], kxh2);
     let hash_index = (position.zobrist_lock as u64 & search_state.hash_table.mask()) as usize;
     let before = search_state
@@ -358,7 +368,7 @@ fn it_fails_low_when_the_excluded_move_is_the_only_legal_move() {
     // fix the hash-move path searched Kxh2 anyway and returned its (winning)
     // score, or, with the hash path guarded but no terminal fix, a mate score.
     let window = (-50, 50);
-    let result = search(&mut position, 4, 1, window, &mut search_state, false, kxh2, None);
+    let result = search(&mut position, 4, 1, window, &mut search_state, false, false, kxh2, None);
     assert_eq!(result.1, window.0, "exclusion with no alternative must fail low at alpha");
 
     // The verification search must not disturb the position's own entry.
@@ -386,11 +396,21 @@ fn it_fails_low_when_the_excluded_move_is_the_only_legal_move_outside_check() {
     let mut position = get_position(fen);
     assert!(!is_check(&position, position.mover));
     let a6a7 = hydrate_move_from_algebraic_move(&position, "a6a7".to_string());
-    let normal = search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut search_state, false, 0, None);
+    let normal = search(
+        &mut position,
+        4,
+        1,
+        (-MAX_WINDOW, MAX_WINDOW),
+        &mut search_state,
+        false,
+        false,
+        0,
+        None,
+    );
     assert_eq!(normal.0[0], a6a7);
 
     let window = (-1, 0);
-    let result = search(&mut position, 4, 1, window, &mut search_state, false, a6a7, None);
+    let result = search(&mut position, 4, 1, window, &mut search_state, false, false, a6a7, None);
     assert_eq!(result.1, window.0, "exclusion with no alternative must fail low at alpha");
 }
 
@@ -406,13 +426,33 @@ fn it_searches_the_alternatives_when_the_excluded_move_is_the_hash_move() {
     let mut position = get_position(fen);
     let kxh2 = hydrate_move_from_algebraic_move(&position, "g1h2".to_string());
     let kf1 = hydrate_move_from_algebraic_move(&position, "g1f1".to_string());
-    let normal = search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut search_state, false, 0, None);
+    let normal = search(
+        &mut position,
+        4,
+        1,
+        (-MAX_WINDOW, MAX_WINDOW),
+        &mut search_state,
+        false,
+        false,
+        0,
+        None,
+    );
     assert_eq!(normal.0[0], kxh2);
 
     // Excluding the hash move leaves Kf1 as the only alternative; the
     // verification search must return that line, never the excluded move
     // (before the fix the hash-move path searched Kxh2 first and it won).
-    let result = search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut search_state, false, kxh2, None);
+    let result = search(
+        &mut position,
+        4,
+        1,
+        (-MAX_WINDOW, MAX_WINDOW),
+        &mut search_state,
+        false,
+        false,
+        kxh2,
+        None,
+    );
     assert_eq!(result.0[0], kf1, "the excluded hash move must not be searched");
     assert!(result.1 < normal.1, "without the queen capture the score must drop");
 }

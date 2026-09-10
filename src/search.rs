@@ -699,6 +699,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
                 (-window.1, -current_best.1),
                 search_state,
                 false,
+                false,
                 0,
                 None,
             )
@@ -714,6 +715,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
                 (-current_best.1 - 1, -current_best.1),
                 search_state,
                 false,
+                true, // a later child of the PV root: expected cut node
                 0,
                 None,
             );
@@ -724,6 +726,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
                     1,
                     (-window.1, -current_best.1),
                     search_state,
+                    false,
                     false,
                     0,
                     None,
@@ -1026,6 +1029,14 @@ pub fn search(
     window: Window,
     search_state: &mut SearchState,
     on_null_move: bool,
+    // NET-1276: expected node type in the PVS sense. The root is a PV node;
+    // the first child of a PV node is a PV node and its later children are
+    // cut nodes; the children of a cut node are all nodes and those of an
+    // all node are cut nodes; a reduced (LMR) scout is always searched as a
+    // cut node; the null-move child is not a cut node; the full-window
+    // re-search of a PV node's child is a PV node. Consumers are separate
+    // experiments; the flag alone must be node-identical.
+    cut_node: bool,
     excluded_move: Move, // For singular extension search: skip this move (0 = no exclusion)
     // Whether the side to move is in check, when the caller already knows it
     // (NET-355): the parent's gives_check IS the child's in_check, so passing
@@ -1271,6 +1282,7 @@ pub fn search(
             (-beta, (-beta) + 1),
             search_state,
             true,
+            false, // the null-move child is not an expected cut node (Stockfish)
             0,
             // After a null move the side to move is the side that did NOT just
             // move in the (legality-checked) parent, which cannot be in check
@@ -1324,6 +1336,7 @@ pub fn search(
                     (-probcut_beta, -probcut_beta + 1),
                     search_state,
                     false,
+                    !cut_node,
                     0,
                     None,
                 )
@@ -1371,7 +1384,18 @@ pub fn search(
             if !is_check(position, old_mover) {
                 // Real-move child: see the probcut note above (NET-367)
                 search_state.history.push(position.zobrist_lock);
-                let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0, None).1;
+                let score = -search(
+                    position,
+                    multicut_depth,
+                    ply + 1,
+                    (-beta, -beta + 1),
+                    search_state,
+                    false,
+                    !cut_node,
+                    0,
+                    None,
+                )
+                .1;
                 search_state.history.pop();
 
                 unmake_move_nnue(position, *m, &unmake, search_state);
@@ -1450,6 +1474,7 @@ pub fn search(
             (singular_beta - 1, singular_beta),
             search_state,
             false,
+            cut_node,       // same node, same expectation
             hash_move,      // Exclude hash move from this search
             Some(in_check), // Same position, already computed
         )
@@ -1532,7 +1557,19 @@ pub fn search(
             if cfg!(feature = "search-width-diagnostics") && singular_extension > 0 {
                 search_state.extension_children[3] += 1;
             }
-            let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, None);
+            // The first child: a PV node's first child is a PV node, a scout
+            // node's first child flips the expectation (NET-1276)
+            let path_score = search_wrapper(
+                hash_search_depth,
+                ply,
+                search_state,
+                (-beta, -alpha),
+                position,
+                0,
+                0,
+                None,
+                scouting && !cut_node,
+            );
             let score = path_score.1;
             let singular_depth = hash_search_depth;
 
@@ -2032,9 +2069,20 @@ pub fn search(
                     position,
                     gives_check_known,
                     lmr_kind,
+                    cut_node,
                 )
             } else {
-                search_wrapper(search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, gives_check_known)
+                search_wrapper(
+                    search_depth,
+                    ply,
+                    search_state,
+                    (-beta, -alpha),
+                    position,
+                    0,
+                    0,
+                    gives_check_known,
+                    scouting && !cut_node,
+                )
             };
 
             let score = path_score.1;
@@ -2280,10 +2328,13 @@ fn lmr_scout_search(
     new_position: &mut Position,
     known_in_check: Option<bool>,
     lmr_kind: usize,
+    cut_node: bool,
 ) -> PathScore {
     let alpha = window.0;
     let beta = window.1;
     search_state.scout_searches += 1;
+    // A reduced scout is always searched as an expected cut node; an
+    // unreduced scout flips the parent's expectation (NET-1276, Stockfish)
     let mut scout_path = search_wrapper(
         real_depth,
         ply,
@@ -2293,6 +2344,7 @@ fn lmr_scout_search(
         lmr,
         0,
         known_in_check,
+        lmr > 0 || !cut_node,
     );
 
     if scout_path.1 > alpha && lmr > 0 {
@@ -2313,18 +2365,39 @@ fn lmr_scout_search(
             0,
             0,
             known_in_check,
+            !cut_node,
         );
         if scout_path.1 > alpha && scout_path.1 < beta {
             // Only reachable at a PV node (a scout node's window has no room
             // between alpha and beta): the full-depth scout also beat alpha,
             // so get the exact score on the full window
             search_state.research_full_depth += 1;
-            scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check);
+            scout_path = search_wrapper(
+                real_depth,
+                ply,
+                search_state,
+                (-beta, -alpha),
+                new_position,
+                0,
+                0,
+                known_in_check,
+                false,
+            );
         }
     } else if scout_path.1 > alpha && scout_path.1 < beta {
         search_state.research_pvs += 1;
         // Not doing a LMR search, but still need to research with a full window
-        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
+        scout_path = search_wrapper(
+            real_depth,
+            ply,
+            search_state,
+            (-beta, -alpha),
+            new_position,
+            0,
+            0,
+            known_in_check,
+            false,
+        )
     }
 
     scout_path
@@ -2366,6 +2439,7 @@ fn search_wrapper(
     lmr: u8,
     excluded_move: Move,
     known_in_check: Option<bool>,
+    cut_node: bool,
 ) -> PathScore {
     search_state.history.push(position.zobrist_lock);
     let path_score = search(
@@ -2375,6 +2449,7 @@ fn search_wrapper(
         window,
         search_state,
         false,
+        cut_node,
         excluded_move,
         known_in_check,
     );
