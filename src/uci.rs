@@ -122,6 +122,9 @@ pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState
             search_state.lmr_quotient_hist = [[0; 7]; 4];
             search_state.lmr_clamp_hits = [[0; 2]; 4];
             search_state.extension_children = [0; 4];
+            search_state.singular_verifications = 0;
+            search_state.singular_multicuts = 0;
+            search_state.singular_negative_extensions = 0;
             search_state.cutoffs = 0;
             search_state.cutoffs_first_move = 0;
             search_state.cutoff_by_kind = [0; 7];
@@ -176,6 +179,9 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
     search_state.lmr_quotient_hist = [[0; 7]; 4];
     search_state.lmr_clamp_hits = [[0; 2]; 4];
     search_state.extension_children = [0; 4];
+    search_state.singular_verifications = 0;
+    search_state.singular_multicuts = 0;
+    search_state.singular_negative_extensions = 0;
     search_state.cutoffs = 0;
     search_state.cutoffs_first_move = 0;
     search_state.cutoff_by_kind = [0; 7];
@@ -752,6 +758,9 @@ fn cmd_go(
         thread_search_state.lmr_quotient_hist = [[0; 7]; 4];
         thread_search_state.lmr_clamp_hits = [[0; 2]; 4];
         thread_search_state.extension_children = [0; 4];
+        thread_search_state.singular_verifications = 0;
+        thread_search_state.singular_multicuts = 0;
+        thread_search_state.singular_negative_extensions = 0;
         thread_search_state.cutoffs = 0;
         thread_search_state.cutoffs_first_move = 0;
         thread_search_state.cutoff_by_kind = [0; 7];
@@ -1149,6 +1158,9 @@ fn cmd_ucinewgame(
     search_state.lmr_quotient_hist = [[0; 7]; 4];
     search_state.lmr_clamp_hits = [[0; 2]; 4];
     search_state.extension_children = [0; 4];
+    search_state.singular_verifications = 0;
+    search_state.singular_multicuts = 0;
+    search_state.singular_negative_extensions = 0;
 
     search_state.cutoffs = 0;
 

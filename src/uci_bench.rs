@@ -63,6 +63,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     let (mut no_cut_kind, mut cut_kind) = ([0u64; 3], [0u64; 3]);
     let (mut pruned, mut lmr_eligible, mut lmr_applied, mut lmr_researched) = ([0u64; 4], [0u64; 4], [0u64; 4], [0u64; 4]);
     let mut extensions = [0u64; 4];
+    let mut singular = [0u64; 3]; // verifications, multicuts, negative extensions (NET-1239)
     let (mut lmr_hist, mut lmr_early, mut lmr_hist_sum) = ([[0u64; 6]; 4], [0u64; 4], [0i64; 4]);
     let (mut lmr_quot, mut lmr_clamp) = ([[0u64; 7]; 4], [[0u64; 2]; 4]);
 
@@ -158,6 +159,13 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             }
         }
         for (acc, n) in extensions.iter_mut().zip(search_state.extension_children) {
+            *acc += n;
+        }
+        for (acc, n) in singular.iter_mut().zip([
+            search_state.singular_verifications,
+            search_state.singular_multicuts,
+            search_state.singular_negative_extensions,
+        ]) {
             *acc += n;
         }
         println!(
@@ -338,11 +346,14 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             );
         }
         println!(
-            "  extensions   : check {} · pawn7 {} · passed {} · singular {}",
+            "  extensions   : check {} · pawn7 {} · passed {} · singular {} (verifications {} · multicut {} · negative {})",
             extensions[0].to_formatted_string(&Locale::en),
             extensions[1].to_formatted_string(&Locale::en),
             extensions[2].to_formatted_string(&Locale::en),
             extensions[3].to_formatted_string(&Locale::en),
+            singular[0].to_formatted_string(&Locale::en),
+            singular[1].to_formatted_string(&Locale::en),
+            singular[2].to_formatted_string(&Locale::en),
         );
     }
 

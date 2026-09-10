@@ -643,6 +643,11 @@ pub struct SearchState {
     pub lmr_clamp_hits: [[u64; 2]; 4],
     // Extension types: 0=check, 1=seventh-rank pawn, 2=passed pawn, 3=singular.
     pub extension_children: [u64; 4],
+    // NET-1239: singular verification searches, and how many ended in a
+    // multicut return or a negative extension of the hash move.
+    pub singular_verifications: u64,
+    pub singular_multicuts: u64,
+    pub singular_negative_extensions: u64,
 }
 
 impl SearchState {
@@ -742,6 +747,9 @@ impl Clone for SearchState {
             lmr_quotient_hist: [[0; 7]; 4],
             lmr_clamp_hits: [[0; 2]; 4],
             extension_children: [0; 4],
+            singular_verifications: 0,
+            singular_multicuts: 0,
+            singular_negative_extensions: 0,
             qnodes: 0,
             pv: self.pv.clone(),
             hash_clashes: self.hash_clashes,
@@ -835,6 +843,9 @@ pub fn default_search_state() -> SearchState {
         lmr_quotient_hist: [[0; 7]; 4],
         lmr_clamp_hits: [[0; 2]; 4],
         extension_children: [0; 4],
+        singular_verifications: 0,
+        singular_multicuts: 0,
+        singular_negative_extensions: 0,
         qnodes: 0,
         pv: HashMap::new(),
         hash_clashes: 0,
