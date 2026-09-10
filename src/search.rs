@@ -1448,6 +1448,7 @@ pub fn search(
     // which keep the incoming depth, and before the extensions, the singular
     // logic, the move loop and the TT store, which all see the reduced depth.
     let depth = if depth >= IIR_MIN_DEPTH
+        && (!scouting || cut_node) // PV or expected cut node, as Ethereal (NET-1276 flag)
         && !in_check
         && excluded_move == 0
         && (!verified_hash_move || (hash_entry_height as u16) + (IIR_TT_DEPTH_MARGIN as u16) < depth as u16)
