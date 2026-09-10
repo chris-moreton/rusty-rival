@@ -1477,9 +1477,14 @@ pub fn search(
             return (pv_single(0), singular_beta);
         } else if SINGULAR_NEGATIVE_EXTENSION && hash_entry_score >= beta {
             // NET-1239 negative extension: the alternatives beat singular_beta
-            // but that is below beta, while the TT score says the hash move
-            // fails high on its own. It is one of several good moves, so it
-            // gets one ply less rather than more.
+            // while the TT score says the hash move fails high on its own. It
+            // is one of several good moves, so it gets one ply less rather than
+            // more. With multicut off this deliberately also covers
+            // singular_beta >= beta, where the alternatives already reach beta
+            // at half depth and the hash move is even less singular: about two
+            // thirds of the negative extensions at depth 12 are such nodes,
+            // and this variant (arm C) is the one that passed its SPRT, while
+            // cutting those nodes outright (multicut, arm B) measured weaker.
             if cfg!(feature = "search-width-diagnostics") {
                 search_state.singular_negative_extensions += 1;
             }
