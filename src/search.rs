@@ -1,13 +1,14 @@
 use crate::engine_constants::{
     lmr_reduction, ALPHA_PRUNE_MARGINS, ASPIRATION_RADIUS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
-    CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS,
-    LMR_CAPTURE_BASE, LMR_CAPTURE_HISTORY_DIVISOR, LMR_FROM_SECOND_MOVE, LMR_IN_CHECK, LMR_MIN_DEPTH, LMR_PV_FLAG,
-    LMR_QUIET_HISTORY_DIVISOR, LMR_SOFT_EXEMPTIONS, LMR_TACTICAL, LMR_THREAT_TERM, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
-    MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
-    SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH,
-    SINGULAR_MULTICUT, SINGULAR_NEGATIVE_EXTENSION, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH,
-    TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, IIR_MIN_DEPTH, IIR_TT_DEPTH_MARGIN,
+    LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS, LMR_CAPTURE_BASE, LMR_CAPTURE_HISTORY_DIVISOR, LMR_FROM_SECOND_MOVE, LMR_IN_CHECK, LMR_MIN_DEPTH,
+    LMR_PV_FLAG, LMR_QUIET_HISTORY_DIVISOR, LMR_SOFT_EXEMPTIONS, LMR_TACTICAL, LMR_THREAT_TERM, MAX_DEPTH, MAX_QUIESCE_DEPTH,
+    MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH,
+    NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH,
+    ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
+    SINGULAR_EXTENSION_MIN_DEPTH, SINGULAR_MULTICUT, SINGULAR_NEGATIVE_EXTENSION, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND,
+    TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD,
+    TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 use arrayvec::ArrayVec;
@@ -1087,6 +1088,10 @@ pub fn search(
     }
 
     search_state.nodes += 1;
+    if cfg!(feature = "search-width-diagnostics") && depth >= IIR_MIN_DEPTH {
+        // NET-1275 denominator: nodes arriving at or above the IIR depth
+        search_state.deep_nodes += 1;
+    }
 
     let mut alpha = window.0;
     let mut beta = window.1;
@@ -1433,6 +1438,27 @@ pub fn search(
     // lists were being filtered before, and the excluded move was searched
     // first through this path at every verification.
     let verified_hash_move = hash_move != 0 && hash_move != excluded_move && verify_move(position, hash_move);
+
+    // NET-1275: internal iterative reduction. A node this deep that arrives
+    // without a usable hash move, or with one stored much shallower, is off
+    // the main line with poor ordering; search it one ply shallower, as
+    // Ethereal (depth >= 7, PV or cut nodes) and Stockfish (depth >= 6, not
+    // all nodes) do. Rival has no cut-node flag yet, so this applies at every
+    // node type. It sits after the null-move, probcut and multicut blocks,
+    // which keep the incoming depth, and before the extensions, the singular
+    // logic, the move loop and the TT store, which all see the reduced depth.
+    let depth = if depth >= IIR_MIN_DEPTH
+        && !in_check
+        && excluded_move == 0
+        && (!verified_hash_move || (hash_entry_height as u16) + (IIR_TT_DEPTH_MARGIN as u16) < depth as u16)
+    {
+        if cfg!(feature = "search-width-diagnostics") {
+            search_state.iir_reductions += 1;
+        }
+        depth - 1
+    } else {
+        depth
+    };
 
     // Check extension: extend by 1 ply when in check
     let check_extension: u8 = if in_check && (ply as u16) < (search_state.iterative_depth as u16) * 2 {

@@ -80,6 +80,13 @@ pub const SINGULAR_EXTENSION_MARGIN_MULTIPLIER: Score = 2;
 // +9.8 +/- 9.3 and then +12.1 +/- 7.9 with H1 accepted on [0, +5]. Only the
 // negative extension ships; multicut stays behind its switch.
 pub const SINGULAR_MULTICUT: bool = false;
+
+// NET-1275: internal iterative reduction. A node at least this deep that
+// arrives without a usable hash move, or with one stored more than
+// IIR_TT_DEPTH_MARGIN plies shallower, is searched one ply shallower
+// (Ethereal Step 11: depth >= 7, ttDepth + 4 < depth; Stockfish: depth >= 6).
+pub const IIR_MIN_DEPTH: u8 = 7;
+pub const IIR_TT_DEPTH_MARGIN: u8 = 4;
 pub const SINGULAR_NEGATIVE_EXTENSION: bool = true;
 
 // Late Move Pruning (LMP): skip late quiet moves at low depths
