@@ -222,7 +222,10 @@ pub const LMR_IN_CHECK: bool = true; // reduce at in-check (check-extended) node
 pub const LMR_FROM_SECOND_MOVE: bool = true; // candidates from the second searched child, else the fourth
 pub const LMR_SOFT_EXEMPTIONS: bool = true; // killers and checking quiets get -1, else they are exempt
 pub const LMR_THREAT_TERM: bool = false; // pre-bundle -1 when the null move failed by more than a piece
-pub const LMR_PV_FLAG: bool = false; // +1 only at scout nodes; off applies it everywhere, as the dead PV branch on main did
+pub const LMR_PV_FLAG: bool = false;
+// NET-1276: extra plies of quiet LMR at expected cut nodes (Stockfish reduces
+// about one ply more there).
+pub const LMR_CUT_NODE_EXTRA: i32 = 1; // +1 only at scout nodes; off applies it everywhere, as the dead PV branch on main did
 
 // Precomputed ln values * 1000 for integers 1-63 (ln(0) undefined, use 0)
 // ln(1)=0, ln(2)=693, ln(3)=1099, ln(4)=1386, etc.
