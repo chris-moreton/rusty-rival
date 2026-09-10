@@ -1504,7 +1504,7 @@ pub fn search(
                 search_state.singular_multicuts += 1;
             }
             return (pv_single(0), singular_beta);
-        } else if SINGULAR_NEGATIVE_EXTENSION && hash_entry_score >= beta {
+        } else if SINGULAR_NEGATIVE_EXTENSION && (hash_entry_score >= beta || cut_node) {
             // NET-1239 negative extension: the alternatives beat singular_beta
             // while the TT score says the hash move fails high on its own. It
             // is one of several good moves, so it gets one ply less rather than
