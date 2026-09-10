@@ -1035,7 +1035,11 @@ pub fn search(
     // all node are cut nodes; a reduced (LMR) scout is always searched as a
     // cut node; the null-move child is not a cut node; the full-window
     // re-search of a PV node's child is a PV node. Consumers are separate
-    // experiments; the flag alone must be node-identical.
+    // experiments; the flag alone must be node-identical. Known limit: PV
+    // identity is derived from the window width (`scouting`), so a PV node
+    // whose window has been narrowed to one point (aspiration edge, TT
+    // tightening) reads as a scout node with cut_node false, i.e. an all
+    // node; carrying an explicit PV flag is a follow-up.
     cut_node: bool,
     excluded_move: Move, // For singular extension search: skip this move (0 = no exclusion)
     // Whether the side to move is in check, when the caller already knows it
@@ -2333,8 +2337,10 @@ fn lmr_scout_search(
     let alpha = window.0;
     let beta = window.1;
     search_state.scout_searches += 1;
-    // A reduced scout is always searched as an expected cut node; an
-    // unreduced scout flips the parent's expectation (NET-1276, Stockfish)
+    // Every later move's first scout is searched as an expected cut node,
+    // reduced or not (Stockfish passes cutNode = true for the whole LMR
+    // branch, search.cpp ~1372); only the first child of a node flips the
+    // parent's expectation (NET-1276)
     let mut scout_path = search_wrapper(
         real_depth,
         ply,
@@ -2344,7 +2350,7 @@ fn lmr_scout_search(
         lmr,
         0,
         known_in_check,
-        lmr > 0 || !cut_node,
+        true,
     );
 
     if scout_path.1 > alpha && lmr > 0 {
