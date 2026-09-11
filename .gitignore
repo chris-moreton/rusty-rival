@@ -23,3 +23,6 @@ web/__pycache__/
 
 # A/B match artifacts (large PGNs) - reproducible, not source
 results/ab/
+
+# epd-runner writes results atomically through a temp file
+epd/results/**/*.json.tmp

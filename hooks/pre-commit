@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cargo clippy -- -Dwarnings
+cargo clippy --workspace -- -Dwarnings
 result=$?
 
 if [[ ${result} -ne 0 ]] ; then
@@ -10,7 +10,7 @@ EOF
     exit 1
 fi
 
-diff=$(cargo fmt -- --check)
+diff=$(cargo fmt --all -- --check)
 result=$?
 
 if [[ ${result} -ne 0 ]] ; then
