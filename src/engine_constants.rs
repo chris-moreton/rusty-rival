@@ -55,6 +55,15 @@ pub const QUIET_SEE_PRUNING: bool = true;
 pub const QUIET_SEE_PRUNE_MAX_DEPTH: u8 = 10;
 pub const QUIET_SEE_PRUNE_MARGIN: Score = 109;
 pub const QUIET_SEE_HISTORY_DIVISOR: i32 = 75;
+// Arm B: Stockfish's shape instead of Ethereal's. The threshold is
+// -QUIET_SEE_LMR_DEPTH_MARGIN * lmr_depth^2, where lmr_depth is the depth the
+// LMR table would leave the move (depth minus the reduction at the number of
+// children already searched, floored at 0), with no history term: a late
+// quiet at shallow effective depth is pruned for hanging anything at all,
+// an early one only for hanging a lot. Stockfish uses 25 * lmrDepth^2 with a
+// 208-point pawn; 21 is the same rule against Rival's 175-point SEE pawn.
+pub const QUIET_SEE_STOCKFISH_SHAPE: bool = true;
+pub const QUIET_SEE_LMR_DEPTH_MARGIN: Score = 21;
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut

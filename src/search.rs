@@ -4,11 +4,12 @@ use crate::engine_constants::{
     LMR_CAPTURE_BASE, LMR_CAPTURE_HISTORY_DIVISOR, LMR_FROM_SECOND_MOVE, LMR_IN_CHECK, LMR_MIN_DEPTH, LMR_PV_FLAG,
     LMR_QUIET_HISTORY_DIVISOR, LMR_SOFT_EXEMPTIONS, LMR_TACTICAL, LMR_THREAT_TERM, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
     MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, QUIET_SEE_HISTORY_DIVISOR, QUIET_SEE_PRUNE_MARGIN,
-    QUIET_SEE_PRUNE_MAX_DEPTH, QUIET_SEE_PRUNING, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
-    SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH,
-    SINGULAR_MULTICUT, SINGULAR_NEGATIVE_EXTENSION, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH,
-    TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, QUIET_SEE_HISTORY_DIVISOR, QUIET_SEE_LMR_DEPTH_MARGIN,
+    QUIET_SEE_PRUNE_MARGIN, QUIET_SEE_PRUNE_MAX_DEPTH, QUIET_SEE_PRUNING, QUIET_SEE_STOCKFISH_SHAPE, RAZOR_MARGINS, RAZOR_MAX_DEPTH,
+    ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER,
+    SINGULAR_EXTENSION_MIN_DEPTH, SINGULAR_MULTICUT, SINGULAR_NEGATIVE_EXTENSION, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND,
+    TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD,
+    TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 use arrayvec::ArrayVec;
@@ -1891,8 +1892,13 @@ pub fn search(
                 // rejected legal move and a checking move is never pruned. An
                 // exchange that runs into a recapturer that cannot legally
                 // capture is inconclusive (see.rs) and the move is kept.
-                let hist = quiet_history_pre_make(position, search_state, ply, m);
-                let threshold = -(QUIET_SEE_PRUNE_MARGIN * depth as Score) - (hist / QUIET_SEE_HISTORY_DIVISOR) as Score;
+                let threshold = if QUIET_SEE_STOCKFISH_SHAPE {
+                    let lmr_depth = (depth as i32 - lmr_reduction(depth, children_here.min(63) as u8) as i32).max(0);
+                    -(QUIET_SEE_LMR_DEPTH_MARGIN * (lmr_depth * lmr_depth) as Score)
+                } else {
+                    let hist = quiet_history_pre_make(position, search_state, ply, m);
+                    -(QUIET_SEE_PRUNE_MARGIN * depth as Score) - (hist / QUIET_SEE_HISTORY_DIVISOR) as Score
+                };
                 if -piece_value(&position.pieces[position.mover as usize], from_square_part(m)) < threshold {
                     if !pre_make.ready {
                         pre_make.compute(position);
