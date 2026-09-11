@@ -1,6 +1,7 @@
 //! epd-runner: run EPD test suites against UCI engines, keep every result in
-//! a per-binary JSON store, and show suites × engines tables.
+//! a per-binary JSON store, show suites × engines tables, and compare runs.
 
+mod compare;
 mod config;
 mod epd;
 mod host;
@@ -12,6 +13,7 @@ mod uci;
 
 use clap::{Args, Parser, Subcommand};
 use std::collections::BTreeMap;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -32,6 +34,10 @@ enum Command {
     Run(RunArgs),
     /// Print the suites × engines table for one budget from the store.
     Table(TableArgs),
+    /// Which positions flipped between two engines at one budget.
+    Diff(DiffArgs),
+    /// Compare a candidate binary against a baseline record; exit 1 on a drop.
+    Check(CheckArgs),
     /// List the suites and their position counts.
     Suites,
 }
@@ -60,19 +66,9 @@ impl BudgetArgs {
     }
 }
 
-#[derive(Args)]
-struct RunArgs {
-    /// Path to an engine binary (identity is read from its UCI id name).
-    #[arg(long, conflicts_with = "name")]
-    engine: Option<PathBuf>,
-    /// An engine from epd/engines.toml.
-    #[arg(long)]
-    name: Option<String>,
-    /// Comma-separated suite names, or `all`.
-    #[arg(long, default_value = "all")]
-    suites: String,
-    #[command(flatten)]
-    budget: BudgetArgs,
+/// Engine settings shared by the commands that run an engine.
+#[derive(Args, Clone)]
+struct EngineSettings {
     #[arg(long, default_value_t = 1)]
     threads: u32,
     /// Hash size in MB.
@@ -88,6 +84,32 @@ struct RunArgs {
     /// Run in time mode even if the machine looks busy.
     #[arg(long)]
     allow_busy: bool,
+}
+
+impl EngineSettings {
+    fn concurrency_for(&self, limit: uci::Limit) -> usize {
+        self.concurrency.unwrap_or_else(|| match limit {
+            uci::Limit::MoveTime(_) => 1,
+            _ => std::thread::available_parallelism().map(|n| (n.get() / 2).max(1)).unwrap_or(1),
+        })
+    }
+}
+
+#[derive(Args)]
+struct RunArgs {
+    /// Path to an engine binary (identity is read from its UCI id name).
+    #[arg(long, conflicts_with = "name")]
+    engine: Option<PathBuf>,
+    /// An engine from epd/engines.toml.
+    #[arg(long)]
+    name: Option<String>,
+    /// Comma-separated suite names, or `all`.
+    #[arg(long, default_value = "all")]
+    suites: String,
+    #[command(flatten)]
+    budget: BudgetArgs,
+    #[command(flatten)]
+    settings: EngineSettings,
     /// Print the run records as JSON instead of a summary.
     #[arg(long)]
     json: bool,
@@ -117,7 +139,7 @@ struct TableArgs {
     /// Time mode: the CPU model the runs were made on (default: this machine's; `any` to ignore).
     #[arg(long)]
     cpu: Option<String>,
-    /// Comma-separated engine selectors: `family:label`, family, label or version.
+    /// Comma-separated engine selectors: `family:label[#hash]`, family, label or version.
     #[arg(long)]
     engines: Option<String>,
     /// Comma-separated suite names.
@@ -128,6 +150,56 @@ struct TableArgs {
     percent: bool,
     #[arg(long)]
     json: bool,
+}
+
+#[derive(Args)]
+struct DiffArgs {
+    /// Left side: an engine binary path, a results file, or a store selector
+    /// (`family:label[#hash]`).
+    a: String,
+    /// Right side, the same forms.
+    b: String,
+    /// Comma-separated suite names, or `all`.
+    #[arg(long, default_value = "all")]
+    suites: String,
+    #[command(flatten)]
+    budget: BudgetArgs,
+    #[command(flatten)]
+    settings: EngineSettings,
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Args)]
+struct CheckArgs {
+    /// The candidate engine binary.
+    #[arg(long)]
+    engine: PathBuf,
+    /// The baseline: a results file, or a store selector (`family:label[#hash]`).
+    #[arg(long)]
+    baseline: String,
+    /// Comma-separated suite names, or `all`.
+    #[arg(long, default_value = "all")]
+    suites: String,
+    #[command(flatten)]
+    budget: BudgetArgs,
+    #[command(flatten)]
+    settings: EngineSettings,
+    /// How many fewer solved positions per suite the candidate may have.
+    #[arg(long, default_value_t = 0)]
+    max_drop: i64,
+    /// Fail on any flipped position in either direction (for node-identical claims).
+    #[arg(long)]
+    exact: bool,
+    #[arg(long)]
+    json: bool,
+}
+
+/// Write to stdout and ignore a closed pipe (`| head`), instead of panicking.
+fn out(text: &str) {
+    let mut stdout = std::io::stdout().lock();
+    let _ = stdout.write_all(text.as_bytes());
+    let _ = stdout.flush();
 }
 
 fn default_epd_dir() -> PathBuf {
@@ -207,11 +279,26 @@ fn describe_engine(path: &Path, options: &[(String, String)]) -> Result<String, 
     Ok(name)
 }
 
-fn cmd_run(epd_dir: &Path, args: RunArgs) -> Result<(), String> {
-    let limit = args.budget.limit()?;
+/// An engine binary with its identity, ready to run.
+struct Prepared {
+    path: PathBuf,
+    engine: store::EngineRecord,
+}
+
+/// Resolve a binary path or a registry name into an engine record: sha256
+/// of the binary, identity from the UCI id name, options from the registry
+/// plus any extras, and the bench signature for rusty-rival.
+fn prepare_engine(
+    epd_dir: &Path,
+    engine_path: Option<&Path>,
+    registry_name: Option<&str>,
+    extra_options: &[String],
+    label: Option<String>,
+    family: Option<String>,
+) -> Result<Prepared, String> {
     let registry = config::Registry::load(epd_dir)?;
-    let (path, mut options, registry_name, registry_family) = match (&args.engine, &args.name) {
-        (Some(p), None) => (p.clone(), BTreeMap::new(), None, None),
+    let (path, mut options, reg_label, reg_family) = match (engine_path, registry_name) {
+        (Some(p), None) => (p.to_path_buf(), BTreeMap::new(), None, None),
         (None, Some(n)) => {
             let entry = registry.find(n).ok_or_else(|| format!("no engine named '{}' in engines.toml", n))?;
             (
@@ -223,11 +310,46 @@ fn cmd_run(epd_dir: &Path, args: RunArgs) -> Result<(), String> {
         }
         _ => return Err("give --engine PATH or --name REGISTRY_NAME".to_string()),
     };
-    options.extend(parse_options(&args.options)?);
+    options.extend(parse_options(extra_options)?);
     if !path.is_file() {
         return Err(format!("{} is not a file", path.display()));
     }
-    if matches!(limit, uci::Limit::MoveTime(_)) && !args.allow_busy {
+    let bytes = std::fs::read(&path).map_err(|e| format!("cannot read {}: {}", path.display(), e))?;
+    let sha256 = epd::sha256_hex(&bytes);
+    let option_pairs: Vec<(String, String)> = options.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    let id_name = describe_engine(&path, &option_pairs)?;
+    let (family_guess, version) = identity_from_id_name(&id_name);
+    let family = family.or(reg_family).unwrap_or(family_guess);
+    let label = label.or(reg_label).unwrap_or_else(|| version.clone());
+    let bench = if id_name.starts_with("Rusty Rival") {
+        uci::bench_signature(&path, &option_pairs)
+    } else {
+        None
+    };
+    Ok(Prepared {
+        path,
+        engine: store::EngineRecord {
+            name: id_name,
+            family,
+            label,
+            version,
+            sha256,
+            options,
+            bench,
+        },
+    })
+}
+
+/// Run (or fetch from the cache) every suite for a prepared engine.
+fn run_engine(
+    epd_dir: &Path,
+    prepared: &Prepared,
+    limit: uci::Limit,
+    settings: &EngineSettings,
+    suites: &[epd::Suite],
+    quiet: bool,
+) -> Result<Vec<runner::RunOutcome>, String> {
+    if matches!(limit, uci::Limit::MoveTime(_)) && !settings.allow_busy {
         if let Some(reason) = host::busy_reason(4.0) {
             return Err(format!(
                 "time mode needs an idle machine: {} (use --allow-busy to override)",
@@ -235,97 +357,84 @@ fn cmd_run(epd_dir: &Path, args: RunArgs) -> Result<(), String> {
             ));
         }
     }
-    let bytes = std::fs::read(&path).map_err(|e| format!("cannot read {}: {}", path.display(), e))?;
-    let sha256 = epd::sha256_hex(&bytes);
-    let option_pairs: Vec<(String, String)> = options.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-    let id_name = describe_engine(&path, &option_pairs)?;
-    let (family_guess, version) = identity_from_id_name(&id_name);
-    let family = args.family.clone().or(registry_family).unwrap_or(family_guess);
-    let label = args.label.clone().or(registry_name).unwrap_or_else(|| version.clone());
-    let bench = if id_name.starts_with("Rusty Rival") {
-        uci::bench_signature(&path, &option_pairs)
-    } else {
-        None
-    };
-    let engine = store::EngineRecord {
-        name: id_name.clone(),
-        family: family.clone(),
-        label: label.clone(),
-        version,
-        sha256,
-        options,
-        bench,
-    };
-    let concurrency = args.concurrency.unwrap_or_else(|| match limit {
-        uci::Limit::MoveTime(_) => 1,
-        _ => std::thread::available_parallelism().map(|n| (n.get() / 2).max(1)).unwrap_or(1),
-    });
-    let suites = load_suites(epd_dir, &args.suites)?;
-    if !args.json {
+    let concurrency = settings.concurrency_for(limit);
+    if !quiet {
         eprintln!(
             "{} [{} {}] sha {} · {} · threads {} hash {} · concurrency {}",
-            id_name,
-            family,
-            label,
-            engine.sha8(),
+            prepared.engine.name,
+            prepared.engine.family,
+            prepared.engine.label,
+            prepared.engine.sha8(),
             limit.describe(),
-            args.threads,
-            args.hash,
+            settings.threads,
+            settings.hash,
             concurrency
         );
     }
     let spec = runner::RunSpec {
         epd_dir: epd_dir.to_path_buf(),
-        engine_path: path,
-        engine,
+        engine_path: prepared.path.clone(),
+        engine: prepared.engine.clone(),
         limit,
-        threads: args.threads,
-        hash_mb: args.hash,
+        threads: settings.threads,
+        hash_mb: settings.hash,
         concurrency,
-        force: args.force,
-        quiet: args.json,
+        force: settings.force,
+        quiet,
     };
-    let mut records = Vec::new();
-    for suite in &suites {
-        let outcome = runner::run_suite(&spec, suite)?;
-        if !args.json {
-            let s = &outcome.record.summary;
-            let score = match (s.points, s.max_points) {
-                (Some(p), Some(m)) => format!("{}/{} pts ({} of {} solved)", p, m, s.solved, s.total),
-                _ => format!("{}/{} solved", s.solved, s.total),
-            };
-            println!(
-                "{:<14} {}{}{}",
-                suite.name,
-                score,
-                s.median_solve_nodes
-                    .map(|n| format!(" · median solve {} nodes", n))
-                    .unwrap_or_default(),
-                if outcome.cached { " (cached)" } else { "" }
-            );
-        }
-        records.push(outcome.record);
-    }
+    suites.iter().map(|suite| runner::run_suite(&spec, suite)).collect()
+}
+
+fn summary_line(suite: &str, outcome: &runner::RunOutcome) -> String {
+    let s = &outcome.record.summary;
+    let score = match (s.points, s.max_points) {
+        (Some(p), Some(m)) => format!("{}/{} pts ({} of {} solved)", p, m, s.solved, s.total),
+        _ => format!("{}/{} solved", s.solved, s.total),
+    };
+    format!(
+        "{:<14} {}{}{}\n",
+        suite,
+        score,
+        s.median_solve_nodes
+            .map(|n| format!(" · median solve {} nodes", n))
+            .unwrap_or_default(),
+        if outcome.cached { " (cached)" } else { "" }
+    )
+}
+
+fn cmd_run(epd_dir: &Path, args: RunArgs) -> Result<(), String> {
+    let limit = args.budget.limit()?;
+    let prepared = prepare_engine(
+        epd_dir,
+        args.engine.as_deref(),
+        args.name.as_deref(),
+        &args.options,
+        args.label.clone(),
+        args.family.clone(),
+    )?;
+    let suites = load_suites(epd_dir, &args.suites)?;
+    let outcomes = run_engine(epd_dir, &prepared, limit, &args.settings, &suites, args.json)?;
     if args.json {
-        println!("{}", serde_json::to_string_pretty(&records).map_err(|e| e.to_string())?);
+        let records: Vec<&store::RunRecord> = outcomes.iter().map(|o| &o.record).collect();
+        out(&format!("{}\n", serde_json::to_string_pretty(&records).map_err(|e| e.to_string())?));
+    } else {
+        for (suite, outcome) in suites.iter().zip(&outcomes) {
+            out(&summary_line(&suite.name, outcome));
+        }
     }
     Ok(())
 }
 
-fn cmd_table(epd_dir: &Path, args: TableArgs) -> Result<(), String> {
-    let limit = args.budget.limit()?;
-    let files = store::load_all(epd_dir)?;
-    let engines = args.engines.as_deref().map(split_list);
-    let suites = args.suites.as_deref().map(split_list);
+fn table_key(limit: uci::Limit, threads: u32, hash: u32, concurrency: Option<usize>, cpu: Option<&str>) -> table::TableKey {
     let time_mode = limit.mode() == "time";
-    let key = table::TableKey {
+    table::TableKey {
         mode: limit.mode().to_string(),
         budget: limit.budget(),
-        threads: args.threads,
-        hash_mb: args.hash,
-        concurrency: if time_mode { Some(args.concurrency.unwrap_or(1)) } else { None },
+        threads,
+        hash_mb: hash,
+        concurrency: if time_mode { Some(concurrency.unwrap_or(1)) } else { None },
         cpu: if time_mode {
-            match args.cpu.as_deref() {
+            match cpu {
                 Some("any") => None,
                 Some(cpu) => Some(cpu.to_string()),
                 None => Some(host::cpu_model()),
@@ -333,26 +442,168 @@ fn cmd_table(epd_dir: &Path, args: TableArgs) -> Result<(), String> {
         } else {
             None
         },
-    };
+    }
+}
+
+fn cmd_table(epd_dir: &Path, args: TableArgs) -> Result<(), String> {
+    let limit = args.budget.limit()?;
+    let files = store::load_all(epd_dir)?;
+    let engines = args.engines.as_deref().map(split_list);
+    let suites = args.suites.as_deref().map(split_list);
+    let key = table_key(limit, args.threads, args.hash, args.concurrency, args.cpu.as_deref());
     let table = table::build(&files, &key, engines.as_deref(), suites.as_deref());
     if args.json {
-        println!("{}", serde_json::to_string_pretty(&table).map_err(|e| e.to_string())?);
+        out(&format!("{}\n", serde_json::to_string_pretty(&table).map_err(|e| e.to_string())?));
     } else {
-        print!("{}", table.render(args.percent));
+        out(&table.render(args.percent));
     }
     Ok(())
+}
+
+/// One side of a comparison: the engine's identity and its runs for the
+/// requested suites at the key, from a binary (run or cached), a results
+/// file, or the store.
+struct Resolved {
+    label: String,
+    runs: Vec<store::RunRecord>,
+}
+
+fn resolve_side(
+    epd_dir: &Path,
+    spec: &str,
+    limit: uci::Limit,
+    settings: &EngineSettings,
+    suites: &[epd::Suite],
+    quiet: bool,
+) -> Result<Resolved, String> {
+    let path = Path::new(spec);
+    let key = table_key(limit, settings.threads, settings.hash, settings.concurrency, Some("any"));
+    let file = if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("json") {
+        store::load_file(path)?
+    } else if path.is_file() {
+        let prepared = prepare_engine(epd_dir, Some(path), None, &[], None, None)?;
+        let outcomes = run_engine(epd_dir, &prepared, limit, settings, suites, quiet)?;
+        return Ok(Resolved {
+            label: format!("{} {} ({})", prepared.engine.family, prepared.engine.label, prepared.engine.sha8()),
+            runs: outcomes.into_iter().map(|o| o.record).collect(),
+        });
+    } else {
+        let files = store::load_all(epd_dir)?;
+        let matches: Vec<store::ResultsFile> = files
+            .into_iter()
+            .filter(|f| table::engine_matches(spec, &table::column_of(&f.engine)))
+            .collect();
+        match matches.len() {
+            1 => matches.into_iter().next().unwrap_or_else(|| unreachable!()),
+            0 => return Err(format!("'{}' is neither a file nor an engine in the store", spec)),
+            n => {
+                let names: Vec<String> = matches.iter().map(|f| table::column_of(&f.engine).identity()).collect();
+                return Err(format!(
+                    "'{}' matches {} engines in the store ({}); add #hash",
+                    spec,
+                    n,
+                    names.join(", ")
+                ));
+            }
+        }
+    };
+    let mut runs = Vec::new();
+    for suite in suites {
+        let run = file
+            .runs
+            .iter()
+            .filter(|r| key.matches(r) && r.suite.name == suite.name && r.suite.sha256 == suite.sha256)
+            .max_by(|a, b| a.date.cmp(&b.date))
+            .ok_or_else(|| {
+                format!(
+                    "{} {} has no run of {} ({}) at {}",
+                    file.engine.family,
+                    file.engine.label,
+                    suite.name,
+                    &suite.sha256[..8],
+                    limit.describe()
+                )
+            })?;
+        runs.push(run.clone());
+    }
+    Ok(Resolved {
+        label: format!("{} {} ({})", file.engine.family, file.engine.label, file.engine.sha8()),
+        runs,
+    })
+}
+
+fn cmd_diff(epd_dir: &Path, args: DiffArgs) -> Result<(), String> {
+    let limit = args.budget.limit()?;
+    let suites = load_suites(epd_dir, &args.suites)?;
+    let a = resolve_side(epd_dir, &args.a, limit, &args.settings, &suites, args.json)?;
+    let b = resolve_side(epd_dir, &args.b, limit, &args.settings, &suites, args.json)?;
+    let mut diffs = Vec::new();
+    for (ra, rb) in a.runs.iter().zip(&b.runs) {
+        diffs.push(compare::diff_runs(ra, rb)?);
+    }
+    if args.json {
+        out(&format!("{}\n", serde_json::to_string_pretty(&diffs).map_err(|e| e.to_string())?));
+    } else {
+        out(&format!("A = {}\nB = {}\n{}\n", a.label, b.label, limit.describe()));
+        for d in &diffs {
+            out(&compare::render_diff(d, "A", "B"));
+        }
+    }
+    Ok(())
+}
+
+fn cmd_check(epd_dir: &Path, args: CheckArgs) -> Result<(), String> {
+    let limit = args.budget.limit()?;
+    let suites = load_suites(epd_dir, &args.suites)?;
+    let baseline = resolve_side(epd_dir, &args.baseline, limit, &args.settings, &suites, args.json)?;
+    let candidate = resolve_side(epd_dir, &args.engine.to_string_lossy(), limit, &args.settings, &suites, args.json)?;
+    let mut diffs = Vec::new();
+    let mut verdicts = Vec::new();
+    for (rb, rc) in baseline.runs.iter().zip(&candidate.runs) {
+        let d = compare::diff_runs(rb, rc)?;
+        verdicts.push(compare::check_suite(&d, args.max_drop, args.exact));
+        diffs.push(d);
+    }
+    let all_ok = verdicts.iter().all(|v| v.ok);
+    if args.json {
+        let report = serde_json::json!({ "baseline": baseline.label, "candidate": candidate.label, "budget": limit.describe(), "ok": all_ok, "verdicts": verdicts, "diffs": diffs });
+        out(&format!("{}\n", serde_json::to_string_pretty(&report).map_err(|e| e.to_string())?));
+    } else {
+        out(&format!(
+            "baseline  = {}\ncandidate = {}\n{} · max drop {}{}\n\n",
+            baseline.label,
+            candidate.label,
+            limit.describe(),
+            args.max_drop,
+            if args.exact { " · exact" } else { "" }
+        ));
+        for (d, v) in diffs.iter().zip(&verdicts) {
+            out(&compare::render_diff(d, "baseline", "candidate"));
+            out(&format!(
+                "  => {}{}\n",
+                if v.ok { "ok" } else { "FAIL" },
+                v.reason.as_ref().map(|r| format!(": {}", r)).unwrap_or_default()
+            ));
+        }
+        out(&format!("\n{}\n", if all_ok { "check passed" } else { "check FAILED" }));
+    }
+    if all_ok {
+        Ok(())
+    } else {
+        std::process::exit(1)
+    }
 }
 
 fn cmd_suites(epd_dir: &Path) -> Result<(), String> {
     for suite in load_suites(epd_dir, "all")? {
         let graded = if suite.is_graded() { " (graded)" } else { "" };
-        println!(
-            "{:<14} {:>5} positions  sha {}{}",
+        out(&format!(
+            "{:<14} {:>5} positions  sha {}{}\n",
             suite.name,
             suite.positions.len(),
             &suite.sha256[..8],
             graded
-        );
+        ));
     }
     Ok(())
 }
@@ -363,6 +614,8 @@ fn main() {
     let result = match cli.command {
         Command::Run(args) => cmd_run(&epd_dir, args),
         Command::Table(args) => cmd_table(&epd_dir, args),
+        Command::Diff(args) => cmd_diff(&epd_dir, args),
+        Command::Check(args) => cmd_check(&epd_dir, args),
         Command::Suites => cmd_suites(&epd_dir),
     };
     if let Err(e) = result {

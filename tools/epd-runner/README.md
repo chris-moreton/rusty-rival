@@ -71,6 +71,36 @@ counts positions without a resolution error.
 Records for released rusty-rival versions and for the peers are committed;
 experiment binaries can be left untracked.
 
+## Diff and check
+
+```
+epd-runner diff rusty-rival:1.0.63 rusty-rival:1.0.64 --suites arasan18 --nodes 300000
+epd-runner diff target/release/rusty-rival ~/benchmark/sprt/rival-v1.0.64 --suites all --nodes 300000
+epd-runner check --engine target/release/rusty-rival --baseline rusty-rival:1.0.64 \
+    --suites bratko-kopec,wac --nodes 100000 --max-drop 2
+epd-runner check --engine BIN --baseline epd/results/rusty-rival/1.0.64-<sha8>.json --suites quick --nodes 100000 --exact
+```
+
+Each side of `diff` is an engine binary (run, or served from the cache), a
+results file, or a store selector (`family:label[#hash]`). The output lists,
+per suite, the positions solved by one side and not the other with each
+side's move and solve point, the two summary lines and the net change;
+`--json` gives the same as data. `check` runs the candidate binary against a
+baseline and exits 1 when any suite's solved count fell by more than
+`--max-drop` (default 0), or, with `--exact`, when any position flipped in
+either direction, which is the test for a change that claims to be
+node-identical. Both compare only runs of the same suite revision.
+
+## Continuous integration
+
+The `EPD regression` job in `.github/workflows/build.yml` builds the engine
+and the runner, runs `check` on Bratko-Kopec and WAC at 100k nodes against
+the committed rusty-rival 1.0.64 record, posts the delta as a comment on the
+pull request (one comment, updated on each run), and fails only when a
+suite's solved count drops by more than two. A search change legitimately
+moves these counts; a pull request that intends one updates the baseline by
+running the suites for the new binary, as with the bench signature.
+
 ## Suites
 
 `epd/suites/*.epd`; sources and terms in `epd/suites/NOTICE`. A line is four

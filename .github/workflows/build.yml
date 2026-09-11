@@ -80,6 +80,55 @@ jobs:
           toolchain: stable
       - run: cargo test -p epd-runner
 
+  epd-regression:
+    name: EPD regression (bratko-kopec + wac at 100k nodes)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: stable
+      - name: Build the engine and the runner
+        run: cargo build --release && cargo build --release -p epd-runner
+      # Node-limited, so the runner's speed does not matter; the committed
+      # baseline is rusty-rival 1.0.64. A search change legitimately moves
+      # these counts, so the job fails only on a drop beyond --max-drop and
+      # otherwise just reports the delta on the pull request.
+      - name: Check against the committed baseline
+        id: check
+        run: |
+          set +e
+          target/release/epd-runner check --engine target/release/rusty-rival \
+            --baseline rusty-rival:1.0.64 --suites bratko-kopec,wac --nodes 100000 \
+            --max-drop 2 --concurrency 2 | tee check.txt
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - name: Post the delta on the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo '<!-- epd-regression -->'
+            echo '#### EPD regression check (bratko-kopec + wac at 100k nodes vs rusty-rival 1.0.64)'
+            echo '```'
+            cat check.txt
+            echo '```'
+          } > comment.md
+          existing=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" --jq '[.[] | select(.body | startswith("<!-- epd-regression -->"))] | last | .id')
+          if [ -n "$existing" ] && [ "$existing" != "null" ]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${existing}" -F body=@comment.md >/dev/null
+          else
+            gh pr comment "$PR" --body-file comment.md
+          fi
+      - name: Fail on a drop beyond the threshold
+        run: exit ${{ steps.check.outputs.status }}
+
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
