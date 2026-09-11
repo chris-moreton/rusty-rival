@@ -1830,10 +1830,11 @@ pub fn search(
 
         // NET-1277: continuation-history pruning, Ethereal's step 14C. A quiet
         // move that is neither a killer nor the countermove, at a scout node
-        // after the first legal move, is skipped when the depth the LMR table
-        // would leave it (depth minus the table reduction at this searched
-        // index) is at most CONTINUATION_PRUNING_DEPTH[improving] and the
-        // worse of its two continuation-history entries is below
+        // after the first legal move that returned a non-mated score, is
+        // skipped when the depth the LMR table would leave it (depth minus
+        // the table reduction at the number of children already searched,
+        // Ethereal's `played`) is at most CONTINUATION_PRUNING_DEPTH[improving]
+        // and the worse of its two continuation-history entries is below
         // CONTINUATION_PRUNING_HISTORY_LIMIT[improving]. Decided before the
         // move is made so the certificate path below can reject it without
         // make/unmake; the post-make path applies the same predicate, plus the
@@ -1846,8 +1847,8 @@ pub fn search(
             && !is_promotion
             && legal_move_count >= 1
             && alpha.abs() < MATE_START
-            && depth as i32 - lmr_reduction(depth, (children_here + 1).min(63) as u8) as i32
-                <= CONTINUATION_PRUNING_DEPTH[improving as usize]
+            && best_pathscore.1 > -MATE_START
+            && depth as i32 - lmr_reduction(depth, children_here.min(63) as u8) as i32 <= CONTINUATION_PRUNING_DEPTH[improving as usize]
             && m != search_state.killer_moves[ply as usize][0]
             && m != search_state.killer_moves[ply as usize][1]
             && {
