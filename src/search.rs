@@ -4,7 +4,8 @@ use crate::engine_constants::{
     LMR_CAPTURE_BASE, LMR_CAPTURE_HISTORY_DIVISOR, LMR_FROM_SECOND_MOVE, LMR_IN_CHECK, LMR_MIN_DEPTH, LMR_PV_FLAG,
     LMR_QUIET_HISTORY_DIVISOR, LMR_SOFT_EXEMPTIONS, LMR_TACTICAL, LMR_THREAT_TERM, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
     MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
+    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, QUIET_SEE_HISTORY_DIVISOR, QUIET_SEE_PRUNE_MARGIN,
+    QUIET_SEE_PRUNE_MAX_DEPTH, QUIET_SEE_PRUNING, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
     SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH,
     SINGULAR_MULTICUT, SINGULAR_NEGATIVE_EXTENSION, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH,
     TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
@@ -61,7 +62,7 @@ use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK,
 };
-use crate::move_scores::{score_move, score_move_with_see, victim_piece_index};
+use crate::move_scores::{piece_value, score_move, score_move_with_see, victim_piece_index};
 use crate::moves::{
     between_squares, generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move,
 };
@@ -777,6 +778,37 @@ pub fn rotate_root_move_to_front(legal_moves: &mut MoveScoreList, m: Move) {
     if let Some(index) = legal_moves.iter().position(|(candidate, _)| *candidate == m) {
         legal_moves[..=index].rotate_right(1);
     }
+}
+
+/// NET-1278: the combined quiet history of a move that has not been made yet,
+/// from the side to move's point of view: butterfly history plus the
+/// countermove-history entry against the opponent's last move plus the
+/// follow-up entry after our own previous move, all on the shared gravity
+/// scale. A missing previous move (the root, or a null move at that ply)
+/// contributes 0.
+#[inline(always)]
+fn quiet_history_pre_make(position: &Position, search_state: &SearchState, ply: u8, m: Move) -> i32 {
+    let curr_piece = piece_type_to_index(m);
+    let curr_from = from_square_part(m) as usize;
+    let curr_to = to_square_part(m) as usize;
+    let mut hist = search_state.history_moves[curr_piece + (position.mover as usize * 6)][curr_from][curr_to] as i32;
+    if ply > 0 {
+        let prev_move = search_state.ply_move[ply as usize - 1];
+        if prev_move != 0 {
+            let prev_piece_12 = piece_type_to_index(prev_move) + ((position.mover ^ 1) as usize * 6);
+            let prev_to = to_square_part(prev_move) as usize;
+            hist += search_state.countermove_history[prev_piece_12][prev_to][curr_piece][curr_to] as i32;
+        }
+    }
+    if ply >= 2 {
+        let our_prev_move = search_state.ply_move[ply as usize - 2];
+        if our_prev_move != 0 {
+            let our_prev_piece = piece_type_to_index(our_prev_move);
+            let our_prev_to = to_square_part(our_prev_move) as usize;
+            hist += search_state.followup_history[our_prev_piece][our_prev_to][curr_piece][curr_to] as i32;
+        }
+    }
+    hist
 }
 
 pub fn clear_killers(search_state: &mut SearchState) {
@@ -1837,6 +1869,55 @@ pub fn search(
                         search_state.pruned_by_reason[3] += 1;
                     }
                     continue;
+                }
+            } else if QUIET_SEE_PRUNING
+                && scouting
+                && excluded_move == 0
+                && legal_move_count >= 1
+                && depth <= QUIET_SEE_PRUNE_MAX_DEPTH
+                && alpha.abs() < MATE_START
+                && m != search_state.killer_moves[ply as usize][0]
+                && m != search_state.killer_moves[ply as usize][1]
+            {
+                // NET-1278: SEE pruning of quiet moves, the quiet half of
+                // Ethereal's step 15. The threshold is -QUIET_SEE_PRUNE_MARGIN
+                // * depth, lowered by the move's combined quiet history so a
+                // well-regarded move is harder to prune. SEE, which costs more
+                // than the count and margin tests above, only runs for a move
+                // those tests keep, and only when losing the moving piece
+                // outright would fall below the threshold (no exchange can be
+                // worse than that). Only a move the certificates prove legal
+                // and non-checking is pruned, so it is counted like any other
+                // rejected legal move and a checking move is never pruned.
+                let hist = quiet_history_pre_make(position, search_state, ply, m);
+                let threshold = -(QUIET_SEE_PRUNE_MARGIN * depth as Score) - (hist / QUIET_SEE_HISTORY_DIVISOR) as Score;
+                if -piece_value(&position.pieces[position.mover as usize], from_square_part(m)) < threshold {
+                    if !pre_make.ready {
+                        pre_make.compute(position);
+                    }
+                    if pre_make.certainly_legal_and_quiet(m) {
+                        if cfg!(feature = "search-width-diagnostics") {
+                            search_state.pruned_by_reason[6] += 1;
+                        }
+                        if static_exchange_evaluation(position, m) < threshold {
+                            #[cfg(debug_assertions)]
+                            {
+                                let unmake = make_move_nnue(position, m, search_state);
+                                debug_assert!(!is_check(position, old_mover), "NET-1278: false legality certificate for {m:#x}");
+                                debug_assert!(
+                                    !is_check(position, position.mover),
+                                    "NET-1278: false no-check certificate for {m:#x}"
+                                );
+                                unmake_move_nnue(position, m, &unmake, search_state);
+                            }
+                            legal_move_count += 1;
+                            search_state.ply_move[ply as usize] = m;
+                            if cfg!(feature = "search-width-diagnostics") {
+                                search_state.pruned_by_reason[5] += 1;
+                            }
+                            continue;
+                        }
+                    }
                 }
             }
         }

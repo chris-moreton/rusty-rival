@@ -38,6 +38,20 @@ pub const THREAT_EXTENSION_MARGIN: Score = 406; // SPSA tuned, Run 20
 pub const SEE_PRUNE_MAX_DEPTH: u8 = 5; // SPSA tuned, Run 20
 pub const SEE_PRUNE_MARGIN: Score = 23; // SPSA tuned, Run 20
 
+// NET-1278: SEE pruning of quiet moves (the quiet half of Ethereal's step 15).
+// At a scout node after the first legal move, a quiet non-killer move is
+// skipped when its static exchange evaluation is below
+// -QUIET_SEE_PRUNE_MARGIN * depth - hist / QUIET_SEE_HISTORY_DIVISOR, where
+// hist is the move's combined quiet history (butterfly plus both continuation
+// tables on the shared gravity scale), so a well-regarded move is harder to
+// prune. SEE only runs when losing the moving piece outright would fall below
+// the threshold, and only moves the NET-1188 certificates prove legal and
+// non-checking are pruned.
+pub const QUIET_SEE_PRUNING: bool = true;
+pub const QUIET_SEE_PRUNE_MAX_DEPTH: u8 = 10;
+pub const QUIET_SEE_PRUNE_MARGIN: Score = 64;
+pub const QUIET_SEE_HISTORY_DIVISOR: i32 = 128;
+
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut
 // Only searches captures with SEE >= 0 to verify tactical soundness
