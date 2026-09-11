@@ -39,7 +39,9 @@ arguments (defaults 1 and 128), extra UCI options from the registry entry or
 `--name NAME` takes an entry from `epd/engines.toml`, whose `name` becomes the
 label (for example `sf-2800`, Stockfish with `UCI_Elo` 2800). The binary's
 sha256 is always part of the record, so a rebuilt binary with the same
-version string is a different engine.
+version string is a different engine, and the UCI options are part of it
+too: the same binary with other options is another column, shown as
+`sha8#opthash` under the header and selectable as `family:label#opthash`.
 
 ## Store
 

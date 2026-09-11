@@ -59,6 +59,23 @@ pub struct Column {
     pub label: String,
     pub version: String,
     pub sha8: String,
+    /// The UCI options the engine ran with; empty for a plain run.
+    pub options: BTreeMap<String, String>,
+    /// Eight hex digits over the options, when any are set: the same binary
+    /// with other options is another column, and this is how it is named.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options_hash8: Option<String>,
+}
+
+impl Column {
+    /// The identity line under the header: the binary's sha8, plus the
+    /// options hash when the engine ran with options.
+    pub fn identity(&self) -> String {
+        match &self.options_hash8 {
+            Some(h) => format!("{}#{}", self.sha8, h),
+            None => self.sha8.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -93,12 +110,19 @@ pub struct Table {
 }
 
 /// Does an engine match a selector? `family:label`, or a bare family, label
-/// or version.
+/// or version; an optional `#hash` suffix pins the binary sha8 or the
+/// options hash, which is how two option variants of one binary are told
+/// apart (`stockfish:dev-20260726#9e2b0c1d`).
 pub fn engine_matches(selector: &str, column: &Column) -> bool {
-    match selector.split_once(':') {
+    let (base, hash) = match selector.split_once('#') {
+        Some((b, h)) => (b, Some(h)),
+        None => (selector, None),
+    };
+    let base_ok = match base.split_once(':') {
         Some((family, label)) => column.family == family && (column.label == label || column.version == label),
-        None => column.family == selector || column.label == selector || column.version == selector,
-    }
+        None => base.is_empty() || column.family == base || column.label == base || column.version == base,
+    };
+    base_ok && hash.is_none_or(|h| column.sha8 == h || column.options_hash8.as_deref() == Some(h))
 }
 
 pub fn build(files: &[ResultsFile], key: &TableKey, engines: Option<&[String]>, suites: Option<&[String]>) -> Table {
@@ -111,6 +135,8 @@ pub fn build(files: &[ResultsFile], key: &TableKey, engines: Option<&[String]>, 
                     label: f.engine.label.clone(),
                     version: f.engine.version.clone(),
                     sha8: f.engine.sha8().to_string(),
+                    options: f.engine.options.clone(),
+                    options_hash8: f.engine.options_hash8(),
                 },
                 f,
             )
@@ -121,6 +147,7 @@ pub fn build(files: &[ResultsFile], key: &TableKey, engines: Option<&[String]>, 
         a.0.family
             .cmp(&b.0.family)
             .then_with(|| version_key(&a.0.label).cmp(&version_key(&b.0.label)))
+            .then_with(|| a.0.identity().cmp(&b.0.identity()))
     });
 
     // Rows are (suite name, suite sha): a suite file that changed between
@@ -229,7 +256,7 @@ impl Table {
         let mut sub: Vec<String> = vec![String::new()];
         for c in &self.columns {
             headers.push(format!("{} {}", c.family, c.label));
-            sub.push(c.sha8.to_string());
+            sub.push(c.identity());
         }
         let mut lines: Vec<Vec<String>> = vec![headers, sub];
         for row in &self.rows {
@@ -272,5 +299,53 @@ impl Table {
             out.push_str("(no results for these settings; run `epd-runner run` first)\n");
         }
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn column(label: &str, sha8: &str, options: &[(&str, &str)]) -> Column {
+        let options: BTreeMap<String, String> = options.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+        let engine = crate::store::EngineRecord {
+            name: "Stockfish dev".into(),
+            family: "stockfish".into(),
+            label: label.into(),
+            version: "dev".into(),
+            sha256: format!("{}{}", sha8, "0".repeat(56)),
+            options: options.clone(),
+            bench: None,
+        };
+        Column {
+            family: "stockfish".into(),
+            label: label.into(),
+            version: "dev".into(),
+            sha8: sha8.into(),
+            options_hash8: engine.options_hash8(),
+            options,
+        }
+    }
+
+    #[test]
+    fn option_variants_get_distinct_identities_and_selectors() {
+        let plain = column("dev", "0123abcd", &[]);
+        let capped = column("dev", "0123abcd", &[("UCI_Elo", "2800"), ("UCI_LimitStrength", "true")]);
+        assert_ne!(plain.identity(), capped.identity());
+        assert!(capped.identity().starts_with("0123abcd#"));
+        assert!(engine_matches("stockfish", &plain) && engine_matches("stockfish", &capped));
+        assert!(engine_matches("stockfish:dev", &capped));
+        let pinned = format!("stockfish:dev#{}", capped.options_hash8.as_deref().unwrap());
+        assert!(engine_matches(&pinned, &capped));
+        assert!(!engine_matches(&pinned, &plain));
+        assert!(engine_matches("#0123abcd", &plain));
+        assert!(!engine_matches("stockfish:dev#ffffffff", &plain));
+    }
+
+    #[test]
+    fn versions_sort_naturally() {
+        let mut labels = vec!["1.0.9", "1.0.10", "1.0.64", "dev-20260726", "1.0.63"];
+        labels.sort_by_key(|l| version_key(l));
+        assert_eq!(labels, vec!["1.0.9", "1.0.10", "1.0.63", "1.0.64", "dev-20260726"]);
     }
 }
