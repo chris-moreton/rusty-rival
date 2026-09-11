@@ -58,6 +58,14 @@ impl Limit {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Bound {
+    Lower,
+    Upper,
+}
+
+/// One `info` line with measurements; `pv` is empty for score-only or
+/// counter-only updates, which still carry the latest depth, nodes and time.
 #[derive(Debug, Clone, Default)]
 pub struct InfoLine {
     pub depth: u32,
@@ -65,6 +73,8 @@ pub struct InfoLine {
     pub time_ms: u64,
     pub score_cp: Option<i32>,
     pub mate: Option<i32>,
+    /// Set when the score is a fail-high or fail-low bound, not an exact value.
+    pub bound: Option<Bound>,
     pub pv: Vec<String>,
 }
 
@@ -174,8 +184,9 @@ impl Engine {
                 }
             };
             let line = line.trim();
-            if let Some(rest) = line.strip_prefix("bestmove") {
-                let bestmove = rest.split_whitespace().next().unwrap_or("").to_string();
+            let mut tokens = line.split_whitespace();
+            if tokens.next() == Some("bestmove") {
+                let bestmove = tokens.next().unwrap_or("").to_string();
                 return Ok(SearchOutput {
                     bestmove,
                     infos,
@@ -216,25 +227,30 @@ impl Drop for Engine {
     }
 }
 
-/// Parse an `info` line that carries a principal variation; lines without a
-/// PV (currmove, string, hashfull-only) and MultiPV lines beyond the first
-/// are dropped.
+/// Parse an `info` line that carries a measurement (depth, nodes, time or
+/// score), with or without a principal variation. `info string` lines,
+/// MultiPV lines beyond the first, and lines with nothing measurable
+/// (currmove only) are dropped.
 pub fn parse_info(line: &str) -> Option<InfoLine> {
     let tokens: Vec<&str> = line.split_whitespace().collect();
     let mut info = InfoLine::default();
+    let mut measured = false;
     let mut i = 1;
     while i < tokens.len() {
         match tokens[i] {
             "depth" => {
                 info.depth = tokens.get(i + 1)?.parse().ok()?;
+                measured = true;
                 i += 2;
             }
             "nodes" => {
                 info.nodes = tokens.get(i + 1)?.parse().ok()?;
+                measured = true;
                 i += 2;
             }
             "time" => {
                 info.time_ms = tokens.get(i + 1)?.parse().ok()?;
+                measured = true;
                 i += 2;
             }
             "multipv" => {
@@ -249,14 +265,23 @@ pub fn parse_info(line: &str) -> Option<InfoLine> {
                     Some("mate") => info.mate = tokens.get(i + 2)?.parse().ok(),
                     _ => {}
                 }
+                measured = true;
                 i += 3;
-                if matches!(tokens.get(i).copied(), Some("lowerbound") | Some("upperbound")) {
-                    i += 1;
+                match tokens.get(i).copied() {
+                    Some("lowerbound") => {
+                        info.bound = Some(Bound::Lower);
+                        i += 1;
+                    }
+                    Some("upperbound") => {
+                        info.bound = Some(Bound::Upper);
+                        i += 1;
+                    }
+                    _ => {}
                 }
             }
             "pv" => {
                 info.pv = tokens[i + 1..].iter().map(|s| s.to_string()).collect();
-                return if info.pv.is_empty() { None } else { Some(info) };
+                return Some(info);
             }
             "string" => return None,
             "seldepth" | "hashfull" | "tbhits" | "nps" | "currmovenumber" | "currmove" | "cpuload" | "wdl" => {
@@ -265,31 +290,27 @@ pub fn parse_info(line: &str) -> Option<InfoLine> {
             _ => i += 1,
         }
     }
-    None
+    if measured {
+        Some(info)
+    } else {
+        None
+    }
 }
 
-/// rusty-rival's deterministic bench signature, read from a fresh process.
-pub fn bench_signature(path: &Path) -> Option<u64> {
-    let mut child = Command::new(path)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .ok()?;
-    let mut stdin = child.stdin.take()?;
-    let stdout = child.stdout.take()?;
-    writeln!(stdin, "bench").ok()?;
+/// rusty-rival's deterministic bench signature, read from a fresh process
+/// with the same deadline and cleanup as a search.
+pub fn bench_signature(path: &Path, options: &[(String, String)]) -> Option<u64> {
+    let mut engine = Engine::spawn(path, options, Duration::from_secs(60)).ok()?;
+    engine.send("bench").ok()?;
+    let deadline = Instant::now() + Duration::from_secs(300);
     let mut signature = None;
-    for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+    while let Ok(line) = engine.next_line(deadline) {
         if let Some(rest) = line.strip_prefix("Nodes searched:") {
             signature = rest.trim().replace(',', "").parse().ok();
             break;
         }
     }
-    let _ = writeln!(stdin, "quit");
-    drop(stdin);
-    let _ = child.kill();
-    let _ = child.wait();
+    engine.quit();
     signature
 }
 
@@ -303,8 +324,11 @@ mod tests {
         assert_eq!((i.depth, i.nodes, i.time_ms, i.score_cp, i.mate), (12, 123456, 82, Some(35), None));
         assert_eq!(i.pv, vec!["e2e4", "e7e5"]);
         let i = parse_info("info depth 9 score mate 3 lowerbound nodes 10 time 1 pv g1f3").unwrap();
-        assert_eq!((i.mate, i.pv.len()), (Some(3), 1));
-        assert!(parse_info("info depth 3 currmove e2e4 currmovenumber 1").is_none());
+        assert_eq!((i.mate, i.pv.len(), i.bound), (Some(3), 1, Some(Bound::Lower)));
+        let i = parse_info("info depth 20 score cp 12 upperbound nodes 5000 time 9").unwrap();
+        assert!(i.pv.is_empty());
+        assert_eq!((i.score_cp, i.bound, i.nodes), (Some(12), Some(Bound::Upper), 5000));
+        assert!(parse_info("info currmove e2e4 currmovenumber 1").is_none());
         assert!(parse_info("info string Loaded tablebases").is_none());
         assert!(parse_info("info depth 5 multipv 2 score cp 1 pv a2a3").is_none());
     }

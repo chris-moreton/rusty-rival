@@ -50,7 +50,8 @@ pub fn busy_reason(load_threshold: f64) -> Option<String> {
                 continue;
             }
             let cmdline = std::fs::read(Path::new("/proc").join(name).join("cmdline")).unwrap_or_default();
-            if cmdline.windows(19).any(|w| w == b"lichess-bot/engines") {
+            let marker = b"lichess-bot/engines";
+            if cmdline.windows(marker.len()).any(|w| w == marker) {
                 return Some(format!("a lichess-bot engine is running (pid {})", pid));
             }
         }

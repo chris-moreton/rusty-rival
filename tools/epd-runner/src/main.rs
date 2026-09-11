@@ -232,7 +232,7 @@ fn cmd_run(epd_dir: &Path, args: RunArgs) -> Result<(), String> {
     let family = args.family.clone().or(registry_family).unwrap_or(family_guess);
     let label = args.label.clone().or(registry_name).unwrap_or_else(|| version.clone());
     let bench = if id_name.starts_with("Rusty Rival") {
-        uci::bench_signature(&path)
+        uci::bench_signature(&path, &option_pairs)
     } else {
         None
     };

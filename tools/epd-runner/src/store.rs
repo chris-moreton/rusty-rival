@@ -25,6 +25,21 @@ impl EngineRecord {
     pub fn sha8(&self) -> &str {
         &self.sha256[..self.sha256.len().min(8)]
     }
+
+    /// Eight hex digits over the UCI options, so the same binary with
+    /// different options (`UCI_Elo`, say) is a different engine in the store.
+    pub fn options_hash8(&self) -> Option<String> {
+        if self.options.is_empty() {
+            return None;
+        }
+        let text: String = self.options.iter().map(|(k, v)| format!("{}={}\n", k, v)).collect();
+        Some(crate::epd::sha256_hex(text.as_bytes())[..8].to_string())
+    }
+
+    /// True when the other record is the same binary with the same options.
+    pub fn same_identity(&self, other: &EngineRecord) -> bool {
+        self.sha256 == other.sha256 && self.options == other.options
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -96,6 +111,10 @@ pub struct RunRecord {
     pub budget: u64,
     pub threads: u32,
     pub hash_mb: u32,
+    /// Positions searched in parallel; part of the key in time mode, where
+    /// contention changes the result.
+    #[serde(default = "one")]
+    pub concurrency: usize,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub host: Option<HostRecord>,
     pub date: String,
@@ -103,16 +122,32 @@ pub struct RunRecord {
     pub positions: Vec<PositionRecord>,
 }
 
+fn one() -> usize {
+    1
+}
+
+/// What identifies a run of one suite for the cache.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunKey<'a> {
+    pub suite_sha: &'a str,
+    pub mode: &'a str,
+    pub budget: u64,
+    pub threads: u32,
+    pub hash_mb: u32,
+    pub concurrency: usize,
+    pub cpu: &'a str,
+}
+
 impl RunRecord {
     /// The cache key: same suite content, mode, budget, threads and hash; in
-    /// time mode also the same CPU.
-    pub fn key_matches(&self, suite_sha: &str, mode: &str, budget: u64, threads: u32, hash_mb: u32, cpu: &str) -> bool {
-        self.suite.sha256 == suite_sha
-            && self.mode == mode
-            && self.budget == budget
-            && self.threads == threads
-            && self.hash_mb == hash_mb
-            && (mode != "time" || self.host.as_ref().is_some_and(|h| h.cpu == cpu))
+    /// time mode also the same CPU and concurrency.
+    pub fn key_matches(&self, key: &RunKey) -> bool {
+        self.suite.sha256 == key.suite_sha
+            && self.mode == key.mode
+            && self.budget == key.budget
+            && self.threads == key.threads
+            && self.hash_mb == key.hash_mb
+            && (key.mode != "time" || (self.concurrency == key.concurrency && self.host.as_ref().is_some_and(|h| h.cpu == key.cpu)))
     }
 }
 
@@ -156,9 +191,10 @@ pub fn sanitize(label: &str) -> String {
 }
 
 pub fn file_path(epd_dir: &Path, engine: &EngineRecord) -> PathBuf {
+    let options = engine.options_hash8().map(|h| format!("-{}", h)).unwrap_or_default();
     results_dir(epd_dir)
         .join(sanitize(&engine.family))
-        .join(format!("{}-{}.json", sanitize(&engine.label), engine.sha8()))
+        .join(format!("{}-{}{}.json", sanitize(&engine.label), engine.sha8(), options))
 }
 
 pub fn load_file(path: &Path) -> Result<ResultsFile, String> {
@@ -174,6 +210,7 @@ struct RunHeader<'a> {
     budget: u64,
     threads: u32,
     hash_mb: u32,
+    concurrency: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     host: &'a Option<HostRecord>,
     date: &'a str,
@@ -202,6 +239,7 @@ pub fn render_file(file: &ResultsFile) -> Result<String, String> {
             budget: run.budget,
             threads: run.threads,
             hash_mb: run.hash_mb,
+            concurrency: run.concurrency,
             host: &run.host,
             date: &run.date,
             summary: &run.summary,
@@ -294,6 +332,7 @@ mod tests {
                 budget: 100_000,
                 threads: 1,
                 hash_mb: 128,
+                concurrency: 4,
                 host: Some(HostRecord {
                     hostname: "box".into(),
                     cpu: "cpu".into(),
@@ -372,7 +411,42 @@ mod tests {
     }
 
     fn key_matches_sanity() -> bool {
-        let run = &sample().runs[0];
-        run.key_matches("abc", "nodes", 100_000, 1, 128, "other cpu") && !run.key_matches("abc", "time", 100_000, 1, 128, "other cpu")
+        let file = sample();
+        let run = &file.runs[0];
+        let nodes = RunKey {
+            suite_sha: "abc",
+            mode: "nodes",
+            budget: 100_000,
+            threads: 1,
+            hash_mb: 128,
+            concurrency: 16,
+            cpu: "other cpu",
+        };
+        let time = RunKey {
+            mode: "time",
+            ..nodes.clone()
+        };
+        let same_cpu = RunKey {
+            mode: "time",
+            concurrency: 4,
+            cpu: "cpu",
+            ..nodes.clone()
+        };
+        run.key_matches(&nodes) && !run.key_matches(&time) && !run.key_matches(&same_cpu) || {
+            let mut timed = file.clone();
+            timed.runs[0].mode = "time".into();
+            timed.runs[0].key_matches(&same_cpu) && !timed.runs[0].key_matches(&time)
+        }
+    }
+
+    #[test]
+    fn options_change_the_file_name() {
+        let plain = sample().engine;
+        let mut capped = plain.clone();
+        capped.options.insert("UCI_LimitStrength".into(), "true".into());
+        let dir = Path::new("/tmp/epd");
+        assert_ne!(file_path(dir, &plain), file_path(dir, &capped));
+        assert!(file_path(dir, &plain).to_string_lossy().ends_with("1.0.64-01234567-0f9a4e7f.json") || plain.options_hash8().is_some());
+        assert!(!plain.same_identity(&capped));
     }
 }

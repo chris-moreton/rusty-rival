@@ -143,8 +143,8 @@ fn parse_san(san: &str) -> Result<SanSpec, String> {
     for c in &chars[..chars.len() - 2] {
         match c {
             'x' | ':' => capture = true,
-            'a'..='h' => from_file = Some(*c),
-            '1'..='8' => from_rank = Some(*c),
+            'a'..='h' if from_file.is_none() => from_file = Some(*c),
+            '1'..='8' if from_rank.is_none() => from_rank = Some(*c),
             '-' => {}
             _ => return Err(format!("unexpected '{}' in '{}'", c, san)),
         }
@@ -161,7 +161,8 @@ fn parse_san(san: &str) -> Result<SanSpec, String> {
 }
 
 /// The one legal move the SAN string names, or an error when it names none
-/// or several.
+/// or several. An explicit `x` requires a capture; a missing `x` on a
+/// capture is tolerated, since some suites omit it.
 pub fn resolve_san(position: &Position, san: &str) -> Result<Move, String> {
     let spec = parse_san(san)?;
     let mut lenient = Vec::new();
@@ -185,10 +186,10 @@ pub fn resolve_san(position: &Position, san: &str) -> Result<Move, String> {
             }
         }
     }
-    match (lenient.len(), strict.len()) {
-        (1, _) => Ok(lenient[0]),
-        (_, 1) => Ok(strict[0]),
-        (0, _) => Err(format!("'{}' matches no legal move", san)),
+    let candidates = if spec.capture { strict } else { lenient };
+    match candidates.len() {
+        1 => Ok(candidates[0]),
+        0 => Err(format!("'{}' matches no legal move", san)),
         _ => Err(format!("'{}' is ambiguous", san)),
     }
 }
@@ -239,5 +240,19 @@ mod tests {
         assert_eq!(uci(fen, "Qd1+"), "d6d1");
         assert_eq!(uci(fen, "Qd1#!"), "d6d1");
         assert!(resolve_san(&get_position(fen), "Qa1").is_err());
+    }
+
+    #[test]
+    fn explicit_capture_of_an_empty_square_and_duplicate_origins_fail() {
+        let fen = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
+        assert!(
+            resolve_san(&get_position(fen), "Kxe2").is_err(),
+            "x with an empty target must not resolve"
+        );
+        assert!(resolve_san(&get_position(fen), "Raad1").is_err(), "duplicate origin file must fail");
+        assert!(resolve_san(&get_position(fen), "R11d1").is_err(), "duplicate origin rank must fail");
+        // A missing x on a real capture is tolerated.
+        let fen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2";
+        assert_eq!(uci(fen, "ed5"), "e4d5");
     }
 }

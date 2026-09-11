@@ -4,8 +4,8 @@
 
 use crate::epd::{EpdRecord, Suite};
 use crate::host;
-use crate::san::{move_to_uci, resolve_san};
-use crate::store::{self, EngineRecord, HostRecord, PositionRecord, ResultsFile, RunRecord, SolvedAt, SuiteRef, Summary};
+use crate::san::{legal_moves, move_to_uci, resolve_san};
+use crate::store::{self, EngineRecord, HostRecord, PositionRecord, ResultsFile, RunKey, RunRecord, SolvedAt, SuiteRef, Summary};
 use crate::uci::{Engine, Limit, SearchOutput};
 use rusty_rival::fen::get_position;
 use std::io::{IsTerminal, Write};
@@ -35,11 +35,15 @@ struct Targets {
     bm: Vec<String>,
     am: Vec<String>,
     graded: Vec<(String, u32)>,
+    /// Every legal move in UCI form, to reject a bestmove the engine could
+    /// not actually have played (`0000`, `(none)`, an illegal move).
+    legal: Vec<String>,
     error: Option<String>,
 }
 
 fn resolve_targets(position: &EpdRecord) -> Targets {
     let board = get_position(&position.fen);
+    let legal: Vec<String> = legal_moves(&board).into_iter().map(move_to_uci).collect();
     let mut error = None;
     let mut resolve_all = |sans: &[String]| -> Vec<String> {
         sans.iter()
@@ -64,7 +68,13 @@ fn resolve_targets(position: &EpdRecord) -> Targets {
     if bm.is_empty() && am.is_empty() && error.is_none() {
         error = Some("no bm or am operand".to_string());
     }
-    Targets { bm, am, graded, error }
+    Targets {
+        bm,
+        am,
+        graded,
+        legal,
+        error,
+    }
 }
 
 fn engine_options(spec: &RunSpec) -> Vec<(String, String)> {
@@ -101,17 +111,29 @@ fn build_record(position: &EpdRecord, targets: &Targets, output: Result<SearchOu
             return record;
         }
     };
-    let good = |mv: &str| (targets.bm.is_empty() || targets.bm.iter().any(|b| b == mv)) && !targets.am.iter().any(|a| a == mv);
+    // A move the engine could not have played (empty, `0000`, `(none)`, or
+    // illegal) is a failed position, never a solved one.
+    let legal = |mv: &str| targets.legal.iter().any(|l| l == mv);
+    let good = |mv: &str| legal(mv) && (targets.bm.is_empty() || targets.bm.iter().any(|b| b == mv)) && !targets.am.iter().any(|a| a == mv);
     record.best = output.bestmove.clone();
     record.ms = output.elapsed_ms;
+    // Depth, nodes and time from the last measurement of any kind; the score
+    // from the last exact (non-bound) one.
     if let Some(last) = output.infos.last() {
         record.depth = last.depth;
         record.nodes = last.nodes;
-        record.score_cp = last.score_cp;
-        record.mate = last.mate;
         if last.time_ms > 0 {
             record.ms = last.time_ms;
         }
+    }
+    if let Some(exact) = output
+        .infos
+        .iter()
+        .rev()
+        .find(|i| i.bound.is_none() && (i.score_cp.is_some() || i.mate.is_some()))
+    {
+        record.score_cp = exact.score_cp;
+        record.mate = exact.mate;
     }
     if record.error.is_some() {
         return record;
@@ -121,8 +143,11 @@ fn build_record(position: &EpdRecord, targets: &Targets, output: Result<SearchOu
         record.points = Some(targets.graded.iter().find(|(m, _)| *m == output.bestmove).map_or(0, |(_, p)| *p));
     }
     if record.solved {
+        // The first PV-carrying info at which a correct move became the PV
+        // move and stayed correct to the end; absent when the engine never
+        // showed a correct PV, or its last PV disagreed with its bestmove.
         let mut candidate: Option<SolvedAt> = None;
-        for info in &output.infos {
+        for info in output.infos.iter().filter(|i| !i.pv.is_empty()) {
             if info.pv.first().is_some_and(|m| good(m)) {
                 if candidate.is_none() {
                     candidate = Some(SolvedAt {
@@ -135,11 +160,7 @@ fn build_record(position: &EpdRecord, targets: &Targets, output: Result<SearchOu
                 candidate = None;
             }
         }
-        record.solved_at = Some(candidate.unwrap_or(SolvedAt {
-            depth: record.depth,
-            nodes: record.nodes,
-            ms: record.ms,
-        }));
+        record.solved_at = candidate;
     }
     record
 }
@@ -186,6 +207,14 @@ fn now_rfc3339() -> String {
 fn existing_file(path: &Path, engine: &EngineRecord) -> Result<ResultsFile, String> {
     if path.exists() {
         let mut file = store::load_file(path)?;
+        if !file.engine.same_identity(engine) {
+            return Err(format!(
+                "{} holds results for a different binary or options (sha {} vs {}); move it aside",
+                path.display(),
+                file.engine.sha8(),
+                engine.sha8()
+            ));
+        }
         if file.engine.bench.is_none() {
             file.engine.bench = engine.bench;
         }
@@ -203,14 +232,19 @@ pub fn run_suite(spec: &RunSpec, suite: &Suite) -> Result<RunOutcome, String> {
     let cpu = host::cpu_model();
     let mode = spec.limit.mode();
     let budget = spec.limit.budget();
+    let key = RunKey {
+        suite_sha: &suite.sha256,
+        mode,
+        budget,
+        threads: spec.threads,
+        hash_mb: spec.hash_mb,
+        concurrency: spec.concurrency,
+        cpu: &cpu,
+    };
     let path = store::file_path(&spec.epd_dir, &spec.engine);
     let mut file = existing_file(&path, &spec.engine)?;
     if !spec.force {
-        if let Some(run) = file
-            .runs
-            .iter()
-            .find(|r| r.key_matches(&suite.sha256, mode, budget, spec.threads, spec.hash_mb, &cpu))
-        {
+        if let Some(run) = file.runs.iter().find(|r| r.key_matches(&key)) {
             return Ok(RunOutcome {
                 record: run.clone(),
                 cached: true,
@@ -303,17 +337,16 @@ pub fn run_suite(spec: &RunSpec, suite: &Suite) -> Result<RunOutcome, String> {
         budget,
         threads: spec.threads,
         hash_mb: spec.hash_mb,
+        concurrency: spec.concurrency,
         host: Some(HostRecord {
             hostname: host::hostname(),
-            cpu,
+            cpu: cpu.clone(),
         }),
         date: now_rfc3339(),
         summary,
         positions,
     };
-    let cpu_now = record.host.as_ref().map(|h| h.cpu.clone()).unwrap_or_default();
-    file.runs
-        .retain(|r| !r.key_matches(&suite.sha256, mode, budget, spec.threads, spec.hash_mb, &cpu_now));
+    file.runs.retain(|r| !r.key_matches(&key));
     file.runs.push(record.clone());
     file.engine = spec.engine.clone();
     store::save_file(&path, &file)?;
@@ -326,4 +359,90 @@ pub fn run_suite(spec: &RunSpec, suite: &Suite) -> Result<RunOutcome, String> {
         }
     }
     Ok(RunOutcome { record, cached: false })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::uci::InfoLine;
+
+    fn position() -> EpdRecord {
+        crate::epd::parse_epd_line("1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - - bm Qd1+; id \"BK.01\";").unwrap()
+    }
+
+    fn info(depth: u32, nodes: u64, pv: &str) -> InfoLine {
+        InfoLine {
+            depth,
+            nodes,
+            time_ms: nodes / 1000,
+            score_cp: Some(1),
+            pv: pv.split_whitespace().map(|s| s.to_string()).collect(),
+            ..Default::default()
+        }
+    }
+
+    fn output(bestmove: &str, infos: Vec<InfoLine>) -> SearchOutput {
+        SearchOutput {
+            bestmove: bestmove.into(),
+            infos,
+            elapsed_ms: 50,
+        }
+    }
+
+    #[test]
+    fn solved_at_is_the_first_correct_pv_that_stayed_correct() {
+        let p = position();
+        let t = resolve_targets(&p);
+        assert_eq!(t.bm, vec!["d6d1"]);
+        let r = build_record(
+            &p,
+            &t,
+            Ok(output(
+                "d6d1",
+                vec![
+                    info(1, 10, "d6d2"),
+                    info(2, 50, "d6d1"),
+                    info(3, 90, "d6d2"),
+                    info(4, 200, "d6d1 c1d1"),
+                ],
+            )),
+        );
+        assert!(r.solved);
+        assert_eq!(r.solved_at.as_ref().map(|s| (s.depth, s.nodes)), Some((4, 200)));
+        assert_eq!((r.depth, r.nodes), (4, 200));
+    }
+
+    #[test]
+    fn a_correct_bestmove_after_a_wrong_last_pv_has_no_solve_point() {
+        let p = position();
+        let t = resolve_targets(&p);
+        let r = build_record(&p, &t, Ok(output("d6d1", vec![info(1, 10, "d6d1"), info(2, 50, "d6d2")])));
+        assert!(r.solved);
+        assert!(r.solved_at.is_none());
+        let r = build_record(&p, &t, Ok(output("d6d1", vec![])));
+        assert!(r.solved && r.solved_at.is_none());
+    }
+
+    #[test]
+    fn illegal_or_empty_bestmoves_never_solve() {
+        let p = position();
+        let t = resolve_targets(&p);
+        for bad in ["0000", "(none)", "", "d6d9", "a1a2"] {
+            let r = build_record(&p, &t, Ok(output(bad, vec![info(1, 10, "d6d1")])));
+            assert!(!r.solved, "{} must not solve", bad);
+            assert!(r.error.is_none());
+        }
+    }
+
+    #[test]
+    fn scores_come_from_the_last_exact_line() {
+        let p = position();
+        let t = resolve_targets(&p);
+        let mut bound = info(5, 500, "d6d1");
+        bound.score_cp = Some(999);
+        bound.bound = Some(crate::uci::Bound::Lower);
+        let r = build_record(&p, &t, Ok(output("d6d1", vec![info(4, 400, "d6d1"), bound])));
+        assert_eq!(r.score_cp, Some(1));
+        assert_eq!((r.depth, r.nodes), (5, 500));
+    }
 }
