@@ -28,7 +28,11 @@ pub struct Cell {
 #[derive(Debug, Clone, Serialize)]
 pub struct Row {
     pub suite: String,
+    /// The suite file's sha256, so two revisions of one suite never share a row.
+    pub suite_sha8: String,
     pub positions: usize,
+    /// Set when more than one revision of this suite is in the table.
+    pub revision_shown: bool,
     pub cells: Vec<Option<Cell>>,
 }
 
@@ -75,22 +79,30 @@ pub fn build(files: &[ResultsFile], mode: &str, budget: u64, engines: Option<&[S
             .then_with(|| version_key(&a.0.label).cmp(&version_key(&b.0.label)))
     });
 
-    let mut suite_names: BTreeMap<String, usize> = BTreeMap::new();
+    // Rows are (suite name, suite sha): a suite file that changed between
+    // two engines' runs gives two rows, marked with the revision.
+    let mut revisions: BTreeMap<(String, String), usize> = BTreeMap::new();
     for (_, f) in &columns {
         for r in f.runs.iter().filter(|r| r.mode == mode && r.budget == budget) {
-            suite_names.entry(r.suite.name.clone()).or_insert(r.suite.positions);
+            revisions
+                .entry((r.suite.name.clone(), r.suite.sha256.clone()))
+                .or_insert(r.suite.positions);
         }
     }
-    let rows = suite_names
+    let mut per_name: BTreeMap<String, usize> = BTreeMap::new();
+    for (name, _) in revisions.keys() {
+        *per_name.entry(name.clone()).or_insert(0) += 1;
+    }
+    let rows = revisions
         .into_iter()
-        .filter(|(name, _)| suites.is_none_or(|sel| sel.iter().any(|s| s == name)))
-        .map(|(name, positions)| Row {
+        .filter(|((name, _), _)| suites.is_none_or(|sel| sel.iter().any(|s| s == name)))
+        .map(|((name, sha), positions)| Row {
             cells: columns
                 .iter()
                 .map(|(_, f)| {
                     f.runs
                         .iter()
-                        .filter(|r| r.mode == mode && r.budget == budget && r.suite.name == name)
+                        .filter(|r| r.mode == mode && r.budget == budget && r.suite.name == name && r.suite.sha256 == sha)
                         .max_by(|a, b| a.date.cmp(&b.date))
                         .map(|r| {
                             let s = &r.summary;
@@ -110,6 +122,8 @@ pub fn build(files: &[ResultsFile], mode: &str, budget: u64, engines: Option<&[S
                         })
                 })
                 .collect(),
+            revision_shown: per_name.get(&name).copied().unwrap_or(0) > 1,
+            suite_sha8: sha[..sha.len().min(8)].to_string(),
             suite: name,
             positions,
         })
@@ -176,7 +190,12 @@ impl Table {
         }
         let mut lines: Vec<Vec<String>> = vec![headers, sub];
         for row in &self.rows {
-            let mut line = vec![format!("{} ({})", row.suite, row.positions)];
+            let revision = if row.revision_shown {
+                format!(" [{}]", row.suite_sha8)
+            } else {
+                String::new()
+            };
+            let mut line = vec![format!("{} ({}){}", row.suite, row.positions, revision)];
             for cell in &row.cells {
                 line.push(Self::cell_text(cell, percent));
             }

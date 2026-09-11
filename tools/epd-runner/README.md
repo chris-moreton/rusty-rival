@@ -16,8 +16,12 @@ target/release/epd-runner run --engine BIN --suites quick --nodes 100000 --json
 
 ## Modes
 
-* `--nodes N`: deterministic, so a second run is a cache hit and two binaries
-  with the same behaviour produce identical records. The regression mode.
+* `--nodes N`: reproducible for an engine whose search is deterministic at
+  the options used (one thread; rusty-rival is), so a second run is a cache
+  hit and two binaries with the same behaviour produce identical records.
+  An engine that is not deterministic at a node limit (several threads, or
+  a search that depends on wall time) can differ between runs while the
+  store still reports a cache hit. The regression mode.
 * `--time S`: seconds per position. What the published suites are calibrated
   for, and only meaningful on an idle machine: the run refuses to start while
   a lichess-bot engine is running or the one-minute load is above 4 unless

@@ -2362,6 +2362,96 @@
         {"id":"WAC.299","bm":["Nca4"],"best":"c5a4","solved":true,"solved_at":{"depth":4,"nodes":2396,"ms":2},"score_cp":1322,"depth":16,"nodes":300000,"ms":292},
         {"id":"WAC.300","bm":["g6"],"best":"g5g6","solved":true,"solved_at":{"depth":4,"nodes":2072,"ms":3},"score_cp":532,"depth":19,"nodes":300000,"ms":298}
       ]
+    },
+    {
+      "suite": {
+        "name": "quick",
+        "sha256": "9dd446e778d3de44c95f6f09e402c068f1699e42bd48ccdb5298359e1428def9",
+        "positions": 10
+      },
+      "mode": "nodes",
+      "budget": 100000,
+      "threads": 1,
+      "hash_mb": 128,
+      "concurrency": 16,
+      "host": {
+        "hostname": "ArbicoUpgraded",
+        "cpu": "AMD Ryzen 9 5950X 16-Core Processor"
+      },
+      "date": "2026-09-11T21:21:40Z",
+      "summary": {
+        "solved": 7,
+        "total": 10,
+        "median_solve_nodes": 3369,
+        "median_solve_ms": 31,
+        "mean_depth": 64.0,
+        "nps": 329342,
+        "errors": 0
+      },
+      "positions": [
+        {"id":"BK.01","bm":["Qd1+"],"best":"d6d1","solved":true,"solved_at":{"depth":4,"nodes":1750,"ms":22},"mate":3,"depth":58,"nodes":100000,"ms":91},
+        {"id":"BK.02","bm":["d5"],"best":"d4d5","solved":true,"solved_at":{"depth":8,"nodes":18586,"ms":82},"score_cp":248,"depth":13,"nodes":100000,"ms":291},
+        {"id":"BK.03","bm":["f5"],"best":"e7d8","solved":false,"score_cp":-82,"depth":12,"nodes":100000,"ms":340},
+        {"id":"WAC.001","bm":["Qg6"],"best":"g3g6","solved":true,"solved_at":{"depth":4,"nodes":1619,"ms":5},"mate":2,"depth":250,"nodes":60985,"ms":50},
+        {"id":"WAC.002","bm":["Rxb2"],"best":"c4c3","solved":false,"score_cp":268,"depth":11,"nodes":100000,"ms":230},
+        {"id":"WAC.003","bm":["Rg3"],"best":"e3g3","solved":true,"solved_at":{"depth":5,"nodes":3369,"ms":31},"score_cp":600,"depth":12,"nodes":100000,"ms":381},
+        {"id":"WAC.004","bm":["Qxh7+"],"best":"h6h7","solved":true,"solved_at":{"depth":1,"nodes":204,"ms":15},"mate":2,"depth":250,"nodes":21654,"ms":37},
+        {"id":"arasan18.1","bm":["g4"],"best":"g2g4","solved":true,"solved_at":{"depth":10,"nodes":46418,"ms":297},"score_cp":-116,"depth":13,"nodes":100000,"ms":472},
+        {"id":"arasan18.2","bm":["Rxf7"],"best":"a4a5","solved":false,"score_cp":113,"depth":10,"nodes":100000,"ms":291},
+        {"id":"arasan18.3","bm":["g5"],"best":"g4g5","solved":true,"solved_at":{"depth":9,"nodes":42997,"ms":314},"score_cp":355,"depth":11,"nodes":100000,"ms":497}
+      ]
+    },
+    {
+      "suite": {
+        "name": "bratko-kopec",
+        "sha256": "793d000e6f544013a8d67dc84ac2a775e645c02cdcecd9524053315b3e695cab",
+        "positions": 24
+      },
+      "mode": "nodes",
+      "budget": 100000,
+      "threads": 1,
+      "hash_mb": 128,
+      "concurrency": 16,
+      "host": {
+        "hostname": "ArbicoUpgraded",
+        "cpu": "AMD Ryzen 9 5950X 16-Core Processor"
+      },
+      "date": "2026-09-11T21:21:41Z",
+      "summary": {
+        "solved": 18,
+        "total": 24,
+        "median_solve_nodes": 9558,
+        "median_solve_ms": 27,
+        "mean_depth": 14.21,
+        "nps": 458627,
+        "errors": 0
+      },
+      "positions": [
+        {"id":"BK.01","bm":["Qd1+"],"best":"d6d1","solved":true,"solved_at":{"depth":4,"nodes":1750,"ms":4},"mate":3,"depth":58,"nodes":100000,"ms":59},
+        {"id":"BK.02","bm":["d5"],"best":"d4d5","solved":true,"solved_at":{"depth":8,"nodes":18586,"ms":63},"score_cp":248,"depth":13,"nodes":100000,"ms":237},
+        {"id":"BK.03","bm":["f5"],"best":"e7d8","solved":false,"score_cp":-82,"depth":12,"nodes":100000,"ms":370},
+        {"id":"BK.04","bm":["e6"],"best":"e5e6","solved":true,"solved_at":{"depth":4,"nodes":1328,"ms":131},"score_cp":189,"depth":12,"nodes":100000,"ms":342},
+        {"id":"BK.05","bm":["Nd5","a4"],"best":"c3d5","solved":true,"solved_at":{"depth":1,"nodes":180,"ms":1},"score_cp":252,"depth":12,"nodes":100000,"ms":290},
+        {"id":"BK.06","bm":["g6"],"best":"g3g4","solved":false,"score_cp":245,"depth":11,"nodes":100000,"ms":202},
+        {"id":"BK.07","bm":["Nf6"],"best":"f3g3","solved":false,"score_cp":411,"depth":13,"nodes":100000,"ms":296},
+        {"id":"BK.08","bm":["f5"],"best":"f4f5","solved":true,"solved_at":{"depth":8,"nodes":9558,"ms":40},"score_cp":182,"depth":15,"nodes":100000,"ms":254},
+        {"id":"BK.09","bm":["f5"],"best":"f1b5","solved":false,"score_cp":502,"depth":12,"nodes":100000,"ms":214},
+        {"id":"BK.10","bm":["Ne5"],"best":"f6d7","solved":false,"score_cp":216,"depth":10,"nodes":100000,"ms":274},
+        {"id":"BK.11","bm":["f4"],"best":"f2f4","solved":true,"solved_at":{"depth":10,"nodes":54110,"ms":142},"score_cp":78,"depth":12,"nodes":100000,"ms":328},
+        {"id":"BK.12","bm":["Bf5"],"best":"d7f5","solved":true,"solved_at":{"depth":1,"nodes":153,"ms":5},"score_cp":63,"depth":13,"nodes":100000,"ms":199},
+        {"id":"BK.13","bm":["b4"],"best":"b2b4","solved":true,"solved_at":{"depth":1,"nodes":53,"ms":2},"score_cp":29,"depth":11,"nodes":100000,"ms":221},
+        {"id":"BK.14","bm":["Qd2","Qe1"],"best":"d1e1","solved":true,"solved_at":{"depth":6,"nodes":2803,"ms":17},"score_cp":666,"depth":13,"nodes":100000,"ms":213},
+        {"id":"BK.15","bm":["Qxg7+"],"best":"g4g7","solved":true,"solved_at":{"depth":8,"nodes":21587,"ms":72},"score_cp":184,"depth":13,"nodes":100000,"ms":274},
+        {"id":"BK.16","bm":["Ne4"],"best":"d2e4","solved":true,"solved_at":{"depth":8,"nodes":7214,"ms":36},"score_cp":329,"depth":13,"nodes":100000,"ms":194},
+        {"id":"BK.17","bm":["h5"],"best":"h7h5","solved":true,"solved_at":{"depth":5,"nodes":1792,"ms":2},"score_cp":-27,"depth":13,"nodes":100000,"ms":248},
+        {"id":"BK.18","bm":["Nb3"],"best":"c5b3","solved":true,"solved_at":{"depth":6,"nodes":4298,"ms":7},"score_cp":0,"depth":12,"nodes":100000,"ms":163},
+        {"id":"BK.19","bm":["Rxe4"],"best":"e8e4","solved":true,"solved_at":{"depth":10,"nodes":71225,"ms":98},"score_cp":183,"depth":13,"nodes":100000,"ms":134},
+        {"id":"BK.20","bm":["g4"],"best":"g3g4","solved":true,"solved_at":{"depth":9,"nodes":38985,"ms":60},"score_cp":464,"depth":11,"nodes":100000,"ms":148},
+        {"id":"BK.21","bm":["Nh6"],"best":"f5h6","solved":true,"solved_at":{"depth":7,"nodes":16567,"ms":20},"score_cp":337,"depth":13,"nodes":100000,"ms":149},
+        {"id":"BK.22","bm":["Bxe4"],"best":"b7e4","solved":true,"solved_at":{"depth":8,"nodes":18067,"ms":27},"score_cp":122,"depth":13,"nodes":100000,"ms":130},
+        {"id":"BK.23","bm":["f6"],"best":"f7f6","solved":true,"solved_at":{"depth":9,"nodes":17133,"ms":23},"score_cp":33,"depth":12,"nodes":100000,"ms":153},
+        {"id":"BK.24","bm":["f4"],"best":"f2f3","solved":false,"score_cp":168,"depth":11,"nodes":100000,"ms":141}
+      ]
     }
   ]
 }

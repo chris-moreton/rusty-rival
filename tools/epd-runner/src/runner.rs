@@ -60,11 +60,11 @@ fn resolve_targets(position: &EpdRecord) -> Targets {
     };
     let bm = resolve_all(&position.bm);
     let am = resolve_all(&position.am);
-    let graded: Vec<(String, u32)> = position
-        .graded
-        .iter()
-        .filter_map(|(san, pts)| resolve_san(&board, san).ok().map(|m| (move_to_uci(m), *pts)))
-        .collect();
+    let graded_sans: Vec<String> = position.graded.iter().map(|(san, _)| san.clone()).collect();
+    let graded_uci = resolve_all(&graded_sans);
+    // A graded move that fails to resolve is an error like a bm failure,
+    // so the position is excluded rather than scored against a short list.
+    let graded: Vec<(String, u32)> = graded_uci.into_iter().zip(position.graded.iter().map(|(_, p)| *p)).collect();
     if bm.is_empty() && am.is_empty() && error.is_none() {
         error = Some("no bm or am operand".to_string());
     }
@@ -242,7 +242,7 @@ pub fn run_suite(spec: &RunSpec, suite: &Suite) -> Result<RunOutcome, String> {
         cpu: &cpu,
     };
     let path = store::file_path(&spec.epd_dir, &spec.engine);
-    let mut file = existing_file(&path, &spec.engine)?;
+    let file = existing_file(&path, &spec.engine)?;
     if !spec.force {
         if let Some(run) = file.runs.iter().find(|r| r.key_matches(&key)) {
             return Ok(RunOutcome {
@@ -325,6 +325,10 @@ pub fn run_suite(spec: &RunSpec, suite: &Suite) -> Result<RunOutcome, String> {
         .cloned()
         .map(|r| r.expect("every position produces a record"))
         .collect();
+    if total > 0 && positions.iter().all(|p| p.error.is_some()) {
+        let first = first_error.lock().unwrap().clone().unwrap_or_default();
+        return Err(format!("every position failed, nothing stored; first error: {}", first));
+    }
     let graded = suite.is_graded();
     let summary = summarise(&positions, graded);
     let record = RunRecord {
@@ -346,14 +350,10 @@ pub fn run_suite(spec: &RunSpec, suite: &Suite) -> Result<RunOutcome, String> {
         summary,
         positions,
     };
-    file.runs.retain(|r| !r.key_matches(&key));
-    file.runs.push(record.clone());
-    file.engine = spec.engine.clone();
-    store::save_file(&path, &file)?;
+    // Reload, merge and write under the file lock, so two runner processes
+    // filling the same engine's file keep each other's runs.
+    store::merge_run(&path, &spec.engine, record.clone(), |r| r.key_matches(&key))?;
     if let Some(e) = first_error.lock().unwrap().as_ref() {
-        if record.summary.errors == total {
-            return Err(format!("every position failed; first error: {}", e));
-        }
         if !spec.quiet {
             eprintln!("  warning: {} position(s) failed, first: {}", record.summary.errors, e);
         }

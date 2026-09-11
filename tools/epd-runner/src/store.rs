@@ -274,9 +274,81 @@ pub fn save_file(path: &Path, file: &ResultsFile) -> Result<(), String> {
         std::fs::create_dir_all(parent).map_err(|e| format!("cannot create {}: {}", parent.display(), e))?;
     }
     let text = render_file(file)?;
-    let tmp = path.with_extension("json.tmp");
+    // A temp name unique to this process, then an atomic rename.
+    let tmp = path.with_extension(format!("json.{}.tmp", std::process::id()));
     std::fs::write(&tmp, text).map_err(|e| format!("cannot write {}: {}", tmp.display(), e))?;
     std::fs::rename(&tmp, path).map_err(|e| format!("cannot rename {}: {}", tmp.display(), e))
+}
+
+/// An advisory lock on one results file: a sibling `.lock` created with
+/// `create_new`, retried for up to a minute, with a stale lock (older than
+/// ten minutes, from a process that died) removed.
+struct FileLock {
+    path: PathBuf,
+}
+
+impl FileLock {
+    fn acquire(target: &Path) -> Result<FileLock, String> {
+        let path = target.with_extension("json.lock");
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| format!("cannot create {}: {}", parent.display(), e))?;
+        }
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+        loop {
+            match std::fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+                Ok(_) => return Ok(FileLock { path }),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                    let stale = std::fs::metadata(&path)
+                        .and_then(|m| m.modified())
+                        .map(|t| t.elapsed().map(|d| d.as_secs() > 600).unwrap_or(false))
+                        .unwrap_or(false);
+                    if stale {
+                        let _ = std::fs::remove_file(&path);
+                        continue;
+                    }
+                    if std::time::Instant::now() > deadline {
+                        return Err(format!(
+                            "{} is locked by another runner (remove it if no runner is alive)",
+                            path.display()
+                        ));
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+                Err(e) => return Err(format!("cannot lock {}: {}", path.display(), e)),
+            }
+        }
+    }
+}
+
+impl Drop for FileLock {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+/// Add a run to an engine's file: under the file lock, reload what is on
+/// disk (another process may have written since this one started), drop
+/// any run with the same key, append, and write back atomically.
+pub fn merge_run(path: &Path, engine: &EngineRecord, run: RunRecord, same_key: impl Fn(&RunRecord) -> bool) -> Result<(), String> {
+    let _lock = FileLock::acquire(path)?;
+    let mut file = if path.exists() {
+        let file = load_file(path)?;
+        if !file.engine.same_identity(engine) {
+            return Err(format!("{} holds results for a different binary or options", path.display()));
+        }
+        file
+    } else {
+        ResultsFile {
+            engine: engine.clone(),
+            runs: Vec::new(),
+        }
+    };
+    let bench = file.engine.bench.or(engine.bench);
+    file.engine = engine.clone();
+    file.engine.bench = bench;
+    file.runs.retain(|r| !same_key(r));
+    file.runs.push(run);
+    save_file(path, &file)
 }
 
 /// Every results file under the store, in path order.

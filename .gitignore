@@ -25,4 +25,5 @@ web/__pycache__/
 results/ab/
 
 # epd-runner writes results atomically through a temp file
-epd/results/**/*.json.tmp
+epd/results/**/*.json.*.tmp
+epd/results/**/*.json.lock
