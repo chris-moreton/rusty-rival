@@ -107,8 +107,11 @@ jobs:
             --baseline rusty-rival:1.0.64 --suites bratko-kopec,wac --nodes 100000 \
             --max-drop 2 --concurrency 2 | tee check.txt
           echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      # Fork pull requests get a read-only token, so the comment is skipped
+      # for them and never blocks the verdict below.
       - name: Post the delta on the pull request
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -120,14 +123,15 @@ jobs:
             cat check.txt
             echo '```'
           } > comment.md
-          existing=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" --jq '[.[] | select(.body | startswith("<!-- epd-regression -->"))] | last | .id')
+          existing=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" --jq '[.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- epd-regression -->"))] | last | .id' | tail -1)
           if [ -n "$existing" ] && [ "$existing" != "null" ]; then
             gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${existing}" -F body=@comment.md >/dev/null
           else
             gh pr comment "$PR" --body-file comment.md
           fi
       - name: Fail on a drop beyond the threshold
-        run: exit ${{ steps.check.outputs.status }}
+        if: always() && steps.check.outcome != 'skipped'
+        run: exit "${{ steps.check.outputs.status || 1 }}"
 
   fmt:
     name: Rustfmt

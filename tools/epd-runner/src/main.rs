@@ -84,9 +84,26 @@ struct EngineSettings {
     /// Run in time mode even if the machine looks busy.
     #[arg(long)]
     allow_busy: bool,
+    /// Time mode: the CPU model stored runs must come from when a side is
+    /// read from the store (default: this machine's; `any` to ignore).
+    #[arg(long)]
+    cpu: Option<String>,
 }
 
 impl EngineSettings {
+    /// Refuse a time-mode run on a busy machine, before any engine is spawned.
+    fn guard_busy(&self, limit: uci::Limit) -> Result<(), String> {
+        if matches!(limit, uci::Limit::MoveTime(_)) && !self.allow_busy {
+            if let Some(reason) = host::busy_reason(4.0) {
+                return Err(format!(
+                    "time mode needs an idle machine: {} (use --allow-busy to override)",
+                    reason
+                ));
+            }
+        }
+        Ok(())
+    }
+
     fn concurrency_for(&self, limit: uci::Limit) -> usize {
         self.concurrency.unwrap_or_else(|| match limit {
             uci::Limit::MoveTime(_) => 1,
@@ -340,7 +357,8 @@ fn prepare_engine(
     })
 }
 
-/// Run (or fetch from the cache) every suite for a prepared engine.
+/// Run (or fetch from the cache) every suite for a prepared engine,
+/// reporting each suite as it completes.
 fn run_engine(
     epd_dir: &Path,
     prepared: &Prepared,
@@ -348,15 +366,9 @@ fn run_engine(
     settings: &EngineSettings,
     suites: &[epd::Suite],
     quiet: bool,
+    mut on_suite: impl FnMut(&epd::Suite, &runner::RunOutcome),
 ) -> Result<Vec<runner::RunOutcome>, String> {
-    if matches!(limit, uci::Limit::MoveTime(_)) && !settings.allow_busy {
-        if let Some(reason) = host::busy_reason(4.0) {
-            return Err(format!(
-                "time mode needs an idle machine: {} (use --allow-busy to override)",
-                reason
-            ));
-        }
-    }
+    settings.guard_busy(limit)?;
     let concurrency = settings.concurrency_for(limit);
     if !quiet {
         eprintln!(
@@ -382,7 +394,13 @@ fn run_engine(
         force: settings.force,
         quiet,
     };
-    suites.iter().map(|suite| runner::run_suite(&spec, suite)).collect()
+    let mut outcomes = Vec::new();
+    for suite in suites {
+        let outcome = runner::run_suite(&spec, suite)?;
+        on_suite(suite, &outcome);
+        outcomes.push(outcome);
+    }
+    Ok(outcomes)
 }
 
 fn summary_line(suite: &str, outcome: &runner::RunOutcome) -> String {
@@ -404,6 +422,7 @@ fn summary_line(suite: &str, outcome: &runner::RunOutcome) -> String {
 
 fn cmd_run(epd_dir: &Path, args: RunArgs) -> Result<(), String> {
     let limit = args.budget.limit()?;
+    args.settings.guard_busy(limit)?;
     let prepared = prepare_engine(
         epd_dir,
         args.engine.as_deref(),
@@ -413,14 +432,15 @@ fn cmd_run(epd_dir: &Path, args: RunArgs) -> Result<(), String> {
         args.family.clone(),
     )?;
     let suites = load_suites(epd_dir, &args.suites)?;
-    let outcomes = run_engine(epd_dir, &prepared, limit, &args.settings, &suites, args.json)?;
-    if args.json {
-        let records: Vec<&store::RunRecord> = outcomes.iter().map(|o| &o.record).collect();
-        out(&format!("{}\n", serde_json::to_string_pretty(&records).map_err(|e| e.to_string())?));
-    } else {
-        for (suite, outcome) in suites.iter().zip(&outcomes) {
+    let json = args.json;
+    let outcomes = run_engine(epd_dir, &prepared, limit, &args.settings, &suites, json, |suite, outcome| {
+        if !json {
             out(&summary_line(&suite.name, outcome));
         }
+    })?;
+    if json {
+        let records: Vec<&store::RunRecord> = outcomes.iter().map(|o| &o.record).collect();
+        out(&format!("{}\n", serde_json::to_string_pretty(&records).map_err(|e| e.to_string())?));
     }
     Ok(())
 }
@@ -477,12 +497,24 @@ fn resolve_side(
     quiet: bool,
 ) -> Result<Resolved, String> {
     let path = Path::new(spec);
-    let key = table_key(limit, settings.threads, settings.hash, settings.concurrency, Some("any"));
+    // Stored runs must match this machine's CPU in time mode unless --cpu any.
+    let key = table_key(
+        limit,
+        settings.threads,
+        settings.hash,
+        settings.concurrency,
+        settings.cpu.as_deref(),
+    );
     let file = if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("json") {
         store::load_file(path)?
     } else if path.is_file() {
+        settings.guard_busy(limit)?;
         let prepared = prepare_engine(epd_dir, Some(path), None, &[], None, None)?;
-        let outcomes = run_engine(epd_dir, &prepared, limit, settings, suites, quiet)?;
+        let outcomes = run_engine(epd_dir, &prepared, limit, settings, suites, quiet, |suite, outcome| {
+            if !quiet {
+                out(&summary_line(&suite.name, outcome));
+            }
+        })?;
         return Ok(Resolved {
             label: format!("{} {} ({})", prepared.engine.family, prepared.engine.label, prepared.engine.sha8()),
             runs: outcomes.into_iter().map(|o| o.record).collect(),

@@ -48,8 +48,14 @@ pub struct SuiteDiff {
     pub net: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub points_net: Option<i64>,
-    /// Positions that exist on one side only, or errored on either side.
+    /// Positions present on one side only.
     pub unmatched: usize,
+    /// Positions that errored (no result) on side A / side B.
+    pub a_errors: usize,
+    pub b_errors: usize,
+    /// Positions where the two sides played a different move or searched a
+    /// different node count: zero for a node-identical change.
+    pub differing: usize,
 }
 
 fn short(sha: &str) -> &str {
@@ -76,16 +82,29 @@ pub fn diff_runs(a: &RunRecord, b: &RunRecord) -> Result<SuiteDiff, String> {
             short(&b.suite.sha256)
         ));
     }
+    for (side, run) in [("A", a), ("B", b)] {
+        let mut seen = std::collections::BTreeSet::new();
+        if let Some(dup) = run.positions.iter().find(|p| !seen.insert(p.id.as_str())) {
+            return Err(format!(
+                "{}: side {} has a duplicate position id '{}'",
+                run.suite.name, side, dup.id
+            ));
+        }
+    }
     let by_id: BTreeMap<&str, &crate::store::PositionRecord> = b.positions.iter().map(|p| (p.id.as_str(), p)).collect();
     let mut gained = Vec::new();
     let mut lost = Vec::new();
     let mut matched = 0usize;
+    let mut differing = 0usize;
     for pa in &a.positions {
         let Some(pb) = by_id.get(pa.id.as_str()) else { continue };
+        matched += 1;
         if pa.error.is_some() || pb.error.is_some() {
             continue;
         }
-        matched += 1;
+        if pa.best != pb.best || pa.nodes != pb.nodes {
+            differing += 1;
+        }
         if pa.solved != pb.solved {
             let flip = Flip {
                 id: pa.id.clone(),
@@ -110,7 +129,9 @@ pub fn diff_runs(a: &RunRecord, b: &RunRecord) -> Result<SuiteDiff, String> {
             }
         }
     }
-    let unmatched = a.positions.len().max(b.positions.len()) - matched;
+    // Ids on either side that have no partner on the other.
+    let union: std::collections::BTreeSet<&str> = a.positions.iter().chain(b.positions.iter()).map(|p| p.id.as_str()).collect();
+    let unmatched = union.len() - matched;
     let points_net = match (a.summary.points, b.summary.points) {
         (Some(pa), Some(pb)) => Some(pb as i64 - pa as i64),
         _ => None,
@@ -125,6 +146,9 @@ pub fn diff_runs(a: &RunRecord, b: &RunRecord) -> Result<SuiteDiff, String> {
         gained,
         lost,
         unmatched,
+        a_errors: a.positions.iter().filter(|p| p.error.is_some()).count(),
+        b_errors: b.positions.iter().filter(|p| p.error.is_some()).count(),
+        differing,
     })
 }
 
@@ -173,10 +197,10 @@ pub fn render_diff(d: &SuiteDiff, a_label: &str, b_label: &str) -> String {
             ));
         }
     }
-    if d.unmatched > 0 {
+    if d.unmatched > 0 || d.a_errors > 0 || d.b_errors > 0 {
         out.push_str(&format!(
-            "  ({} position(s) not compared: missing on one side or errored)\n",
-            d.unmatched
+            "  ({} position(s) on one side only; errors: {} {} / {} {})\n",
+            d.unmatched, a_label, d.a_errors, b_label, d.b_errors
         ));
     }
     out
@@ -194,14 +218,32 @@ pub struct CheckVerdict {
     pub reason: Option<String>,
 }
 
-/// A suite passes when the candidate solved no more than `max_drop` fewer
-/// positions than the baseline; in exact mode any flip in either direction
-/// fails.
+/// A suite passes when the comparison is complete (no position errored on
+/// either side, none missing from one side) and the candidate solved no
+/// more than `max_drop` fewer positions than the baseline. Exact mode is
+/// the test for a node-identical claim: any position whose move or node
+/// count differs fails, whether or not the solved status flipped. An
+/// incomplete comparison always fails: a candidate that crashed on a
+/// position must never pass the gate.
 pub fn check_suite(d: &SuiteDiff, max_drop: i64, exact: bool) -> CheckVerdict {
     let drop = d.a.solved as i64 - d.b.solved as i64;
     let flipped = d.gained.len() + d.lost.len();
-    let (ok, reason) = if exact && flipped > 0 {
-        (false, Some(format!("{} position(s) flipped in exact mode", flipped)))
+    let (ok, reason) = if d.b_errors > 0 || d.a_errors > 0 || d.unmatched > 0 {
+        (
+            false,
+            Some(format!(
+                "comparison incomplete: {} candidate error(s), {} baseline error(s), {} position(s) on one side only",
+                d.b_errors, d.a_errors, d.unmatched
+            )),
+        )
+    } else if exact && (flipped > 0 || d.differing > 0) {
+        (
+            false,
+            Some(format!(
+                "not identical: {} position(s) with a different move or node count, {} flipped",
+                d.differing, flipped
+            )),
+        )
     } else if drop > max_drop {
         (false, Some(format!("solved fell by {} (allowed {})", drop, max_drop)))
     } else {
@@ -304,6 +346,38 @@ mod tests {
         assert!(!check_suite(&d, 5, true).ok, "exact mode fails on any flip");
         let same = diff_runs(&a, &a).unwrap();
         assert!(check_suite(&same, 0, true).ok);
+        // Same solved status but a different node count is not identical.
+        let mut shifted = a.clone();
+        shifted.positions[0].nodes += 1;
+        let d = diff_runs(&a, &shifted).unwrap();
+        assert_eq!((d.net, d.differing), (0, 1));
+        assert!(!check_suite(&d, 0, true).ok);
+        assert!(check_suite(&d, 0, false).ok);
+    }
+
+    #[test]
+    fn errors_unmatched_and_duplicates_never_pass() {
+        let a = run(&[true, false, true]);
+        let mut b = run(&[true, false, true]);
+        b.positions[1].error = Some("engine exited".into());
+        let d = diff_runs(&a, &b).unwrap();
+        assert_eq!((d.b_errors, d.unmatched), (1, 0));
+        assert!(
+            !check_suite(&d, 5, false).ok,
+            "a candidate error must fail even with a generous threshold"
+        );
+        let mut c = run(&[true, false, true]);
+        c.positions.pop();
+        c.positions.push(PositionRecord {
+            id: "P.99".into(),
+            ..a.positions[0].clone()
+        });
+        let d = diff_runs(&a, &c).unwrap();
+        assert_eq!(d.unmatched, 2, "one id missing on each side counts twice");
+        assert!(!check_suite(&d, 5, false).ok);
+        let mut dup = run(&[true, true]);
+        dup.positions[1].id = "P.0".into();
+        assert!(diff_runs(&a, &dup).is_err());
     }
 
     #[test]

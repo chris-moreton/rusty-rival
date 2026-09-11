@@ -87,9 +87,11 @@ per suite, the positions solved by one side and not the other with each
 side's move and solve point, the two summary lines and the net change;
 `--json` gives the same as data. `check` runs the candidate binary against a
 baseline and exits 1 when any suite's solved count fell by more than
-`--max-drop` (default 0), or, with `--exact`, when any position flipped in
-either direction, which is the test for a change that claims to be
-node-identical. Both compare only runs of the same suite revision.
+`--max-drop` (default 0), or, with `--exact`, when any position played a
+different move or searched a different node count, which is the test for a
+change that claims to be node-identical. A comparison with an errored or
+missing position on either side always fails. Both compare only runs of the
+same suite revision.
 
 ## Continuous integration
 
