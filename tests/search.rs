@@ -485,3 +485,23 @@ fn it_stops_the_root_loop_on_an_aspiration_fail_high() {
     assert!(legal_moves[0].1 >= beta);
     assert!(legal_moves[1..].iter().all(|(_, score)| *score == -MATE_SCORE));
 }
+
+// NET-1282: the root move is recorded at ply 0 so the countermove and
+// continuation-history lookups at plies 1 and 2 see it.
+#[test]
+fn it_records_the_root_move_at_ply_zero() {
+    let fen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3";
+    let mut search_state = default_search_state();
+    search_state.use_nnue = false;
+    search_state.show_info = false;
+    search_state.end_time = Instant::now().add(Duration::from_secs(30));
+    let mut position = get_position(fen);
+    assert_eq!(search_state.ply_move[0], 0, "a fresh search state has no root move recorded");
+    iterative_deepening(&mut position, 4, &mut search_state, 1);
+    let recorded = search_state.ply_move[0];
+    assert_ne!(recorded, 0, "the root loop must record the move it is searching");
+    assert!(
+        root_legal_moves(fen).iter().any(|(m, _)| *m == recorded),
+        "the recorded move must be a legal root move"
+    );
+}

@@ -686,6 +686,12 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
         let unmake = make_move_nnue(position, mv.0, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
         search_state.history.push(position.zobrist_lock);
+        // NET-1282: record the root move at ply 0, as search() records
+        // ply_move[ply] for every deeper move, so the countermove and
+        // countermove-history lookups at ply 1 and the follow-up lookup at
+        // ply 2 see it. This slot was never written before and stayed 0,
+        // which every reader treats as "no previous move".
+        search_state.ply_move[0] = mv.0;
 
         // Principal-variation search at the root (NET-610). Before this, every
         // root child got the full aspiration window, which made each of them a
