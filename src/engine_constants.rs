@@ -46,11 +46,15 @@ pub const SEE_PRUNE_MARGIN: Score = 23; // SPSA tuned, Run 20
 // tables on the shared gravity scale), so a well-regarded move is harder to
 // prune. SEE only runs when losing the moving piece outright would fall below
 // the threshold, and only moves the NET-1188 certificates prove legal and
-// non-checking are pruned.
+// non-checking are pruned. Ethereal's numbers are 64 per ply and hist / 128
+// with a 103-point pawn; Rival's SEE pawn is PAWN_VALUE_AVERAGE (175), so
+// both are rescaled by 175 / 103 to keep the same pawn-relative rule
+// (0.62 pawns per ply; a full-scale history moves the threshold by 2.2
+// pawns): a hanging knight is pruned to depth 5, a hanging rook to depth 10.
 pub const QUIET_SEE_PRUNING: bool = true;
 pub const QUIET_SEE_PRUNE_MAX_DEPTH: u8 = 10;
-pub const QUIET_SEE_PRUNE_MARGIN: Score = 64;
-pub const QUIET_SEE_HISTORY_DIVISOR: i32 = 128;
+pub const QUIET_SEE_PRUNE_MARGIN: Score = 109;
+pub const QUIET_SEE_HISTORY_DIVISOR: i32 = 75;
 
 // Probcut: at high depth, do a shallow search with raised beta
 // If it fails high, the position is probably winning and can be cut

@@ -48,6 +48,38 @@ pub(crate) fn static_exchange_evaluation_with_value(position: &Position, mv: Mov
     see(score, bit(to_square_part(mv)), &mut new_position)
 }
 
+/// NET-1278: SEE for pruning a quiet move. The same exchange walk as
+/// `static_exchange_evaluation`, except that it reports `None` instead of a
+/// score when the walk reaches a recapturer that cannot legally capture. The
+/// single-candidate walk cannot continue past such a piece, and the score it
+/// would otherwise settle on may be missing a legal recapture by another
+/// piece, in either direction (a pinned pawn in front of a bishop that could
+/// recapture makes a safe knight move look like a hanging knight). The caller
+/// keeps the move when the result is inconclusive. The plain SEE is unchanged,
+/// so capture staging and capture pruning are unaffected.
+#[inline(always)]
+pub fn static_exchange_evaluation_for_pruning(position: &Position, mv: Move) -> Option<Score> {
+    let score = captured_piece_value_see(position, mv);
+    let mut new_position = SeePosition::from(position);
+    make_see_move(mv, &mut new_position);
+    see_conclusive(score, bit(to_square_part(mv)), &mut new_position)
+}
+
+#[inline(always)]
+fn see_conclusive(score: Score, capture_square: Bitboard, position: &mut SeePosition) -> Option<Score> {
+    let moves = see_moves(position, capture_square);
+    let Some(&m) = moves.first() else {
+        return Some(score);
+    };
+    let captured = captured_piece_value_compact(position, m);
+    let mover = position.mover;
+    make_see_move(m, position);
+    if is_check_see(position, mover) {
+        return None;
+    }
+    see_conclusive(captured, capture_square, position).map(|reply| min(score, score - reply))
+}
+
 #[inline(always)]
 fn see(score: Score, capture_square: Bitboard, position: &mut SeePosition) -> Score {
     for m in see_moves(position, capture_square) {

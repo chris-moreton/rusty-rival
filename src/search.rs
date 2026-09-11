@@ -68,7 +68,7 @@ use crate::moves::{
 };
 use crate::opponent;
 use crate::quiesce::quiesce;
-use crate::see::static_exchange_evaluation;
+use crate::see::{static_exchange_evaluation, static_exchange_evaluation_for_pruning};
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
     is_stopped, pv_prepend, pv_single, set_stop, Bitboard, BoundType, HashEntry, Move, MoveList, MoveScore, MoveScoreArray, MoveScoreList,
@@ -1888,7 +1888,9 @@ pub fn search(
                 // outright would fall below the threshold (no exchange can be
                 // worse than that). Only a move the certificates prove legal
                 // and non-checking is pruned, so it is counted like any other
-                // rejected legal move and a checking move is never pruned.
+                // rejected legal move and a checking move is never pruned. An
+                // exchange that runs into a recapturer that cannot legally
+                // capture is inconclusive (see.rs) and the move is kept.
                 let hist = quiet_history_pre_make(position, search_state, ply, m);
                 let threshold = -(QUIET_SEE_PRUNE_MARGIN * depth as Score) - (hist / QUIET_SEE_HISTORY_DIVISOR) as Score;
                 if -piece_value(&position.pieces[position.mover as usize], from_square_part(m)) < threshold {
@@ -1899,7 +1901,7 @@ pub fn search(
                         if cfg!(feature = "search-width-diagnostics") {
                             search_state.pruned_by_reason[6] += 1;
                         }
-                        if static_exchange_evaluation(position, m) < threshold {
+                        if static_exchange_evaluation_for_pruning(position, m).is_some_and(|see| see < threshold) {
                             #[cfg(debug_assertions)]
                             {
                                 let unmake = make_move_nnue(position, m, search_state);
