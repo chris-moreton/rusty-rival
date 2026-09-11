@@ -1709,6 +1709,13 @@ pub fn search(
         // For alpha pruning and LMR, treat promotions like captures (don't prune/reduce them)
         let is_tactical = captured_value > 0;
         let is_promotion = m & PROMOTION_FULL_MOVE_MASK != 0;
+        // NET-1283: no move-loop pruning while the best score at this node is
+        // a mated score. The prunes below also guard against mate with alpha,
+        // but at a scout window the first move can return a mated score with
+        // alpha unchanged; pruning the remaining moves would then store the
+        // mate as this node's upper bound when a later move might have held.
+        // Ethereal gates its move-loop pruning on `best > -TBWIN_IN_MAX`.
+        let best_not_mated = best_pathscore.1 > -MATE_START;
         // NET-1194: capture history for the tactical LMR term, read from the
         // pre-move board (the victim is still on its square) with the same
         // indexing as the move scorer. En passant and non-capturing promotions
@@ -1749,6 +1756,7 @@ pub fn search(
         // node would be adjudicated stalemate/mate - a fabricated score, which
         // then gets stored in the TT.
         if legal_move_count >= 1
+            && best_not_mated
             && excluded_move == 0
             && bad_captures_added
             && scouting
@@ -1801,7 +1809,7 @@ pub fn search(
         // through make, the legality test and the gives-check test as before.
         if !in_check && !is_tactical && !is_promotion && m & PIECE_MASK_FULL != PIECE_MASK_KING {
             let next_legal = legal_move_count + 1;
-            let would_futility_prune = next_legal > 1 && alpha_prune_flag;
+            let would_futility_prune = next_legal > 1 && alpha_prune_flag && best_not_mated;
             let would_lmp_prune = scouting
                 && excluded_move == 0
                 && depth <= LMP_MAX_DEPTH
@@ -1814,7 +1822,8 @@ pub fn search(
                     }
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
-                && alpha.abs() < MATE_START;
+                && alpha.abs() < MATE_START
+                && best_not_mated;
             if would_futility_prune || would_lmp_prune {
                 if !pre_make.ready {
                     pre_make.compute(position);
@@ -1869,7 +1878,7 @@ pub fn search(
             };
             let gives_check = gives_check_known == Some(true);
 
-            if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !gives_check {
+            if legal_move_count > 1 && alpha_prune_flag && !is_tactical && !gives_check && best_not_mated {
                 if cfg!(feature = "search-width-diagnostics") {
                     search_state.pruned_by_reason[1] += 1;
                 }
@@ -1898,6 +1907,7 @@ pub fn search(
                 && m != search_state.killer_moves[ply as usize][1]
                 && !gives_check
                 && alpha.abs() < MATE_START
+                && best_not_mated
             {
                 if cfg!(feature = "search-width-diagnostics") {
                     search_state.pruned_by_reason[2] += 1;
