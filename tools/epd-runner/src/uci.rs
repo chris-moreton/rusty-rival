@@ -174,7 +174,7 @@ impl Engine {
         self.send(&format!("position fen {}", fen))?;
         let start = Instant::now();
         self.send(&limit.go_command())?;
-        let mut infos = Vec::new();
+        let mut infos: Vec<InfoLine> = Vec::new();
         loop {
             let line = match self.next_line(deadline) {
                 Ok(l) => l,
@@ -194,7 +194,20 @@ impl Engine {
                 });
             }
             if line.starts_with("info ") {
-                if let Some(info) = parse_info(line) {
+                if let Some(mut info) = parse_info(line) {
+                    // A partial update (score only, or counters only) keeps
+                    // the latest depth, nodes and time seen so far.
+                    if let Some(last) = infos.last() {
+                        if info.depth == 0 {
+                            info.depth = last.depth;
+                        }
+                        if info.nodes == 0 {
+                            info.nodes = last.nodes;
+                        }
+                        if info.time_ms == 0 {
+                            info.time_ms = last.time_ms;
+                        }
+                    }
                     infos.push(info);
                 }
             }

@@ -106,6 +106,17 @@ struct RunArgs {
 struct TableArgs {
     #[command(flatten)]
     budget: BudgetArgs,
+    #[arg(long, default_value_t = 1)]
+    threads: u32,
+    /// Hash size in MB the runs were made with.
+    #[arg(long, default_value_t = 128)]
+    hash: u32,
+    /// Time mode: the concurrency the runs were made with (default 1).
+    #[arg(long)]
+    concurrency: Option<usize>,
+    /// Time mode: the CPU model the runs were made on (default: this machine's; `any` to ignore).
+    #[arg(long)]
+    cpu: Option<String>,
     /// Comma-separated engine selectors: `family:label`, family, label or version.
     #[arg(long)]
     engines: Option<String>,
@@ -306,7 +317,24 @@ fn cmd_table(epd_dir: &Path, args: TableArgs) -> Result<(), String> {
     let files = store::load_all(epd_dir)?;
     let engines = args.engines.as_deref().map(split_list);
     let suites = args.suites.as_deref().map(split_list);
-    let table = table::build(&files, limit.mode(), limit.budget(), engines.as_deref(), suites.as_deref());
+    let time_mode = limit.mode() == "time";
+    let key = table::TableKey {
+        mode: limit.mode().to_string(),
+        budget: limit.budget(),
+        threads: args.threads,
+        hash_mb: args.hash,
+        concurrency: if time_mode { Some(args.concurrency.unwrap_or(1)) } else { None },
+        cpu: if time_mode {
+            match args.cpu.as_deref() {
+                Some("any") => None,
+                Some(cpu) => Some(cpu.to_string()),
+                None => Some(host::cpu_model()),
+            }
+        } else {
+            None
+        },
+    };
+    let table = table::build(&files, &key, engines.as_deref(), suites.as_deref());
     if args.json {
         println!("{}", serde_json::to_string_pretty(&table).map_err(|e| e.to_string())?);
     } else {

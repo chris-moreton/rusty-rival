@@ -280,11 +280,12 @@ pub fn save_file(path: &Path, file: &ResultsFile) -> Result<(), String> {
     std::fs::rename(&tmp, path).map_err(|e| format!("cannot rename {}: {}", tmp.display(), e))
 }
 
-/// An advisory lock on one results file: a sibling `.lock` created with
-/// `create_new`, retried for up to a minute, with a stale lock (older than
-/// ten minutes, from a process that died) removed.
+/// An OS-backed advisory lock on one results file: an exclusive
+/// `File::lock` on a sibling `.lock` file, which the kernel releases when
+/// the holder exits, so there is no stale lock to reclaim. Waits up to a
+/// minute for another runner.
 struct FileLock {
-    path: PathBuf,
+    _file: std::fs::File,
 }
 
 impl FileLock {
@@ -293,36 +294,25 @@ impl FileLock {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| format!("cannot create {}: {}", parent.display(), e))?;
         }
+        let file = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(&path)
+            .map_err(|e| format!("cannot open {}: {}", path.display(), e))?;
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
         loop {
-            match std::fs::OpenOptions::new().write(true).create_new(true).open(&path) {
-                Ok(_) => return Ok(FileLock { path }),
-                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-                    let stale = std::fs::metadata(&path)
-                        .and_then(|m| m.modified())
-                        .map(|t| t.elapsed().map(|d| d.as_secs() > 600).unwrap_or(false))
-                        .unwrap_or(false);
-                    if stale {
-                        let _ = std::fs::remove_file(&path);
-                        continue;
-                    }
+            match file.try_lock() {
+                Ok(()) => return Ok(FileLock { _file: file }),
+                Err(std::fs::TryLockError::WouldBlock) => {
                     if std::time::Instant::now() > deadline {
-                        return Err(format!(
-                            "{} is locked by another runner (remove it if no runner is alive)",
-                            path.display()
-                        ));
+                        return Err(format!("{} is held by another runner for over a minute", path.display()));
                     }
                     std::thread::sleep(std::time::Duration::from_millis(50));
                 }
-                Err(e) => return Err(format!("cannot lock {}: {}", path.display(), e)),
+                Err(std::fs::TryLockError::Error(e)) => return Err(format!("cannot lock {}: {}", path.display(), e)),
             }
         }
-    }
-}
-
-impl Drop for FileLock {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.path);
     }
 }
 

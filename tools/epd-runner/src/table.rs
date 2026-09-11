@@ -1,9 +1,57 @@
 //! The suites × engines table for one budget, shared by the text command and
 //! the terminal view.
 
-use crate::store::{budget_label, ResultsFile};
+use crate::store::{budget_label, ResultsFile, RunRecord};
 use serde::Serialize;
 use std::collections::BTreeMap;
+
+/// Everything that must agree for two runs to sit in one table: the budget
+/// and the engine settings, and in time mode the host and concurrency too.
+#[derive(Debug, Clone, Serialize)]
+pub struct TableKey {
+    pub mode: String,
+    pub budget: u64,
+    pub threads: u32,
+    pub hash_mb: u32,
+    /// Time mode only: the concurrency and CPU model the runs must match.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub concurrency: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cpu: Option<String>,
+}
+
+impl TableKey {
+    pub fn matches(&self, run: &RunRecord) -> bool {
+        run.mode == self.mode
+            && run.budget == self.budget
+            && run.threads == self.threads
+            && run.hash_mb == self.hash_mb
+            && (self.mode != "time"
+                || (self.concurrency.is_none_or(|c| run.concurrency == c)
+                    && self
+                        .cpu
+                        .as_deref()
+                        .is_none_or(|cpu| run.host.as_ref().is_some_and(|h| h.cpu == cpu))))
+    }
+
+    pub fn describe(&self) -> String {
+        let mut s = format!(
+            "{} · threads {} hash {}",
+            budget_label(&self.mode, self.budget),
+            self.threads,
+            self.hash_mb
+        );
+        if self.mode == "time" {
+            if let Some(c) = self.concurrency {
+                s.push_str(&format!(" · concurrency {}", c));
+            }
+            if let Some(cpu) = &self.cpu {
+                s.push_str(&format!(" · {}", cpu));
+            }
+        }
+        s
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Column {
@@ -38,8 +86,7 @@ pub struct Row {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Table {
-    pub mode: String,
-    pub budget: u64,
+    pub key: TableKey,
     pub budget_label: String,
     pub columns: Vec<Column>,
     pub rows: Vec<Row>,
@@ -54,7 +101,7 @@ pub fn engine_matches(selector: &str, column: &Column) -> bool {
     }
 }
 
-pub fn build(files: &[ResultsFile], mode: &str, budget: u64, engines: Option<&[String]>, suites: Option<&[String]>) -> Table {
+pub fn build(files: &[ResultsFile], key: &TableKey, engines: Option<&[String]>, suites: Option<&[String]>) -> Table {
     let mut columns: Vec<(Column, &ResultsFile)> = files
         .iter()
         .map(|f| {
@@ -68,10 +115,7 @@ pub fn build(files: &[ResultsFile], mode: &str, budget: u64, engines: Option<&[S
                 f,
             )
         })
-        .filter(|(c, f)| {
-            f.runs.iter().any(|r| r.mode == mode && r.budget == budget)
-                && engines.is_none_or(|sel| sel.iter().any(|s| engine_matches(s, c)))
-        })
+        .filter(|(c, f)| f.runs.iter().any(|r| key.matches(r)) && engines.is_none_or(|sel| sel.iter().any(|s| engine_matches(s, c))))
         .collect();
     columns.sort_by(|a, b| {
         a.0.family
@@ -83,7 +127,7 @@ pub fn build(files: &[ResultsFile], mode: &str, budget: u64, engines: Option<&[S
     // two engines' runs gives two rows, marked with the revision.
     let mut revisions: BTreeMap<(String, String), usize> = BTreeMap::new();
     for (_, f) in &columns {
-        for r in f.runs.iter().filter(|r| r.mode == mode && r.budget == budget) {
+        for r in f.runs.iter().filter(|r| key.matches(r)) {
             revisions
                 .entry((r.suite.name.clone(), r.suite.sha256.clone()))
                 .or_insert(r.suite.positions);
@@ -102,7 +146,7 @@ pub fn build(files: &[ResultsFile], mode: &str, budget: u64, engines: Option<&[S
                 .map(|(_, f)| {
                     f.runs
                         .iter()
-                        .filter(|r| r.mode == mode && r.budget == budget && r.suite.name == name && r.suite.sha256 == sha)
+                        .filter(|r| key.matches(r) && r.suite.name == name && r.suite.sha256 == sha)
                         .max_by(|a, b| a.date.cmp(&b.date))
                         .map(|r| {
                             let s = &r.summary;
@@ -129,9 +173,8 @@ pub fn build(files: &[ResultsFile], mode: &str, budget: u64, engines: Option<&[S
         })
         .collect();
     Table {
-        mode: mode.to_string(),
-        budget,
-        budget_label: budget_label(mode, budget),
+        budget_label: key.describe(),
+        key: key.clone(),
         columns: columns.into_iter().map(|(c, _)| c).collect(),
         rows,
     }
@@ -182,7 +225,7 @@ impl Table {
     }
 
     pub fn render(&self, percent: bool) -> String {
-        let mut headers: Vec<String> = vec![format!("suite ({})", self.budget_label)];
+        let mut headers: Vec<String> = vec![format!("suite ({})", budget_label(&self.key.mode, self.key.budget))];
         let mut sub: Vec<String> = vec![String::new()];
         for c in &self.columns {
             headers.push(format!("{} {}", c.family, c.label));
@@ -224,8 +267,9 @@ impl Table {
                 out.push('\n');
             }
         }
+        out.push_str(&format!("[{}]\n", self.budget_label));
         if self.columns.is_empty() {
-            out.push_str("(no results at this budget; run `epd-runner run` first)\n");
+            out.push_str("(no results for these settings; run `epd-runner run` first)\n");
         }
         out
     }

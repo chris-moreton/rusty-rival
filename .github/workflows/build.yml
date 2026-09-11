@@ -67,13 +67,17 @@ jobs:
   epd-runner:
     name: epd-runner tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      # Pinned to reviewed commits: actions/checkout v4.2.2 and the stable
+      # branch of dtolnay/rust-toolchain as of 2026-09-03.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          profile: minimal
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
           toolchain: stable
-          override: true
       - run: cargo test -p epd-runner
 
   fmt:
