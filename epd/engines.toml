@@ -1,0 +1,63 @@
+# Engine registry for epd-runner (tools/epd-runner). `path` may start with ~/.
+# Threads and Hash come from the run arguments; any other UCI option goes in
+# [engine.options]. `name` is the column label in the store; `family` groups
+# versions of one engine so they sort together.
+
+[[engine]]
+name = "1.0.64"
+family = "rusty-rival"
+path = "~/benchmark/sprt/rival-v1.0.64"
+
+[[engine]]
+name = "1.0.63"
+family = "rusty-rival"
+path = "~/benchmark/sprt/rival-v1.0.63"
+
+[[engine]]
+name = "stockfish"
+family = "stockfish"
+path = "~/benchmark/bin/stockfish"
+
+[[engine]]
+name = "sf-2600"
+family = "stockfish"
+path = "~/benchmark/bin/stockfish"
+[engine.options]
+UCI_LimitStrength = "true"
+UCI_Elo = "2600"
+
+[[engine]]
+name = "sf-2800"
+family = "stockfish"
+path = "~/benchmark/bin/stockfish"
+[engine.options]
+UCI_LimitStrength = "true"
+UCI_Elo = "2800"
+
+[[engine]]
+name = "sf-3000"
+family = "stockfish"
+path = "~/benchmark/bin/stockfish"
+[engine.options]
+UCI_LimitStrength = "true"
+UCI_Elo = "3000"
+
+[[engine]]
+name = "ethereal"
+family = "ethereal"
+path = "~/benchmark/bin/ethereal"
+
+[[engine]]
+name = "berserk"
+family = "berserk"
+path = "~/benchmark/bin/berserk"
+
+[[engine]]
+name = "stash"
+family = "stash"
+path = "~/benchmark/bin/stash"
+
+[[engine]]
+name = "obsidian"
+family = "obsidian"
+path = "~/benchmark/bin/Obsidian"

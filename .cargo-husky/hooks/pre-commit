@@ -4,7 +4,7 @@ echo "Running pre-commit checks..."
 
 # Check formatting
 echo "Checking formatting..."
-cargo fmt -- --check
+cargo fmt --all -- --check
 if [ $? -ne 0 ]; then
     echo "❌ Formatting check failed. Run 'cargo fmt' to fix."
     exit 1
@@ -12,7 +12,7 @@ fi
 
 # Run clippy
 echo "Running clippy..."
-cargo clippy -- -D warnings
+cargo clippy --workspace -- -D warnings
 if [ $? -ne 0 ]; then
     echo "❌ Clippy found warnings. Fix them before committing."
     exit 1

@@ -1,0 +1,448 @@
+//! Run a suite against one engine binary: resolve the SAN targets, drive one
+//! fresh engine process per position across a pool of workers, score, and
+//! write the record to the store.
+
+use crate::epd::{EpdRecord, Suite};
+use crate::host;
+use crate::san::{legal_moves, move_to_uci, resolve_san};
+use crate::store::{self, EngineRecord, HostRecord, PositionRecord, ResultsFile, RunKey, RunRecord, SolvedAt, SuiteRef, Summary};
+use crate::uci::{Engine, Limit, SearchOutput};
+use rusty_rival::fen::get_position;
+use std::io::{IsTerminal, Write};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+pub struct RunSpec {
+    pub epd_dir: PathBuf,
+    pub engine_path: PathBuf,
+    pub engine: EngineRecord,
+    pub limit: Limit,
+    pub threads: u32,
+    pub hash_mb: u32,
+    pub concurrency: usize,
+    pub force: bool,
+    pub quiet: bool,
+}
+
+pub struct RunOutcome {
+    pub record: RunRecord,
+    pub cached: bool,
+}
+
+/// UCI targets of one position, or the reason they could not be resolved.
+struct Targets {
+    bm: Vec<String>,
+    am: Vec<String>,
+    graded: Vec<(String, u32)>,
+    /// Every legal move in UCI form, to reject a bestmove the engine could
+    /// not actually have played (`0000`, `(none)`, an illegal move).
+    legal: Vec<String>,
+    error: Option<String>,
+}
+
+fn resolve_targets(position: &EpdRecord) -> Targets {
+    let board = get_position(&position.fen);
+    let legal: Vec<String> = legal_moves(&board).into_iter().map(move_to_uci).collect();
+    let mut error = None;
+    let mut resolve_all = |sans: &[String]| -> Vec<String> {
+        sans.iter()
+            .filter_map(|san| match resolve_san(&board, san) {
+                Ok(m) => Some(move_to_uci(m)),
+                Err(e) => {
+                    if error.is_none() {
+                        error = Some(e);
+                    }
+                    None
+                }
+            })
+            .collect()
+    };
+    let bm = resolve_all(&position.bm);
+    let am = resolve_all(&position.am);
+    let graded_sans: Vec<String> = position.graded.iter().map(|(san, _)| san.clone()).collect();
+    let graded_uci = resolve_all(&graded_sans);
+    // A graded move that fails to resolve is an error like a bm failure,
+    // so the position is excluded rather than scored against a short list.
+    let graded: Vec<(String, u32)> = graded_uci.into_iter().zip(position.graded.iter().map(|(_, p)| *p)).collect();
+    if bm.is_empty() && am.is_empty() && error.is_none() {
+        error = Some("no bm or am operand".to_string());
+    }
+    Targets {
+        bm,
+        am,
+        graded,
+        legal,
+        error,
+    }
+}
+
+fn engine_options(spec: &RunSpec) -> Vec<(String, String)> {
+    let mut options = vec![
+        ("Threads".to_string(), spec.threads.to_string()),
+        ("Hash".to_string(), spec.hash_mb.to_string()),
+    ];
+    for (k, v) in &spec.engine.options {
+        options.push((k.clone(), v.clone()));
+    }
+    options
+}
+
+fn build_record(position: &EpdRecord, targets: &Targets, output: Result<SearchOutput, String>) -> PositionRecord {
+    let mut record = PositionRecord {
+        id: position.id.clone(),
+        bm: position.bm.clone(),
+        am: position.am.clone(),
+        best: String::new(),
+        solved: false,
+        solved_at: None,
+        points: None,
+        score_cp: None,
+        mate: None,
+        depth: 0,
+        nodes: 0,
+        ms: 0,
+        error: targets.error.clone(),
+    };
+    let output = match output {
+        Ok(o) => o,
+        Err(e) => {
+            record.error = Some(e);
+            return record;
+        }
+    };
+    // A move the engine could not have played (empty, `0000`, `(none)`, or
+    // illegal) is a failed position, never a solved one.
+    let legal = |mv: &str| targets.legal.iter().any(|l| l == mv);
+    let good = |mv: &str| legal(mv) && (targets.bm.is_empty() || targets.bm.iter().any(|b| b == mv)) && !targets.am.iter().any(|a| a == mv);
+    record.best = output.bestmove.clone();
+    record.ms = output.elapsed_ms;
+    // Depth, nodes and time from the last measurement of any kind; the score
+    // from the last exact (non-bound) one.
+    if let Some(last) = output.infos.last() {
+        record.depth = last.depth;
+        record.nodes = last.nodes;
+        if last.time_ms > 0 {
+            record.ms = last.time_ms;
+        }
+    }
+    if let Some(exact) = output
+        .infos
+        .iter()
+        .rev()
+        .find(|i| i.bound.is_none() && (i.score_cp.is_some() || i.mate.is_some()))
+    {
+        record.score_cp = exact.score_cp;
+        record.mate = exact.mate;
+    }
+    if record.error.is_some() {
+        return record;
+    }
+    record.solved = good(&output.bestmove);
+    if !targets.graded.is_empty() {
+        record.points = Some(targets.graded.iter().find(|(m, _)| *m == output.bestmove).map_or(0, |(_, p)| *p));
+    }
+    if record.solved {
+        // The first PV-carrying info at which a correct move became the PV
+        // move and stayed correct to the end; absent when the engine never
+        // showed a correct PV, or its last PV disagreed with its bestmove.
+        let mut candidate: Option<SolvedAt> = None;
+        for info in output.infos.iter().filter(|i| !i.pv.is_empty()) {
+            if info.pv.first().is_some_and(|m| good(m)) {
+                if candidate.is_none() {
+                    candidate = Some(SolvedAt {
+                        depth: info.depth,
+                        nodes: info.nodes,
+                        ms: info.time_ms,
+                    });
+                }
+            } else {
+                candidate = None;
+            }
+        }
+        record.solved_at = candidate;
+    }
+    record
+}
+
+fn median(mut values: Vec<u64>) -> Option<u64> {
+    if values.is_empty() {
+        return None;
+    }
+    values.sort_unstable();
+    Some(values[values.len() / 2])
+}
+
+pub fn summarise(positions: &[PositionRecord], graded: bool) -> Summary {
+    let scored: Vec<&PositionRecord> = positions.iter().filter(|p| p.error.is_none()).collect();
+    let solved = scored.iter().filter(|p| p.solved).count();
+    let total_nodes: u64 = scored.iter().map(|p| p.nodes).sum();
+    let total_ms: u64 = scored.iter().map(|p| p.ms).sum();
+    let mean_depth = if scored.is_empty() {
+        0.0
+    } else {
+        scored.iter().map(|p| p.depth as f64).sum::<f64>() / scored.len() as f64
+    };
+    Summary {
+        solved,
+        total: scored.len(),
+        points: if graded {
+            Some(scored.iter().map(|p| p.points.unwrap_or(0)).sum())
+        } else {
+            None
+        },
+        max_points: if graded { Some(10 * scored.len() as u32) } else { None },
+        median_solve_nodes: median(scored.iter().filter_map(|p| p.solved_at.as_ref().map(|s| s.nodes)).collect()),
+        median_solve_ms: median(scored.iter().filter_map(|p| p.solved_at.as_ref().map(|s| s.ms)).collect()),
+        mean_depth: (mean_depth * 100.0).round() / 100.0,
+        nps: (total_nodes * 1000).checked_div(total_ms).unwrap_or(0),
+        errors: positions.len() - scored.len(),
+    }
+}
+
+fn now_rfc3339() -> String {
+    chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+}
+
+fn existing_file(path: &Path, engine: &EngineRecord) -> Result<ResultsFile, String> {
+    if path.exists() {
+        let mut file = store::load_file(path)?;
+        if !file.engine.same_identity(engine) {
+            return Err(format!(
+                "{} holds results for a different binary or options (sha {} vs {}); move it aside",
+                path.display(),
+                file.engine.sha8(),
+                engine.sha8()
+            ));
+        }
+        if file.engine.bench.is_none() {
+            file.engine.bench = engine.bench;
+        }
+        Ok(file)
+    } else {
+        Ok(ResultsFile {
+            engine: engine.clone(),
+            runs: Vec::new(),
+        })
+    }
+}
+
+/// Run one suite (or return its cached record) and persist the result.
+pub fn run_suite(spec: &RunSpec, suite: &Suite) -> Result<RunOutcome, String> {
+    let cpu = host::cpu_model();
+    let mode = spec.limit.mode();
+    let budget = spec.limit.budget();
+    let key = RunKey {
+        suite_sha: &suite.sha256,
+        mode,
+        budget,
+        threads: spec.threads,
+        hash_mb: spec.hash_mb,
+        concurrency: spec.concurrency,
+        cpu: &cpu,
+    };
+    let path = store::file_path(&spec.epd_dir, &spec.engine);
+    let file = existing_file(&path, &spec.engine)?;
+    if !spec.force {
+        if let Some(run) = file.runs.iter().find(|r| r.key_matches(&key)) {
+            return Ok(RunOutcome {
+                record: run.clone(),
+                cached: true,
+            });
+        }
+    }
+
+    let targets: Vec<Targets> = suite.positions.iter().map(resolve_targets).collect();
+    let options = engine_options(spec);
+    let total = suite.positions.len();
+    let next = Arc::new(Mutex::new(0usize));
+    let done = Arc::new(Mutex::new((0usize, 0usize)));
+    let results: Arc<Mutex<Vec<Option<PositionRecord>>>> = Arc::new(Mutex::new(vec![None; total]));
+    let workers = spec.concurrency.clamp(1, total.max(1));
+    let first_error: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    // Live progress only on a terminal; a log gets the summary line alone.
+    let show_progress = !spec.quiet && std::io::stderr().is_terminal();
+
+    std::thread::scope(|scope| {
+        for _ in 0..workers {
+            let next = Arc::clone(&next);
+            let done = Arc::clone(&done);
+            let results = Arc::clone(&results);
+            let first_error = Arc::clone(&first_error);
+            let options = &options;
+            let targets = &targets;
+            scope.spawn(move || loop {
+                let index = {
+                    let mut n = next.lock().unwrap();
+                    if *n >= total {
+                        break;
+                    }
+                    let i = *n;
+                    *n += 1;
+                    i
+                };
+                let position = &suite.positions[index];
+                let target = &targets[index];
+                let output = if target.error.is_some() {
+                    Err(target.error.clone().unwrap_or_default())
+                } else {
+                    match Engine::spawn(&spec.engine_path, options, Duration::from_secs(60)) {
+                        Ok(mut engine) => {
+                            let out = engine.search(&position.fen, spec.limit);
+                            engine.quit();
+                            out
+                        }
+                        Err(e) => Err(e),
+                    }
+                };
+                if let Err(e) = &output {
+                    let mut fe = first_error.lock().unwrap();
+                    if fe.is_none() {
+                        *fe = Some(format!("{}: {}", position.id, e));
+                    }
+                }
+                let record = build_record(position, target, output);
+                let solved = record.solved;
+                results.lock().unwrap()[index] = Some(record);
+                if show_progress {
+                    let mut d = done.lock().unwrap();
+                    d.0 += 1;
+                    d.1 += solved as usize;
+                    eprint!("\r  {:<14} {:>5}/{:<5} solved {:>5}", suite.name, d.0, total, d.1);
+                    let _ = std::io::stderr().flush();
+                }
+            });
+        }
+    });
+    if show_progress {
+        eprintln!();
+    }
+
+    let positions: Vec<PositionRecord> = results
+        .lock()
+        .unwrap()
+        .iter()
+        .cloned()
+        .map(|r| r.expect("every position produces a record"))
+        .collect();
+    if total > 0 && positions.iter().all(|p| p.error.is_some()) {
+        let first = first_error.lock().unwrap().clone().unwrap_or_default();
+        return Err(format!("every position failed, nothing stored; first error: {}", first));
+    }
+    let graded = suite.is_graded();
+    let summary = summarise(&positions, graded);
+    let record = RunRecord {
+        suite: SuiteRef {
+            name: suite.name.clone(),
+            sha256: suite.sha256.clone(),
+            positions: total,
+        },
+        mode: mode.to_string(),
+        budget,
+        threads: spec.threads,
+        hash_mb: spec.hash_mb,
+        concurrency: spec.concurrency,
+        host: Some(HostRecord {
+            hostname: host::hostname(),
+            cpu: cpu.clone(),
+        }),
+        date: now_rfc3339(),
+        summary,
+        positions,
+    };
+    // Reload, merge and write under the file lock, so two runner processes
+    // filling the same engine's file keep each other's runs.
+    store::merge_run(&path, &spec.engine, record.clone(), |r| r.key_matches(&key))?;
+    if let Some(e) = first_error.lock().unwrap().as_ref() {
+        if !spec.quiet {
+            eprintln!("  warning: {} position(s) failed, first: {}", record.summary.errors, e);
+        }
+    }
+    Ok(RunOutcome { record, cached: false })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::uci::InfoLine;
+
+    fn position() -> EpdRecord {
+        crate::epd::parse_epd_line("1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - - bm Qd1+; id \"BK.01\";").unwrap()
+    }
+
+    fn info(depth: u32, nodes: u64, pv: &str) -> InfoLine {
+        InfoLine {
+            depth,
+            nodes,
+            time_ms: nodes / 1000,
+            score_cp: Some(1),
+            pv: pv.split_whitespace().map(|s| s.to_string()).collect(),
+            ..Default::default()
+        }
+    }
+
+    fn output(bestmove: &str, infos: Vec<InfoLine>) -> SearchOutput {
+        SearchOutput {
+            bestmove: bestmove.into(),
+            infos,
+            elapsed_ms: 50,
+        }
+    }
+
+    #[test]
+    fn solved_at_is_the_first_correct_pv_that_stayed_correct() {
+        let p = position();
+        let t = resolve_targets(&p);
+        assert_eq!(t.bm, vec!["d6d1"]);
+        let r = build_record(
+            &p,
+            &t,
+            Ok(output(
+                "d6d1",
+                vec![
+                    info(1, 10, "d6d2"),
+                    info(2, 50, "d6d1"),
+                    info(3, 90, "d6d2"),
+                    info(4, 200, "d6d1 c1d1"),
+                ],
+            )),
+        );
+        assert!(r.solved);
+        assert_eq!(r.solved_at.as_ref().map(|s| (s.depth, s.nodes)), Some((4, 200)));
+        assert_eq!((r.depth, r.nodes), (4, 200));
+    }
+
+    #[test]
+    fn a_correct_bestmove_after_a_wrong_last_pv_has_no_solve_point() {
+        let p = position();
+        let t = resolve_targets(&p);
+        let r = build_record(&p, &t, Ok(output("d6d1", vec![info(1, 10, "d6d1"), info(2, 50, "d6d2")])));
+        assert!(r.solved);
+        assert!(r.solved_at.is_none());
+        let r = build_record(&p, &t, Ok(output("d6d1", vec![])));
+        assert!(r.solved && r.solved_at.is_none());
+    }
+
+    #[test]
+    fn illegal_or_empty_bestmoves_never_solve() {
+        let p = position();
+        let t = resolve_targets(&p);
+        for bad in ["0000", "(none)", "", "d6d9", "a1a2"] {
+            let r = build_record(&p, &t, Ok(output(bad, vec![info(1, 10, "d6d1")])));
+            assert!(!r.solved, "{} must not solve", bad);
+            assert!(r.error.is_none());
+        }
+    }
+
+    #[test]
+    fn scores_come_from_the_last_exact_line() {
+        let p = position();
+        let t = resolve_targets(&p);
+        let mut bound = info(5, 500, "d6d1");
+        bound.score_cp = Some(999);
+        bound.bound = Some(crate::uci::Bound::Lower);
+        let r = build_record(&p, &t, Ok(output("d6d1", vec![info(4, 400, "d6d1"), bound])));
+        assert_eq!(r.score_cp, Some(1));
+        assert_eq!((r.depth, r.nodes), (5, 500));
+    }
+}

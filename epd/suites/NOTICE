@@ -1,0 +1,18 @@
+Test suites shipped with epd-runner. These are widely redistributed chess
+test positions included for engine testing only; each file is used as
+distributed by its source, with the corrections noted.
+
+bratko-kopec.epd  The Bratko-Kopec test (Danny Kopec and Ivan Bratko, 1982),
+                  24 positions, ids BK.01-BK.24.
+wac.epd           "Win at Chess" (Fred Reinfeld, 1945), 300 positions, the
+                  corrected wacnew.epd distributed with the Arasan test set
+                  (Jon Dart, https://github.com/jdart1/arasan-chess).
+arasan18.epd      Arasan test suite version 18 (Jon Dart), 250 positions.
+sts.epd           Strategic Test Suite (Dann Corbit and Swaminathan), themes
+                  1-15 combined, graded scores in c0/c7/c8 and UCI moves in
+                  c9; 1,499 positions as distributed.
+eet.epd           Eigenmann Endgame Test (Walter Eigenmann), 100 positions,
+                  as distributed with the Arasan test set.
+quick.epd         Ten positions taken from the suites above, for smoke tests.
+
+Results derived from these suites are stored under epd/results.

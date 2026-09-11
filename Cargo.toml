@@ -41,3 +41,6 @@ zstd = "0.13.3"
 
 [dev-dependencies]
 cargo-husky = { version = "1", features = ["user-hooks"] }
+
+[workspace]
+members = ["tools/epd-runner"]
