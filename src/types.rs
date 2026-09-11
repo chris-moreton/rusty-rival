@@ -623,8 +623,9 @@ pub struct SearchState {
     pub children_by_node_type: [u64; 2],
     pub no_cutoff_children_by_kind: [u64; 3],
     pub cutoff_node_children_by_kind: [u64; 3],
-    // Prune reasons: 0=SEE, 1=alpha/futility, 2=LMP, 3=of which rejected before make (NET-1188).
-    pub pruned_by_reason: [u64; 4],
+    // Prune reasons: 0=SEE, 1=alpha/futility, 2=LMP, 3=of which rejected before make (NET-1188),
+    // 4=continuation history (NET-1277), 5=quiet SEE (NET-1278), 6=quiet SEE evaluations (NET-1278).
+    pub pruned_by_reason: [u64; 7],
     // LMR classes (NET-1194): 0=quiet, 1=capture from the good-capture stage
     // or a check evasion, 2=capture from the SEE-losing stage, 3=promotion.
     // Eligible counts every candidate that went through the formula.
@@ -737,7 +738,7 @@ impl Clone for SearchState {
             children_by_node_type: [0; 2],
             no_cutoff_children_by_kind: [0; 3],
             cutoff_node_children_by_kind: [0; 3],
-            pruned_by_reason: [0; 4],
+            pruned_by_reason: [0; 7],
             lmr_eligible_by_kind: [0; 4],
             lmr_applied_by_kind: [0; 4],
             lmr_researched_by_kind: [0; 4],
@@ -833,7 +834,7 @@ pub fn default_search_state() -> SearchState {
         children_by_node_type: [0; 2],
         no_cutoff_children_by_kind: [0; 3],
         cutoff_node_children_by_kind: [0; 3],
-        pruned_by_reason: [0; 4],
+        pruned_by_reason: [0; 7],
         lmr_eligible_by_kind: [0; 4],
         lmr_applied_by_kind: [0; 4],
         lmr_researched_by_kind: [0; 4],

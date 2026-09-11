@@ -61,7 +61,7 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
     let (mut by_kind, mut by_index) = ([0u64; 7], [0u64; 5]);
     let (mut child_kind, mut child_depth, mut child_node) = ([0u64; 3], [0u64; 5], [0u64; 2]);
     let (mut no_cut_kind, mut cut_kind) = ([0u64; 3], [0u64; 3]);
-    let (mut pruned, mut lmr_eligible, mut lmr_applied, mut lmr_researched) = ([0u64; 4], [0u64; 4], [0u64; 4], [0u64; 4]);
+    let (mut pruned, mut lmr_eligible, mut lmr_applied, mut lmr_researched) = ([0u64; 7], [0u64; 4], [0u64; 4], [0u64; 4]);
     let mut extensions = [0u64; 4];
     let mut singular = [0u64; 3]; // verifications, multicuts, negative extensions (NET-1239)
     let (mut lmr_hist, mut lmr_early, mut lmr_hist_sum) = ([[0u64; 6]; 4], [0u64; 4], [0i64; 4]);
@@ -306,11 +306,14 @@ fn cmd_bench_deterministic(uci_state: &mut UciState, search_state: &mut SearchSt
             no_cut_kind[0], no_cut_kind[1], no_cut_kind[2], cut_kind[0], cut_kind[1], cut_kind[2],
         );
         println!(
-            "  pruned moves : SEE {} · alpha/futility {} · LMP {} · of which rejected before make {}",
+            "  pruned moves : SEE {} · alpha/futility {} · LMP {} · of which rejected before make {} · continuation {} · quiet SEE {} (of {} evaluated)",
             pruned[0].to_formatted_string(&Locale::en),
             pruned[1].to_formatted_string(&Locale::en),
             pruned[2].to_formatted_string(&Locale::en),
             pruned[3].to_formatted_string(&Locale::en),
+            pruned[4].to_formatted_string(&Locale::en),
+            pruned[5].to_formatted_string(&Locale::en),
+            pruned[6].to_formatted_string(&Locale::en),
         );
         for (kind, label) in ["LMR quiet    ", "LMR good caps", "LMR bad caps ", "LMR promos   "]
             .into_iter()

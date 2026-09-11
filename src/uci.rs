@@ -112,7 +112,7 @@ pub fn run_command_sync(uci_state: &mut UciState, search_state: &mut SearchState
             search_state.children_by_node_type = [0; 2];
             search_state.no_cutoff_children_by_kind = [0; 3];
             search_state.cutoff_node_children_by_kind = [0; 3];
-            search_state.pruned_by_reason = [0; 4];
+            search_state.pruned_by_reason = [0; 7];
             search_state.lmr_eligible_by_kind = [0; 4];
             search_state.lmr_applied_by_kind = [0; 4];
             search_state.lmr_researched_by_kind = [0; 4];
@@ -169,7 +169,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
     search_state.children_by_node_type = [0; 2];
     search_state.no_cutoff_children_by_kind = [0; 3];
     search_state.cutoff_node_children_by_kind = [0; 3];
-    search_state.pruned_by_reason = [0; 4];
+    search_state.pruned_by_reason = [0; 7];
     search_state.lmr_eligible_by_kind = [0; 4];
     search_state.lmr_applied_by_kind = [0; 4];
     search_state.lmr_researched_by_kind = [0; 4];
@@ -748,7 +748,7 @@ fn cmd_go(
         thread_search_state.children_by_node_type = [0; 2];
         thread_search_state.no_cutoff_children_by_kind = [0; 3];
         thread_search_state.cutoff_node_children_by_kind = [0; 3];
-        thread_search_state.pruned_by_reason = [0; 4];
+        thread_search_state.pruned_by_reason = [0; 7];
         thread_search_state.lmr_eligible_by_kind = [0; 4];
         thread_search_state.lmr_applied_by_kind = [0; 4];
         thread_search_state.lmr_researched_by_kind = [0; 4];
@@ -1148,7 +1148,7 @@ fn cmd_ucinewgame(
     search_state.children_by_node_type = [0; 2];
     search_state.no_cutoff_children_by_kind = [0; 3];
     search_state.cutoff_node_children_by_kind = [0; 3];
-    search_state.pruned_by_reason = [0; 4];
+    search_state.pruned_by_reason = [0; 7];
     search_state.lmr_eligible_by_kind = [0; 4];
     search_state.lmr_applied_by_kind = [0; 4];
     search_state.lmr_researched_by_kind = [0; 4];
