@@ -1,13 +1,14 @@
 use crate::engine_constants::{
-    lmr_reduction, ALPHA_PRUNE_MARGINS, ASPIRATION_RADIUS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
-    CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS,
-    LMR_CAPTURE_BASE, LMR_CAPTURE_HISTORY_DIVISOR, LMR_FROM_SECOND_MOVE, LMR_IN_CHECK, LMR_MIN_DEPTH, LMR_PV_FLAG,
-    LMR_QUIET_HISTORY_DIVISOR, LMR_SOFT_EXEMPTIONS, LMR_TACTICAL, LMR_THREAT_TERM, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION,
-    MULTICUT_MIN_DEPTH, MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE,
-    PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
-    SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH,
-    SINGULAR_MULTICUT, SINGULAR_NEGATIVE_EXTENSION, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH,
-    TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    lmr_reduction, ALPHA_PRUNE_MARGINS, ASPIRATION_RADIUS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CONTINUATION_PRUNING,
+    CONTINUATION_PRUNING_DEPTH, CONTINUATION_PRUNING_HISTORY_LIMIT, CORRECTION_HISTORY_GRAIN, CORRECTION_HISTORY_MAX,
+    CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS, LMR_CAPTURE_BASE,
+    LMR_CAPTURE_HISTORY_DIVISOR, LMR_FROM_SECOND_MOVE, LMR_IN_CHECK, LMR_MIN_DEPTH, LMR_PV_FLAG, LMR_QUIET_HISTORY_DIVISOR,
+    LMR_SOFT_EXEMPTIONS, LMR_TACTICAL, LMR_THREAT_TERM, MAX_DEPTH, MAX_QUIESCE_DEPTH, MULTICUT_DEPTH_REDUCTION, MULTICUT_MIN_DEPTH,
+    MULTICUT_MOVES_TO_TRY, MULTICUT_REQUIRED_CUTOFFS, NULL_MOVE_MIN_DEPTH, NULL_MOVE_REDUCE_DEPTH_BASE, PROBCUT_DEPTH_REDUCTION,
+    PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN, SEE_PRUNE_MAX_DEPTH,
+    SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH, SINGULAR_MULTICUT,
+    SINGULAR_NEGATIVE_EXTENSION, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH, TM_MAX_EXTENSION_FACTOR,
+    TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 use arrayvec::ArrayVec;
@@ -777,6 +778,40 @@ pub fn rotate_root_move_to_front(legal_moves: &mut MoveScoreList, m: Move) {
     if let Some(index) = legal_moves.iter().position(|(candidate, _)| *candidate == m) {
         legal_moves[..=index].rotate_right(1);
     }
+}
+
+/// NET-1277: continuation history for a quiet move that has not been made
+/// yet, read from the side to move's point of view: the countermove-history
+/// entry against the opponent's last move, the follow-up entry after our own
+/// previous move, and whether `m` is THE countermove to the opponent's last
+/// move. A missing previous move (the root, or a null move at that ply) reads
+/// as 0: no evidence rather than negative evidence, as Ethereal's NULL_HISTORY
+/// does.
+#[inline(always)]
+fn continuation_history_pre_make(position: &Position, search_state: &SearchState, ply: u8, m: Move) -> (i32, i32, bool) {
+    let curr_piece = piece_type_to_index(m);
+    let curr_to = to_square_part(m) as usize;
+    let mut cmh = 0;
+    let mut is_counter = false;
+    if ply > 0 {
+        let prev_move = search_state.ply_move[ply as usize - 1];
+        if prev_move != 0 {
+            let prev_piece_12 = piece_type_to_index(prev_move) + ((position.mover ^ 1) as usize * 6);
+            let prev_to = to_square_part(prev_move) as usize;
+            cmh = search_state.countermove_history[prev_piece_12][prev_to][curr_piece][curr_to] as i32;
+            is_counter = search_state.countermoves[prev_piece_12][prev_to] == m;
+        }
+    }
+    let mut fmh = 0;
+    if ply >= 2 {
+        let our_prev_move = search_state.ply_move[ply as usize - 2];
+        if our_prev_move != 0 {
+            let our_prev_piece = piece_type_to_index(our_prev_move);
+            let our_prev_to = to_square_part(our_prev_move) as usize;
+            fmh = search_state.followup_history[our_prev_piece][our_prev_to][curr_piece][curr_to] as i32;
+        }
+    }
+    (cmh, fmh, is_counter)
 }
 
 pub fn clear_killers(search_state: &mut SearchState) {
@@ -1793,12 +1828,40 @@ pub fn search(
 
         let move_extension = check_extension + pawn_push_ext + passed_pawn_ext;
 
-        // NET-1188: reject a quiet move before make/unmake when futility or LMP
-        // would reject it anyway and the per-node masks certify that it is
-        // legal and cannot give check. The conditions mirror the two prunes
-        // below exactly (with next_legal standing for the post-increment
-        // legal_move_count); anything the certificates cannot prove still goes
-        // through make, the legality test and the gives-check test as before.
+        // NET-1277: continuation-history pruning, Ethereal's step 14C. A quiet
+        // move that is neither a killer nor the countermove, at a scout node
+        // after the first legal move, is skipped when the depth the LMR table
+        // would leave it (depth minus the table reduction at this searched
+        // index) is at most CONTINUATION_PRUNING_DEPTH[improving] and the
+        // worse of its two continuation-history entries is below
+        // CONTINUATION_PRUNING_HISTORY_LIMIT[improving]. Decided before the
+        // move is made so the certificate path below can reject it without
+        // make/unmake; the post-make path applies the same predicate, plus the
+        // gives-check test, to moves the certificates cannot prove.
+        let cont_prune = CONTINUATION_PRUNING
+            && scouting
+            && excluded_move == 0
+            && !in_check
+            && !is_tactical
+            && !is_promotion
+            && legal_move_count >= 1
+            && alpha.abs() < MATE_START
+            && depth as i32 - lmr_reduction(depth, (children_here + 1).min(63) as u8) as i32
+                <= CONTINUATION_PRUNING_DEPTH[improving as usize]
+            && m != search_state.killer_moves[ply as usize][0]
+            && m != search_state.killer_moves[ply as usize][1]
+            && {
+                let (cmh, fmh, is_counter) = continuation_history_pre_make(position, search_state, ply, m);
+                !is_counter && cmh.min(fmh) < CONTINUATION_PRUNING_HISTORY_LIMIT[improving as usize]
+            };
+
+        // NET-1188: reject a quiet move before make/unmake when futility, LMP
+        // or the continuation prune would reject it anyway and the per-node
+        // masks certify that it is legal and cannot give check. The conditions
+        // mirror the prunes below exactly (with next_legal standing for the
+        // post-increment legal_move_count); anything the certificates cannot
+        // prove still goes through make, the legality test and the gives-check
+        // test as before.
         if !in_check && !is_tactical && !is_promotion && m & PIECE_MASK_FULL != PIECE_MASK_KING {
             let next_legal = legal_move_count + 1;
             let would_futility_prune = next_legal > 1 && alpha_prune_flag;
@@ -1815,7 +1878,7 @@ pub fn search(
                 && m != search_state.killer_moves[ply as usize][0]
                 && m != search_state.killer_moves[ply as usize][1]
                 && alpha.abs() < MATE_START;
-            if would_futility_prune || would_lmp_prune {
+            if would_futility_prune || would_lmp_prune || cont_prune {
                 if !pre_make.ready {
                     pre_make.compute(position);
                 }
@@ -1833,7 +1896,13 @@ pub fn search(
                     legal_move_count += 1;
                     search_state.ply_move[ply as usize] = m;
                     if cfg!(feature = "search-width-diagnostics") {
-                        search_state.pruned_by_reason[if would_futility_prune { 1 } else { 2 }] += 1;
+                        search_state.pruned_by_reason[if would_futility_prune {
+                            1
+                        } else if would_lmp_prune {
+                            2
+                        } else {
+                            4
+                        }] += 1;
                         search_state.pruned_by_reason[3] += 1;
                     }
                     continue;
@@ -1901,6 +1970,17 @@ pub fn search(
             {
                 if cfg!(feature = "search-width-diagnostics") {
                     search_state.pruned_by_reason[2] += 1;
+                }
+                unmake_move_nnue(position, m, &unmake, search_state);
+                continue;
+            }
+
+            // NET-1277: the continuation prune for a move the certificates
+            // could not clear before make (a pinned piece, a discovered-check
+            // candidate, a king move or a possible direct check)
+            if cont_prune && !gives_check {
+                if cfg!(feature = "search-width-diagnostics") {
+                    search_state.pruned_by_reason[4] += 1;
                 }
                 unmake_move_nnue(position, m, &unmake, search_state);
                 continue;

@@ -94,6 +94,19 @@ pub const SINGULAR_NEGATIVE_EXTENSION: bool = true;
 pub const LMP_MAX_DEPTH: u8 = 8;
 pub const LMP_MOVE_THRESHOLDS: [u8; 9] = [0, 9, 6, 9, 19, 28, 39, 52, 67]; // 1-3 SPSA tuned (Run 20); 4-8 = 3+d^2
 
+// NET-1277: continuation-history pruning (Ethereal step 14C). At a scout node,
+// after the first legal move, a quiet move that is neither a killer nor the
+// countermove is skipped when the depth the LMR table would leave it (depth
+// minus the table reduction at its searched index) is at most
+// CONTINUATION_PRUNING_DEPTH[improving] and the worse of its two
+// continuation-history entries is below
+// CONTINUATION_PRUNING_HISTORY_LIMIT[improving]. Both tables sit on the shared
+// [-HISTORY_MAX, HISTORY_MAX] gravity scale, the same as Ethereal's, so its
+// limits transfer directly. Index 0 is not improving, index 1 is improving.
+pub const CONTINUATION_PRUNING: bool = true;
+pub const CONTINUATION_PRUNING_DEPTH: [i32; 2] = [3, 2];
+pub const CONTINUATION_PRUNING_HISTORY_LIMIT: [i32; 2] = [-1000, -2500];
+
 // Razoring: at very shallow depth, if the static eval is far below alpha, verify
 // with a quiescence search and fail low immediately if that confirms it. Distinct
 // from ALPHA_PRUNE_MARGINS, which skips individual late quiet moves inside the
