@@ -1,6 +1,6 @@
 [package]
 name = "rusty-rival"
-version = "1.0.63"
+version = "1.0.64"
 edition = "2021"
 description = "Rusty Rival: a UCI chess engine written in Rust with NNUE evaluation"
 repository = "https://github.com/chris-moreton/rusty-rival"
