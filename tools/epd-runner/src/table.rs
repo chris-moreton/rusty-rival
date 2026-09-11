@@ -125,22 +125,22 @@ pub fn engine_matches(selector: &str, column: &Column) -> bool {
     base_ok && hash.is_none_or(|h| column.sha8 == h || column.options_hash8.as_deref() == Some(h))
 }
 
+/// The column an engine record would occupy.
+pub fn column_of(engine: &crate::store::EngineRecord) -> Column {
+    Column {
+        family: engine.family.clone(),
+        label: engine.label.clone(),
+        version: engine.version.clone(),
+        sha8: engine.sha8().to_string(),
+        options: engine.options.clone(),
+        options_hash8: engine.options_hash8(),
+    }
+}
+
 pub fn build(files: &[ResultsFile], key: &TableKey, engines: Option<&[String]>, suites: Option<&[String]>) -> Table {
     let mut columns: Vec<(Column, &ResultsFile)> = files
         .iter()
-        .map(|f| {
-            (
-                Column {
-                    family: f.engine.family.clone(),
-                    label: f.engine.label.clone(),
-                    version: f.engine.version.clone(),
-                    sha8: f.engine.sha8().to_string(),
-                    options: f.engine.options.clone(),
-                    options_hash8: f.engine.options_hash8(),
-                },
-                f,
-            )
-        })
+        .map(|f| (column_of(&f.engine), f))
         .filter(|(c, f)| f.runs.iter().any(|r| key.matches(r)) && engines.is_none_or(|sel| sel.iter().any(|s| engine_matches(s, c))))
         .collect();
     columns.sort_by(|a, b| {
