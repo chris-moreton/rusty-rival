@@ -171,8 +171,8 @@ struct TableArgs {
 
 #[derive(Args)]
 struct DiffArgs {
-    /// Left side: an engine binary path, a results file, or a store selector
-    /// (`family:label[#hash]`).
+    /// Left side: an engine binary path, `@name` from epd/engines.toml, a
+    /// results file, or a store selector (`family:label[#hash]`).
     a: String,
     /// Right side, the same forms.
     b: String,
@@ -183,6 +183,9 @@ struct DiffArgs {
     budget: BudgetArgs,
     #[command(flatten)]
     settings: EngineSettings,
+    /// Extra UCI option for any side that is run, NAME=VALUE (repeatable).
+    #[arg(long = "option", value_name = "NAME=VALUE")]
+    options: Vec<String>,
     #[arg(long)]
     json: bool,
 }
@@ -190,11 +193,18 @@ struct DiffArgs {
 #[derive(Args)]
 struct CheckArgs {
     /// The candidate engine binary.
+    #[arg(long, conflicts_with = "name")]
+    engine: Option<PathBuf>,
+    /// The candidate as an entry from epd/engines.toml.
     #[arg(long)]
-    engine: PathBuf,
-    /// The baseline: a results file, or a store selector (`family:label[#hash]`).
+    name: Option<String>,
+    /// The baseline: `@name` from the registry (run or cached), a results
+    /// file, or a store selector (`family:label[#hash]`).
     #[arg(long)]
     baseline: String,
+    /// Extra UCI option for the candidate (and a `@name` baseline), NAME=VALUE (repeatable).
+    #[arg(long = "option", value_name = "NAME=VALUE")]
+    options: Vec<String>,
     /// Comma-separated suite names, or `all`.
     #[arg(long, default_value = "all")]
     suites: String,
@@ -488,9 +498,36 @@ struct Resolved {
     runs: Vec<store::RunRecord>,
 }
 
+/// Prepare and run an engine (a binary path or a registry name) over the
+/// suites, returning its label and records.
+#[allow(clippy::too_many_arguments)]
+fn run_side(
+    epd_dir: &Path,
+    engine_path: Option<&Path>,
+    registry_name: Option<&str>,
+    options: &[String],
+    limit: uci::Limit,
+    settings: &EngineSettings,
+    suites: &[epd::Suite],
+    quiet: bool,
+) -> Result<Resolved, String> {
+    settings.guard_busy(limit)?;
+    let prepared = prepare_engine(epd_dir, engine_path, registry_name, options, None, None)?;
+    let outcomes = run_engine(epd_dir, &prepared, limit, settings, suites, quiet, |suite, outcome| {
+        if !quiet {
+            out(&summary_line(&suite.name, outcome));
+        }
+    })?;
+    Ok(Resolved {
+        label: format!("{} {} ({})", prepared.engine.family, prepared.engine.label, prepared.engine.sha8()),
+        runs: outcomes.into_iter().map(|o| o.record).collect(),
+    })
+}
+
 fn resolve_side(
     epd_dir: &Path,
     spec: &str,
+    options: &[String],
     limit: uci::Limit,
     settings: &EngineSettings,
     suites: &[epd::Suite],
@@ -505,20 +542,12 @@ fn resolve_side(
         settings.concurrency,
         settings.cpu.as_deref(),
     );
-    let file = if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("json") {
+    let file = if let Some(name) = spec.strip_prefix('@') {
+        return run_side(epd_dir, None, Some(name), options, limit, settings, suites, quiet);
+    } else if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("json") {
         store::load_file(path)?
     } else if path.is_file() {
-        settings.guard_busy(limit)?;
-        let prepared = prepare_engine(epd_dir, Some(path), None, &[], None, None)?;
-        let outcomes = run_engine(epd_dir, &prepared, limit, settings, suites, quiet, |suite, outcome| {
-            if !quiet {
-                out(&summary_line(&suite.name, outcome));
-            }
-        })?;
-        return Ok(Resolved {
-            label: format!("{} {} ({})", prepared.engine.family, prepared.engine.label, prepared.engine.sha8()),
-            runs: outcomes.into_iter().map(|o| o.record).collect(),
-        });
+        return run_side(epd_dir, Some(path), None, options, limit, settings, suites, quiet);
     } else {
         let files = store::load_all(epd_dir)?;
         let matches: Vec<store::ResultsFile> = files
@@ -567,8 +596,8 @@ fn resolve_side(
 fn cmd_diff(epd_dir: &Path, args: DiffArgs) -> Result<(), String> {
     let limit = args.budget.limit()?;
     let suites = load_suites(epd_dir, &args.suites)?;
-    let a = resolve_side(epd_dir, &args.a, limit, &args.settings, &suites, args.json)?;
-    let b = resolve_side(epd_dir, &args.b, limit, &args.settings, &suites, args.json)?;
+    let a = resolve_side(epd_dir, &args.a, &args.options, limit, &args.settings, &suites, args.json)?;
+    let b = resolve_side(epd_dir, &args.b, &args.options, limit, &args.settings, &suites, args.json)?;
     let mut diffs = Vec::new();
     for (ra, rb) in a.runs.iter().zip(&b.runs) {
         diffs.push(compare::diff_runs(ra, rb)?);
@@ -587,8 +616,19 @@ fn cmd_diff(epd_dir: &Path, args: DiffArgs) -> Result<(), String> {
 fn cmd_check(epd_dir: &Path, args: CheckArgs) -> Result<(), String> {
     let limit = args.budget.limit()?;
     let suites = load_suites(epd_dir, &args.suites)?;
-    let baseline = resolve_side(epd_dir, &args.baseline, limit, &args.settings, &suites, args.json)?;
-    let candidate = resolve_side(epd_dir, &args.engine.to_string_lossy(), limit, &args.settings, &suites, args.json)?;
+    let baseline = resolve_side(epd_dir, &args.baseline, &args.options, limit, &args.settings, &suites, args.json)?;
+    // The candidate is always run (or served from the cache), never looked
+    // up by name in the store: a binary is a binary whatever it is called.
+    let candidate = run_side(
+        epd_dir,
+        args.engine.as_deref(),
+        args.name.as_deref(),
+        &args.options,
+        limit,
+        &args.settings,
+        &suites,
+        args.json,
+    )?;
     let mut diffs = Vec::new();
     let mut verdicts = Vec::new();
     for (rb, rc) in baseline.runs.iter().zip(&candidate.runs) {

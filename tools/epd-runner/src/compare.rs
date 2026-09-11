@@ -91,6 +91,17 @@ pub fn diff_runs(a: &RunRecord, b: &RunRecord) -> Result<SuiteDiff, String> {
             ));
         }
     }
+    // A results file is committed and hand-editable: the summary must agree
+    // with the positions it claims to summarise.
+    for (side, run) in [("A", a), ("B", b)] {
+        let counted = run.positions.iter().filter(|p| p.solved).count();
+        if counted != run.summary.solved {
+            return Err(format!(
+                "{}: side {} summary says {} solved but the positions say {}",
+                run.suite.name, side, run.summary.solved, counted
+            ));
+        }
+    }
     let by_id: BTreeMap<&str, &crate::store::PositionRecord> = b.positions.iter().map(|p| (p.id.as_str(), p)).collect();
     let mut gained = Vec::new();
     let mut lost = Vec::new();
@@ -378,6 +389,12 @@ mod tests {
         let mut dup = run(&[true, true]);
         dup.positions[1].id = "P.0".into();
         assert!(diff_runs(&a, &dup).is_err());
+        let mut lying = run(&[true, false]);
+        lying.summary.solved = 2;
+        assert!(
+            diff_runs(&a, &lying).is_err(),
+            "a summary that disagrees with its positions is rejected"
+        );
     }
 
     #[test]

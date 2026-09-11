@@ -81,8 +81,11 @@ epd-runner check --engine target/release/rusty-rival --baseline rusty-rival:1.0.
 epd-runner check --engine BIN --baseline epd/results/rusty-rival/1.0.64-<sha8>.json --suites quick --nodes 100000 --exact
 ```
 
-Each side of `diff` is an engine binary (run, or served from the cache), a
-results file, or a store selector (`family:label[#hash]`). The output lists,
+Each side of `diff` is an engine binary (run, or served from the cache),
+`@name` for a registry entry, a results file, or a store selector
+(`family:label[#hash]`); `--option NAME=VALUE` applies to any side that is
+run. `check` takes the candidate as `--engine PATH` or `--name NAME` and the
+baseline in the same forms as a `diff` side. The output lists,
 per suite, the positions solved by one side and not the other with each
 side's move and solve point, the two summary lines and the net change;
 `--json` gives the same as data. `check` runs the candidate binary against a
@@ -98,8 +101,9 @@ same suite revision.
 The `EPD regression` job in `.github/workflows/build.yml` builds the engine
 and the runner, runs `check` on Bratko-Kopec and WAC at 100k nodes against
 the committed rusty-rival 1.0.64 record, posts the delta as a comment on the
-pull request (one comment, updated on each run), and fails only when a
-suite's solved count drops by more than two. A search change legitimately
+pull request (one comment, updated on each run), and fails when a suite's
+solved count drops by more than two or when the comparison is incomplete (a
+position that errored, or is missing on one side). A search change legitimately
 moves these counts; a pull request that intends one updates the baseline by
 running the suites for the new binary, as with the bench signature.
 

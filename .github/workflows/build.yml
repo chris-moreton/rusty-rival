@@ -123,7 +123,7 @@ jobs:
             cat check.txt
             echo '```'
           } > comment.md
-          existing=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" --jq '[.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- epd-regression -->"))] | last | .id' | tail -1)
+          existing=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- epd-regression -->")) | .id' | tail -1)
           if [ -n "$existing" ] && [ "$existing" != "null" ]; then
             gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${existing}" -F body=@comment.md >/dev/null
           else
