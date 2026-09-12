@@ -30,3 +30,5 @@ epd/results/**/*.json.lock
 
 # per-user epd-runner terminal view state
 epd/tui-state.toml
+epd/engines.toml.lock
+epd/engines.toml.*.tmp

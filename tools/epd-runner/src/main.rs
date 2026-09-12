@@ -702,7 +702,8 @@ fn cmd_engines(epd_dir: &Path) -> Result<(), String> {
                 let name = describe_engine(&path, &pairs).unwrap_or_else(|e| format!("(no uci: {})", e));
                 (sha[..8].to_string(), name, Some(sha))
             }
-            Err(_) => ("missing".to_string(), format!("({})", path.display()), None),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => ("missing".to_string(), format!("({})", path.display()), None),
+            Err(e) => ("unreadable".to_string(), format!("({}: {})", path.display(), e), None),
         };
         // The store's latest record under this family and label.
         let latest = files
@@ -728,6 +729,9 @@ fn cmd_fetch(epd_dir: &Path, engine: &str, tag: &str) -> Result<(), String> {
     if engine != "rusty" && engine != "rusty-rival" {
         return Err(format!("only `rusty` can be fetched, not '{}'", engine));
     }
+    // One fetch at a time per epd directory: the download, the .part rename
+    // and the registry rewrite are one transaction under the registry lock.
+    let _lock = store::FileLock::acquire(&epd_dir.join("engines.toml"))?;
     let (path, id_name) = fetch::fetch_rusty(epd_dir, tag)?;
     let tag = if tag.starts_with('v') {
         tag.to_string()

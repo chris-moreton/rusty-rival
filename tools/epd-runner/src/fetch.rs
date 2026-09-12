@@ -127,25 +127,43 @@ struct Block {
     lines: Vec<String>,
 }
 
+/// Split a TOML key line's right-hand side into its value and any trailing
+/// comment: a quoted value ends at the closing quote, a bare one at the
+/// first `#`.
+fn value_and_comment(rest: &str) -> (String, Option<String>) {
+    let rest = rest.trim_start();
+    if let Some(inner) = rest.strip_prefix('"') {
+        if let Some(end) = inner.find('"') {
+            let after = inner[end + 1..].trim();
+            return (inner[..end].to_string(), after.strip_prefix('#').map(|c| c.trim().to_string()));
+        }
+    }
+    match rest.split_once('#') {
+        Some((v, c)) => (v.trim().trim_matches('"').to_string(), Some(c.trim().to_string())),
+        None => (rest.trim().trim_matches('"').to_string(), None),
+    }
+}
+
+fn is_key_line(line: &str, key: &str) -> bool {
+    !line.trim_start().starts_with('#') && line.split_once('=').is_some_and(|(k, _)| k.trim() == key)
+}
+
 impl Block {
     fn value_of(&self, key: &str) -> Option<String> {
-        self.lines.iter().find_map(|l| {
-            let (k, v) = l.split_once('=')?;
-            if k.trim() != key {
-                return None;
-            }
-            Some(v.trim().trim_matches('"').to_string())
-        })
+        self.lines
+            .iter()
+            .find(|l| is_key_line(l, key))
+            .and_then(|l| l.split_once('=').map(|(_, v)| value_and_comment(v).0))
     }
 
     fn set_path(&mut self, path: &str) {
-        let line = format!("path = \"{}\"", path);
-        if let Some(i) = self
-            .lines
-            .iter()
-            .position(|l| l.split_once('=').is_some_and(|(k, _)| k.trim() == "path"))
-        {
-            self.lines[i] = line;
+        if let Some(i) = self.lines.iter().position(|l| is_key_line(l, "path")) {
+            // Keep an inline comment from the old path line.
+            let comment = self.lines[i].split_once('=').and_then(|(_, v)| value_and_comment(v).1);
+            self.lines[i] = match comment {
+                Some(c) => format!("path = \"{}\" # {}", path, c),
+                None => format!("path = \"{}\"", path),
+            };
         } else {
             // Insert after the last key line so a trailing blank line stays last.
             let at = self
@@ -153,7 +171,7 @@ impl Block {
                 .iter()
                 .rposition(|l| l.contains('=') && !l.trim_start().starts_with('#'))
                 .map_or(self.lines.len(), |i| i + 1);
-            self.lines.insert(at, line);
+            self.lines.insert(at, format!("path = \"{}\"", path));
         }
     }
 }
@@ -253,6 +271,23 @@ mod tests {
         assert!(reports_version("Rusty Rival v1.0.64", "1.0.64"));
         assert!(!reports_version("Rusty Rival 1.0.64", "1.0.6"));
         assert!(!reports_version("Rusty Rival 1.0.6", "1.0.64"));
+    }
+
+    #[test]
+    fn upsert_handles_inline_comments() {
+        let text = "[[engine]]\nname = \"1.0.64\" # the release\nfamily = \"rusty-rival\"\npath = \"~/old\" # local build\n# a full-line comment\n";
+        let out = upsert_rusty_entry(text, "1.0.64", "../engines/v1.0.64/rusty-rival");
+        assert_eq!(out.matches("[[engine]]").count(), 1, "the commented entry is found, not duplicated");
+        assert!(
+            out.contains("path = \"../engines/v1.0.64/rusty-rival\" # local build"),
+            "the inline comment survives"
+        );
+        assert!(out.contains("# a full-line comment"));
+        assert_eq!(
+            value_and_comment(" \"a # not a comment\" # real"),
+            ("a # not a comment".to_string(), Some("real".to_string()))
+        );
+        assert_eq!(value_and_comment(" 3 # n"), ("3".to_string(), Some("n".to_string())));
     }
 
     #[test]
