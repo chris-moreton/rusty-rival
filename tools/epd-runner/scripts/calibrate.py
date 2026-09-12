@@ -11,6 +11,10 @@ root = sys.argv[1] if len(sys.argv) > 1 else 'epd/results'
 files = [json.load(open(f)) for f in glob.glob(f'{root}/*/*.json')]
 def key(e):
     return f"{e['family']}:{e['label']}"
+
+def identity(e):
+    opt = ''.join(f"{k}={v};" for k, v in sorted(e.get('options', {}).items()))
+    return f"{e['sha256']}|{opt}"
 rival = [f"rusty-rival:{v}" for v in ["1.0.59","1.0.60","1.0.61","1.0.62","1.0.63","1.0.64"]]
 sf = ["stockfish:sf-2600","stockfish:sf-2800","stockfish:sf-3000","stockfish:stockfish"]
 peers = ["ethereal:ethereal","berserk:berserk","stash:stash","obsidian:obsidian"]
@@ -19,13 +23,20 @@ pairs += [(sf[i], sf[i+1]) for i in range(3)]
 pairs += [("rusty-rival:1.0.64", p) for p in peers + sf[1:]]  # peers and sf-2800+ above rival
 pairs += [(p, "stockfish:stockfish") for p in peers + sf[:3]]
 pairs += [("stockfish:sf-2600", "rusty-rival:1.0.64")]         # rival ~3100 beats sf-2600 98%
-cells = collections.defaultdict(dict)   # (suite, mode, budget, threads) -> engine -> percent
+# A label must map to exactly one binary-and-options identity, or the result
+# would depend on which file the glob returned last.
+seen = {}
+for f in files:
+    e, ident = key(f['engine']), identity(f['engine'])
+    if seen.setdefault(e, ident) != ident:
+        sys.exit(f"error: {e} appears with two identities in the store; pin one before calibrating")
+cells = collections.defaultdict(dict)   # (suite, mode, budget, threads, concurrency) -> engine -> percent (unrounded)
 for f in files:
     e = key(f['engine'])
     for r in f['runs']:
         s = r['summary']
         pct = 100.0 * s['points'] / s['max_points'] if s.get('points') is not None and s.get('max_points') else (100.0 * s['solved'] / s['total'] if s['total'] else 0)
-        cells[(r['suite']['name'], r['mode'], r['budget'], r['threads'], r.get('concurrency', 1))][e] = round(pct, 2)
+        cells[(r['suite']['name'], r['mode'], r['budget'], r['threads'], r.get('concurrency', 1))][e] = pct
 rows = []
 for k in sorted(cells):
     sc = cells[k]
@@ -37,7 +48,7 @@ for k in sorted(cells):
     rows.append((k, len(tested), len(viol), len(ties), viol, sc))
 print(f"{'suite':<14}{'mode':<7}{'budget':>9}{'thr':>4}{'conc':>5}  pairs  viol  ties  worst violations")
 for (suite, mode, budget, thr, conc), n, v, t, viol, sc in rows:
-    worst = ", ".join(f"{a.split(':')[1]}({sc[a]})>{b.split(':')[1]}({sc[b]})" for a, b in viol[:4])
+    worst = ", ".join(f"{a.split(':')[1]}({sc[a]:.1f})>{b.split(':')[1]}({sc[b]:.1f})" for a, b in viol[:4])
     print(f"{suite:<14}{mode:<7}{budget:>9}{thr:>4}{conc:>5}  {n:>5}  {v:>4}  {t:>4}  {worst}")
 print()
 print("Rival series by (suite, budget): percent for 1.0.59 .. 1.0.64")
