@@ -4,6 +4,7 @@
 mod compare;
 mod config;
 mod epd;
+mod fetch;
 mod host;
 mod runner;
 mod san;
@@ -43,6 +44,17 @@ enum Command {
     Suites,
     /// The interactive terminal view over the store.
     Tui,
+    /// List the registry: binary present, sha8, reported name, and whether
+    /// the store's latest record for it was made from another binary.
+    Engines,
+    /// Download a rusty-rival release for this platform into engines/<tag>/
+    /// and register it (`fetch rusty v1.0.64`).
+    Fetch {
+        /// Only `rusty` is known.
+        engine: String,
+        /// The release tag, with or without the leading v.
+        tag: String,
+    },
 }
 
 #[derive(Args)]
@@ -332,7 +344,7 @@ fn prepare_engine(
         (None, Some(n)) => {
             let entry = registry.find(n).ok_or_else(|| format!("no engine named '{}' in engines.toml", n))?;
             (
-                entry.resolved_path(),
+                entry.resolved_path(epd_dir),
                 entry.options.clone(),
                 Some(entry.name.clone()),
                 entry.family.clone(),
@@ -669,6 +681,79 @@ fn cmd_check(epd_dir: &Path, args: CheckArgs) -> Result<(), String> {
     }
 }
 
+fn cmd_engines(epd_dir: &Path) -> Result<(), String> {
+    let registry = config::Registry::load(epd_dir)?;
+    let files = store::load_all(epd_dir)?;
+    if registry.engine.is_empty() {
+        out("no engines in engines.toml\n");
+        return Ok(());
+    }
+    out(&format!(
+        "{:<12} {:<12} {:<10} {:<34} {}\n",
+        "name", "family", "binary", "reports", "store"
+    ));
+    for entry in &registry.engine {
+        let path = entry.resolved_path(epd_dir);
+        let family = entry.family.clone().unwrap_or_else(|| "-".into());
+        let (binary, reports) = match std::fs::read(&path) {
+            Ok(bytes) => {
+                let sha8 = epd::sha256_hex(&bytes)[..8].to_string();
+                let pairs: Vec<(String, String)> = entry.options.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+                let name = describe_engine(&path, &pairs).unwrap_or_else(|e| format!("(no uci: {})", e));
+                (sha8, name)
+            }
+            Err(_) => ("missing".to_string(), format!("({})", path.display())),
+        };
+        // The store's latest record under this family and label.
+        let latest = files
+            .iter()
+            .filter(|f| entry.family.as_deref().is_none_or(|fam| f.engine.family == fam) && f.engine.label == entry.name)
+            .max_by_key(|f| f.runs.iter().map(|r| r.date.clone()).max());
+        let store_state = match latest {
+            None => "no records".to_string(),
+            Some(f) if binary == "missing" => format!("records from {}", f.engine.sha8()),
+            Some(f) if f.engine.sha8() == binary => format!("{} runs, same binary", f.runs.len()),
+            Some(f) => format!("STALE: {} runs from {}", f.runs.len(), f.engine.sha8()),
+        };
+        out(&format!(
+            "{:<12} {:<12} {:<10} {:<34} {}\n",
+            entry.name, family, binary, reports, store_state
+        ));
+    }
+    Ok(())
+}
+
+fn cmd_fetch(epd_dir: &Path, engine: &str, tag: &str) -> Result<(), String> {
+    if engine != "rusty" && engine != "rusty-rival" {
+        return Err(format!("only `rusty` can be fetched, not '{}'", engine));
+    }
+    let (path, id_name) = fetch::fetch_rusty(epd_dir, tag)?;
+    let tag = if tag.starts_with('v') {
+        tag.to_string()
+    } else {
+        format!("v{}", tag)
+    };
+    let version = tag.trim_start_matches('v').to_string();
+    let relative = format!(
+        "../engines/{}/{}",
+        tag,
+        path.file_name().and_then(|n| n.to_str()).unwrap_or("rusty-rival")
+    );
+    let toml_path = epd_dir.join("engines.toml");
+    let text = std::fs::read_to_string(&toml_path).unwrap_or_default();
+    let updated = fetch::upsert_rusty_entry(&text, &version, &relative);
+    std::fs::write(&toml_path, updated).map_err(|e| format!("cannot write {}: {}", toml_path.display(), e))?;
+    out(&format!(
+        "{} -> {} ({}); engines.toml entry '{}' -> {}\n",
+        tag,
+        path.display(),
+        id_name,
+        version,
+        relative
+    ));
+    Ok(())
+}
+
 fn cmd_suites(epd_dir: &Path) -> Result<(), String> {
     for suite in load_suites(epd_dir, "all")? {
         let graded = if suite.is_graded() { " (graded)" } else { "" };
@@ -693,6 +778,8 @@ fn main() {
         Command::Check(args) => cmd_check(&epd_dir, args),
         Command::Suites => cmd_suites(&epd_dir),
         Command::Tui => tui::run(&epd_dir),
+        Command::Engines => cmd_engines(&epd_dir),
+        Command::Fetch { engine, tag } => cmd_fetch(&epd_dir, &engine, &tag),
     };
     if let Err(e) = result {
         eprintln!("error: {}", e);
