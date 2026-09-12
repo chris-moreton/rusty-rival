@@ -41,7 +41,9 @@ label (for example `sf-2800`, Stockfish with `UCI_Elo` 2800). The binary's
 sha256 is always part of the record, so a rebuilt binary with the same
 version string is a different engine, and the UCI options are part of it
 too: the same binary with other options is another column, shown as
-`sha8#opthash` under the header and selectable as `family:label#opthash`.
+`sha8#opthash` under the header. A selector takes `#hash` suffixes that all
+have to match the binary sha8 or the options hash (`-` for no options), so
+`family:label#sha8#opthash` names one binary with one option set.
 
 ## Store
 
@@ -70,6 +72,27 @@ counts positions without a resolution error.
 
 Records for released rusty-rival versions and for the peers are committed;
 experiment binaries can be left untracked.
+
+## Terminal view
+
+```
+target/release/epd-runner tui
+```
+
+Rows are suites, columns the selected engines, cells the percent solved
+(or counts with `p`) at the current budget; the best and worst cell in a
+row are green and red, `—` is a missing run. `b`/`B` cycle the budgets in
+the store for the current mode, `m` moves to the next mode, `e` opens the
+engine picker (space toggles one engine, `f` a whole family, `a`/`n`
+all/none), Enter opens the suite with one row per position and every
+engine's move and solve point (`d` keeps only the positions the engines
+disagree on), and wide tables scroll sideways with the cursor. `r` queues
+`epd-runner run` for the missing cell under the cursor and `R` for every
+missing cell in the column; runs go one at a time, only for engines whose
+`engines.toml` entry is the same binary and options as the column, on this
+CPU for time budgets and for the suite revision on disk, and time-mode
+runs ask first. The selection, the percent switch and the budget persist in
+`epd/tui-state.toml`.
 
 ## Diff and check
 

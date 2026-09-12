@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 
 /// Everything that must agree for two runs to sit in one table: the budget
 /// and the engine settings, and in time mode the host and concurrency too.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct TableKey {
     pub mode: String,
     pub budget: u64,
@@ -110,19 +110,35 @@ pub struct Table {
 }
 
 /// Does an engine match a selector? `family:label`, or a bare family, label
-/// or version; an optional `#hash` suffix pins the binary sha8 or the
-/// options hash, which is how two option variants of one binary are told
-/// apart (`stockfish:dev-20260726#9e2b0c1d`).
+/// or version; each `#hash` suffix pins the binary sha8 or the options
+/// hash, and every hash given must match, so
+/// `stockfish:dev-20260726#aa074844#9e2b0c1d` names exactly one binary with
+/// exactly one option set.
 pub fn engine_matches(selector: &str, column: &Column) -> bool {
-    let (base, hash) = match selector.split_once('#') {
-        Some((b, h)) => (b, Some(h)),
-        None => (selector, None),
-    };
+    let mut parts = selector.split('#');
+    let base = parts.next().unwrap_or("");
     let base_ok = match base.split_once(':') {
         Some((family, label)) => column.family == family && (column.label == label || column.version == label),
         None => base.is_empty() || column.family == base || column.label == base || column.version == base,
     };
-    base_ok && hash.is_none_or(|h| column.sha8 == h || column.options_hash8.as_deref() == Some(h))
+    base_ok
+        && parts.all(|h| match h {
+            // `-` means "no options": the plain variant of a binary.
+            "-" => column.options_hash8.is_none(),
+            h => column.sha8 == h || column.options_hash8.as_deref() == Some(h),
+        })
+}
+
+/// The selector that names this column and no other: family, label, the
+/// binary sha8, and the options hash (or `-` for no options).
+pub fn unique_selector(column: &Column) -> String {
+    format!(
+        "{}:{}#{}#{}",
+        column.family,
+        column.label,
+        column.sha8,
+        column.options_hash8.as_deref().unwrap_or("-")
+    )
 }
 
 /// The column an engine record would occupy.
@@ -340,6 +356,13 @@ mod tests {
         assert!(!engine_matches(&pinned, &plain));
         assert!(engine_matches("#0123abcd", &plain));
         assert!(!engine_matches("stockfish:dev#ffffffff", &plain));
+        // A unique selector names one binary with one option set.
+        assert!(engine_matches(&unique_selector(&capped), &capped));
+        assert!(!engine_matches(&unique_selector(&capped), &plain));
+        assert!(!engine_matches(&unique_selector(&plain), &capped));
+        let mut other_binary = capped.clone();
+        other_binary.sha8 = "fedcba98".into();
+        assert!(!engine_matches(&unique_selector(&capped), &other_binary));
     }
 
     #[test]
