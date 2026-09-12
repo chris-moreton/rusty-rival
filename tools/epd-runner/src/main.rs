@@ -695,14 +695,14 @@ fn cmd_engines(epd_dir: &Path) -> Result<(), String> {
     for entry in &registry.engine {
         let path = entry.resolved_path(epd_dir);
         let family = entry.family.clone().unwrap_or_else(|| "-".into());
-        let (binary, reports) = match std::fs::read(&path) {
+        let (binary, reports, sha_full) = match std::fs::read(&path) {
             Ok(bytes) => {
-                let sha8 = epd::sha256_hex(&bytes)[..8].to_string();
+                let sha = epd::sha256_hex(&bytes);
                 let pairs: Vec<(String, String)> = entry.options.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
                 let name = describe_engine(&path, &pairs).unwrap_or_else(|e| format!("(no uci: {})", e));
-                (sha8, name)
+                (sha[..8].to_string(), name, Some(sha))
             }
-            Err(_) => ("missing".to_string(), format!("({})", path.display())),
+            Err(_) => ("missing".to_string(), format!("({})", path.display()), None),
         };
         // The store's latest record under this family and label.
         let latest = files
@@ -711,8 +711,9 @@ fn cmd_engines(epd_dir: &Path) -> Result<(), String> {
             .max_by_key(|f| f.runs.iter().map(|r| r.date.clone()).max());
         let store_state = match latest {
             None => "no records".to_string(),
-            Some(f) if binary == "missing" => format!("records from {}", f.engine.sha8()),
-            Some(f) if f.engine.sha8() == binary => format!("{} runs, same binary", f.runs.len()),
+            Some(f) if sha_full.is_none() => format!("records from {}", f.engine.sha8()),
+            // The full digest decides; the eight-digit form is only shown.
+            Some(f) if sha_full.as_deref() == Some(f.engine.sha256.as_str()) => format!("{} runs, same binary", f.runs.len()),
             Some(f) => format!("STALE: {} runs from {}", f.runs.len(), f.engine.sha8()),
         };
         out(&format!(
@@ -740,9 +741,17 @@ fn cmd_fetch(epd_dir: &Path, engine: &str, tag: &str) -> Result<(), String> {
         path.file_name().and_then(|n| n.to_str()).unwrap_or("rusty-rival")
     );
     let toml_path = epd_dir.join("engines.toml");
-    let text = std::fs::read_to_string(&toml_path).unwrap_or_default();
+    // Only a missing registry starts empty; any other read failure must not
+    // end with the registry replaced by one entry.
+    let text = match std::fs::read_to_string(&toml_path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(e) => return Err(format!("cannot read {}: {}", toml_path.display(), e)),
+    };
     let updated = fetch::upsert_rusty_entry(&text, &version, &relative);
-    std::fs::write(&toml_path, updated).map_err(|e| format!("cannot write {}: {}", toml_path.display(), e))?;
+    let tmp = toml_path.with_extension(format!("toml.{}.tmp", std::process::id()));
+    std::fs::write(&tmp, updated).map_err(|e| format!("cannot write {}: {}", tmp.display(), e))?;
+    std::fs::rename(&tmp, &toml_path).map_err(|e| format!("cannot rename {}: {}", tmp.display(), e))?;
     out(&format!(
         "{} -> {} ({}); engines.toml entry '{}' -> {}\n",
         tag,

@@ -69,8 +69,18 @@ fn download(url: &str, to: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// True when the UCI id name carries exactly this version as a token
+/// ("Rusty Rival 1.0.64" for 1.0.64, not for 1.0.6).
+pub fn reports_version(id_name: &str, version: &str) -> bool {
+    id_name
+        .split_whitespace()
+        .any(|t| t == version || t.trim_start_matches('v') == version)
+}
+
 /// Fetch `tag` (for example `v1.0.64`), verify its `id name` carries the
-/// version, and return the binary's path and reported name.
+/// version, and return the binary's path and reported name. The download
+/// lands in a `.part` file and is renamed only after it verifies, so a
+/// wrong or broken asset never blocks the next attempt.
 pub fn fetch_rusty(epd_dir: &Path, tag: &str) -> Result<(PathBuf, String), String> {
     let tag = if tag.starts_with('v') {
         tag.to_string()
@@ -84,52 +94,113 @@ pub fn fetch_rusty(epd_dir: &Path, tag: &str) -> Result<(PathBuf, String), Strin
         REPO, tag, tag, suffix
     );
     let to = engine_path(epd_dir, &tag);
-    if !to.is_file() {
-        eprintln!("downloading {}", url);
-        download(&url, &to)?;
+    let verify = |path: &Path| -> Result<String, String> {
+        let engine = Engine::spawn(path, &[], Duration::from_secs(60))?;
+        let id_name = engine.id_name.clone();
+        engine.quit();
+        if !reports_version(&id_name, version) {
+            return Err(format!("{} reports '{}', not version {}", path.display(), id_name, version));
+        }
+        Ok(id_name)
+    };
+    if to.is_file() {
+        let id_name = verify(&to)?;
+        return Ok((to, id_name));
     }
-    let engine = Engine::spawn(&to, &[], Duration::from_secs(60))?;
-    let id_name = engine.id_name.clone();
-    engine.quit();
-    if !id_name.contains(version) {
-        return Err(format!("{} reports '{}', not version {}", to.display(), id_name, version));
-    }
+    let part = to.with_extension("part");
+    eprintln!("downloading {}", url);
+    download(&url, &part)?;
+    let id_name = match verify(&part) {
+        Ok(name) => name,
+        Err(e) => {
+            let _ = std::fs::remove_file(&part);
+            return Err(e);
+        }
+    };
+    std::fs::rename(&part, &to).map_err(|e| format!("cannot rename {}: {}", part.display(), e))?;
     Ok((to, id_name))
 }
 
-/// Add or update the registry entry for a fetched release, editing the TOML
-/// as text so comments and the other entries stay as they are.
-pub fn upsert_rusty_entry(toml_text: &str, version: &str, relative_path: &str) -> String {
-    let block = format!(
-        "[[engine]]\nname = \"{}\"\nfamily = \"rusty-rival\"\npath = \"{}\"\n",
-        version, relative_path
-    );
-    let name_line = format!("name = \"{}\"", version);
-    let mut out = String::new();
-    let mut replaced = false;
-    let mut in_target = false;
-    for line in toml_text.lines() {
-        let trimmed = line.trim();
-        if trimmed == "[[engine]]" {
-            in_target = false;
-        }
-        if trimmed == name_line && !replaced {
-            // Look ahead is not needed: the path line of this block is rewritten below.
-            in_target = true;
-            replaced = true;
-        }
-        if in_target && trimmed.starts_with("path =") {
-            out.push_str(&format!("path = \"{}\"\n", relative_path));
-            continue;
-        }
-        out.push_str(line);
-        out.push('\n');
+/// One `[[engine]]` block of the registry text, kept as lines so comments
+/// and spacing survive a rewrite.
+struct Block {
+    lines: Vec<String>,
+}
+
+impl Block {
+    fn value_of(&self, key: &str) -> Option<String> {
+        self.lines.iter().find_map(|l| {
+            let (k, v) = l.split_once('=')?;
+            if k.trim() != key {
+                return None;
+            }
+            Some(v.trim().trim_matches('"').to_string())
+        })
     }
-    if !replaced {
-        if !out.is_empty() && !out.ends_with("\n\n") {
-            out.push('\n');
+
+    fn set_path(&mut self, path: &str) {
+        let line = format!("path = \"{}\"", path);
+        if let Some(i) = self
+            .lines
+            .iter()
+            .position(|l| l.split_once('=').is_some_and(|(k, _)| k.trim() == "path"))
+        {
+            self.lines[i] = line;
+        } else {
+            // Insert after the last key line so a trailing blank line stays last.
+            let at = self
+                .lines
+                .iter()
+                .rposition(|l| l.contains('=') && !l.trim_start().starts_with('#'))
+                .map_or(self.lines.len(), |i| i + 1);
+            self.lines.insert(at, line);
         }
-        out.push_str(&block);
+    }
+}
+
+/// Add or update the registry entry for a fetched release, editing the TOML
+/// as text so comments and the other entries stay as they are. Keys may be
+/// in any order and spaced freely; the match is on the rusty-rival family
+/// (or no family) and the name.
+pub fn upsert_rusty_entry(toml_text: &str, version: &str, relative_path: &str) -> String {
+    let mut preamble: Vec<String> = Vec::new();
+    let mut blocks: Vec<Block> = Vec::new();
+    for line in toml_text.lines() {
+        if line.trim() == "[[engine]]" {
+            blocks.push(Block {
+                lines: vec![line.to_string()],
+            });
+        } else if let Some(b) = blocks.last_mut() {
+            b.lines.push(line.to_string());
+        } else {
+            preamble.push(line.to_string());
+        }
+    }
+    let target = blocks
+        .iter_mut()
+        .find(|b| b.value_of("name").as_deref() == Some(version) && b.value_of("family").as_deref().is_none_or(|f| f == "rusty-rival"));
+    match target {
+        Some(b) => b.set_path(relative_path),
+        None => {
+            if let Some(last) = blocks.last_mut() {
+                if !last.lines.last().is_some_and(|l| l.trim().is_empty()) {
+                    last.lines.push(String::new());
+                }
+            }
+            blocks.push(Block {
+                lines: vec![
+                    "[[engine]]".to_string(),
+                    format!("name = \"{}\"", version),
+                    "family = \"rusty-rival\"".to_string(),
+                    format!("path = \"{}\"", relative_path),
+                ],
+            });
+        }
+    }
+    let mut out = String::new();
+    for l in preamble.iter().chain(blocks.iter().flat_map(|b| b.lines.iter())) {
+        out.push_str(l);
+        out.push('\n');
     }
     out
 }
@@ -149,6 +220,39 @@ mod tests {
         assert!(!updated.contains("~/old/rival-v1.0.63"));
         assert_eq!(updated.matches("[[engine]]").count(), 2, "no duplicate block");
         assert!(updated.starts_with("# registry"), "comments kept");
+    }
+
+    #[test]
+    fn upsert_tolerates_key_order_spacing_and_other_families() {
+        let text = "[[engine]]\npath=\"~/x/rival\"\nname=\"1.0.64\"\nfamily = \"rusty-rival\"\n\n[[engine]]\nname = \"1.0.64\"\nfamily = \"other-engine\"\npath = \"~/other\"\n";
+        let out = upsert_rusty_entry(text, "1.0.64", "../engines/v1.0.64/rusty-rival");
+        assert_eq!(
+            out.matches("[[engine]]").count(),
+            2,
+            "the compact entry is rewritten, not duplicated"
+        );
+        assert!(
+            out.contains("path = \"../engines/v1.0.64/rusty-rival\"\nname=\"1.0.64\""),
+            "path rewritten in place before name"
+        );
+        assert!(
+            out.contains("path = \"~/other\""),
+            "an entry of another family with the same name is untouched"
+        );
+        let no_path = "[[engine]]\nname = \"1.0.64\"\nfamily = \"rusty-rival\"\n";
+        let out = upsert_rusty_entry(no_path, "1.0.64", "p");
+        assert!(
+            out.contains("family = \"rusty-rival\"\npath = \"p\""),
+            "a missing path line is added"
+        );
+    }
+
+    #[test]
+    fn version_must_match_as_a_whole_token() {
+        assert!(reports_version("Rusty Rival 1.0.64", "1.0.64"));
+        assert!(reports_version("Rusty Rival v1.0.64", "1.0.64"));
+        assert!(!reports_version("Rusty Rival 1.0.64", "1.0.6"));
+        assert!(!reports_version("Rusty Rival 1.0.6", "1.0.64"));
     }
 
     #[test]
