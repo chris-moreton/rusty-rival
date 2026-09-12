@@ -27,3 +27,6 @@ results/ab/
 # epd-runner writes results atomically through a temp file
 epd/results/**/*.json.*.tmp
 epd/results/**/*.json.lock
+
+# per-user epd-runner terminal view state
+epd/tui-state.toml

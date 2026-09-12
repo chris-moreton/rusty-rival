@@ -9,6 +9,7 @@ mod runner;
 mod san;
 mod store;
 mod table;
+mod tui;
 mod uci;
 
 use clap::{Args, Parser, Subcommand};
@@ -40,6 +41,8 @@ enum Command {
     Check(CheckArgs),
     /// List the suites and their position counts.
     Suites,
+    /// The interactive terminal view over the store.
+    Tui,
 }
 
 #[derive(Args)]
@@ -689,6 +692,7 @@ fn main() {
         Command::Diff(args) => cmd_diff(&epd_dir, args),
         Command::Check(args) => cmd_check(&epd_dir, args),
         Command::Suites => cmd_suites(&epd_dir),
+        Command::Tui => tui::run(&epd_dir),
     };
     if let Err(e) = result {
         eprintln!("error: {}", e);

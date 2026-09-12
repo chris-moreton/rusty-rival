@@ -71,6 +71,27 @@ counts positions without a resolution error.
 Records for released rusty-rival versions and for the peers are committed;
 experiment binaries can be left untracked.
 
+## Terminal view
+
+```
+target/release/epd-runner tui
+```
+
+Rows are suites, columns the selected engines, cells the percent solved
+(or counts with `p`) at the current budget; the best and worst cell in a
+row are green and red, `—` is a missing run. `b`/`B` cycle the budgets in
+the store for the current mode, `m` moves to the next mode, `e` opens the
+engine picker (space toggles one engine, `f` a whole family, `a`/`n`
+all/none), Enter opens the suite with one row per position and every
+engine's move and solve point (`d` keeps only the positions the engines
+disagree on), and wide tables scroll sideways with the cursor. `r` queues
+`epd-runner run` for the missing cell under the cursor and `R` for every
+missing cell in the column; runs go one at a time, only for engines whose
+`engines.toml` entry is the same binary and options as the column, on this
+CPU for time budgets and for the suite revision on disk, and time-mode
+runs ask first. The selection, the percent switch and the budget persist in
+`epd/tui-state.toml`.
+
 ## Diff and check
 
 ```

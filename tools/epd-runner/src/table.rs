@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 
 /// Everything that must agree for two runs to sit in one table: the budget
 /// and the engine settings, and in time mode the host and concurrency too.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct TableKey {
     pub mode: String,
     pub budget: u64,
