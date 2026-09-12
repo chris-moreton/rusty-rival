@@ -36,8 +36,15 @@ impl Registry {
 }
 
 impl EngineEntry {
-    pub fn resolved_path(&self) -> PathBuf {
-        expand_home(&self.path)
+    /// `~/` expands to the home directory; a relative path is taken from the
+    /// epd directory, so `../engines/v1.0.64/rusty-rival` works on any checkout.
+    pub fn resolved_path(&self, epd_dir: &Path) -> PathBuf {
+        let expanded = expand_home(&self.path);
+        if expanded.is_absolute() {
+            expanded
+        } else {
+            epd_dir.join(expanded)
+        }
     }
 }
 

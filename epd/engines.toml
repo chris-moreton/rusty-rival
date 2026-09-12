@@ -6,7 +6,7 @@
 [[engine]]
 name = "1.0.64"
 family = "rusty-rival"
-path = "~/benchmark/sprt/rival-v1.0.64"
+path = "../engines/v1.0.64/rusty-rival"
 
 [[engine]]
 name = "1.0.63"

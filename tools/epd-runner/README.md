@@ -45,6 +45,25 @@ too: the same binary with other options is another column, shown as
 have to match the binary sha8 or the options hash (`-` for no options), so
 `family:label#sha8#opthash` names one binary with one option set.
 
+### Registry listing and fetching releases
+
+```
+target/release/epd-runner engines
+target/release/epd-runner fetch rusty v1.0.64
+```
+
+`engines` lists every registry entry with the binary's sha8, the name it
+reports over UCI, and whether the store's latest record for that name was
+made from the same binary (`STALE` when it was not, which is the stale-binary
+trap the audit warned about). `fetch rusty vX.Y.Z` downloads that release's
+asset for this platform (the avx2 build where the CPU has it) into
+`engines/vX.Y.Z/rusty-rival`, the convention the local benchmarking uses,
+checks that it reports the version, and adds or updates the registry entry
+with a path relative to the epd directory so the registry works on any
+checkout. A release binary built by GitHub has a different sha from a local
+build of the same commit; node-mode results are the same (the CI job checks
+exactly this), but the store keeps them apart and `engines` says so.
+
 ## Store
 
 `epd/results/<family>/<label>-<sha8>.json`, one file per engine binary:

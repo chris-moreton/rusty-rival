@@ -284,13 +284,15 @@ pub fn save_file(path: &Path, file: &ResultsFile) -> Result<(), String> {
 /// `File::lock` on a sibling `.lock` file, which the kernel releases when
 /// the holder exits, so there is no stale lock to reclaim. Waits up to a
 /// minute for another runner.
-struct FileLock {
+pub struct FileLock {
     _file: std::fs::File,
 }
 
 impl FileLock {
-    fn acquire(target: &Path) -> Result<FileLock, String> {
-        let path = target.with_extension("json.lock");
+    /// Lock the sibling `<name>.lock` of `target` (`x.json.lock`, `engines.toml.lock`).
+    pub fn acquire(target: &Path) -> Result<FileLock, String> {
+        let name = target.file_name().and_then(|n| n.to_str()).unwrap_or("file");
+        let path = target.with_file_name(format!("{}.lock", name));
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| format!("cannot create {}: {}", parent.display(), e))?;
         }

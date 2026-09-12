@@ -392,7 +392,7 @@ impl App {
             .filter(|e| e.family.as_deref().unwrap_or(&column.family) == column.family && e.options == file.engine.options)
             .collect();
         for entry in candidates {
-            let path = entry.resolved_path();
+            let path = entry.resolved_path(&self.epd_dir);
             if let Ok(bytes) = std::fs::read(&path) {
                 if epd::sha256_hex(&bytes) == file.engine.sha256 {
                     return Ok(entry.name.clone());
