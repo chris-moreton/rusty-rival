@@ -1,0 +1,54 @@
+diff --git a/src/search.rs b/src/search.rs
+index 9083d23..04f12c0 100644
+--- a/src/search.rs
++++ b/src/search.rs
+@@ -1577,6 +1577,7 @@ pub fn search(
+                         return cutoff_unmake(
+                             position,
+                             singular_depth,
++                            depth,
+                             ply,
+                             search_state,
+                             best_pathscore,
+@@ -2093,6 +2094,7 @@ pub fn search(
+                         return cutoff_unmake(
+                             position,
+                             real_depth,
++                            depth,
+                             ply,
+                             search_state,
+                             best_pathscore,
+@@ -2207,12 +2209,15 @@ pub fn search(
+         }
+     }
+ 
++    // TT probes use incoming depth. Storing the check-extended depth would
++    // let a later, deeper visit reuse a shallower search of this same check.
++    // Extensions still govern the search and its history updates.
+     // A singular-verification search (excluded_move != 0) produces scores that
+     // exclude the best move - storing them would poison this position's entry
+     if excluded_move == 0 {
+         store_hash_entry(
+             position,
+-            real_depth,
++            depth,
+             hash_height,
+             hash_version,
+             hash_flag,
+@@ -2424,6 +2429,7 @@ fn search_wrapper(
+ fn cutoff_unmake(
+     position: &Position,
+     depth: u8,
++    incoming_depth: u8,
+     ply: u8,
+     search_state: &mut SearchState,
+     best_pathscore: PathScore,
+@@ -2526,7 +2532,7 @@ fn cutoff_unmake(
+     search_state.cutoff_by_index[idx] += 1;
+     store_hash_entry(
+         position,
+-        depth,
++        incoming_depth,
+         hash_height,
+         hash_version,
+         Lower,

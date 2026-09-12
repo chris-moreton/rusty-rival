@@ -1,0 +1,42 @@
+use rusty_rival::fen::get_position;
+use rusty_rival::quiesce::quiesce;
+use rusty_rival::search::{MATE_SCORE, MAX_WINDOW};
+use rusty_rival::types::default_search_state;
+use std::time::{Duration, Instant};
+
+#[test]
+fn quiet_evasion_at_fifty_move_boundary_is_drawn() {
+    // Every evasion is reversible and reaches the draw boundary. This is a
+    // synthetic rook ending, independent of the diagnostic suites.
+    let mut position = get_position("r5k1/8/8/8/8/8/7R/K7 w - - 99 1");
+    let mut state = default_search_state();
+    state.end_time = Instant::now() + Duration::from_secs(10);
+    state.history.push(position.zobrist_lock);
+    let history = state.history.clone();
+    let score = quiesce(&mut position, 8, 8, (-MAX_WINDOW, MAX_WINDOW), &mut state, None).1;
+    assert_eq!(score, 0);
+    assert_eq!(state.history, history);
+    assert_eq!(position.half_moves, 99);
+    assert_eq!(state.nnue_ply, 0);
+}
+
+#[test]
+fn checkmate_still_wins_at_fifty_move_boundary() {
+    let mut position = get_position("7k/6Q1/5K2/8/8/8/8/8 b - - 100 1");
+    let mut state = default_search_state();
+    state.end_time = Instant::now() + Duration::from_secs(10);
+    state.history.push(position.zobrist_lock);
+    assert_eq!(
+        quiesce(&mut position, 8, 8, (-MAX_WINDOW, MAX_WINDOW), &mut state, None).1,
+        -MATE_SCORE + 8
+    );
+}
+
+#[test]
+fn repeated_position_in_quiescence_is_drawn() {
+    let mut position = get_position("6k1/8/8/8/8/8/7R/K7 w - - 6 4");
+    let mut state = default_search_state();
+    state.end_time = Instant::now() + Duration::from_secs(10);
+    state.history.extend([position.zobrist_lock, 0, 1, 2, position.zobrist_lock]);
+    assert_eq!(quiesce(&mut position, 8, 8, (-MAX_WINDOW, MAX_WINDOW), &mut state, None).1, 0);
+}

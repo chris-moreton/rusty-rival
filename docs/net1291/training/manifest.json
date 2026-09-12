@@ -1,0 +1,166 @@
+{
+  "parent_checkpoint": "s3://chess-compete-builds/nnue-checkpoints-sf/rival-512x2-ob8-corrected-net1095-600/",
+  "parent_quantised_sha256": "27b35937dfa3d221ae5fb1d8e31f41b713f7e77cdae0b4efb93547197b4b70ff",
+  "roundtrip_sha256": "27b35937dfa3d221ae5fb1d8e31f41b713f7e77cdae0b4efb93547197b4b70ff",
+  "bullet_rev": "c1a3433ba0ab4ce177a42240249fa8e1ecdbe45d",
+  "data_root": "/home/chris/net53/data",
+  "data_files": [
+    {
+      "name": "sf_d9_1650000games_20260401-173756-1.data",
+      "bytes": 1389016000
+    },
+    {
+      "name": "sf_d9_1650000games_20260401-173801-2.data",
+      "bytes": 524980000
+    },
+    {
+      "name": "sf_d9_200000g_20260401-190305-s3.data",
+      "bytes": 262909472
+    },
+    {
+      "name": "sf_d9_200000g_20260401-190320-s6.data",
+      "bytes": 676520256
+    },
+    {
+      "name": "sf_d9_200000g_20260401-190344-s10.data",
+      "bytes": 675034528
+    },
+    {
+      "name": "sf_d9_200000g_20260401-190349-s11.data",
+      "bytes": 262738304
+    },
+    {
+      "name": "sf_d9_200000g_20260401-193340-x3.data",
+      "bytes": 188254816
+    },
+    {
+      "name": "sf_d9_200000g_20260401-193405-x7.data",
+      "bytes": 187445568
+    },
+    {
+      "name": "sf_d9_200000g_20260401-193421-x10.data",
+      "bytes": 675076896
+    },
+    {
+      "name": "sf_d9_200000g_20260401-193426-x11.data",
+      "bytes": 225619872
+    },
+    {
+      "name": "sf_d9_200000g_20260401-193452-x15.data",
+      "bytes": 412269824
+    },
+    {
+      "name": "sf_d9_200000g_20260401-200254-y2.data",
+      "bytes": 637886208
+    },
+    {
+      "name": "sf_d9_200000g_20260401-200259-y3.data",
+      "bytes": 337830464
+    },
+    {
+      "name": "sf_d9_200000g_20260401-200317-y6.data",
+      "bytes": 673530528
+    },
+    {
+      "name": "sf_d9_200000g_20260401-200322-y7.data",
+      "bytes": 150362144
+    },
+    {
+      "name": "sf_d9_200000g_20260401-200338-y10.data",
+      "bytes": 674328352
+    },
+    {
+      "name": "sf_d9_200000g_20260401-200344-y11.data",
+      "bytes": 112340256
+    },
+    {
+      "name": "sf_d9_200000g_20260401-200402-y14.data",
+      "bytes": 638923744
+    },
+    {
+      "name": "sf_d9_200000g_20260401-200407-y15.data",
+      "bytes": 150119488
+    },
+    {
+      "name": "sf_d9_200000g_20260401-200423-y18.data",
+      "bytes": 637984768
+    },
+    {
+      "name": "sf_d9_200000g_20260401-203248-z2.data",
+      "bytes": 674943648
+    },
+    {
+      "name": "sf_d9_200000g_20260401-203253-z3.data",
+      "bytes": 261988672
+    },
+    {
+      "name": "sf_d9_200000g_20260401-203310-z6.data",
+      "bytes": 675743104
+    },
+    {
+      "name": "sf_d9_200000g_20260401-203315-z7.data",
+      "bytes": 149974176
+    },
+    {
+      "name": "sf_d9_200000g_20260401-203343-z11.data",
+      "bytes": 74738080
+    },
+    {
+      "name": "sf_d9_200000g_20260401-203407-z15.data",
+      "bytes": 112744128
+    },
+    {
+      "name": "sf_d9_200000g_20260401-203432-z19.data",
+      "bytes": 262810080
+    },
+    {
+      "name": "sf_d9_200000g_20260401-210245-q2.data",
+      "bytes": 637163904
+    },
+    {
+      "name": "sf_d9_200000g_20260401-210315-q6.data",
+      "bytes": 638646176
+    },
+    {
+      "name": "sf_d9_200000g_20260401-210340-q10.data",
+      "bytes": 675425056
+    },
+    {
+      "name": "sf_d9_200000g_20260401-210400-q14.data",
+      "bytes": 639056288
+    },
+    {
+      "name": "sf_d9_200000g_20260401-210422-q18.data",
+      "bytes": 674535680
+    },
+    {
+      "name": "sf_d9_200000games_20260401-183303-spot-3.data",
+      "bytes": 375274016
+    },
+    {
+      "name": "sf_d9_200000games_20260401-183319-spot-6.data",
+      "bytes": 637241568
+    },
+    {
+      "name": "sf_d9_200000games_20260401-183327-spot-7.data",
+      "bytes": 412168256
+    }
+  ],
+  "protocol": {
+    "superbatches": 5,
+    "batches_per_superbatch": 6104,
+    "batch_size": 16384,
+    "initial_lr": 0.0001,
+    "final_lr": 1e-05,
+    "lr_schedule": "cosine",
+    "eval_scale": 400,
+    "wdl_proportions": {
+      "control": 0.75,
+      "candidate": 0.25
+    },
+    "optimizer": "AdamW, loaded from parent checkpoint in each arm",
+    "data_order": "lexically sorted identical shard list",
+    "checkpoint_selection": "final superbatch only, no intermediate selection",
+    "acceptance": "Protocol S [0,10] 1+0.01 max4000 against v1.0.64; only passes advance to 10+0.1, ladder and reserved sample"
+  }
+}

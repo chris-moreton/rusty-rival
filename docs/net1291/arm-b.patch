@@ -1,0 +1,41 @@
+diff --git a/src/quiesce.rs b/src/quiesce.rs
+index d00b758..c2b7bf4 100644
+--- a/src/quiesce.rs
++++ b/src/quiesce.rs
+@@ -1,6 +1,6 @@
+ use crate::bitboards::{bit, epsbit, KING_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, RANK_2_BITS, RANK_7_BITS};
+ use crate::engine_constants::{DELTA_MARGIN, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE};
+-use crate::evaluate::evaluate_position;
++use crate::evaluate::{evaluate_position, insufficient_material};
+ use crate::move_constants::{
+     PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK,
+     PROMOTION_QUEEN_MOVE_MASK, PROMOTION_SQUARES,
+@@ -9,7 +9,7 @@ use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
+ use crate::moves::{
+     generate_check_evasions_into, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check,
+ };
+-use crate::search::MATE_SCORE;
++use crate::search::{draw_value, MATE_SCORE};
+ use crate::see::{captured_piece_value_see, static_exchange_evaluation_with_value};
+ use crate::types::{
+     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
+@@ -148,6 +148,19 @@ pub fn quiesce(
+         search_state.sel_depth = ply;
+     }
+ 
++    // Captures at the horizon can remove the last mating material. Apply
++    // full search's material-draw policy before trusting the NNUE stand pat.
++    if ply > 6
++        && insufficient_material(
++            position,
++            (position.pieces[WHITE as usize].all_pieces_bitboard.count_ones()
++                + position.pieces[BLACK as usize].all_pieces_bitboard.count_ones()) as u8,
++            true,
++        )
++    {
++        return (pv_single(0), draw_value(position, search_state));
++    }
++
+     let in_check = known_in_check.unwrap_or_else(|| is_check(position, position.mover));
+ 
+     // NET-352: when in check above the depth cap the stand-pat eval is provably

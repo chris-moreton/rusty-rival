@@ -1,0 +1,166 @@
+{
+  "method": "10,000 equally spaced records per shuffled shard; per-shard equal weighting, not whole-corpus weighting",
+  "source": "local net53 corrected Stockfish depth-9 corpus, not yet verified byte-identical to NET-1095 input",
+  "files": [
+    {
+      "file": "/home/chris/net53/data/sf_d9_1650000games_20260401-173756-1.data",
+      "records": 43406750
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_1650000games_20260401-173801-2.data",
+      "records": 16405625
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-190305-s3.data",
+      "records": 8215921
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-190320-s6.data",
+      "records": 21141258
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-190344-s10.data",
+      "records": 21094829
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-190349-s11.data",
+      "records": 8210572
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-193340-x3.data",
+      "records": 5882963
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-193405-x7.data",
+      "records": 5857674
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-193421-x10.data",
+      "records": 21096153
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-193426-x11.data",
+      "records": 7050621
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-193452-x15.data",
+      "records": 12883432
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-200254-y2.data",
+      "records": 19933944
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-200259-y3.data",
+      "records": 10557202
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-200317-y6.data",
+      "records": 21047829
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-200322-y7.data",
+      "records": 4698817
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-200338-y10.data",
+      "records": 21072761
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-200344-y11.data",
+      "records": 3510633
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-200402-y14.data",
+      "records": 19966367
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-200407-y15.data",
+      "records": 4691234
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-200423-y18.data",
+      "records": 19937024
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-203248-z2.data",
+      "records": 21091989
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-203253-z3.data",
+      "records": 8187146
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-203310-z6.data",
+      "records": 21116972
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-203315-z7.data",
+      "records": 4686693
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-203343-z11.data",
+      "records": 2335565
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-203407-z15.data",
+      "records": 3523254
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-203432-z19.data",
+      "records": 8212815
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-210245-q2.data",
+      "records": 19911372
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-210315-q6.data",
+      "records": 19957693
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-210340-q10.data",
+      "records": 21107033
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-210400-q14.data",
+      "records": 19970509
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000g_20260401-210422-q18.data",
+      "records": 21079240
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000games_20260401-183303-spot-3.data",
+      "records": 11727313
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000games_20260401-183319-spot-6.data",
+      "records": 19913799
+    },
+    {
+      "file": "/home/chris/net53/data/sf_d9_200000games_20260401-183327-spot-7.data",
+      "records": 12880258
+    }
+  ],
+  "sample_buckets": {
+    "5": 38869,
+    "1": 62908,
+    "0": 50560,
+    "6": 40990,
+    "3": 44539,
+    "2": 53342,
+    "4": 39635,
+    "7": 19157
+  },
+  "rook_without_queen_by_bucket": {
+    "5": 9202,
+    "1": 38778,
+    "0": 28126,
+    "3": 25440,
+    "2": 34070,
+    "4": 16730,
+    "6": 2887,
+    "7": 86
+  }
+}

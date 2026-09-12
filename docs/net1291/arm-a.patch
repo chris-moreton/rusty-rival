@@ -1,0 +1,37 @@
+diff --git a/src/quiesce.rs b/src/quiesce.rs
+index d00b758..3bf4b34 100644
+--- a/src/quiesce.rs
++++ b/src/quiesce.rs
+@@ -9,7 +9,7 @@ use crate::move_scores::{attacker_bonus, piece_value, PAWN_ATTACKER_BONUS};
+ use crate::moves::{
+     generate_check_evasions_into, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check,
+ };
+-use crate::search::MATE_SCORE;
++use crate::search::{draw_value, is_draw, MATE_SCORE};
+ use crate::see::{captured_piece_value_see, static_exchange_evaluation_with_value};
+ use crate::types::{
+     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
+@@ -148,6 +148,13 @@ pub fn quiesce(
+         search_state.sel_depth = ply;
+     }
+ 
++    // Tactical continuations can cross the fifty-move boundary, repeat a
++    // position during check evasions, or exchange down to drawn material.
++    // Apply the same draw policy as full search before using stand pat.
++    if is_draw(position, search_state, ply) {
++        return (pv_single(0), draw_value(position, search_state));
++    }
++
+     let in_check = known_in_check.unwrap_or_else(|| is_check(position, position.mover));
+ 
+     // NET-352: when in check above the depth cap the stand-pat eval is provably
+@@ -236,7 +243,9 @@ pub fn quiesce(
+         if !is_check(position, old_mover) {
+             legal_move_count += 1;
+ 
++            search_state.history.push(position.zobrist_lock);
+             let score = -quiesce(position, depth - 1, ply + 1, (-window.1, -alpha), search_state, None).1;
++            search_state.history.pop();
+ 
+             unmake_move_nnue(position, m, &unmake, search_state);
+ 

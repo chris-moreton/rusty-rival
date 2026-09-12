@@ -1,0 +1,179 @@
+use bullet_lib::{
+    game::{inputs::Chess768, outputs::MaterialCount},
+    nn::optimiser::AdamW,
+    trainer::{
+        save::SavedFormat,
+        schedule::{lr, wdl, TrainingSchedule, TrainingSteps},
+        settings::LocalSettings,
+    },
+    value::{loader::DirectSequentialDataLoader, ValueTrainerBuilder},
+};
+
+fn main() {
+    // Parse optional args: [checkpoint_path] [start_superbatch]
+    let args: Vec<String> = std::env::args().collect();
+    let checkpoint_path = args.get(1).filter(|s| !s.is_empty());
+    let start_superbatch: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(1);
+
+    // Require architecture selection explicitly. A training run is expensive,
+    // and silently falling back to 256 once already produced a valid-looking
+    // checkpoint for the wrong experiment.
+    let hl_size: usize = std::env::var("NNUE_HIDDEN_SIZE")
+        .expect("NNUE_HIDDEN_SIZE must be set explicitly (supported: 256, 512)")
+        .parse()
+        .expect("NNUE_HIDDEN_SIZE must be an integer");
+    assert!(
+        matches!(hl_size, 256 | 512),
+        "unsupported NNUE_HIDDEN_SIZE={hl_size}"
+    );
+
+    // Buckets are selected by material count. bullet's MaterialCount<N> uses:
+    //     divisor = 32usize.div_ceil(N)            // N=8 -> 4
+    //     bucket  = (occ.count_ones() - 2) / divisor
+    // The engine's evaluate() MUST reproduce this exactly, or it will select a
+    // different bucket than training used and evaluate plausibly but wrongly.
+    const NUM_OUTPUT_BUCKETS: usize = 8;
+
+    let roundtrip = std::env::var_os("NET1291_ROUNDTRIP").is_some();
+
+    // Data paths - all .data files in the data directory
+    let mut data_files: Vec<String> = std::fs::read_dir("data")
+        .expect("data/ directory not found")
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().map_or(false, |ext| ext == "data"))
+        .map(|e| e.path().to_string_lossy().to_string())
+        .collect();
+
+    data_files.sort();
+
+    if data_files.is_empty() {
+        eprintln!("No .data files found in data/ directory");
+        std::process::exit(1);
+    }
+
+    // NET-325: the shard set is whatever the launch script left in data/.
+    // With --data-fraction 0.5 that is half the shards, i.e. roughly half the
+    // GAMES - which is the quantity that matters. Positions within a game
+    // differ by one move and are heavily correlated: the dataset averages 117
+    // positions per game, so halving positions within games would change almost
+    // nothing, while halving games halves the independent information.
+    //
+    // Superbatch count is deliberately UNCHANGED, so this run does the same
+    // number of gradient steps over half the data (more epochs). That isolates
+    // data quantity at fixed compute, which is the question being asked.
+    println!("Training files ({}): {:?}", data_files.len(), data_files);
+
+    let data_refs: Vec<&str> = data_files.iter().map(|s| s.as_str()).collect();
+
+    // Training hyperparameters
+    let initial_lr = 0.0001;
+    let final_lr = 0.00001;
+    // Superbatches, overridable via SUPERBATCHES. One superbatch processes
+    // ~100M positions, so the right value depends on CORPUS SIZE, not taste:
+    // the production 600-superbatch run over 505M unique positions is ~119
+    // epochs, but the same 600 over a 28M corpus would be ~2157 epochs and
+    // badly overfit. Scale it to keep epochs comparable when comparing corpora
+    // of different sizes, or the comparison measures overfitting (NET-326).
+    let superbatches: usize = std::env::var("SUPERBATCHES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(600);
+    let wdl_proportion: f32 = std::env::var("NET1291_WDL").expect("NET1291_WDL required").parse().expect("WDL float");
+    assert!(matches!(wdl_proportion, 0.75 | 0.25));
+
+    // Echo the two knobs that distinguish one experiment run from another. This
+    // has to come after `superbatches` is bound, not before it: the original
+    // line sat above the `let` and so did not compile at all. Nothing caught it
+    // because the training host is the only thing that ever builds this crate,
+    // and the two runs before it died earlier, in the user-data script. Note
+    // that validate-userdata.sh cannot catch this class of bug - it checks the
+    // shell syntax of the user-data, not the Rust it later builds.
+    let net_id = std::env::var("NET_ID").expect("NET_ID must be set explicitly");
+    assert!(
+        net_id.contains(&format!("{hl_size}x2")),
+        "NET_ID must contain {hl_size}x2"
+    );
+    println!(
+        "net_id={} hidden_size={} superbatches={}",
+        net_id, hl_size, superbatches
+    );
+
+    let mut trainer = ValueTrainerBuilder::default()
+        .dual_perspective()
+        .optimiser(AdamW)
+        .inputs(Chess768)
+        .output_buckets(MaterialCount::<NUM_OUTPUT_BUCKETS>)
+        .save_format(&[
+            SavedFormat::id("l0w").round().quantise::<i16>(255),
+            SavedFormat::id("l0b").round().quantise::<i16>(255),
+            // NOTE: .transpose() is required with output buckets and was absent
+            // from the single-bucket config. It changes the on-disk layout of
+            // l1w, so the engine loader must be verified against an actual
+            // checkpoint before the net is trusted.
+            SavedFormat::id("l1w")
+                .round()
+                .quantise::<i16>(64)
+                .transpose(),
+            SavedFormat::id("l1b").round().quantise::<i16>(255 * 64),
+        ])
+        .loss_fn(|output, target| output.sigmoid().squared_error(target))
+        .build(|builder, stm_inputs, ntm_inputs, output_buckets| {
+            let l0 = builder.new_affine("l0", 768, hl_size);
+            let l1 = builder.new_affine("l1", 2 * hl_size, NUM_OUTPUT_BUCKETS);
+
+            let stm_hidden = l0.forward(stm_inputs).screlu();
+            let ntm_hidden = l0.forward(ntm_inputs).screlu();
+            let hidden_layer = stm_hidden.concat(ntm_hidden);
+            l1.forward(hidden_layer).select(output_buckets)
+        });
+
+    // Resume from checkpoint if provided
+    if let Some(path) = checkpoint_path {
+        println!("Loading checkpoint from: {}", path);
+        println!("Resuming from superbatch: {}", start_superbatch);
+        trainer.load_from_checkpoint(path);
+    }
+
+    if roundtrip {
+        assert!(checkpoint_path.is_some(), "roundtrip requires checkpoint");
+        trainer.save_quantised("roundtrip.bin").expect("save export");
+        return;
+    }
+
+    let schedule = TrainingSchedule {
+        // Distinct id so these checkpoints cannot overwrite the shipped
+        // single-bucket net in s3://chess-compete-builds/nnue-checkpoints-sf/
+        // Overridable so parallel experiments cannot overwrite each other's
+        // checkpoints in the shared S3 prefix.
+        net_id,
+        eval_scale: 400.0,
+        steps: TrainingSteps {
+            batch_size: 16_384,
+            batches_per_superbatch: 6104,
+            start_superbatch,
+            end_superbatch: superbatches,
+        },
+        wdl_scheduler: wdl::ConstantWDL {
+            value: wdl_proportion,
+        },
+        lr_scheduler: lr::CosineDecayLR {
+            initial_lr,
+            final_lr,
+            final_superbatch: superbatches,
+        },
+        save_rate: 5,
+    };
+
+    let settings = LocalSettings {
+        threads: 4,
+        test_set: None,
+        output_directory: "checkpoints",
+        batch_queue_size: 32,
+    };
+
+    let dataloader = DirectSequentialDataLoader::new(&data_refs);
+
+    trainer.run(&schedule, &settings, &dataloader);
+
+    println!("\nTraining complete! Checkpoints saved to checkpoints/");
+}

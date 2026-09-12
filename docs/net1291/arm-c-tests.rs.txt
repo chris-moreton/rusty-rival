@@ -1,0 +1,42 @@
+use rusty_rival::fen::get_position;
+use rusty_rival::search::{search, MAX_WINDOW};
+use rusty_rival::types::default_search_state;
+use rusty_rival::types::BoundType;
+use std::time::{Duration, Instant};
+
+#[test]
+fn check_extension_does_not_overstate_cached_search_depth() {
+    // Independent synthetic rook check. Every revisit needs its own check
+    // extension; the cache must describe depth using the probe's convention.
+    let mut position = get_position("r5k1/8/8/8/8/8/7R/K7 w - - 0 1");
+    let mut state = default_search_state();
+    state.end_time = Instant::now() + Duration::from_secs(20);
+    state.iterative_depth = 8;
+    state.history.push(position.zobrist_lock);
+    search(&mut position, 3, 1, (-MAX_WINDOW, MAX_WINDOW), &mut state, false, 0, None);
+    let index = (position.zobrist_lock as u64 & state.hash_table.mask()) as usize;
+    let entry = state.hash_table.probe(index, position.zobrist_lock).expect("root entry");
+    assert_eq!(entry.height, 3);
+    let nodes = state.nodes;
+    search(&mut position, 4, 1, (-MAX_WINDOW, MAX_WINDOW), &mut state, false, 0, None);
+    assert!(state.nodes - nodes > 1, "a deeper request must search beyond the cached root");
+}
+
+#[test]
+fn check_cutoffs_store_incoming_depth_with_and_without_a_hash_move() {
+    for seed_hash_move in [false, true] {
+        let mut position = get_position("r5k1/8/8/8/8/8/7R/K7 w - - 0 1");
+        let mut state = default_search_state();
+        state.end_time = Instant::now() + Duration::from_secs(20);
+        state.iterative_depth = 8;
+        state.history.push(position.zobrist_lock);
+        if seed_hash_move {
+            search(&mut position, 1, 1, (-MAX_WINDOW, MAX_WINDOW), &mut state, false, 0, None);
+        }
+        search(&mut position, 3, 1, (-1000, -999), &mut state, false, 0, None);
+        let index = (position.zobrist_lock as u64 & state.hash_table.mask()) as usize;
+        let entry = state.hash_table.probe(index, position.zobrist_lock).expect("cutoff entry");
+        assert_eq!(entry.bound, BoundType::Lower);
+        assert_eq!(entry.height, 3, "seed_hash_move={seed_hash_move}");
+    }
+}

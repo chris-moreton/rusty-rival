@@ -1,0 +1,2186 @@
+[
+  {
+    "id": "E_E_T 036 - L&S vs T&B",
+    "forced": {
+      "nnue": {
+        "best": "d5c5",
+        "score_kind": "cp",
+        "score": -366,
+        "pv": [
+          "d5c5",
+          "f1c1",
+          "c5b4",
+          "c1c4",
+          "b4b3"
+        ],
+        "info": "info depth 38 seldepth 37 multipv 1 score cp -366 nodes 18064000 nps 3620765 hashfull 258 time 4989 pv d5c5 f1c1 c5b4 c1c4 b4b3"
+      },
+      "hce": {
+        "best": "d5c5",
+        "score_kind": "cp",
+        "score": -1626,
+        "pv": [
+          "d5c5",
+          "f1f4",
+          "c5b4",
+          "f4c4",
+          "b4b3"
+        ],
+        "info": "info depth 37 seldepth 45 multipv 1 score cp -1626 nodes 24173000 nps 4845259 hashfull 215 time 4989 pv d5c5 f1f4 c5b4 f4c4 b4b3"
+      },
+      "stockfish": {
+        "best": "d5c5",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "d5c5",
+          "f1c1",
+          "c5b4",
+          "c1c4",
+          "b4b3",
+          "c4b4",
+          "b3c2",
+          "b4b2",
+          "c2c3",
+          "b2g2",
+          "d3f5",
+          "g2g3",
+          "c3c2",
+          "g3g5",
+          "f5e4",
+          "g5e5",
+          "e4g6",
+          "e5e2",
+          "c2b3",
+          "e2b2",
+          "b3c3",
+          "b2f2",
+          "c3b3"
+        ],
+        "info": "info depth 95 seldepth 24 multipv 1 score cp 0 nodes 15286379 nps 3057275 hashfull 55 tbhits 0 time 5000 pv d5c5 f1c1 c5b4 c1c4 b4b3 c4b4 b3c2 b4b2 c2c3 b2g2 d3f5 g2g3 c3c2 g3g5 f5e4 g5e5 e4g6 e5e2 c2b3 e2b2 b3c3 b2f2 c3b3"
+      }
+    },
+    "peer_walk": [
+      {
+        "ply": 0,
+        "fen": "8/8/8/3K4/2N5/p2B4/p7/k4r2 w - - 0 1",
+        "nnue": -234,
+        "hce": -529,
+        "rival_search": {
+          "best": "d3f1",
+          "score_kind": "cp",
+          "score": -259,
+          "pv": [
+            "d3f1",
+            "a1b1",
+            "f1d3",
+            "b1c1",
+            "c4a3",
+            "a2a1q",
+            "a3c4",
+            "a1f6",
+            "d5c5",
+            "f6f8",
+            "c5d4",
+            "f8e8",
+            "d4c5",
+            "e8h8",
+            "c5d6",
+            "h8e8",
+            "d6c7"
+          ],
+          "info": "info depth 15 seldepth 29 multipv 1 score cp -259 nodes 628000 nps 3322751 hashfull 15 time 189 pv d3f1 a1b1 f1d3 b1c1 c4a3 a2a1q a3c4 a1f6 d5c5 f6f8 c5d4 f8e8 d4c5 e8h8 c5d6 h8e8 d6c7"
+        },
+        "rival_white": -259
+      },
+      {
+        "ply": 1,
+        "fen": "8/8/8/2K5/2N5/p2B4/p7/k4r2 b - - 1 1",
+        "nnue": -256,
+        "hce": -561,
+        "rival_search": {
+          "best": "f1f4",
+          "score_kind": "cp",
+          "score": 362,
+          "pv": [
+            "f1f4",
+            "c5b4",
+            "f4c4",
+            "b4b3"
+          ],
+          "info": "info depth 22 seldepth 26 multipv 1 score cp 362 nodes 651000 nps 3444444 hashfull 9 time 189 pv f1f4 c5b4 f4c4 b4b3"
+        },
+        "rival_white": -362
+      },
+      {
+        "ply": 2,
+        "fen": "8/8/8/2K5/2N5/p2B4/p7/k1r5 w - - 2 2",
+        "nnue": -307,
+        "hce": -550,
+        "rival_search": {
+          "best": "c5b4",
+          "score_kind": "cp",
+          "score": -360,
+          "pv": [
+            "c5b4",
+            "c1c4",
+            "b4b3",
+            "c4h4",
+            "d3f5",
+            "h4f4",
+            "f5g6",
+            "f4f3",
+            "b3c2",
+            "f3h3",
+            "g6e4",
+            "h3h4",
+            "e4g6",
+            "h4h2"
+          ],
+          "info": "info depth 23 seldepth 29 multipv 1 score cp -360 nodes 639000 nps 3380952 hashfull 13 time 189 pv c5b4 c1c4 b4b3 c4h4 d3f5 h4f4 f5g6 f4f3 b3c2 f3h3 g6e4 h3h4 e4g6 h4h2"
+        },
+        "rival_white": -360
+      },
+      {
+        "ply": 3,
+        "fen": "8/8/8/8/1KN5/p2B4/p7/k1r5 b - - 3 2",
+        "nnue": -124,
+        "hce": -604,
+        "rival_search": {
+          "best": "c1c4",
+          "score_kind": "cp",
+          "score": 434,
+          "pv": [
+            "c1c4",
+            "b4b3"
+          ],
+          "info": "info depth 26 seldepth 24 multipv 1 score cp 434 nodes 679000 nps 3592592 hashfull 8 time 189 pv c1c4 b4b3"
+        },
+        "rival_white": -434
+      },
+      {
+        "ply": 4,
+        "fen": "8/8/8/8/1Kr5/p2B4/p7/k7 w - - 0 3",
+        "nnue": 284,
+        "hce": -1690,
+        "rival_search": {
+          "best": "b4b3",
+          "score_kind": "cp",
+          "score": -354,
+          "pv": [
+            "b4b3",
+            "c4f4",
+            "d3h7",
+            "f4h4",
+            "h7f5",
+            "h4h5",
+            "f5e4",
+            "h5h8",
+            "b3c2",
+            "h8c8",
+            "c2b3"
+          ],
+          "info": "info depth 30 seldepth 33 multipv 1 score cp -354 nodes 718000 nps 3798941 hashfull 11 time 189 pv b4b3 c4f4 d3h7 f4h4 h7f5 h4h5 f5e4 h5h8 b3c2 h8c8 c2b3"
+        },
+        "rival_white": -354
+      },
+      {
+        "ply": 5,
+        "fen": "8/8/8/8/2r5/pK1B4/p7/k7 b - - 1 3",
+        "nnue": -234,
+        "hce": -1750,
+        "rival_search": {
+          "best": "c4h4",
+          "score_kind": "cp",
+          "score": 370,
+          "pv": [
+            "c4h4",
+            "d3f5",
+            "h4h5",
+            "f5e4",
+            "h5h3",
+            "b3c2"
+          ],
+          "info": "info depth 27 seldepth 29 multipv 1 score cp 370 nodes 716000 nps 3788359 hashfull 12 time 189 pv c4h4 d3f5 h4h5 f5e4 h5h3 b3c2"
+        },
+        "rival_white": -370
+      },
+      {
+        "ply": 6,
+        "fen": "8/2r5/8/8/8/pK1B4/p7/k7 w - - 2 4",
+        "nnue": -138,
+        "hce": -1373,
+        "rival_search": {
+          "best": "d3c2",
+          "score_kind": "cp",
+          "score": -377,
+          "pv": [
+            "d3c2",
+            "c7e7",
+            "c2f5",
+            "e7e5",
+            "f5h7",
+            "e5e3",
+            "b3c2",
+            "e3e2",
+            "c2c3",
+            "e2e7",
+            "h7f5",
+            "e7e5",
+            "f5h7",
+            "e5c5",
+            "c3b3",
+            "c5c7",
+            "h7d3"
+          ],
+          "info": "info depth 30 seldepth 27 multipv 1 score cp -377 nodes 733000 nps 3878306 hashfull 11 time 189 pv d3c2 c7e7 c2f5 e7e5 f5h7 e5e3 b3c2 e3e2 c2c3 e2e7 h7f5 e7e5 f5h7 e5c5 c3b3 c5c7 h7d3"
+        },
+        "rival_white": -377
+      },
+      {
+        "ply": 7,
+        "fen": "8/2r5/8/5B2/8/pK6/p7/k7 b - - 3 4",
+        "nnue": -230,
+        "hce": -1731,
+        "rival_search": {
+          "best": "c7f7",
+          "score_kind": "cp",
+          "score": 364,
+          "pv": [
+            "c7f7",
+            "f5g6",
+            "f7f3",
+            "b3c2",
+            "f3e3",
+            "g6h7",
+            "e3e2",
+            "c2b3",
+            "e2e7",
+            "h7f5",
+            "e7e3",
+            "b3c2",
+            "e3g3"
+          ],
+          "info": "info depth 25 seldepth 28 multipv 1 score cp 364 nodes 711000 nps 3761904 hashfull 8 time 189 pv c7f7 f5g6 f7f3 b3c2 f3e3 g6h7 e3e2 c2b3 e2e7 h7f5 e7e3 b3c2 e3g3"
+        },
+        "rival_white": -364
+      },
+      {
+        "ply": 8,
+        "fen": "8/4r3/8/5B2/8/pK6/p7/k7 w - - 4 5",
+        "nnue": -200,
+        "hce": -1337,
+        "rival_search": {
+          "best": "b3c2",
+          "score_kind": "cp",
+          "score": -387,
+          "pv": [
+            "b3c2",
+            "e7g7",
+            "f5e4",
+            "g7g4",
+            "e4f5",
+            "g4g2",
+            "c2b3"
+          ],
+          "info": "info depth 28 seldepth 27 multipv 1 score cp -387 nodes 734000 nps 3883597 hashfull 15 time 189 pv b3c2 e7g7 f5e4 g7g4 e4f5 g4g2 c2b3"
+        },
+        "rival_white": -387
+      },
+      {
+        "ply": 9,
+        "fen": "8/4r3/8/5B2/8/p7/p1K5/k7 b - - 5 5",
+        "nnue": -316,
+        "hce": -1702,
+        "rival_search": {
+          "best": "e7a7",
+          "score_kind": "cp",
+          "score": 347,
+          "pv": [
+            "e7a7",
+            "f5g6",
+            "a7c7",
+            "c2b3",
+            "c7b7",
+            "b3c2",
+            "b7b2",
+            "c2c3",
+            "b2b6",
+            "g6c2",
+            "b6e6"
+          ],
+          "info": "info depth 30 seldepth 23 multipv 1 score cp 347 nodes 763000 nps 4037037 hashfull 12 time 189 pv e7a7 f5g6 a7c7 c2b3 c7b7 b3c2 b7b2 c2c3 b2b6 g6c2 b6e6"
+        },
+        "rival_white": -347
+      },
+      {
+        "ply": 10,
+        "fen": "8/8/8/5B2/8/p7/p1K1r3/k7 w - - 6 6",
+        "nnue": -380,
+        "hce": -1404,
+        "rival_search": {
+          "best": "c2b3",
+          "score_kind": "cp",
+          "score": -348,
+          "pv": [
+            "c2b3",
+            "e2e5",
+            "f5g6",
+            "e5e3",
+            "b3c2",
+            "e3e2",
+            "c2b3",
+            "e2e6",
+            "g6h7",
+            "e6e1",
+            "b3c2",
+            "e1e2",
+            "c2b3",
+            "e2e3",
+            "b3c2",
+            "e3f3",
+            "h7g8",
+            "f3f2",
+            "c2b3",
+            "a1b1",
+            "b3a3",
+            "a2a1q",
+            "a3b4"
+          ],
+          "info": "info depth 26 seldepth 31 multipv 1 score cp -348 nodes 722000 nps 3820105 hashfull 10 time 189 pv c2b3 e2e5 f5g6 e5e3 b3c2 e3e2 c2b3 e2e6 g6h7 e6e1 b3c2 e1e2 c2b3 e2e3 b3c2 e3f3 h7g8 f3f2 c2b3 a1b1 b3a3 a2a1q a3b4"
+        },
+        "rival_white": -348
+      },
+      {
+        "ply": 11,
+        "fen": "8/8/8/5B2/8/pK6/p3r3/k7 b - - 7 6",
+        "nnue": -332,
+        "hce": -1764,
+        "rival_search": {
+          "best": "e2e1",
+          "score_kind": "cp",
+          "score": 365,
+          "pv": [
+            "e2e1",
+            "b3c3",
+            "e1e3",
+            "c3c2"
+          ],
+          "info": "info depth 28 seldepth 28 multipv 1 score cp 365 nodes 759000 nps 4015873 hashfull 12 time 189 pv e2e1 b3c3 e1e3 c3c2"
+        },
+        "rival_white": -365
+      },
+      {
+        "ply": 12,
+        "fen": "8/8/8/4rB2/8/pK6/p7/k7 w - - 8 7",
+        "nnue": -189,
+        "hce": -1359,
+        "rival_search": {
+          "best": "f5h7",
+          "score_kind": "cp",
+          "score": -381,
+          "pv": [
+            "f5h7",
+            "e5e3",
+            "b3c2",
+            "e3e2",
+            "c2c3",
+            "e2h2",
+            "h7f5",
+            "h2h5",
+            "f5g6",
+            "h5c5",
+            "c3b3",
+            "c5e5",
+            "b3c2"
+          ],
+          "info": "info depth 28 seldepth 33 multipv 1 score cp -381 nodes 732000 nps 3873015 hashfull 15 time 189 pv f5h7 e5e3 b3c2 e3e2 c2c3 e2h2 h7f5 h2h5 f5g6 h5c5 c3b3 c5e5 b3c2"
+        },
+        "rival_white": -381
+      },
+      {
+        "ply": 13,
+        "fen": "8/8/6B1/4r3/8/pK6/p7/k7 b - - 9 7",
+        "nnue": -244,
+        "hce": -1722,
+        "rival_search": {
+          "best": "e5g5",
+          "score_kind": "cp",
+          "score": 355,
+          "pv": [
+            "e5g5",
+            "g6h7",
+            "g5g3",
+            "b3c2",
+            "g3g7",
+            "h7f5",
+            "g7f7",
+            "f5e4",
+            "f7f4",
+            "e4g6",
+            "f4g4",
+            "g6h7",
+            "g4g3"
+          ],
+          "info": "info depth 29 seldepth 32 multipv 1 score cp 355 nodes 699000 nps 3698412 hashfull 11 time 189 pv e5g5 g6h7 g5g3 b3c2 g3g7 h7f5 g7f7 f5e4 f7f4 e4g6 f4g4 g6h7 g4g3"
+        },
+        "rival_white": -355
+      },
+      {
+        "ply": 14,
+        "fen": "8/8/6B1/1r6/8/pK6/p7/k7 w - - 10 8",
+        "nnue": -180,
+        "hce": -1370,
+        "rival_search": {
+          "best": "b3a3",
+          "score_kind": "cp",
+          "score": -321,
+          "pv": [
+            "b3a3",
+            "b5a5",
+            "a3b3",
+            "a5g5",
+            "g6h7",
+            "g5g4",
+            "b3c2",
+            "g4c4",
+            "c2b3",
+            "c4h4",
+            "h7f5",
+            "h4f4",
+            "f5h7",
+            "f4b4",
+            "b3c2"
+          ],
+          "info": "info depth 25 seldepth 27 multipv 1 score cp -321 nodes 681000 nps 3603174 hashfull 11 time 189 pv b3a3 b5a5 a3b3 a5g5 g6h7 g5g4 b3c2 g4c4 c2b3 c4h4 h7f5 h4f4 f5h7 f4b4 b3c2"
+        },
+        "rival_white": -321
+      },
+      {
+        "ply": 15,
+        "fen": "8/8/6B1/1r6/8/p7/p1K5/k7 b - - 11 8",
+        "nnue": -319,
+        "hce": -1735,
+        "rival_search": {
+          "best": "b5b6",
+          "score_kind": "cp",
+          "score": 334,
+          "pv": [
+            "b5b6",
+            "g6f5",
+            "b6f6",
+            "f5e4",
+            "f6f4",
+            "e4g6",
+            "f4f3",
+            "g6h7",
+            "f3f2",
+            "c2c3"
+          ],
+          "info": "info depth 33 seldepth 26 multipv 1 score cp 334 nodes 770000 nps 4074074 hashfull 9 time 189 pv b5b6 g6f5 b6f6 f5e4 f6f4 e4g6 f4f3 g6h7 f3f2 c2c3"
+        },
+        "rival_white": -334
+      },
+      {
+        "ply": 16,
+        "fen": "8/8/6B1/8/8/p7/prK5/k7 w - - 12 9",
+        "nnue": -438,
+        "hce": -1405,
+        "rival_search": {
+          "best": "c2c3",
+          "score_kind": "cp",
+          "score": -334,
+          "pv": [
+            "c2c3",
+            "b2g2",
+            "g6e4",
+            "g2g4",
+            "e4f5",
+            "g4f4",
+            "f5g6",
+            "f4f6",
+            "g6e4",
+            "f6f3",
+            "c3c2",
+            "f3f2",
+            "c2b3",
+            "f2f4",
+            "e4g6",
+            "f4f6",
+            "g6e4",
+            "f6a6",
+            "e4f5",
+            "a6a5",
+            "f5e4",
+            "a5b5",
+            "b3c3",
+            "b5b8",
+            "e4c2",
+            "b8c8",
+            "c3b3",
+            "c8c5",
+            "c2e4",
+            "c5g5",
+            "b3c3",
+            "g5g3",
+            "c3c2",
+            "g3g7",
+            "c2c3",
+            "g7g5",
+            "c3b3",
+            "g5g4",
+            "e4f5"
+          ],
+          "info": "info depth 36 seldepth 41 multipv 1 score cp -334 nodes 710000 nps 3756613 hashfull 5 time 189 pv c2c3 b2g2 g6e4 g2g4 e4f5 g4f4 f5g6 f4f6 g6e4 f6f3 c3c2 f3f2 c2b3 f2f4 e4g6 f4f6 g6e4 f6a6 e4f5 a6a5 f5e4 a5b5 b3c3 b5b8 e4c2 b8c8 c3b3 c8c5 c2e4 c5g5 b3c3 g5g3 c3c2 g3g7 c2c3 g7g5 c3b3 g5g4 e4f5"
+        },
+        "rival_white": -334
+      },
+      {
+        "ply": 17,
+        "fen": "8/8/6B1/8/8/p1K5/pr6/k7 b - - 13 9",
+        "nnue": -396,
+        "hce": -1742,
+        "rival_search": {
+          "best": "b2g2",
+          "score_kind": "cp",
+          "score": 337,
+          "pv": [
+            "b2g2",
+            "g6e4",
+            "g2g5",
+            "c3c2",
+            "g5c5",
+            "c2b3",
+            "c5b5",
+            "b3c3",
+            "b5e5",
+            "e4h7",
+            "e5h5",
+            "h7e4",
+            "h5h3",
+            "c3c2"
+          ],
+          "info": "info depth 33 seldepth 30 multipv 1 score cp 337 nodes 771000 nps 4079365 hashfull 10 time 189 pv b2g2 g6e4 g2g5 c3c2 g5c5 c2b3 c5b5 b3c3 b5e5 e4h7 e5h5 h7e4 h5h3 c3c2"
+        },
+        "rival_white": -337
+      },
+      {
+        "ply": 18,
+        "fen": "8/8/6B1/8/8/p1K5/p6r/k7 w - - 14 10",
+        "nnue": -373,
+        "hce": -1375,
+        "rival_search": {
+          "best": "c3b3",
+          "score_kind": "cp",
+          "score": -348,
+          "pv": [
+            "c3b3",
+            "h2h3",
+            "b3c2",
+            "h3h6",
+            "g6e4",
+            "h6e6",
+            "e4d3",
+            "e6f6",
+            "d3e4",
+            "f6f4",
+            "e4g6",
+            "f4g4",
+            "g6f5",
+            "g4g5",
+            "f5e4",
+            "g5c5",
+            "c2b3",
+            "c5b5",
+            "b3c2",
+            "b5e5",
+            "e4g6",
+            "e5e3",
+            "g6f5",
+            "e3f3",
+            "f5e4",
+            "f3g3",
+            "e4f5",
+            "g3g2",
+            "c2b3",
+            "g2f2",
+            "f5e4"
+          ],
+          "info": "info depth 29 seldepth 37 multipv 1 score cp -348 nodes 728000 nps 3851851 hashfull 12 time 189 pv c3b3 h2h3 b3c2 h3h6 g6e4 h6e6 e4d3 e6f6 d3e4 f6f4 e4g6 f4g4 g6f5 g4g5 f5e4 g5c5 c2b3 c5b5 b3c2 b5e5 e4g6 e5e3 g6f5 e3f3 f5e4 f3g3 e4f5 g3g2 c2b3 g2f2 f5e4"
+        },
+        "rival_white": -348
+      },
+      {
+        "ply": 19,
+        "fen": "8/8/8/8/4B3/p1K5/p6r/k7 b - - 15 10",
+        "nnue": -454,
+        "hce": -1723,
+        "rival_search": {
+          "best": "h2e2",
+          "score_kind": "cp",
+          "score": 343,
+          "pv": [
+            "h2e2",
+            "e4h7",
+            "e2e7",
+            "h7g6",
+            "e7e6",
+            "g6f5",
+            "e6e5",
+            "f5h7",
+            "e5e3",
+            "c3c2",
+            "e3g3",
+            "h7f5",
+            "g3g8",
+            "c2c3",
+            "g8b8",
+            "f5c2",
+            "b8e8",
+            "c2f5",
+            "e8e7",
+            "c3c2"
+          ],
+          "info": "info depth 32 seldepth 32 multipv 1 score cp 343 nodes 764000 nps 4042328 hashfull 9 time 189 pv h2e2 e4h7 e2e7 h7g6 e7e6 g6f5 e6e5 f5h7 e5e3 c3c2 e3g3 h7f5 g3g8 c2c3 g8b8 f5c2 b8e8 c2f5 e8e7 c3c2"
+        },
+        "rival_white": -343
+      },
+      {
+        "ply": 20,
+        "fen": "8/8/8/8/4B2r/p1K5/p7/k7 w - - 16 11",
+        "nnue": -330,
+        "hce": -1299,
+        "rival_search": {
+          "best": "e4f5",
+          "score_kind": "cp",
+          "score": -333,
+          "pv": [
+            "e4f5",
+            "h4h3",
+            "c3c2"
+          ],
+          "info": "info depth 31 seldepth 19 multipv 1 score cp -333 nodes 727000 nps 3846560 hashfull 8 time 189 pv e4f5 h4h3 c3c2"
+        },
+        "rival_white": -333
+      },
+      {
+        "ply": 21,
+        "fen": "8/8/8/5B2/7r/p1K5/p7/k7 b - - 17 11",
+        "nnue": -388,
+        "hce": -1697,
+        "rival_search": {
+          "best": "h4f4",
+          "score_kind": "cp",
+          "score": 345,
+          "pv": [
+            "h4f4",
+            "f5h7",
+            "f4g4",
+            "c3b3",
+            "g4g3",
+            "b3c2"
+          ],
+          "info": "info depth 27 seldepth 32 multipv 1 score cp 345 nodes 703000 nps 3719576 hashfull 8 time 189 pv h4f4 f5h7 f4g4 c3b3 g4g3 b3c2"
+        },
+        "rival_white": -345
+      },
+      {
+        "ply": 22,
+        "fen": "8/8/8/5B2/6r1/p1K5/p7/k7 w - - 18 12",
+        "nnue": -190,
+        "hce": -1340,
+        "rival_search": {
+          "best": "c3c2",
+          "score_kind": "cp",
+          "score": -339,
+          "pv": [
+            "c3c2",
+            "g4c4",
+            "c2b3"
+          ],
+          "info": "info depth 32 seldepth 25 multipv 1 score cp -339 nodes 696000 nps 3682539 hashfull 10 time 189 pv c3c2 g4c4 c2b3"
+        },
+        "rival_white": -339
+      },
+      {
+        "ply": 23,
+        "fen": "8/7B/8/8/6r1/p1K5/p7/k7 b - - 19 12",
+        "nnue": -404,
+        "hce": -1709,
+        "rival_search": {
+          "best": "g4g7",
+          "score_kind": "cp",
+          "score": 335,
+          "pv": [
+            "g4g7",
+            "h7f5",
+            "g7g5",
+            "f5e4",
+            "g5e5",
+            "e4h7",
+            "e5e3",
+            "c3c2",
+            "e3f3",
+            "h7g6",
+            "f3f6",
+            "g6e4",
+            "f6f4",
+            "e4h7",
+            "f4f2",
+            "c2b3",
+            "f2f3",
+            "b3c2",
+            "f3f7",
+            "h7g6",
+            "f7f2",
+            "c2b3",
+            "f2f8",
+            "b3c2",
+            "f8b8",
+            "g6e4",
+            "b8b2",
+            "c2c3",
+            "b2h2",
+            "c3b3",
+            "h2h4",
+            "e4f5",
+            "h4b4",
+            "b3c3",
+            "b4a4",
+            "c3b3"
+          ],
+          "info": "info depth 33 seldepth 40 multipv 1 score cp 335 nodes 786000 nps 4158730 hashfull 8 time 189 pv g4g7 h7f5 g7g5 f5e4 g5e5 e4h7 e5e3 c3c2 e3f3 h7g6 f3f6 g6e4 f6f4 e4h7 f4f2 c2b3 f2f3 b3c2 f3f7 h7g6 f7f2 c2b3 f2f8 b3c2 f8b8 g6e4 b8b2 c2c3 b2h2 c3b3 h2h4 e4f5 h4b4 b3c3 b4a4 c3b3"
+        },
+        "rival_white": -335
+      }
+    ]
+  },
+  {
+    "id": "E_E_T 049 - T vs B",
+    "forced": {
+      "nnue": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": -298,
+        "pv": [
+          "b5b6",
+          "g4g3",
+          "b6c6",
+          "f2f1q",
+          "a1f1"
+        ],
+        "info": "info depth 27 seldepth 30 multipv 1 score cp -298 nodes 17258000 nps 3459210 hashfull 360 time 4989 pv b5b6 g4g3 b6c6 f2f1q a1f1"
+      },
+      "hce": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "b5b6",
+          "b8c8",
+          "b6c6",
+          "c8d8",
+          "c6d6",
+          "d8e8",
+          "d6e6",
+          "e8f8",
+          "e6f6",
+          "f8g8",
+          "a1a8",
+          "g8h7"
+        ],
+        "info": "info depth 33 seldepth 43 multipv 1 score cp 0 nodes 16816000 nps 3370615 hashfull 336 time 4989 pv b5b6 b8c8 b6c6 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 f8g8 a1a8 g8h7"
+      },
+      "stockfish": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "b5b6",
+          "g4g3",
+          "b6c6",
+          "g3g2",
+          "a1b1",
+          "b8c8",
+          "b1a1"
+        ],
+        "info": "info depth 82 seldepth 26 multipv 1 score cp 0 nodes 9947560 nps 1989512 hashfull 251 tbhits 0 time 5000 pv b5b6 g4g3 b6c6 g3g2 a1b1 b8c8 b1a1"
+      }
+    },
+    "peer_walk": [
+      {
+        "ply": 0,
+        "fen": "1k6/8/8/1K6/5pp1/8/4Pp1p/R7 w - - 0 1",
+        "nnue": -292,
+        "hce": -404,
+        "rival_search": {
+          "best": "b5c6",
+          "score_kind": "cp",
+          "score": -860,
+          "pv": [
+            "b5c6",
+            "g4g3",
+            "a1b1",
+            "b8c8",
+            "b1h1",
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "g3g2",
+            "h1h2",
+            "g2g1q",
+            "h2h8",
+            "g1g8",
+            "h8g8",
+            "f8g8",
+            "f6g5",
+            "f2f1q",
+            "g5g4"
+          ],
+          "info": "info depth 16 seldepth 33 multipv 1 score cp -860 nodes 633000 nps 3349206 hashfull 6 time 189 pv b5c6 g4g3 a1b1 b8c8 b1h1 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 g3g2 h1h2 g2g1q h2h8 g1g8 h8g8 f8g8 f6g5 f2f1q g5g4"
+        },
+        "rival_white": -860
+      },
+      {
+        "ply": 1,
+        "fen": "1k6/8/1K6/8/5pp1/8/4Pp1p/R7 b - - 1 1",
+        "nnue": -597,
+        "hce": -433,
+        "rival_search": {
+          "best": "g4g3",
+          "score_kind": "cp",
+          "score": 1498,
+          "pv": [
+            "g4g3",
+            "a1h1",
+            "f2f1q",
+            "h1f1"
+          ],
+          "info": "info depth 17 seldepth 26 multipv 1 score cp 1498 nodes 606000 nps 3206349 hashfull 17 time 189 pv g4g3 a1h1 f2f1q h1f1"
+        },
+        "rival_white": -1498
+      },
+      {
+        "ply": 2,
+        "fen": "1k6/8/1K6/8/5p2/6p1/4Pp1p/R7 w - - 0 2",
+        "nnue": -584,
+        "hce": -530,
+        "rival_search": {
+          "best": "a1b1",
+          "score_kind": "cp",
+          "score": -1476,
+          "pv": [
+            "a1b1",
+            "g3g2",
+            "b6c6",
+            "b8c8",
+            "b1a1",
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "f8g8",
+            "f6f5",
+            "h2h1q",
+            "f5g4",
+            "g2g1q"
+          ],
+          "info": "info depth 14 seldepth 29 multipv 1 score cp -1476 nodes 630000 nps 3333333 hashfull 18 time 189 pv a1b1 g3g2 b6c6 b8c8 b1a1 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 f8g8 f6f5 h2h1q f5g4 g2g1q"
+        },
+        "rival_white": -1476
+      },
+      {
+        "ply": 3,
+        "fen": "1k6/8/2K5/8/5p2/6p1/4Pp1p/R7 b - - 1 2",
+        "nnue": -848,
+        "hce": -517,
+        "rival_search": {
+          "best": "g3g2",
+          "score_kind": "cp",
+          "score": 1746,
+          "pv": [
+            "g3g2",
+            "a1b1",
+            "b8c8"
+          ],
+          "info": "info depth 17 seldepth 22 multipv 1 score cp 1746 nodes 607000 nps 3211640 hashfull 21 time 189 pv g3g2 a1b1 b8c8"
+        },
+        "rival_white": -1746
+      },
+      {
+        "ply": 4,
+        "fen": "1k6/8/2K5/8/5p2/8/4Pppp/R7 w - - 0 3",
+        "nnue": -672,
+        "hce": -446,
+        "rival_search": {
+          "best": "a1b1",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "a1b1",
+            "b8c8",
+            "b1a1",
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8"
+          ],
+          "info": "info depth 34 seldepth 35 multipv 1 score cp 0 nodes 631000 nps 3338624 hashfull 14 time 189 pv a1b1 b8c8 b1a1 c8d8 c6d6 d8e8 d6e6 e8f8"
+        },
+        "rival_white": 0
+      },
+      {
+        "ply": 5,
+        "fen": "1k6/8/2K5/8/5p2/8/4Pppp/1R6 b - - 1 3",
+        "nnue": -1050,
+        "hce": -474,
+        "rival_search": {
+          "best": "b8c8",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "b8c8",
+            "b1a1",
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "f8g8",
+            "a1a8",
+            "g8h7"
+          ],
+          "info": "info depth 36 seldepth 31 multipv 1 score cp 0 nodes 605000 nps 3201058 hashfull 16 time 189 pv b8c8 b1a1 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 f8g8 a1a8 g8h7"
+        },
+        "rival_white": 0
+      },
+      {
+        "ply": 6,
+        "fen": "2k5/8/2K5/8/5p2/8/4Pppp/1R6 w - - 2 4",
+        "nnue": -695,
+        "hce": -449,
+        "rival_search": {
+          "best": "b1a1",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "b1a1",
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "f8g8",
+            "a1a8",
+            "g8h7"
+          ],
+          "info": "info depth 35 seldepth 27 multipv 1 score cp 0 nodes 584000 nps 3089947 hashfull 10 time 189 pv b1a1 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 f8g8 a1a8 g8h7"
+        },
+        "rival_white": 0
+      }
+    ]
+  },
+  {
+    "id": "E_E_T 060 - T vs T",
+    "forced": {
+      "nnue": {
+        "best": "f8e7",
+        "score_kind": "cp",
+        "score": 469,
+        "pv": [
+          "f8e7",
+          "a3e3",
+          "e7f8",
+          "a7a6",
+          "f8g8",
+          "e3f3",
+          "g1a1",
+          "f3g3",
+          "g8h7",
+          "g3h3",
+          "h7g7",
+          "h3g3",
+          "g7f6",
+          "g3f3",
+          "f6e7",
+          "a6b5",
+          "a1a2",
+          "b5c4",
+          "a2a4",
+          "c4b3",
+          "a4a1",
+          "b3c4",
+          "a1d1",
+          "f3e3",
+          "e7d7",
+          "e3f3",
+          "d7e8",
+          "f3e3",
+          "e8f8",
+          "e3f3",
+          "f8g7",
+          "f3g3",
+          "g7f6",
+          "g3f3",
+          "f6e6",
+          "c4b5",
+          "e6e7",
+          "f3f2",
+          "f7f8q",
+          "f2f8",
+          "e7f8",
+          "b5a4"
+        ],
+        "info": "info depth 28 seldepth 52 multipv 1 score cp 469 nodes 14736000 nps 2953698 hashfull 380 time 4989 pv f8e7 a3e3 e7f8 a7a6 f8g8 e3f3 g1a1 f3g3 g8h7 g3h3 h7g7 h3g3 g7f6 g3f3 f6e7 a6b5 a1a2 b5c4 a2a4 c4b3 a4a1 b3c4 a1d1 f3e3 e7d7 e3f3 d7e8 f3e3 e8f8 e3f3 f8g7 f3g3 g7f6 g3f3 f6e6 c4b5 e6e7 f3f2 f7f8q f2f8 e7f8 b5a4"
+      },
+      "hce": {
+        "best": "f8e7",
+        "score_kind": "cp",
+        "score": 1041,
+        "pv": [
+          "f8e7",
+          "a3e3",
+          "e7f6"
+        ],
+        "info": "info depth 30 seldepth 35 multipv 1 score cp 1041 nodes 15998000 nps 3206654 hashfull 416 time 4989 pv f8e7 a3e3 e7f6"
+      },
+      "stockfish": {
+        "best": "f8e7",
+        "score_kind": "cp",
+        "score": 736,
+        "pv": [
+          "f8e7",
+          "a3e3"
+        ],
+        "info": "info depth 24 seldepth 61 multipv 1 score cp 736 lowerbound nodes 8315893 nps 1663178 hashfull 229 tbhits 0 time 5000 pv f8e7 a3e3"
+      }
+    },
+    "peer_walk": [
+      {
+        "ply": 0,
+        "fen": "5K2/kp3P2/2p5/2Pp4/3P4/r7/p7/6R1 w - - 0 1",
+        "nnue": 322,
+        "hce": -128,
+        "rival_search": {
+          "best": "f8g7",
+          "score_kind": "cp",
+          "score": 440,
+          "pv": [
+            "f8g7",
+            "a3g3",
+            "g1g3",
+            "a2a1q",
+            "f7f8q",
+            "a1d4",
+            "g7g8",
+            "a7a6",
+            "f8a8",
+            "a6b5",
+            "g3b3",
+            "b5c4",
+            "a8a4",
+            "c4c5",
+            "a4a3",
+            "c5c4",
+            "b3b4",
+            "c4c5",
+            "b4d4",
+            "c5d4",
+            "a3b4",
+            "d4e5",
+            "b4b7",
+            "d5d4",
+            "b7c6",
+            "d4d3",
+            "c6c3",
+            "e5e4",
+            "c3e1",
+            "e4f3",
+            "e1d1",
+            "f3g3",
+            "d1d3",
+            "g3h4",
+            "d3d8"
+          ],
+          "info": "info depth 19 seldepth 40 multipv 1 score cp 440 nodes 558000 nps 2952380 hashfull 11 time 189 pv f8g7 a3g3 g1g3 a2a1q f7f8q a1d4 g7g8 a7a6 f8a8 a6b5 g3b3 b5c4 a8a4 c4c5 a4a3 c5c4 b3b4 c4c5 b4d4 c5d4 a3b4 d4e5 b4b7 d5d4 b7c6 d4d3 c6c3 e5e4 c3e1 e4f3 e1d1 f3g3 d1d3 g3h4 d3d8"
+        },
+        "rival_white": 440
+      },
+      {
+        "ply": 1,
+        "fen": "8/kp2KP2/2p5/2Pp4/3P4/r7/p7/6R1 b - - 1 1",
+        "nnue": 223,
+        "hce": -84,
+        "rival_search": {
+          "best": "a3e3",
+          "score_kind": "cp",
+          "score": -407,
+          "pv": [
+            "a3e3",
+            "e7f6"
+          ],
+          "info": "info depth 20 seldepth 23 multipv 1 score cp -407 nodes 573000 nps 3031746 hashfull 21 time 189 pv a3e3 e7f6"
+        },
+        "rival_white": 407
+      },
+      {
+        "ply": 2,
+        "fen": "8/kp2KP2/2p5/2Pp4/3P4/4r3/p7/6R1 w - - 2 2",
+        "nnue": 459,
+        "hce": -73,
+        "rival_search": {
+          "best": "e7f6",
+          "score_kind": "cp",
+          "score": 474,
+          "pv": [
+            "e7f6",
+            "e3f3",
+            "f6g7",
+            "a7a6",
+            "g1a1"
+          ],
+          "info": "info depth 20 seldepth 31 multipv 1 score cp 474 nodes 564000 nps 2984126 hashfull 12 time 189 pv e7f6 e3f3 f6g7 a7a6 g1a1"
+        },
+        "rival_white": 474
+      },
+      {
+        "ply": 3,
+        "fen": "8/kp3P2/2p2K2/2Pp4/3P4/4r3/p7/6R1 b - - 3 2",
+        "nnue": 225,
+        "hce": -114,
+        "rival_search": {
+          "best": "e3f3",
+          "score_kind": "cp",
+          "score": -454,
+          "pv": [
+            "e3f3",
+            "f6g7"
+          ],
+          "info": "info depth 17 seldepth 30 multipv 1 score cp -454 nodes 568000 nps 3005291 hashfull 22 time 189 pv e3f3 f6g7"
+        },
+        "rival_white": 454
+      },
+      {
+        "ply": 4,
+        "fen": "8/kp3P2/2p2K2/2Pp4/3P4/5r2/p7/6R1 w - - 4 3",
+        "nnue": 222,
+        "hce": -75,
+        "rival_search": {
+          "best": "f6g7",
+          "score_kind": "cp",
+          "score": 444,
+          "pv": [
+            "f6g7",
+            "a7a6",
+            "g1a1",
+            "a6b5",
+            "a1a2",
+            "b5c4",
+            "a2d2",
+            "f3g3",
+            "g7f8",
+            "g3a3",
+            "d2d1",
+            "a3f3",
+            "f8e7",
+            "f3e3",
+            "e7f6",
+            "e3f3",
+            "f6e6",
+            "f3f2"
+          ],
+          "info": "info depth 20 seldepth 33 multipv 1 score cp 444 nodes 577000 nps 3052910 hashfull 16 time 189 pv f6g7 a7a6 g1a1 a6b5 a1a2 b5c4 a2d2 f3g3 g7f8 g3a3 d2d1 a3f3 f8e7 f3e3 e7f6 e3f3 f6e6 f3f2"
+        },
+        "rival_white": 444
+      },
+      {
+        "ply": 5,
+        "fen": "8/kp3PK1/2p5/2Pp4/3P4/5r2/p7/6R1 b - - 5 3",
+        "nnue": 85,
+        "hce": -118,
+        "rival_search": {
+          "best": "a7a6",
+          "score_kind": "cp",
+          "score": -463,
+          "pv": [
+            "a7a6",
+            "g1a1",
+            "f3g3",
+            "g7f6",
+            "g3f3",
+            "f6e7",
+            "a6b5",
+            "a1a2",
+            "f3e3",
+            "e7d7",
+            "e3f3",
+            "d7e6",
+            "f3e3",
+            "e6f6",
+            "e3f3",
+            "f6e7",
+            "f3e3"
+          ],
+          "info": "info depth 18 seldepth 33 multipv 1 score cp -463 nodes 558000 nps 2952380 hashfull 18 time 189 pv a7a6 g1a1 f3g3 g7f6 g3f3 f6e7 a6b5 a1a2 f3e3 e7d7 e3f3 d7e6 f3e3 e6f6 e3f3 f6e7 f3e3"
+        },
+        "rival_white": 463
+      },
+      {
+        "ply": 6,
+        "fen": "8/k4PK1/2p5/1pPp4/3P4/5r2/p7/6R1 w - b6 0 4",
+        "nnue": 223,
+        "hce": -551,
+        "rival_search": {
+          "best": "g1a1",
+          "score_kind": "cp",
+          "score": 566,
+          "pv": [
+            "g1a1",
+            "f3g3",
+            "g7f8",
+            "a7b7",
+            "a1a2",
+            "g3f3",
+            "a2e2",
+            "b5b4",
+            "e2b2",
+            "b7c7",
+            "b2b4",
+            "c7d8",
+            "b4b8",
+            "d8d7",
+            "f8g7",
+            "f3g3",
+            "g7f6",
+            "g3f3",
+            "f6g6",
+            "f3g3",
+            "g6h5",
+            "g3h3",
+            "h5g5",
+            "h3g3",
+            "g5f5",
+            "g3f3",
+            "f5g6"
+          ],
+          "info": "info depth 16 seldepth 28 multipv 1 score cp 566 nodes 565000 nps 2989417 hashfull 19 time 189 pv g1a1 f3g3 g7f8 a7b7 a1a2 g3f3 a2e2 b5b4 e2b2 b7c7 b2b4 c7d8 b4b8 d8d7 f8g7 f3g3 g7f6 g3f3 f6g6 f3g3 g6h5 g3h3 h5g5 h3g3 g5f5 g3f3 f5g6"
+        },
+        "rival_white": 566
+      },
+      {
+        "ply": 7,
+        "fen": "8/k4PK1/2p5/1pPp4/3P4/5r2/p7/R7 b - - 1 4",
+        "nnue": 141,
+        "hce": -590,
+        "rival_search": {
+          "best": "f3g3",
+          "score_kind": "cp",
+          "score": -685,
+          "pv": [
+            "f3g3",
+            "g7f6",
+            "g3f3",
+            "f6e7",
+            "f3e3",
+            "e7d8",
+            "e3f3",
+            "a1a2",
+            "a7b7",
+            "d8e8"
+          ],
+          "info": "info depth 15 seldepth 22 multipv 1 score cp -685 nodes 536000 nps 2835978 hashfull 21 time 189 pv f3g3 g7f6 g3f3 f6e7 f3e3 e7d8 e3f3 a1a2 a7b7 d8e8"
+        },
+        "rival_white": 685
+      },
+      {
+        "ply": 8,
+        "fen": "8/k4PK1/2p5/1pPp4/3P4/6r1/p7/R7 w - - 2 5",
+        "nnue": 372,
+        "hce": -576,
+        "rival_search": {
+          "best": "g7f6",
+          "score_kind": "cp",
+          "score": 921,
+          "pv": [
+            "g7f6",
+            "g3f3",
+            "f6e7"
+          ],
+          "info": "info depth 17 seldepth 21 multipv 1 score cp 921 nodes 542000 nps 2867724 hashfull 16 time 189 pv g7f6 g3f3 f6e7"
+        },
+        "rival_white": 921
+      },
+      {
+        "ply": 9,
+        "fen": "8/k4P2/2p2K2/1pPp4/3P4/6r1/p7/R7 b - - 3 5",
+        "nnue": 315,
+        "hce": -580,
+        "rival_search": {
+          "best": "g3f3",
+          "score_kind": "cp",
+          "score": -864,
+          "pv": [
+            "g3f3",
+            "f6e7"
+          ],
+          "info": "info depth 14 seldepth 17 multipv 1 score cp -864 nodes 541000 nps 2862433 hashfull 20 time 189 pv g3f3 f6e7"
+        },
+        "rival_white": 864
+      },
+      {
+        "ply": 10,
+        "fen": "8/k4P2/2p2K2/1pPp4/3P4/5r2/p7/R7 w - - 4 6",
+        "nnue": 316,
+        "hce": -252,
+        "rival_search": {
+          "best": "f6e7",
+          "score_kind": "cp",
+          "score": 1388,
+          "pv": [
+            "f6e7",
+            "a7b7",
+            "f7f8q",
+            "f3f8",
+            "e7f8",
+            "b7a6",
+            "a1a2",
+            "a6b7",
+            "f8e7",
+            "b5b4",
+            "a2a4",
+            "b7c7"
+          ],
+          "info": "info depth 20 seldepth 35 multipv 1 score cp 1388 nodes 560000 nps 2962962 hashfull 17 time 189 pv f6e7 a7b7 f7f8q f3f8 e7f8 b7a6 a1a2 a6b7 f8e7 b5b4 a2a4 b7c7"
+        },
+        "rival_white": 1388
+      },
+      {
+        "ply": 11,
+        "fen": "8/k3KP2/2p5/1pPp4/3P4/5r2/p7/R7 b - - 5 6",
+        "nnue": 285,
+        "hce": -569,
+        "rival_search": {
+          "best": "a7a8",
+          "score_kind": "cp",
+          "score": -1404,
+          "pv": [
+            "a7a8",
+            "f7f8q",
+            "f3f8"
+          ],
+          "info": "info depth 17 seldepth 31 multipv 1 score cp -1404 nodes 537999 nps 2846555 hashfull 17 time 189 pv a7a8 f7f8q f3f8"
+        },
+        "rival_white": 1404
+      },
+      {
+        "ply": 12,
+        "fen": "8/k3KP2/2p5/1pPp4/3P4/4r3/p7/R7 w - - 6 7",
+        "nnue": 599,
+        "hce": -550,
+        "rival_search": {
+          "best": "e7d7",
+          "score_kind": "cp",
+          "score": 1911,
+          "pv": [
+            "e7d7",
+            "e3f3",
+            "d7c8",
+            "f3a3",
+            "a1a2",
+            "a3a2",
+            "f7f8q",
+            "a2g2",
+            "f8d8",
+            "g2d2"
+          ],
+          "info": "info depth 16 seldepth 32 multipv 1 score cp 1911 nodes 516000 nps 2730158 hashfull 23 time 189 pv e7d7 e3f3 d7c8 f3a3 a1a2 a3a2 f7f8q a2g2 f8d8 g2d2"
+        },
+        "rival_white": 1911
+      },
+      {
+        "ply": 13,
+        "fen": "8/k2K1P2/2p5/1pPp4/3P4/4r3/p7/R7 b - - 7 7",
+        "nnue": 494,
+        "hce": -585,
+        "rival_search": {
+          "best": "e3f3",
+          "score_kind": "cp",
+          "score": -2058,
+          "pv": [
+            "e3f3",
+            "d7c8",
+            "f3f2",
+            "a1a2"
+          ],
+          "info": "info depth 17 seldepth 29 multipv 1 score cp -2058 nodes 559000 nps 2957671 hashfull 19 time 189 pv e3f3 d7c8 f3f2 a1a2"
+        },
+        "rival_white": 2058
+      },
+      {
+        "ply": 14,
+        "fen": "8/k2K1P2/2p5/1pPp4/3P4/5r2/p7/R7 w - - 8 8",
+        "nnue": 430,
+        "hce": -537,
+        "rival_search": {
+          "best": "d7c8",
+          "score_kind": "cp",
+          "score": 2112,
+          "pv": [
+            "d7c8",
+            "f3a3",
+            "a1a2",
+            "a3a2",
+            "f7f8q",
+            "a2e2",
+            "c8c7",
+            "e2e7",
+            "f8e7",
+            "a7a6",
+            "c7c6",
+            "a6a5",
+            "c6d5",
+            "b5b4",
+            "c5c6",
+            "b4b3",
+            "c6c7",
+            "b3b2",
+            "e7e1",
+            "a5a4",
+            "c7c8q",
+            "a4a3"
+          ],
+          "info": "info depth 18 seldepth 40 multipv 1 score cp 2112 nodes 569000 nps 3010582 hashfull 23 time 189 pv d7c8 f3a3 a1a2 a3a2 f7f8q a2e2 c8c7 e2e7 f8e7 a7a6 c7c6 a6a5 c6d5 b5b4 c5c6 b4b3 c6c7 b3b2 e7e1 a5a4 c7c8q a4a3"
+        },
+        "rival_white": 2112
+      },
+      {
+        "ply": 15,
+        "fen": "8/k2K1P2/2p5/1pPp4/3P4/5r2/R7/8 b - - 0 8",
+        "nnue": 606,
+        "hce": 207,
+        "rival_search": {
+          "best": "a7b7",
+          "score_kind": "cp",
+          "score": -655,
+          "pv": [
+            "a7b7",
+            "d7e7",
+            "f3e3",
+            "e7f6"
+          ],
+          "info": "info depth 20 seldepth 27 multipv 1 score cp -655 nodes 600000 nps 3174603 hashfull 21 time 189 pv a7b7 d7e7 f3e3 e7f6"
+        },
+        "rival_white": 655
+      },
+      {
+        "ply": 16,
+        "fen": "8/1k1K1P2/2p5/1pPp4/3P4/5r2/R7/8 w - - 1 9",
+        "nnue": 569,
+        "hce": 234,
+        "rival_search": {
+          "best": "d7e7",
+          "score_kind": "cp",
+          "score": 618,
+          "pv": [
+            "d7e7",
+            "f3e3",
+            "e7f8",
+            "e3f3"
+          ],
+          "info": "info depth 20 seldepth 30 multipv 1 score cp 618 nodes 601000 nps 3179894 hashfull 16 time 189 pv d7e7 f3e3 e7f8 e3f3"
+        },
+        "rival_white": 618
+      },
+      {
+        "ply": 17,
+        "fen": "8/1k2KP2/2p5/1pPp4/3P4/5r2/R7/8 b - - 2 9",
+        "nnue": 517,
+        "hce": 202,
+        "rival_search": {
+          "best": "f3e3",
+          "score_kind": "cp",
+          "score": -610,
+          "pv": [
+            "f3e3",
+            "e7f8"
+          ],
+          "info": "info depth 20 seldepth 21 multipv 1 score cp -610 nodes 597000 nps 3158730 hashfull 27 time 189 pv f3e3 e7f8"
+        },
+        "rival_white": 610
+      },
+      {
+        "ply": 18,
+        "fen": "8/1k2KP2/2p5/1pPp4/3P4/4r3/R7/8 w - - 3 10",
+        "nnue": 858,
+        "hce": 222,
+        "rival_search": {
+          "best": "e7f8",
+          "score_kind": "cp",
+          "score": 645,
+          "pv": [
+            "e7f8",
+            "e3f3",
+            "a2b2",
+            "b7a6",
+            "b2b1",
+            "a6b7",
+            "b1g1",
+            "b5b4",
+            "f8g7",
+            "f3e3",
+            "f7f8q",
+            "b4b3"
+          ],
+          "info": "info depth 17 seldepth 34 multipv 1 score cp 645 nodes 604000 nps 3195767 hashfull 18 time 189 pv e7f8 e3f3 a2b2 b7a6 b2b1 a6b7 b1g1 b5b4 f8g7 f3e3 f7f8q b4b3"
+        },
+        "rival_white": 645
+      },
+      {
+        "ply": 19,
+        "fen": "5K2/1k3P2/2p5/1pPp4/3P4/4r3/R7/8 b - - 4 10",
+        "nnue": 556,
+        "hce": 141,
+        "rival_search": {
+          "best": "e3f3",
+          "score_kind": "cp",
+          "score": -668,
+          "pv": [
+            "e3f3",
+            "a2a1",
+            "f3f2"
+          ],
+          "info": "info depth 19 seldepth 26 multipv 1 score cp -668 nodes 609000 nps 3222222 hashfull 15 time 189 pv e3f3 a2a1 f3f2"
+        },
+        "rival_white": 668
+      },
+      {
+        "ply": 20,
+        "fen": "5K2/1k3P2/2p5/1pPp4/3Pr3/8/R7/8 w - - 5 11",
+        "nnue": 629,
+        "hce": 171,
+        "rival_search": {
+          "best": "a2f2",
+          "score_kind": "cp",
+          "score": 929,
+          "pv": [
+            "a2f2",
+            "b7a6",
+            "f8g7",
+            "e4e7",
+            "f2a2",
+            "a6b7",
+            "g7f6",
+            "b5b4",
+            "f6e7",
+            "b4b3",
+            "f7f8q",
+            "b7c7"
+          ],
+          "info": "info depth 16 seldepth 30 multipv 1 score cp 929 nodes 518000 nps 2740740 hashfull 21 time 189 pv a2f2 b7a6 f8g7 e4e7 f2a2 a6b7 g7f6 b5b4 f6e7 b4b3 f7f8q b7c7"
+        },
+        "rival_white": 929
+      },
+      {
+        "ply": 21,
+        "fen": "5K2/1k3P2/2p5/1pPp4/3Pr3/8/5R2/8 b - - 6 11",
+        "nnue": 650,
+        "hce": 122,
+        "rival_search": {
+          "best": "b5b4",
+          "score_kind": "cp",
+          "score": -969,
+          "pv": [
+            "b5b4",
+            "f8g7",
+            "e4e7",
+            "f2b2",
+            "b7a6",
+            "b2b4",
+            "a6a5",
+            "b4b1",
+            "e7d7",
+            "g7f6",
+            "d7d8",
+            "b1e1",
+            "d8h8",
+            "e1e8",
+            "h8h6",
+            "f6e7",
+            "h6e6",
+            "e7e6"
+          ],
+          "info": "info depth 16 seldepth 22 multipv 1 score cp -969 nodes 555000 nps 2936507 hashfull 23 time 189 pv b5b4 f8g7 e4e7 f2b2 b7a6 b2b4 a6a5 b4b1 e7d7 g7f6 d7d8 b1e1 d8h8 e1e8 h8h6 f6e7 h6e6 e7e6"
+        },
+        "rival_white": 969
+      },
+      {
+        "ply": 22,
+        "fen": "5K2/1k3P2/2p5/1pPp4/3P2r1/8/5R2/8 w - - 7 12",
+        "nnue": 797,
+        "hce": 147,
+        "rival_search": {
+          "best": "f8e8",
+          "score_kind": "cp",
+          "score": 1530,
+          "pv": [
+            "f8e8",
+            "b7c8",
+            "f7f8q",
+            "g4e4",
+            "e8f7",
+            "c8b7",
+            "f8d8",
+            "e4d4",
+            "d8b6",
+            "b7a8",
+            "b6c6",
+            "a8b8"
+          ],
+          "info": "info depth 16 seldepth 29 multipv 1 score cp 1530 nodes 515000 nps 2724867 hashfull 13 time 189 pv f8e8 b7c8 f7f8q g4e4 e8f7 c8b7 f8d8 e4d4 d8b6 b7a8 b6c6 a8b8"
+        },
+        "rival_white": 1530
+      },
+      {
+        "ply": 23,
+        "fen": "8/1k2KP2/2p5/1pPp4/3P2r1/8/5R2/8 b - - 8 12",
+        "nnue": 843,
+        "hce": 201,
+        "rival_search": {
+          "best": "g4g7",
+          "score_kind": "cp",
+          "score": -1269,
+          "pv": [
+            "g4g7",
+            "e7e6",
+            "g7g6",
+            "e6f5"
+          ],
+          "info": "info depth 13 seldepth 23 multipv 1 score cp -1269 nodes 502000 nps 2656084 hashfull 26 time 189 pv g4g7 e7e6 g7g6 e6f5"
+        },
+        "rival_white": 1269
+      }
+    ]
+  },
+  {
+    "id": "E_E_T 063 - T vs T",
+    "forced": {
+      "nnue": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": -176,
+        "pv": [
+          "b5b6",
+          "a3a2",
+          "b1a1",
+          "d8c8",
+          "f1e2",
+          "c8b7",
+          "e2d3",
+          "b7b6",
+          "d3c4",
+          "g5g4",
+          "c4b3",
+          "b6c5",
+          "b3c3",
+          "a8a3",
+          "c3b2",
+          "a3g3",
+          "b2a2",
+          "c5d4",
+          "a2b2",
+          "g3g2",
+          "b2b3",
+          "d4e3",
+          "b3c4",
+          "g2e2",
+          "a1a7",
+          "e3f3",
+          "a7f7",
+          "f3g3"
+        ],
+        "info": "info depth 28 seldepth 52 multipv 1 score cp -176 nodes 18209000 nps 3649829 hashfull 330 time 4989 pv b5b6 a3a2 b1a1 d8c8 f1e2 c8b7 e2d3 b7b6 d3c4 g5g4 c4b3 b6c5 b3c3 a8a3 c3b2 a3g3 b2a2 c5d4 a2b2 g3g2 b2b3 d4e3 b3c4 g2e2 a1a7 e3f3 a7f7 f3g3"
+      },
+      "hce": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": -134,
+        "pv": [
+          "b5b6",
+          "a3a2",
+          "b1a1",
+          "d8c8",
+          "g3g4",
+          "c8b7",
+          "g2g3",
+          "a8a6",
+          "f1g2",
+          "b7b8",
+          "b6b7",
+          "b8b7",
+          "g2h3",
+          "a6h6",
+          "h3g2",
+          "b7b6",
+          "a1a2",
+          "b6c5",
+          "a2b2",
+          "c5d4",
+          "b2c2",
+          "h6a6",
+          "g2h3",
+          "a6a4",
+          "h3g2",
+          "d4e3",
+          "g2h3",
+          "e3f3"
+        ],
+        "info": "info depth 30 seldepth 47 multipv 1 score cp -134 nodes 19498000 nps 3908198 hashfull 305 time 4989 pv b5b6 a3a2 b1a1 d8c8 g3g4 c8b7 g2g3 a8a6 f1g2 b7b8 b6b7 b8b7 g2h3 a6h6 h3g2 b7b6 a1a2 b6c5 a2b2 c5d4 b2c2 h6a6 g2h3 a6a4 h3g2 d4e3 g2h3 e3f3"
+      },
+      "stockfish": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "b5b6",
+          "a3a2",
+          "b1a1",
+          "d8c8",
+          "g3g4",
+          "c8b7",
+          "g2g3",
+          "b7b6",
+          "f1g2",
+          "b6c5",
+          "g2h3",
+          "a8h8",
+          "h3g2",
+          "h8a8"
+        ],
+        "info": "info depth 85 seldepth 15 multipv 1 score cp 0 nodes 11295953 nps 2259190 hashfull 168 tbhits 0 time 5000 pv b5b6 a3a2 b1a1 d8c8 g3g4 c8b7 g2g3 b7b6 f1g2 b6c5 g2h3 a8h8 h3g2 h8a8"
+      }
+    },
+    "peer_walk": [
+      {
+        "ply": 0,
+        "fen": "r2k4/8/8/1P4p1/8/p5P1/6P1/1R3K2 w - - 0 1",
+        "nnue": -106,
+        "hce": -87,
+        "rival_search": {
+          "best": "f1e2",
+          "score_kind": "cp",
+          "score": -58,
+          "pv": [
+            "f1e2",
+            "d8c7",
+            "e2d3",
+            "c7b6",
+            "d3c4",
+            "a8a4",
+            "c4b3",
+            "b6b5",
+            "b1a1",
+            "a4g4",
+            "b3a3",
+            "b5c4",
+            "a3a4",
+            "g4g3",
+            "a1a2",
+            "g3e3",
+            "a2c2",
+            "c4d3",
+            "c2c3",
+            "d3c3"
+          ],
+          "info": "info depth 16 seldepth 34 multipv 1 score cp -58 nodes 661000 nps 3497354 hashfull 18 time 189 pv f1e2 d8c7 e2d3 c7b6 d3c4 a8a4 c4b3 b6b5 b1a1 a4g4 b3a3 b5c4 a3a4 g4g3 a1a2 g3e3 a2c2 c4d3 c2c3 d3c3"
+        },
+        "rival_white": -58
+      },
+      {
+        "ply": 1,
+        "fen": "r2k4/8/1P6/6p1/8/p5P1/6P1/1R3K2 b - - 0 1",
+        "nnue": -25,
+        "hce": -64,
+        "rival_search": {
+          "best": "a3a2",
+          "score_kind": "cp",
+          "score": 92,
+          "pv": [
+            "a3a2",
+            "b1a1",
+            "a8a3",
+            "f1e1",
+            "d8c8",
+            "e1d1",
+            "c8b7",
+            "d1c1",
+            "b7b6",
+            "c1b2",
+            "a3g3",
+            "b2a2",
+            "b6c5",
+            "a2b2",
+            "c5d4",
+            "b2c1",
+            "g3g2",
+            "a1a3",
+            "g5g4",
+            "c1d1",
+            "d4e4"
+          ],
+          "info": "info depth 19 seldepth 33 multipv 1 score cp 92 nodes 663000 nps 3507936 hashfull 17 time 189 pv a3a2 b1a1 a8a3 f1e1 d8c8 e1d1 c8b7 d1c1 b7b6 c1b2 a3g3 b2a2 b6c5 a2b2 c5d4 b2c1 g3g2 a1a3 g5g4 c1d1 d4e4"
+        },
+        "rival_white": -92
+      },
+      {
+        "ply": 2,
+        "fen": "r2k4/8/1P6/6p1/8/6P1/p5P1/1R3K2 w - - 0 2",
+        "nnue": -204,
+        "hce": -66,
+        "rival_search": {
+          "best": "b1a1",
+          "score_kind": "cp",
+          "score": -84,
+          "pv": [
+            "b1a1",
+            "d8c8",
+            "f1e1",
+            "c8b7",
+            "e1d2",
+            "a8a3",
+            "d2c1",
+            "b7b6"
+          ],
+          "info": "info depth 20 seldepth 22 multipv 1 score cp -84 nodes 681000 nps 3603174 hashfull 14 time 189 pv b1a1 d8c8 f1e1 c8b7 e1d2 a8a3 d2c1 b7b6"
+        },
+        "rival_white": -84
+      },
+      {
+        "ply": 3,
+        "fen": "r2k4/8/1P6/6p1/8/6P1/p5P1/R4K2 b - - 1 2",
+        "nnue": 16,
+        "hce": -111,
+        "rival_search": {
+          "best": "a8a3",
+          "score_kind": "cp",
+          "score": 88,
+          "pv": [
+            "a8a3",
+            "f1e1",
+            "d8c8",
+            "e1d1",
+            "c8b7",
+            "d1c1",
+            "b7b6",
+            "g3g4",
+            "a3a4",
+            "c1b2"
+          ],
+          "info": "info depth 20 seldepth 24 multipv 1 score cp 88 nodes 695000 nps 3677248 hashfull 17 time 189 pv a8a3 f1e1 d8c8 e1d1 c8b7 d1c1 b7b6 g3g4 a3a4 c1b2"
+        },
+        "rival_white": -88
+      },
+      {
+        "ply": 4,
+        "fen": "r1k5/8/1P6/6p1/8/6P1/p5P1/R4K2 w - - 2 3",
+        "nnue": 18,
+        "hce": -47,
+        "rival_search": {
+          "best": "f1e2",
+          "score_kind": "cp",
+          "score": -62,
+          "pv": [
+            "f1e2",
+            "c8b7",
+            "e2d3",
+            "b7b6",
+            "d3c4",
+            "b6c6",
+            "c4b3",
+            "c6d5",
+            "a1a2",
+            "a8a2",
+            "b3a2",
+            "d5e4",
+            "a2b3",
+            "e4f5",
+            "b3c4",
+            "f5g4",
+            "c4d5",
+            "g4g3",
+            "d5e6",
+            "g3g2"
+          ],
+          "info": "info depth 19 seldepth 30 multipv 1 score cp -62 nodes 696000 nps 3682539 hashfull 19 time 189 pv f1e2 c8b7 e2d3 b7b6 d3c4 b6c6 c4b3 c6d5 a1a2 a8a2 b3a2 d5e4 a2b3 e4f5 b3c4 f5g4 c4d5 g4g3 d5e6 g3g2"
+        },
+        "rival_white": -62
+      },
+      {
+        "ply": 5,
+        "fen": "r1k5/8/1P6/6p1/6P1/8/p5P1/R4K2 b - - 0 3",
+        "nnue": 23,
+        "hce": -62,
+        "rival_search": {
+          "best": "a8a4",
+          "score_kind": "cp",
+          "score": 111,
+          "pv": [
+            "a8a4",
+            "f1e2",
+            "a4g4",
+            "e2f2",
+            "g4a4",
+            "f2e3",
+            "c8b7",
+            "e3d3"
+          ],
+          "info": "info depth 19 seldepth 20 multipv 1 score cp 111 nodes 639000 nps 3380952 hashfull 18 time 189 pv a8a4 f1e2 a4g4 e2f2 g4a4 f2e3 c8b7 e3d3"
+        },
+        "rival_white": -111
+      },
+      {
+        "ply": 6,
+        "fen": "r7/1k6/1P6/6p1/6P1/8/p5P1/R4K2 w - - 1 4",
+        "nnue": -52,
+        "hce": -98,
+        "rival_search": {
+          "best": "f1e2",
+          "score_kind": "cp",
+          "score": -100,
+          "pv": [
+            "f1e2",
+            "b7b6",
+            "e2d3",
+            "b6b5",
+            "d3c3",
+            "a8a4"
+          ],
+          "info": "info depth 19 seldepth 16 multipv 1 score cp -100 nodes 621000 nps 3285714 hashfull 13 time 189 pv f1e2 b7b6 e2d3 b6b5 d3c3 a8a4"
+        },
+        "rival_white": -100
+      },
+      {
+        "ply": 7,
+        "fen": "r7/1k6/1P6/6p1/6P1/6P1/p7/R4K2 b - - 0 4",
+        "nnue": -164,
+        "hce": -100,
+        "rival_search": {
+          "best": "a8a3",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "a8a3",
+            "f1g2",
+            "a3a6",
+            "g2h3",
+            "b7b8"
+          ],
+          "info": "info depth 21 seldepth 18 multipv 1 score cp 0 nodes 695000 nps 3677248 hashfull 10 time 189 pv a8a3 f1g2 a3a6 g2h3 b7b8"
+        },
+        "rival_white": 0
+      },
+      {
+        "ply": 8,
+        "fen": "r7/8/1k6/6p1/6P1/6P1/p7/R4K2 w - - 0 5",
+        "nnue": -279,
+        "hce": -427,
+        "rival_search": {
+          "best": "f1g2",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "f1g2",
+            "a8a7",
+            "g2h3",
+            "a7a3",
+            "a1a2",
+            "a3a2"
+          ],
+          "info": "info depth 30 seldepth 27 multipv 1 score cp 0 nodes 836000 nps 4423280 hashfull 4 time 189 pv f1g2 a8a7 g2h3 a7a3 a1a2 a3a2"
+        },
+        "rival_white": 0
+      },
+      {
+        "ply": 9,
+        "fen": "r7/8/1k6/6p1/6P1/6P1/p5K1/R7 b - - 1 5",
+        "nnue": -280,
+        "hce": -438,
+        "rival_search": {
+          "best": "a8a7",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "a8a7",
+            "g2h3",
+            "b6c5",
+            "a1a2",
+            "a7a2"
+          ],
+          "info": "info depth 26 seldepth 21 multipv 1 score cp 0 nodes 794000 nps 4201058 hashfull 14 time 189 pv a8a7 g2h3 b6c5 a1a2 a7a2"
+        },
+        "rival_white": 0
+      },
+      {
+        "ply": 10,
+        "fen": "r7/8/8/2k3p1/6P1/6P1/p5K1/R7 w - - 2 6",
+        "nnue": -261,
+        "hce": -433,
+        "rival_search": {
+          "best": "g2h3",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "g2h3",
+            "c5d6",
+            "a1a2",
+            "a8a2"
+          ],
+          "info": "info depth 29 seldepth 22 multipv 1 score cp 0 nodes 767000 nps 4058201 hashfull 8 time 189 pv g2h3 c5d6 a1a2 a8a2"
+        },
+        "rival_white": 0
+      },
+      {
+        "ply": 11,
+        "fen": "r7/8/8/2k3p1/6P1/6PK/p7/R7 b - - 3 6",
+        "nnue": -282,
+        "hce": -482,
+        "rival_search": {
+          "best": "c5c6",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "c5c6",
+            "a1a2",
+            "a8a2"
+          ],
+          "info": "info depth 27 seldepth 20 multipv 1 score cp 0 nodes 813000 nps 4301587 hashfull 8 time 189 pv c5c6 a1a2 a8a2"
+        },
+        "rival_white": 0
+      },
+      {
+        "ply": 12,
+        "fen": "7r/8/8/2k3p1/6P1/6PK/p7/R7 w - - 4 7",
+        "nnue": -92,
+        "hce": -473,
+        "rival_search": {
+          "best": "h3g2",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "h3g2",
+            "h8a8"
+          ],
+          "info": "info depth 31 seldepth 26 multipv 1 score cp 0 nodes 721000 nps 3814814 hashfull 12 time 189 pv h3g2 h8a8"
+        },
+        "rival_white": 0
+      },
+      {
+        "ply": 13,
+        "fen": "7r/8/8/2k3p1/6P1/6P1/p5K1/R7 b - - 5 7",
+        "nnue": -192,
+        "hce": -480,
+        "rival_search": {
+          "best": "h8a8",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "h8a8"
+          ],
+          "info": "info depth 26 seldepth 24 multipv 1 score cp 0 nodes 737000 nps 3899470 hashfull 10 time 189 pv h8a8"
+        },
+        "rival_white": 0
+      }
+    ]
+  },
+  {
+    "id": "E_E_T 081 - T&L&S vs L&B",
+    "forced": {
+      "nnue": {
+        "best": "d4d1",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "d4d1",
+          "h1g2",
+          "h3g2",
+          "g3g2",
+          "d1d2",
+          "g2g3"
+        ],
+        "info": "info depth 33 seldepth 39 multipv 1 score cp 0 nodes 14956000 nps 2997795 hashfull 345 time 4989 pv d4d1 h1g2 h3g2 g3g2 d1d2 g2g3"
+      },
+      "hce": {
+        "best": "d4d1",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "d4d1",
+          "h1g2",
+          "h3g2",
+          "g3g2",
+          "d1d2",
+          "g2h3"
+        ],
+        "info": "info depth 36 seldepth 34 multipv 1 score cp 0 nodes 15661000 nps 3139106 hashfull 384 time 4989 pv d4d1 h1g2 h3g2 g3g2 d1d2 g2h3"
+      },
+      "stockfish": {
+        "best": "d4d1",
+        "score_kind": "cp",
+        "score": 680,
+        "pv": [
+          "d4d1",
+          "h1g2"
+        ],
+        "info": "info depth 28 seldepth 74 multipv 1 score cp 680 lowerbound nodes 10169462 nps 2033892 hashfull 215 tbhits 0 time 5000 pv d4d1 h1g2"
+      }
+    },
+    "peer_walk": [
+      {
+        "ply": 0,
+        "fen": "8/1p5p/6p1/1p4Pp/1PpR4/2P1K1kB/6Np/7b w - - 0 1",
+        "nnue": 681,
+        "hce": 1199,
+        "rival_search": {
+          "best": "d4d2",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "d4d2",
+            "g3h3",
+            "g2f4",
+            "h3g3"
+          ],
+          "info": "info depth 23 seldepth 22 multipv 1 score cp 0 nodes 511000 nps 2703703 hashfull 16 time 189 pv d4d2 g3h3 g2f4 h3g3"
+        },
+        "rival_white": 0
+      },
+      {
+        "ply": 1,
+        "fen": "8/1p5p/6p1/1p4Pp/1Pp5/2P1K1kB/6Np/3R3b b - - 1 1",
+        "nnue": -120,
+        "hce": 1188,
+        "rival_search": {
+          "best": "h1g2",
+          "score_kind": "cp",
+          "score": 108,
+          "pv": [
+            "h1g2",
+            "h3g2",
+            "g3g2",
+            "d1d2",
+            "g2g3"
+          ],
+          "info": "info depth 27 seldepth 23 multipv 1 score cp 108 nodes 589000 nps 3116402 hashfull 18 time 189 pv h1g2 h3g2 g3g2 d1d2 g2g3"
+        },
+        "rival_white": -108
+      }
+    ]
+  }
+]

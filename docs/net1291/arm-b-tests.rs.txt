@@ -1,0 +1,39 @@
+use rusty_rival::fen::get_position;
+use rusty_rival::quiesce::quiesce;
+use rusty_rival::search::MAX_WINDOW;
+use rusty_rival::types::default_search_state;
+use std::time::{Duration, Instant};
+
+#[test]
+fn quiescence_recognizes_material_draws_with_nnue() {
+    // Synthetic positions independent of the diagnostic suites. Full search
+    // already recognizes these material configurations as drawn.
+    for fen in [
+        "6k1/8/8/8/8/8/8/K7 w - - 0 1",
+        "6k1/8/8/8/8/8/8/K1B5 w - - 0 1",
+        "6k1/8/8/8/8/8/8/K1N5 w - - 0 1",
+        "2b3k1/8/8/8/8/8/8/K1B5 w - - 0 1",
+    ] {
+        let mut position = get_position(fen);
+        let mut state = default_search_state();
+        state.end_time = Instant::now() + Duration::from_secs(10);
+        assert_eq!(
+            quiesce(&mut position, 8, 8, (-MAX_WINDOW, MAX_WINDOW), &mut state, None).1,
+            0,
+            "{fen}"
+        );
+    }
+}
+
+#[test]
+fn quiescence_preserves_mating_material() {
+    for fen in ["7k/8/2K5/8/5B2/8/2B5/8 w - - 0 1", "7k/8/2K5/5N2/5B2/8/8/8 w - - 0 1"] {
+        let mut position = get_position(fen);
+        let mut state = default_search_state();
+        state.end_time = Instant::now() + Duration::from_secs(10);
+        assert!(
+            quiesce(&mut position, 8, 8, (-MAX_WINDOW, MAX_WINDOW), &mut state, None).1 > 0,
+            "{fen}"
+        );
+    }
+}

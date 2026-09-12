@@ -1,0 +1,2953 @@
+[
+  {
+    "id": "E_E_T 036 - L&S vs T&B",
+    "fen": "8/8/8/3K4/2N5/p2B4/p7/k4r2 w - - 0 1",
+    "bm": [
+      "d5c5"
+    ],
+    "roots": {
+      "nnue": {
+        "best": "d3f1",
+        "score_kind": "cp",
+        "score": -282,
+        "pv": [
+          "d3f1",
+          "a1b1",
+          "c4a3",
+          "b1c1"
+        ],
+        "info": "info depth 27 seldepth 31 multipv 1 score cp -282 nodes 17410000 nps 3489677 hashfull 295 time 4989 pv d3f1 a1b1 c4a3 b1c1"
+      },
+      "hce": {
+        "best": "d3f1",
+        "score_kind": "cp",
+        "score": -1288,
+        "pv": [
+          "d3f1",
+          "a1b1",
+          "f1d3",
+          "b1c1"
+        ],
+        "info": "info depth 29 seldepth 27 multipv 1 score cp -1288 nodes 19077000 nps 3823812 hashfull 317 time 4989 pv d3f1 a1b1 f1d3 b1c1"
+      },
+      "stash": {
+        "best": "d3f1",
+        "score_kind": "cp",
+        "score": -115,
+        "pv": [
+          "d3f1",
+          "a1b1"
+        ],
+        "info": "info depth 29 seldepth 60 multipv 1 score cp -115 nodes 17446368 nps 3510335 hashfull 580 time 4970 pv d3f1 a1b1"
+      },
+      "stockfish": {
+        "best": "d5c5",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "d5c5",
+          "f1c1",
+          "c5b4",
+          "c1c4",
+          "b4b3",
+          "c4c7",
+          "d3f5",
+          "c7e7",
+          "b3c2",
+          "e7e2",
+          "c2b3",
+          "e2e5",
+          "f5g6",
+          "e5b5",
+          "b3c2",
+          "b5b2",
+          "c2c3",
+          "b2h2",
+          "g6e4",
+          "h2h4",
+          "e4f5",
+          "h4g4",
+          "f5h7",
+          "g4g2",
+          "h7e4",
+          "g2g5",
+          "c3b3",
+          "g5g3",
+          "b3c2",
+          "g3g4",
+          "e4h7",
+          "g4g2",
+          "c2b3",
+          "g2g3",
+          "b3c2"
+        ],
+        "info": "info depth 94 seldepth 38 multipv 1 score cp 0 nodes 14998558 nps 2999711 hashfull 80 tbhits 0 time 5000 pv d5c5 f1c1 c5b4 c1c4 b4b3 c4c7 d3f5 c7e7 b3c2 e7e2 c2b3 e2e5 f5g6 e5b5 b3c2 b5b2 c2c3 b2h2 g6e4 h2h4 e4f5 h4g4 f5h7 g4g2 h7e4 g2g5 c3b3 g5g3 b3c2 g3g4 e4h7 g4g2 c2b3 g2g3 b3c2"
+      }
+    },
+    "walk": [
+      {
+        "ply": 0,
+        "fen": "8/8/8/3K4/2N5/p2B4/p7/k4r2 w - - 0 1",
+        "moves": [],
+        "nnue": -234,
+        "hce": -529,
+        "stockfish_search": {
+          "best": "d5c5",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "d5c5",
+            "f1c1",
+            "c5b4",
+            "c1c4",
+            "b4b3",
+            "c4d4",
+            "d3h7",
+            "d4b4",
+            "b3c3",
+            "b4b2",
+            "h7e4",
+            "b2e2",
+            "e4f5",
+            "e2e3",
+            "c3c2",
+            "e3f3",
+            "f5g6",
+            "f3f2",
+            "c2b3",
+            "f2b2",
+            "b3c3",
+            "b2b6",
+            "g6e4",
+            "b6e6",
+            "e4h7",
+            "e6e7",
+            "h7f5"
+          ],
+          "info": "info depth 44 seldepth 28 multipv 1 score cp 0 nodes 494014 nps 2470070 hashfull 3 tbhits 0 time 200 pv d5c5 f1c1 c5b4 c1c4 b4b3 c4d4 d3h7 d4b4 b3c3 b4b2 h7e4 b2e2 e4f5 e2e3 c3c2 e3f3 f5g6 f3f2 c2b3 f2b2 b3c3 b2b6 g6e4 b6e6 e4h7 e6e7 h7f5"
+        },
+        "stockfish_white": 0
+      },
+      {
+        "ply": 1,
+        "fen": "8/8/8/3K4/2N5/p7/p7/k4B2 b - - 0 1",
+        "moves": [
+          "d3f1"
+        ],
+        "nnue": 55,
+        "hce": 613,
+        "stockfish_search": {
+          "best": "a1b1",
+          "score_kind": "cp",
+          "score": 228,
+          "pv": [
+            "a1b1",
+            "f1d3"
+          ],
+          "info": "info depth 17 seldepth 35 multipv 1 score cp 228 lowerbound nodes 296136 nps 1480680 hashfull 11 tbhits 0 time 200 pv a1b1 f1d3"
+        },
+        "stockfish_white": -228
+      },
+      {
+        "ply": 2,
+        "fen": "8/8/8/3K4/2N5/p7/p7/1k3B2 w - - 1 2",
+        "moves": [
+          "d3f1",
+          "a1b1"
+        ],
+        "nnue": -115,
+        "hce": 616,
+        "stockfish_search": {
+          "best": "f1d3",
+          "score_kind": "cp",
+          "score": -234,
+          "pv": [
+            "f1d3",
+            "b1c1",
+            "c4a3",
+            "a2a1q",
+            "a3c4",
+            "a1a8",
+            "d5d4",
+            "a8d8",
+            "d4e4",
+            "d8d7",
+            "c4e5",
+            "d7b7",
+            "e4d4",
+            "b7a7",
+            "d4e4",
+            "c1b2"
+          ],
+          "info": "info depth 18 seldepth 42 multipv 1 score cp -234 nodes 315491 nps 1577455 hashfull 11 tbhits 0 time 200 pv f1d3 b1c1 c4a3 a2a1q a3c4 a1a8 d5d4 a8d8 d4e4 d8d7 c4e5 d7b7 e4d4 b7a7 d4e4 c1b2"
+        },
+        "stockfish_white": -234
+      },
+      {
+        "ply": 3,
+        "fen": "8/8/8/3K4/8/N7/p7/1k3B2 b - - 0 2",
+        "moves": [
+          "d3f1",
+          "a1b1",
+          "c4a3"
+        ],
+        "nnue": -347,
+        "hce": 786,
+        "stockfish_search": {
+          "best": "b1b2",
+          "score_kind": "cp",
+          "score": 218,
+          "pv": [
+            "b1b2",
+            "f1c4",
+            "a2a1q",
+            "a3b5",
+            "a1c1",
+            "d5c5",
+            "c1f4",
+            "c4d5",
+            "b2c2",
+            "c5c6",
+            "c2d2",
+            "c6d7",
+            "d2e3",
+            "d5c6",
+            "f4e5",
+            "b5c7",
+            "e3f4",
+            "c6b5",
+            "f4f5"
+          ],
+          "info": "info depth 19 seldepth 28 multipv 1 score cp 218 nodes 311164 nps 1555820 hashfull 12 tbhits 0 time 200 pv b1b2 f1c4 a2a1q a3b5 a1c1 d5c5 c1f4 c4d5 b2c2 c5c6 c2d2 c6d7 d2e3 d5c6 f4e5 b5c7 e3f4 c6b5 f4f5"
+        },
+        "stockfish_white": -218
+      },
+      {
+        "ply": 4,
+        "fen": "8/8/8/3K4/8/N7/p7/2k2B2 w - - 1 3",
+        "moves": [
+          "d3f1",
+          "a1b1",
+          "c4a3",
+          "b1c1"
+        ],
+        "nnue": -268,
+        "hce": 808,
+        "stockfish_search": {
+          "best": "f1d3",
+          "score_kind": "cp",
+          "score": -236,
+          "pv": [
+            "f1d3",
+            "a2a1q"
+          ],
+          "info": "info depth 17 seldepth 36 multipv 1 score cp -236 upperbound nodes 282420 nps 1412100 hashfull 12 tbhits 0 time 200 pv f1d3 a2a1q"
+        },
+        "stockfish_white": -236
+      }
+    ]
+  },
+  {
+    "id": "E_E_T 049 - T vs B",
+    "fen": "1k6/8/8/1K6/5pp1/8/4Pp1p/R7 w - - 0 1",
+    "bm": [
+      "b5b6"
+    ],
+    "roots": {
+      "nnue": {
+        "best": "b5c6",
+        "score_kind": "cp",
+        "score": -1004,
+        "pv": [
+          "b5c6",
+          "g4g3",
+          "a1b1",
+          "b8c8",
+          "b1a1",
+          "c8b8",
+          "a1b1"
+        ],
+        "info": "info depth 32 seldepth 41 multipv 1 score cp -1004 nodes 15782000 nps 3163359 hashfull 375 time 4989 pv b5c6 g4g3 a1b1 b8c8 b1a1 c8b8 a1b1"
+      },
+      "hce": {
+        "best": "b5c6",
+        "score_kind": "cp",
+        "score": -567,
+        "pv": [
+          "b5c6",
+          "g4g3",
+          "a1b1",
+          "b8c8"
+        ],
+        "info": "info depth 28 seldepth 38 multipv 1 score cp -567 nodes 16653000 nps 3337943 hashfull 361 time 4989 pv b5c6 g4g3 a1b1 b8c8"
+      },
+      "stash": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "b5b6",
+          "g4g3",
+          "b6c6",
+          "g3g2",
+          "a1b1",
+          "b8c8",
+          "b1a1",
+          "c8d8",
+          "c6d6",
+          "d8e8",
+          "d6e6",
+          "e8f8",
+          "e6f6",
+          "f8g8",
+          "a1a8",
+          "g8h7",
+          "a8a7",
+          "h7h6",
+          "a7a8"
+        ],
+        "info": "info depth 46 seldepth 26 multipv 1 score cp 0 nodes 18643716 nps 3751250 hashfull 649 time 4970 pv b5b6 g4g3 b6c6 g3g2 a1b1 b8c8 b1a1 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 f8g8 a1a8 g8h7 a8a7 h7h6 a7a8"
+      },
+      "stockfish": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "b5b6",
+          "g4g3",
+          "b6c6",
+          "g3g2",
+          "a1b1",
+          "b8c8",
+          "b1a1"
+        ],
+        "info": "info depth 80 seldepth 20 multipv 1 score cp 0 nodes 8641120 nps 1728224 hashfull 235 tbhits 0 time 5000 pv b5b6 g4g3 b6c6 g3g2 a1b1 b8c8 b1a1"
+      }
+    },
+    "walk": [
+      {
+        "ply": 0,
+        "fen": "1k6/8/8/1K6/5pp1/8/4Pp1p/R7 w - - 0 1",
+        "moves": [],
+        "nnue": -292,
+        "hce": -404,
+        "stockfish_search": {
+          "best": "b5b6",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "b5b6",
+            "g4g3",
+            "b6c6",
+            "g3g2",
+            "a1b1",
+            "b8c8",
+            "b1a1",
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "f8g8",
+            "a1a8",
+            "g8h7",
+            "a8a7",
+            "h7h6",
+            "a7a8",
+            "h6h5",
+            "f6f5",
+            "h5h4",
+            "a8h8",
+            "h4g3",
+            "h8g8",
+            "g3h3",
+            "g8h8"
+          ],
+          "info": "info depth 35 seldepth 28 multipv 1 score cp 0 nodes 368683 nps 1843415 hashfull 10 tbhits 0 time 200 pv b5b6 g4g3 b6c6 g3g2 a1b1 b8c8 b1a1 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 f8g8 a1a8 g8h7 a8a7 h7h6 a7a8 h6h5 f6f5 h5h4 a8h8 h4g3 h8g8 g3h3 g8h8"
+        },
+        "stockfish_white": 0
+      },
+      {
+        "ply": 1,
+        "fen": "1k6/8/2K5/8/5pp1/8/4Pp1p/R7 b - - 1 1",
+        "moves": [
+          "b5c6"
+        ],
+        "nnue": -549,
+        "hce": -401,
+        "stockfish_search": {
+          "best": "g4g3",
+          "score_kind": "cp",
+          "score": 361,
+          "pv": [
+            "g4g3",
+            "a1c1",
+            "b8c8",
+            "c1b1",
+            "h2h1q",
+            "b1h1",
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "f8g8",
+            "h1f1",
+            "f4f3",
+            "e2e3",
+            "g3g2",
+            "f1f2",
+            "g2g1q",
+            "f2f3",
+            "g1g4",
+            "f3f4",
+            "g4g7",
+            "f6f5",
+            "g7h7",
+            "f5e5"
+          ],
+          "info": "info depth 16 seldepth 41 multipv 1 score cp 361 nodes 358795 nps 1793975 hashfull 12 tbhits 0 time 200 pv g4g3 a1c1 b8c8 c1b1 h2h1q b1h1 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 f8g8 h1f1 f4f3 e2e3 g3g2 f1f2 g2g1q f2f3 g1g4 f3f4 g4g7 f6f5 g7h7 f5e5"
+        },
+        "stockfish_white": -361
+      },
+      {
+        "ply": 2,
+        "fen": "1k6/8/2K5/8/5p2/6p1/4Pp1p/R7 w - - 0 2",
+        "moves": [
+          "b5c6",
+          "g4g3"
+        ],
+        "nnue": -486,
+        "hce": -497,
+        "stockfish_search": {
+          "best": "a1c1",
+          "score_kind": "cp",
+          "score": -345,
+          "pv": [
+            "a1c1",
+            "b8c8"
+          ],
+          "info": "info depth 15 seldepth 31 multipv 1 score cp -345 upperbound nodes 343653 nps 1718265 hashfull 12 tbhits 0 time 200 pv a1c1 b8c8"
+        },
+        "stockfish_white": -345
+      },
+      {
+        "ply": 3,
+        "fen": "1k6/8/2K5/8/5p2/6p1/4Pp1p/1R6 b - - 1 2",
+        "moves": [
+          "b5c6",
+          "g4g3",
+          "a1b1"
+        ],
+        "nnue": -791,
+        "hce": -525,
+        "stockfish_search": {
+          "best": "b8c8",
+          "score_kind": "cp",
+          "score": 359,
+          "pv": [
+            "b8c8",
+            "b1a1",
+            "h2h1q",
+            "a1h1",
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "f8g8",
+            "h1f1",
+            "f4f3",
+            "e2e3",
+            "g3g2",
+            "f1f2",
+            "g2g1q",
+            "f2f3",
+            "g1g7",
+            "f6e6",
+            "g7g6",
+            "e6e5",
+            "g8g7",
+            "e5f4",
+            "g7f7",
+            "f3f2",
+            "f7f6"
+          ],
+          "info": "info depth 16 seldepth 42 multipv 1 score cp 359 nodes 343396 nps 1716980 hashfull 15 tbhits 0 time 200 pv b8c8 b1a1 h2h1q a1h1 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 f8g8 h1f1 f4f3 e2e3 g3g2 f1f2 g2g1q f2f3 g1g7 f6e6 g7g6 e6e5 g8g7 e5f4 g7f7 f3f2 f7f6"
+        },
+        "stockfish_white": -359
+      },
+      {
+        "ply": 4,
+        "fen": "2k5/8/2K5/8/5p2/6p1/4Pp1p/1R6 w - - 2 3",
+        "moves": [
+          "b5c6",
+          "g4g3",
+          "a1b1",
+          "b8c8"
+        ],
+        "nnue": -506,
+        "hce": -500,
+        "stockfish_search": {
+          "best": "b1a1",
+          "score_kind": "cp",
+          "score": -355,
+          "pv": [
+            "b1a1",
+            "c8d8",
+            "c6d6",
+            "h2h1q",
+            "a1h1",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "f8g8",
+            "h1f1",
+            "f4f3",
+            "e2e4",
+            "g3g2",
+            "f1f2",
+            "g2g1q",
+            "f2f3",
+            "g1g2"
+          ],
+          "info": "info depth 14 seldepth 40 multipv 1 score cp -355 nodes 359481 nps 1797405 hashfull 14 tbhits 0 time 200 pv b1a1 c8d8 c6d6 h2h1q a1h1 d8e8 d6e6 e8f8 e6f6 f8g8 h1f1 f4f3 e2e4 g3g2 f1f2 g2g1q f2f3 g1g2"
+        },
+        "stockfish_white": -355
+      },
+      {
+        "ply": 5,
+        "fen": "2k5/8/2K5/8/5p2/6p1/4Pp1p/R7 b - - 3 3",
+        "moves": [
+          "b5c6",
+          "g4g3",
+          "a1b1",
+          "b8c8",
+          "b1a1"
+        ],
+        "nnue": -844,
+        "hce": -539,
+        "stockfish_search": {
+          "best": "c8d8",
+          "score_kind": "cp",
+          "score": 350,
+          "pv": [
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "h2h1q",
+            "a1h1",
+            "f8g8",
+            "h1f1",
+            "f4f3",
+            "e2e3",
+            "g3g2",
+            "f1f2",
+            "g2g1q",
+            "f6e6"
+          ],
+          "info": "info depth 15 seldepth 43 multipv 1 score cp 350 nodes 345810 nps 1729050 hashfull 14 tbhits 0 time 200 pv c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 h2h1q a1h1 f8g8 h1f1 f4f3 e2e3 g3g2 f1f2 g2g1q f6e6"
+        },
+        "stockfish_white": -350
+      },
+      {
+        "ply": 6,
+        "fen": "1k6/8/2K5/8/5p2/6p1/4Pp1p/R7 w - - 4 4",
+        "moves": [
+          "b5c6",
+          "g4g3",
+          "a1b1",
+          "b8c8",
+          "b1a1",
+          "c8b8"
+        ],
+        "nnue": -486,
+        "hce": -497,
+        "stockfish_search": {
+          "best": "a1h1",
+          "score_kind": "cp",
+          "score": -331,
+          "pv": [
+            "a1h1",
+            "b8c8",
+            "h1a1",
+            "c8d8",
+            "c6d6",
+            "d8e8",
+            "d6e6",
+            "e8f8",
+            "e6f6",
+            "h2h1q",
+            "a1h1",
+            "f8g8",
+            "h1f1",
+            "f4f3",
+            "e2f3",
+            "g3g2",
+            "f1f2",
+            "g2g1q",
+            "f2e2",
+            "g1c5"
+          ],
+          "info": "info depth 18 seldepth 43 multipv 1 score cp -331 nodes 355097 nps 1775485 hashfull 14 tbhits 0 time 200 pv a1h1 b8c8 h1a1 c8d8 c6d6 d8e8 d6e6 e8f8 e6f6 h2h1q a1h1 f8g8 h1f1 f4f3 e2f3 g3g2 f1f2 g2g1q f2e2 g1c5"
+        },
+        "stockfish_white": -331
+      },
+      {
+        "ply": 7,
+        "fen": "1k6/8/2K5/8/5p2/6p1/4Pp1p/1R6 b - - 5 4",
+        "moves": [
+          "b5c6",
+          "g4g3",
+          "a1b1",
+          "b8c8",
+          "b1a1",
+          "c8b8",
+          "a1b1"
+        ],
+        "nnue": -791,
+        "hce": -525,
+        "stockfish_search": {
+          "best": "b8c8",
+          "score_kind": "cp",
+          "score": 342,
+          "pv": [
+            "b8c8",
+            "b1a1"
+          ],
+          "info": "info depth 15 seldepth 37 multipv 1 score cp 342 lowerbound nodes 353152 nps 1765760 hashfull 13 tbhits 0 time 200 pv b8c8 b1a1"
+        },
+        "stockfish_white": -342
+      }
+    ]
+  },
+  {
+    "id": "E_E_T 060 - T vs T",
+    "fen": "5K2/kp3P2/2p5/2Pp4/3P4/r7/p7/6R1 w - - 0 1",
+    "bm": [
+      "f8e7"
+    ],
+    "roots": {
+      "nnue": {
+        "best": "f8g7",
+        "score_kind": "cp",
+        "score": 485,
+        "pv": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1",
+          "f6f2",
+          "g1g8",
+          "f2a2",
+          "a7b8",
+          "a2b2",
+          "b8a7",
+          "b2b6",
+          "a7b8"
+        ],
+        "info": "info depth 28 seldepth 50 multipv 1 score cp 485 nodes 15890000 nps 3185007 hashfull 315 time 4989 pv f8g7 a2a1q g1a1 a3a1 f7f8q a1g1 g7h6 g1h1 h6g5 h1g1 g5h4 g1g6 f8d8 g6g1 h4h5 g1g3 d8b6 a7b8 b6b2 g3g8 h5h4 g8g6 b2h2 b8a7 h2e5 g6g1 e5f6 g1g8 h4h5 g8g1 f6f2 g1g8 f2a2 a7b8 a2b2 b8a7 b2b6 a7b8"
+      },
+      "hce": {
+        "best": "f8g8",
+        "score_kind": "cp",
+        "score": 1346,
+        "pv": [
+          "f8g8",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g8h7"
+        ],
+        "info": "info depth 32 seldepth 48 multipv 1 score cp 1346 nodes 15744000 nps 3155742 hashfull 392 time 4989 pv f8g8 a2a1q g1a1 a3a1 f7f8q a1g1 g8h7"
+      },
+      "stash": {
+        "best": "f8g8",
+        "score_kind": "cp",
+        "score": 751,
+        "pv": [
+          "f8g8",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g8h7",
+          "g1h1",
+          "h7g6",
+          "h1g1",
+          "g6h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1h1",
+          "h4g3",
+          "h1e1",
+          "f8f6",
+          "e1e4",
+          "f6h8",
+          "e4e1",
+          "g3g4",
+          "e1g1",
+          "g4f5",
+          "g1e1",
+          "f5g6",
+          "e1g1",
+          "g6f7",
+          "g1e1",
+          "h8g7",
+          "e1e3",
+          "g7f6",
+          "e3e4",
+          "f6d8",
+          "e4e2",
+          "d8c7",
+          "e2e4",
+          "c7b6",
+          "a7b8",
+          "b6d8",
+          "b8a7",
+          "d8c7",
+          "e4e2",
+          "f7g6",
+          "e2e4",
+          "c7a5",
+          "a7b8",
+          "a5d8",
+          "b8a7",
+          "g6f5",
+          "e4e2",
+          "d8a5",
+          "a7b8"
+        ],
+        "info": "info depth 41 seldepth 55 multipv 1 score cp 751 nodes 16976214 nps 3415737 hashfull 552 time 4970 pv f8g8 a2a1q g1a1 a3a1 f7f8q a1g1 g8h7 g1h1 h7g6 h1g1 g6h6 g1h1 h6g5 h1g1 g5h4 g1h1 h4g3 h1e1 f8f6 e1e4 f6h8 e4e1 g3g4 e1g1 g4f5 g1e1 f5g6 e1g1 g6f7 g1e1 h8g7 e1e3 g7f6 e3e4 f6d8 e4e2 d8c7 e2e4 c7b6 a7b8 b6d8 b8a7 d8c7 e4e2 f7g6 e2e4 c7a5 a7b8 a5d8 b8a7 g6f5 e4e2 d8a5 a7b8"
+      },
+      "stockfish": {
+        "best": "f8e7",
+        "score_kind": "cp",
+        "score": 685,
+        "pv": [
+          "f8e7",
+          "a3e3",
+          "e7f6",
+          "e3f3",
+          "f6g7",
+          "b7b5",
+          "g1a1",
+          "f3g3",
+          "g7f6",
+          "g3f3",
+          "f6e7",
+          "f3e3",
+          "e7d7",
+          "e3f3",
+          "a1a2",
+          "a7b7",
+          "d7e7",
+          "f3e3",
+          "e7f8",
+          "e3e4",
+          "a2f2",
+          "e4g4",
+          "f8e7",
+          "g4g7",
+          "e7f6",
+          "g7f7",
+          "f6f7",
+          "b7c7"
+        ],
+        "info": "info depth 23 seldepth 60 multipv 1 score cp 685 nodes 7782333 nps 1556466 hashfull 258 tbhits 0 time 5000 pv f8e7 a3e3 e7f6 e3f3 f6g7 b7b5 g1a1 f3g3 g7f6 g3f3 f6e7 f3e3 e7d7 e3f3 a1a2 a7b7 d7e7 f3e3 e7f8 e3e4 a2f2 e4g4 f8e7 g4g7 e7f6 g7f7 f6f7 b7c7"
+      }
+    },
+    "walk": [
+      {
+        "ply": 0,
+        "fen": "5K2/kp3P2/2p5/2Pp4/3P4/r7/p7/6R1 w - - 0 1",
+        "moves": [],
+        "nnue": 322,
+        "hce": -128,
+        "stockfish_search": {
+          "best": "f8e7",
+          "score_kind": "cp",
+          "score": 523,
+          "pv": [
+            "f8e7",
+            "a3e3"
+          ],
+          "info": "info depth 17 seldepth 39 multipv 1 score cp 523 lowerbound nodes 340015 nps 1700075 hashfull 9 tbhits 0 time 200 pv f8e7 a3e3"
+        },
+        "stockfish_white": 523
+      },
+      {
+        "ply": 1,
+        "fen": "8/kp3PK1/2p5/2Pp4/3P4/r7/p7/6R1 b - - 1 1",
+        "moves": [
+          "f8g7"
+        ],
+        "nnue": 219,
+        "hce": -110,
+        "stockfish_search": {
+          "best": "a2a1q",
+          "score_kind": "cp",
+          "score": -73,
+          "pv": [
+            "a2a1q",
+            "g1a1"
+          ],
+          "info": "info depth 21 seldepth 44 multipv 1 score cp -73 lowerbound nodes 370002 nps 1850010 hashfull 8 tbhits 0 time 200 pv a2a1q g1a1"
+        },
+        "stockfish_white": 73
+      },
+      {
+        "ply": 2,
+        "fen": "8/kp3PK1/2p5/2Pp4/3P4/r7/8/q5R1 w - - 0 2",
+        "moves": [
+          "f8g7",
+          "a2a1q"
+        ],
+        "nnue": 104,
+        "hce": -2428,
+        "stockfish_search": {
+          "best": "g1a1",
+          "score_kind": "cp",
+          "score": 107,
+          "pv": [
+            "g1a1",
+            "a3a1",
+            "f7f8q",
+            "a1g1",
+            "g7h6",
+            "g1h1",
+            "h6g5",
+            "h1g1",
+            "g5h4",
+            "g1h1",
+            "h4g3",
+            "h1g1",
+            "g3f2",
+            "g1d1",
+            "f2e3",
+            "d1e1",
+            "e3d2",
+            "e1e4",
+            "f8f2",
+            "e4e8",
+            "d2c1",
+            "e8e4",
+            "f2a2"
+          ],
+          "info": "info depth 22 seldepth 44 multipv 1 score cp 107 nodes 283991 nps 1419955 hashfull 4 tbhits 0 time 200 pv g1a1 a3a1 f7f8q a1g1 g7h6 g1h1 h6g5 h1g1 g5h4 g1h1 h4g3 h1g1 g3f2 g1d1 f2e3 d1e1 e3d2 e1e4 f8f2 e4e8 d2c1 e8e4 f2a2"
+        },
+        "stockfish_white": 107
+      },
+      {
+        "ply": 3,
+        "fen": "8/kp3PK1/2p5/2Pp4/3P4/r7/8/R7 b - - 0 2",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1"
+        ],
+        "nnue": 652,
+        "hce": 515,
+        "stockfish_search": {
+          "best": "a3a1",
+          "score_kind": "cp",
+          "score": -112,
+          "pv": [
+            "a3a1",
+            "f7f8q"
+          ],
+          "info": "info depth 19 seldepth 36 multipv 1 score cp -112 lowerbound nodes 339666 nps 1698330 hashfull 8 tbhits 0 time 200 pv a3a1 f7f8q"
+        },
+        "stockfish_white": 112
+      },
+      {
+        "ply": 4,
+        "fen": "8/kp3PK1/2p5/2Pp4/3P4/8/8/r7 w - - 0 3",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1"
+        ],
+        "nnue": 148,
+        "hce": -1003,
+        "stockfish_search": {
+          "best": "f7f8q",
+          "score_kind": "cp",
+          "score": 61,
+          "pv": [
+            "f7f8q",
+            "a1g1"
+          ],
+          "info": "info depth 20 seldepth 38 multipv 1 score cp 61 upperbound nodes 369410 nps 1847050 hashfull 8 tbhits 0 time 200 pv f7f8q a1g1"
+        },
+        "stockfish_white": 61
+      },
+      {
+        "ply": 5,
+        "fen": "5Q2/kp4K1/2p5/2Pp4/3P4/8/8/r7 b - - 0 3",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q"
+        ],
+        "nnue": 342,
+        "hce": 1359,
+        "stockfish_search": {
+          "best": "a1g1",
+          "score_kind": "cp",
+          "score": -82,
+          "pv": [
+            "a1g1",
+            "g7h6"
+          ],
+          "info": "info depth 20 seldepth 49 multipv 1 score cp -82 lowerbound nodes 365453 nps 1827265 hashfull 8 tbhits 0 time 200 pv a1g1 g7h6"
+        },
+        "stockfish_white": 82
+      },
+      {
+        "ply": 6,
+        "fen": "5Q2/kp4K1/2p5/2Pp4/3P4/8/8/6r1 w - - 1 4",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1"
+        ],
+        "nnue": 452,
+        "hce": 1358,
+        "stockfish_search": {
+          "best": "g7h6",
+          "score_kind": "cp",
+          "score": 91,
+          "pv": [
+            "g7h6",
+            "g1h1"
+          ],
+          "info": "info depth 21 seldepth 42 multipv 1 score cp 91 upperbound nodes 325064 nps 1625320 hashfull 7 tbhits 0 time 200 pv g7h6 g1h1"
+        },
+        "stockfish_white": 91
+      },
+      {
+        "ply": 7,
+        "fen": "5Q2/kp6/2p4K/2Pp4/3P4/8/8/6r1 b - - 2 4",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6"
+        ],
+        "nnue": 399,
+        "hce": 1316,
+        "stockfish_search": {
+          "best": "g1h1",
+          "score_kind": "cp",
+          "score": -76,
+          "pv": [
+            "g1h1",
+            "h6g5"
+          ],
+          "info": "info depth 20 seldepth 35 multipv 1 score cp -76 lowerbound nodes 312892 nps 1564460 hashfull 8 tbhits 0 time 200 pv g1h1 h6g5"
+        },
+        "stockfish_white": 76
+      },
+      {
+        "ply": 8,
+        "fen": "5Q2/kp6/2p4K/2Pp4/3P4/8/8/7r w - - 3 5",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1"
+        ],
+        "nnue": 402,
+        "hce": 1357,
+        "stockfish_search": {
+          "best": "h6g5",
+          "score_kind": "cp",
+          "score": 82,
+          "pv": [
+            "h6g5",
+            "h1g1"
+          ],
+          "info": "info depth 22 seldepth 44 multipv 1 score cp 82 lowerbound nodes 354171 nps 1770855 hashfull 8 tbhits 0 time 200 pv h6g5 h1g1"
+        },
+        "stockfish_white": 82
+      },
+      {
+        "ply": 9,
+        "fen": "5Q2/kp6/2p5/2Pp2K1/3P4/8/8/7r b - - 4 5",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5"
+        ],
+        "nnue": 434,
+        "hce": 1346,
+        "stockfish_search": {
+          "best": "h1g1",
+          "score_kind": "cp",
+          "score": -76,
+          "pv": [
+            "h1g1",
+            "g5h5"
+          ],
+          "info": "info depth 20 seldepth 40 multipv 1 score cp -76 lowerbound nodes 337434 nps 1687170 hashfull 5 tbhits 0 time 200 pv h1g1 g5h5"
+        },
+        "stockfish_white": 76
+      },
+      {
+        "ply": 10,
+        "fen": "5Q2/kp6/2p5/2Pp2K1/3P4/8/8/6r1 w - - 5 6",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1"
+        ],
+        "nnue": 505,
+        "hce": 1381,
+        "stockfish_search": {
+          "best": "g5h5",
+          "score_kind": "cp",
+          "score": 84,
+          "pv": [
+            "g5h5",
+            "g1h1"
+          ],
+          "info": "info depth 20 seldepth 42 multipv 1 score cp 84 lowerbound nodes 354447 nps 1772235 hashfull 8 tbhits 0 time 200 pv g5h5 g1h1"
+        },
+        "stockfish_white": 84
+      },
+      {
+        "ply": 11,
+        "fen": "5Q2/kp6/2p5/2Pp4/3P3K/8/8/6r1 b - - 6 6",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4"
+        ],
+        "nnue": 439,
+        "hce": 1319,
+        "stockfish_search": {
+          "best": "g1h1",
+          "score_kind": "cp",
+          "score": -100,
+          "pv": [
+            "g1h1",
+            "h4g3",
+            "h1g1",
+            "g3f2",
+            "g1d1",
+            "f2e3",
+            "d1e1",
+            "e3d2",
+            "e1e4",
+            "f8f2",
+            "a7a8",
+            "d2c3",
+            "e4e8",
+            "f2d2"
+          ],
+          "info": "info depth 20 seldepth 34 multipv 1 score cp -100 nodes 370911 nps 1854555 hashfull 8 tbhits 0 time 200 pv g1h1 h4g3 h1g1 g3f2 g1d1 f2e3 d1e1 e3d2 e1e4 f8f2 a7a8 d2c3 e4e8 f2d2"
+        },
+        "stockfish_white": 100
+      },
+      {
+        "ply": 12,
+        "fen": "5Q2/kp6/2p3r1/2Pp4/3P3K/8/8/8 w - - 7 7",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6"
+        ],
+        "nnue": 521,
+        "hce": 1363,
+        "stockfish_search": {
+          "best": "f8f5",
+          "score_kind": "cp",
+          "score": 177,
+          "pv": [
+            "f8f5",
+            "g6g7"
+          ],
+          "info": "info depth 19 seldepth 41 multipv 1 score cp 177 lowerbound nodes 407544 nps 2037720 hashfull 6 tbhits 0 time 200 pv f8f5 g6g7"
+        },
+        "stockfish_white": 177
+      },
+      {
+        "ply": 13,
+        "fen": "3Q4/kp6/2p3r1/2Pp4/3P3K/8/8/8 b - - 8 7",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8"
+        ],
+        "nnue": 488,
+        "hce": 1367,
+        "stockfish_search": {
+          "best": "g6e6",
+          "score_kind": "cp",
+          "score": -5,
+          "pv": [
+            "g6e6",
+            "d8a5"
+          ],
+          "info": "info depth 20 seldepth 26 multipv 1 score cp -5 lowerbound nodes 381261 nps 1906305 hashfull 5 tbhits 0 time 200 pv g6e6 d8a5"
+        },
+        "stockfish_white": 5
+      },
+      {
+        "ply": 14,
+        "fen": "3Q4/kp6/2p5/2Pp4/3P3K/8/8/6r1 w - - 9 8",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1"
+        ],
+        "nnue": 527,
+        "hce": 1363,
+        "stockfish_search": {
+          "best": "h4h5",
+          "score_kind": "cp",
+          "score": 92,
+          "pv": [
+            "h4h5",
+            "g1g7"
+          ],
+          "info": "info depth 18 seldepth 33 multipv 1 score cp 92 upperbound nodes 332130 nps 1660650 hashfull 8 tbhits 0 time 200 pv h4h5 g1g7"
+        },
+        "stockfish_white": 92
+      },
+      {
+        "ply": 15,
+        "fen": "3Q4/kp6/2p5/2Pp3K/3P4/8/8/6r1 b - - 10 8",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5"
+        ],
+        "nnue": 480,
+        "hce": 1346,
+        "stockfish_search": {
+          "best": "g1g2",
+          "score_kind": "cp",
+          "score": -137,
+          "pv": [
+            "g1g2",
+            "d8a5"
+          ],
+          "info": "info depth 21 seldepth 38 multipv 1 score cp -137 lowerbound nodes 381983 nps 1909915 hashfull 7 tbhits 0 time 200 pv g1g2 d8a5"
+        },
+        "stockfish_white": 137
+      },
+      {
+        "ply": 16,
+        "fen": "3Q4/kp6/2p5/2Pp3K/3P4/6r1/8/8 w - - 11 9",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3"
+        ],
+        "nnue": 551,
+        "hce": 1369,
+        "stockfish_search": {
+          "best": "d8a5",
+          "score_kind": "cp",
+          "score": 62,
+          "pv": [
+            "d8a5",
+            "a7b8"
+          ],
+          "info": "info depth 19 seldepth 4 multipv 1 score cp 62 upperbound nodes 362343 nps 1811715 hashfull 9 tbhits 0 time 200 pv d8a5 a7b8"
+        },
+        "stockfish_white": 62
+      },
+      {
+        "ply": 17,
+        "fen": "8/kp6/1Qp5/2Pp3K/3P4/6r1/8/8 b - - 12 9",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6"
+        ],
+        "nnue": 377,
+        "hce": 1343,
+        "stockfish_search": {
+          "best": "a7b8",
+          "score_kind": "cp",
+          "score": -117,
+          "pv": [
+            "a7b8",
+            "b6d8",
+            "b8a7",
+            "d8a5",
+            "a7b8",
+            "a5d2",
+            "g3g8",
+            "d2e2",
+            "b8a8",
+            "h5h6",
+            "g8h8",
+            "h6g5",
+            "a8a7",
+            "e2e7",
+            "h8h3",
+            "e7e1",
+            "h3f3",
+            "e1e5",
+            "f3f1"
+          ],
+          "info": "info depth 21 seldepth 40 multipv 1 score cp -117 nodes 370050 nps 1850250 hashfull 8 tbhits 0 time 200 pv a7b8 b6d8 b8a7 d8a5 a7b8 a5d2 g3g8 d2e2 b8a8 h5h6 g8h8 h6g5 a8a7 e2e7 h8h3 e7e1 h3f3 e1e5 f3f1"
+        },
+        "stockfish_white": 117
+      },
+      {
+        "ply": 18,
+        "fen": "1k6/1p6/1Qp5/2Pp3K/3P4/6r1/8/8 w - - 13 10",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8"
+        ],
+        "nnue": 427,
+        "hce": 1361,
+        "stockfish_search": {
+          "best": "b6d8",
+          "score_kind": "cp",
+          "score": 62,
+          "pv": [
+            "b6d8",
+            "b8a7"
+          ],
+          "info": "info depth 19 seldepth 26 multipv 1 score cp 62 upperbound nodes 352200 nps 1761000 hashfull 6 tbhits 0 time 200 pv b6d8 b8a7"
+        },
+        "stockfish_white": 62
+      },
+      {
+        "ply": 19,
+        "fen": "1k6/1p6/2p5/2Pp3K/3P4/6r1/1Q6/8 b - - 14 10",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2"
+        ],
+        "nnue": 463,
+        "hce": 1282,
+        "stockfish_search": {
+          "best": "g3e3",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "g3e3",
+            "h5g6",
+            "e3e4",
+            "b2d2",
+            "b8a7",
+            "d2a5",
+            "a7b8"
+          ],
+          "info": "info depth 30 seldepth 20 multipv 1 score cp 0 nodes 395226 nps 1976130 hashfull 4 tbhits 0 time 200 pv g3e3 h5g6 e3e4 b2d2 b8a7 d2a5 a7b8"
+        },
+        "stockfish_white": 0
+      },
+      {
+        "ply": 20,
+        "fen": "1k4r1/1p6/2p5/2Pp3K/3P4/8/1Q6/8 w - - 15 11",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8"
+        ],
+        "nnue": 367,
+        "hce": 1320,
+        "stockfish_search": {
+          "best": "b2e2",
+          "score_kind": "cp",
+          "score": 90,
+          "pv": [
+            "b2e2",
+            "b8a7"
+          ],
+          "info": "info depth 18 seldepth 41 multipv 1 score cp 90 upperbound nodes 354687 nps 1773435 hashfull 7 tbhits 0 time 200 pv b2e2 b8a7"
+        },
+        "stockfish_white": 90
+      },
+      {
+        "ply": 21,
+        "fen": "1k4r1/1p6/2p5/2Pp4/3P3K/8/1Q6/8 b - - 16 11",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4"
+        ],
+        "nnue": 316,
+        "hce": 1296,
+        "stockfish_search": {
+          "best": "g8e8",
+          "score_kind": "cp",
+          "score": -4,
+          "pv": [
+            "g8e8",
+            "b2h2"
+          ],
+          "info": "info depth 21 seldepth 29 multipv 1 score cp -4 lowerbound nodes 441775 nps 2208875 hashfull 4 tbhits 0 time 200 pv g8e8 b2h2"
+        },
+        "stockfish_white": 4
+      },
+      {
+        "ply": 22,
+        "fen": "1k6/1p6/2p3r1/2Pp4/3P3K/8/1Q6/8 w - - 17 12",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6"
+        ],
+        "nnue": 451,
+        "hce": 1319,
+        "stockfish_search": {
+          "best": "b2e2",
+          "score_kind": "cp",
+          "score": 79,
+          "pv": [
+            "b2e2",
+            "g6g8",
+            "h4h5",
+            "b8a7",
+            "h5h6",
+            "a7a8",
+            "h6h7",
+            "g8g5",
+            "e2e1",
+            "g5g4",
+            "e1d1",
+            "g4g2",
+            "d1a1",
+            "a8b8",
+            "a1f1",
+            "g2g4",
+            "f1e2"
+          ],
+          "info": "info depth 20 seldepth 37 multipv 1 score cp 79 nodes 386301 nps 1931505 hashfull 6 tbhits 0 time 200 pv b2e2 g6g8 h4h5 b8a7 h5h6 a7a8 h6h7 g8g5 e2e1 g5g4 e1d1 g4g2 d1a1 a8b8 a1f1 g2g4 f1e2"
+        },
+        "stockfish_white": 79
+      },
+      {
+        "ply": 23,
+        "fen": "1k6/1p6/2p3r1/2Pp4/3P3K/8/7Q/8 b - - 18 12",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2"
+        ],
+        "nnue": 291,
+        "hce": 1297,
+        "stockfish_search": {
+          "best": "b8a7",
+          "score_kind": "cp",
+          "score": -38,
+          "pv": [
+            "b8a7",
+            "h2a2",
+            "a7b8",
+            "a2e2",
+            "g6g8",
+            "e2e6",
+            "g8g1",
+            "e6e8",
+            "b8a7",
+            "e8e2",
+            "g1g8",
+            "h4h5",
+            "a7b8",
+            "h5h6",
+            "b8a7",
+            "h6h7",
+            "g8g5",
+            "e2e8"
+          ],
+          "info": "info depth 21 seldepth 33 multipv 1 score cp -38 nodes 382750 nps 1913750 hashfull 4 tbhits 0 time 200 pv b8a7 h2a2 a7b8 a2e2 g6g8 e2e6 g8g1 e6e8 b8a7 e8e2 g1g8 h4h5 a7b8 h5h6 b8a7 h6h7 g8g5 e2e8"
+        },
+        "stockfish_white": 38
+      },
+      {
+        "ply": 24,
+        "fen": "8/kp6/2p3r1/2Pp4/3P3K/8/7Q/8 w - - 19 13",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7"
+        ],
+        "nnue": 334,
+        "hce": 1305,
+        "stockfish_search": {
+          "best": "h2a2",
+          "score_kind": "cp",
+          "score": 146,
+          "pv": [
+            "h2a2",
+            "a7b8"
+          ],
+          "info": "info depth 18 seldepth 46 multipv 1 score cp 146 lowerbound nodes 353863 nps 1769315 hashfull 6 tbhits 0 time 200 pv h2a2 a7b8"
+        },
+        "stockfish_white": 146
+      },
+      {
+        "ply": 25,
+        "fen": "8/kp6/2p3r1/2PpQ3/3P3K/8/8/8 b - - 20 13",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5"
+        ],
+        "nnue": 430,
+        "hce": 1322,
+        "stockfish_search": {
+          "best": "g6g8",
+          "score_kind": "cp",
+          "score": -47,
+          "pv": [
+            "g6g8",
+            "h4h5"
+          ],
+          "info": "info depth 19 seldepth 20 multipv 1 score cp -47 lowerbound nodes 377539 nps 1887695 hashfull 5 tbhits 0 time 200 pv g6g8 h4h5"
+        },
+        "stockfish_white": 47
+      },
+      {
+        "ply": 26,
+        "fen": "8/kp6/2p5/2PpQ3/3P3K/8/8/6r1 w - - 21 14",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1"
+        ],
+        "nnue": 484,
+        "hce": 1318,
+        "stockfish_search": {
+          "best": "e5e2",
+          "score_kind": "cp",
+          "score": 70,
+          "pv": [
+            "e5e2",
+            "g1g8"
+          ],
+          "info": "info depth 19 seldepth 40 multipv 1 score cp 70 upperbound nodes 388734 nps 1943670 hashfull 6 tbhits 0 time 200 pv e5e2 g1g8"
+        },
+        "stockfish_white": 70
+      },
+      {
+        "ply": 27,
+        "fen": "8/kp6/2p2Q2/2Pp4/3P3K/8/8/6r1 b - - 22 14",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6"
+        ],
+        "nnue": 384,
+        "hce": 1287,
+        "stockfish_search": {
+          "best": "g1e1",
+          "score_kind": "cp",
+          "score": -37,
+          "pv": [
+            "g1e1",
+            "h4g5"
+          ],
+          "info": "info depth 20 seldepth 34 multipv 1 score cp -37 lowerbound nodes 405694 nps 2028470 hashfull 5 tbhits 0 time 200 pv g1e1 h4g5"
+        },
+        "stockfish_white": 37
+      },
+      {
+        "ply": 28,
+        "fen": "6r1/kp6/2p2Q2/2Pp4/3P3K/8/8/8 w - - 23 15",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8"
+        ],
+        "nnue": 474,
+        "hce": 1328,
+        "stockfish_search": {
+          "best": "f6e5",
+          "score_kind": "cp",
+          "score": 55,
+          "pv": [
+            "f6e5",
+            "g8g2"
+          ],
+          "info": "info depth 20 seldepth 35 multipv 1 score cp 55 upperbound nodes 377414 nps 1887070 hashfull 6 tbhits 0 time 200 pv f6e5 g8g2"
+        },
+        "stockfish_white": 55
+      },
+      {
+        "ply": 29,
+        "fen": "6r1/kp6/2p2Q2/2Pp3K/3P4/8/8/8 b - - 24 15",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5"
+        ],
+        "nnue": 293,
+        "hce": 1304,
+        "stockfish_search": {
+          "best": "g8e8",
+          "score_kind": "cp",
+          "score": -3,
+          "pv": [
+            "g8e8",
+            "f6e5"
+          ],
+          "info": "info depth 20 seldepth 11 multipv 1 score cp -3 lowerbound nodes 437820 nps 2189100 hashfull 5 tbhits 0 time 200 pv g8e8 f6e5"
+        },
+        "stockfish_white": 3
+      },
+      {
+        "ply": 30,
+        "fen": "8/kp6/2p2Q2/2Pp3K/3P4/8/8/6r1 w - - 25 16",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1"
+        ],
+        "nnue": 547,
+        "hce": 1303,
+        "stockfish_search": {
+          "best": "f6f3",
+          "score_kind": "cp",
+          "score": 19,
+          "pv": [
+            "f6f3",
+            "g1g8"
+          ],
+          "info": "info depth 17 seldepth 39 multipv 1 score cp 19 lowerbound nodes 382238 nps 1911190 hashfull 3 tbhits 0 time 200 pv f6f3 g1g8"
+        },
+        "stockfish_white": 19
+      },
+      {
+        "ply": 31,
+        "fen": "8/kp6/2p5/2Pp3K/3P4/8/5Q2/6r1 b - - 26 16",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1",
+          "f6f2"
+        ],
+        "nnue": 381,
+        "hce": 1270,
+        "stockfish_search": {
+          "best": "g1g8",
+          "score_kind": "cp",
+          "score": -51,
+          "pv": [
+            "g1g8",
+            "f2e2"
+          ],
+          "info": "info depth 20 seldepth 31 multipv 1 score cp -51 lowerbound nodes 392302 nps 1961510 hashfull 3 tbhits 0 time 200 pv g1g8 f2e2"
+        },
+        "stockfish_white": 51
+      },
+      {
+        "ply": 32,
+        "fen": "6r1/kp6/2p5/2Pp3K/3P4/8/5Q2/8 w - - 27 17",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1",
+          "f6f2",
+          "g1g8"
+        ],
+        "nnue": 383,
+        "hce": 1310,
+        "stockfish_search": {
+          "best": "f2a2",
+          "score_kind": "cp",
+          "score": 64,
+          "pv": [
+            "f2a2",
+            "a7b8"
+          ],
+          "info": "info depth 17 seldepth 26 multipv 1 score cp 64 upperbound nodes 364123 nps 1820615 hashfull 6 tbhits 0 time 200 pv f2a2 a7b8"
+        },
+        "stockfish_white": 64
+      },
+      {
+        "ply": 33,
+        "fen": "6r1/kp6/2p5/2Pp3K/3P4/8/Q7/8 b - - 28 17",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1",
+          "f6f2",
+          "g1g8",
+          "f2a2"
+        ],
+        "nnue": 365,
+        "hce": 1313,
+        "stockfish_search": {
+          "best": "a7b8",
+          "score_kind": "cp",
+          "score": -23,
+          "pv": [
+            "a7b8",
+            "a2a3"
+          ],
+          "info": "info depth 19 seldepth 19 multipv 1 score cp -23 lowerbound nodes 379953 nps 1899765 hashfull 6 tbhits 0 time 200 pv a7b8 a2a3"
+        },
+        "stockfish_white": 23
+      },
+      {
+        "ply": 34,
+        "fen": "1k4r1/1p6/2p5/2Pp3K/3P4/8/Q7/8 w - - 29 18",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1",
+          "f6f2",
+          "g1g8",
+          "f2a2",
+          "a7b8"
+        ],
+        "nnue": 356,
+        "hce": 1336,
+        "stockfish_search": {
+          "best": "a2e2",
+          "score_kind": "cp",
+          "score": 48,
+          "pv": [
+            "a2e2",
+            "b8a7"
+          ],
+          "info": "info depth 18 seldepth 29 multipv 1 score cp 48 upperbound nodes 372137 nps 1860685 hashfull 7 tbhits 0 time 200 pv a2e2 b8a7"
+        },
+        "stockfish_white": 48
+      },
+      {
+        "ply": 35,
+        "fen": "1k4r1/1p6/2p5/2Pp3K/3P4/8/1Q6/8 b - - 30 18",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1",
+          "f6f2",
+          "g1g8",
+          "f2a2",
+          "a7b8",
+          "a2b2"
+        ],
+        "nnue": 332,
+        "hce": 1300,
+        "stockfish_search": {
+          "best": "g8e8",
+          "score_kind": "cp",
+          "score": -9,
+          "pv": [
+            "g8e8",
+            "b2h2",
+            "b8a7",
+            "h2d2",
+            "e8e4",
+            "h5g6",
+            "a7a8",
+            "d2a2",
+            "a8b8",
+            "a2f2",
+            "b8a7",
+            "g6g5",
+            "a7a8",
+            "f2h2",
+            "a8a7",
+            "h2e5",
+            "a7a8",
+            "g5f5",
+            "a8a7",
+            "e5h2"
+          ],
+          "info": "info depth 21 seldepth 33 multipv 1 score cp -9 nodes 403508 nps 2017540 hashfull 5 tbhits 0 time 200 pv g8e8 b2h2 b8a7 h2d2 e8e4 h5g6 a7a8 d2a2 a8b8 a2f2 b8a7 g6g5 a7a8 f2h2 a8a7 h2e5 a7a8 g5f5 a8a7 e5h2"
+        },
+        "stockfish_white": 9
+      },
+      {
+        "ply": 36,
+        "fen": "6r1/kp6/2p5/2Pp3K/3P4/8/1Q6/8 w - - 31 19",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1",
+          "f6f2",
+          "g1g8",
+          "f2a2",
+          "a7b8",
+          "a2b2",
+          "b8a7"
+        ],
+        "nnue": 376,
+        "hce": 1336,
+        "stockfish_search": {
+          "best": "b2a2",
+          "score_kind": "cp",
+          "score": 32,
+          "pv": [
+            "b2a2",
+            "a7b8"
+          ],
+          "info": "info depth 18 seldepth 33 multipv 1 score cp 32 upperbound nodes 371543 nps 1857715 hashfull 7 tbhits 0 time 200 pv b2a2 a7b8"
+        },
+        "stockfish_white": 32
+      },
+      {
+        "ply": 37,
+        "fen": "6r1/kp6/1Qp5/2Pp3K/3P4/8/8/8 b - - 32 19",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1",
+          "f6f2",
+          "g1g8",
+          "f2a2",
+          "a7b8",
+          "a2b2",
+          "b8a7",
+          "b2b6"
+        ],
+        "nnue": 289,
+        "hce": 1361,
+        "stockfish_search": {
+          "best": "a7b8",
+          "score_kind": "cp",
+          "score": -1,
+          "pv": [
+            "a7b8",
+            "b6b3"
+          ],
+          "info": "info depth 22 seldepth 13 multipv 1 score cp -1 lowerbound nodes 431214 nps 2156070 hashfull 2 tbhits 0 time 200 pv a7b8 b6b3"
+        },
+        "stockfish_white": 1
+      },
+      {
+        "ply": 38,
+        "fen": "1k4r1/1p6/1Qp5/2Pp3K/3P4/8/8/8 w - - 33 20",
+        "moves": [
+          "f8g7",
+          "a2a1q",
+          "g1a1",
+          "a3a1",
+          "f7f8q",
+          "a1g1",
+          "g7h6",
+          "g1h1",
+          "h6g5",
+          "h1g1",
+          "g5h4",
+          "g1g6",
+          "f8d8",
+          "g6g1",
+          "h4h5",
+          "g1g3",
+          "d8b6",
+          "a7b8",
+          "b6b2",
+          "g3g8",
+          "h5h4",
+          "g8g6",
+          "b2h2",
+          "b8a7",
+          "h2e5",
+          "g6g1",
+          "e5f6",
+          "g1g8",
+          "h4h5",
+          "g8g1",
+          "f6f2",
+          "g1g8",
+          "f2a2",
+          "a7b8",
+          "a2b2",
+          "b8a7",
+          "b2b6",
+          "a7b8"
+        ],
+        "nnue": 330,
+        "hce": 1379,
+        "stockfish_search": {
+          "best": "b6b2",
+          "score_kind": "cp",
+          "score": 6,
+          "pv": [
+            "b6b2",
+            "g8e8",
+            "h5g5",
+            "e8e4",
+            "g5f5",
+            "b8a8",
+            "b2a2",
+            "a8b8",
+            "a2a3",
+            "e4e2",
+            "a3f3",
+            "e2e4",
+            "f3e4",
+            "d5e4",
+            "f5e4",
+            "b8a7",
+            "e4e5",
+            "b7b5",
+            "c5b6",
+            "a7b6",
+            "e5d6",
+            "b6b7",
+            "d4d5",
+            "c6d5",
+            "d6d5"
+          ],
+          "info": "info depth 22 seldepth 40 multipv 1 score cp 6 nodes 398399 nps 1991995 hashfull 5 tbhits 0 time 200 pv b6b2 g8e8 h5g5 e8e4 g5f5 b8a8 b2a2 a8b8 a2a3 e4e2 a3f3 e2e4 f3e4 d5e4 f5e4 b8a7 e4e5 b7b5 c5b6 a7b6 e5d6 b6b7 d4d5 c6d5 d6d5"
+        },
+        "stockfish_white": 6
+      }
+    ]
+  },
+  {
+    "id": "E_E_T 063 - T vs T",
+    "fen": "r2k4/8/8/1P4p1/8/p5P1/6P1/1R3K2 w - - 0 1",
+    "bm": [
+      "b5b6"
+    ],
+    "roots": {
+      "nnue": {
+        "best": "f1e2",
+        "score_kind": "cp",
+        "score": -63,
+        "pv": [
+          "f1e2",
+          "d8c7",
+          "e2d3",
+          "c7b6",
+          "d3c4",
+          "a8a4",
+          "c4b3"
+        ],
+        "info": "info depth 28 seldepth 37 multipv 1 score cp -63 nodes 17324000 nps 3472439 hashfull 322 time 4989 pv f1e2 d8c7 e2d3 c7b6 d3c4 a8a4 c4b3"
+      },
+      "hce": {
+        "best": "f1e1",
+        "score_kind": "cp",
+        "score": -187,
+        "pv": [
+          "f1e1",
+          "a3a2",
+          "b1a1",
+          "a8a3",
+          "e1d1",
+          "d8c7",
+          "d1c1",
+          "c7b6",
+          "c1b2",
+          "a3g3",
+          "b2a2",
+          "g3g2",
+          "a2b3"
+        ],
+        "info": "info depth 26 seldepth 49 multipv 1 score cp -187 nodes 18749000 nps 3758067 hashfull 383 time 4989 pv f1e1 a3a2 b1a1 a8a3 e1d1 d8c7 d1c1 c7b6 c1b2 a3g3 b2a2 g3g2 a2b3"
+      },
+      "stash": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "b5b6",
+          "a3a2",
+          "b1a1",
+          "d8c8",
+          "g3g4",
+          "c8b7",
+          "g2g3",
+          "b7b6",
+          "f1g2",
+          "b6c6",
+          "g2h2",
+          "c6c5",
+          "h2h3",
+          "c5c4",
+          "a1a2",
+          "a8a2"
+        ],
+        "info": "info depth 37 seldepth 17 multipv 1 score cp 0 nodes 18617562 nps 3745988 hashfull 589 time 4970 pv b5b6 a3a2 b1a1 d8c8 g3g4 c8b7 g2g3 b7b6 f1g2 b6c6 g2h2 c6c5 h2h3 c5c4 a1a2 a8a2"
+      },
+      "stockfish": {
+        "best": "b5b6",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "b5b6",
+          "a3a2",
+          "b1a1",
+          "d8c8",
+          "g3g4",
+          "c8b7",
+          "g2g3",
+          "b7b6",
+          "f1g2",
+          "b6c5",
+          "g2h3",
+          "a8h8",
+          "h3g2",
+          "h8a8"
+        ],
+        "info": "info depth 85 seldepth 15 multipv 1 score cp 0 nodes 11201900 nps 2240380 hashfull 169 tbhits 0 time 5000 pv b5b6 a3a2 b1a1 d8c8 g3g4 c8b7 g2g3 b7b6 f1g2 b6c5 g2h3 a8h8 h3g2 h8a8"
+      }
+    },
+    "walk": [
+      {
+        "ply": 0,
+        "fen": "r2k4/8/8/1P4p1/8/p5P1/6P1/1R3K2 w - - 0 1",
+        "moves": [],
+        "nnue": -106,
+        "hce": -87,
+        "stockfish_search": {
+          "best": "b5b6",
+          "score_kind": "cp",
+          "score": -2,
+          "pv": [
+            "b5b6",
+            "a3a2"
+          ],
+          "info": "info depth 20 seldepth 15 multipv 1 score cp -2 lowerbound nodes 484975 nps 2424875 hashfull 5 tbhits 0 time 200 pv b5b6 a3a2"
+        },
+        "stockfish_white": -2
+      },
+      {
+        "ply": 1,
+        "fen": "r2k4/8/8/1P4p1/8/p5P1/4K1P1/1R6 b - - 1 1",
+        "moves": [
+          "f1e2"
+        ],
+        "nnue": -127,
+        "hce": -52,
+        "stockfish_search": {
+          "best": "d8c7",
+          "score_kind": "cp",
+          "score": 400,
+          "pv": [
+            "d8c7",
+            "e2d3"
+          ],
+          "info": "info depth 18 seldepth 43 multipv 1 score cp 400 lowerbound nodes 403406 nps 2017030 hashfull 10 tbhits 0 time 200 pv d8c7 e2d3"
+        },
+        "stockfish_white": -400
+      },
+      {
+        "ply": 2,
+        "fen": "r7/2k5/8/1P4p1/8/p5P1/4K1P1/1R6 w - - 2 2",
+        "moves": [
+          "f1e2",
+          "d8c7"
+        ],
+        "nnue": -163,
+        "hce": -42,
+        "stockfish_search": {
+          "best": "e2d3",
+          "score_kind": "cp",
+          "score": -388,
+          "pv": [
+            "e2d3",
+            "c7b6",
+            "b1a1",
+            "b6b5",
+            "d3c3",
+            "b5a4",
+            "c3c2",
+            "a8c8",
+            "c2d3",
+            "c8c5",
+            "g3g4",
+            "c5b5",
+            "d3c4",
+            "b5b4",
+            "c4c3",
+            "b4b3",
+            "c3d4"
+          ],
+          "info": "info depth 16 seldepth 33 multipv 1 score cp -388 nodes 386711 nps 1933555 hashfull 12 tbhits 0 time 200 pv e2d3 c7b6 b1a1 b6b5 d3c3 b5a4 c3c2 a8c8 c2d3 c8c5 g3g4 c5b5 d3c4 b5b4 c4c3 b4b3 c3d4"
+        },
+        "stockfish_white": -388
+      },
+      {
+        "ply": 3,
+        "fen": "r7/2k5/8/1P4p1/8/p2K2P1/6P1/1R6 b - - 3 2",
+        "moves": [
+          "f1e2",
+          "d8c7",
+          "e2d3"
+        ],
+        "nnue": -148,
+        "hce": -39,
+        "stockfish_search": {
+          "best": "c7b6",
+          "score_kind": "cp",
+          "score": 412,
+          "pv": [
+            "c7b6",
+            "b1a1",
+            "b6b5",
+            "a1b1",
+            "b5a4",
+            "b1a1",
+            "g5g4",
+            "d3c2",
+            "a8c8",
+            "c2d3",
+            "c8c5",
+            "d3e4",
+            "a4b3",
+            "a1b1",
+            "b3c2",
+            "b1b7",
+            "c5c4",
+            "e4f5"
+          ],
+          "info": "info depth 19 seldepth 41 multipv 1 score cp 412 nodes 380018 nps 1900090 hashfull 12 tbhits 0 time 200 pv c7b6 b1a1 b6b5 a1b1 b5a4 b1a1 g5g4 d3c2 a8c8 c2d3 c8c5 d3e4 a4b3 a1b1 b3c2 b1b7 c5c4 e4f5"
+        },
+        "stockfish_white": -412
+      },
+      {
+        "ply": 4,
+        "fen": "r7/8/1k6/1P4p1/8/p2K2P1/6P1/1R6 w - - 4 3",
+        "moves": [
+          "f1e2",
+          "d8c7",
+          "e2d3",
+          "c7b6"
+        ],
+        "nnue": -169,
+        "hce": 280,
+        "stockfish_search": {
+          "best": "d3c4",
+          "score_kind": "cp",
+          "score": -406,
+          "pv": [
+            "d3c4",
+            "a3a2"
+          ],
+          "info": "info depth 16 seldepth 24 multipv 1 score cp -406 upperbound nodes 337414 nps 1687070 hashfull 9 tbhits 0 time 200 pv d3c4 a3a2"
+        },
+        "stockfish_white": -406
+      },
+      {
+        "ply": 5,
+        "fen": "r7/8/1k6/1P4p1/2K5/p5P1/6P1/1R6 b - - 5 3",
+        "moves": [
+          "f1e2",
+          "d8c7",
+          "e2d3",
+          "c7b6",
+          "d3c4"
+        ],
+        "nnue": -100,
+        "hce": -18,
+        "stockfish_search": {
+          "best": "a3a2",
+          "score_kind": "cp",
+          "score": 455,
+          "pv": [
+            "a3a2",
+            "b1a1",
+            "g5g4",
+            "c4d5",
+            "b6b5",
+            "d5e6",
+            "b5c4",
+            "e6f5",
+            "c4b3",
+            "f5g4",
+            "b3b2",
+            "a1a2",
+            "a8a2",
+            "g4f5",
+            "b2c3",
+            "g3g4",
+            "c3c4",
+            "f5e5",
+            "a2g2",
+            "e5d6",
+            "g2g4",
+            "d6d7",
+            "g4g1"
+          ],
+          "info": "info depth 18 seldepth 47 multipv 1 score cp 455 nodes 416024 nps 2080120 hashfull 9 tbhits 0 time 200 pv a3a2 b1a1 g5g4 c4d5 b6b5 d5e6 b5c4 e6f5 c4b3 f5g4 b3b2 a1a2 a8a2 g4f5 b2c3 g3g4 c3c4 f5e5 a2g2 e5d6 g2g4 d6d7 g4g1"
+        },
+        "stockfish_white": -455
+      },
+      {
+        "ply": 6,
+        "fen": "8/8/1k6/1P4p1/r1K5/p5P1/6P1/1R6 w - - 6 4",
+        "moves": [
+          "f1e2",
+          "d8c7",
+          "e2d3",
+          "c7b6",
+          "d3c4",
+          "a8a4"
+        ],
+        "nnue": -28,
+        "hce": 264,
+        "stockfish_search": {
+          "best": "c4b3",
+          "score_kind": "cp",
+          "score": -149,
+          "pv": [
+            "c4b3",
+            "b6b5"
+          ],
+          "info": "info depth 19 seldepth 38 multipv 1 score cp -149 upperbound nodes 340749 nps 1703745 hashfull 9 tbhits 0 time 200 pv c4b3 b6b5"
+        },
+        "stockfish_white": -149
+      },
+      {
+        "ply": 7,
+        "fen": "8/8/1k6/1P4p1/r7/pK4P1/6P1/1R6 b - - 7 4",
+        "moves": [
+          "f1e2",
+          "d8c7",
+          "e2d3",
+          "c7b6",
+          "d3c4",
+          "a8a4",
+          "c4b3"
+        ],
+        "nnue": -34,
+        "hce": 149,
+        "stockfish_search": {
+          "best": "b6b5",
+          "score_kind": "cp",
+          "score": 140,
+          "pv": [
+            "b6b5",
+            "b3a2"
+          ],
+          "info": "info depth 19 seldepth 34 multipv 1 score cp 140 upperbound nodes 400838 nps 2004190 hashfull 11 tbhits 0 time 200 pv b6b5 b3a2"
+        },
+        "stockfish_white": -140
+      }
+    ]
+  },
+  {
+    "id": "E_E_T 081 - T&L&S vs L&B",
+    "fen": "8/1p5p/6p1/1p4Pp/1PpR4/2P1K1kB/6Np/7b w - - 0 1",
+    "bm": [
+      "d4d1"
+    ],
+    "roots": {
+      "nnue": {
+        "best": "d4d2",
+        "score_kind": "cp",
+        "score": 0,
+        "pv": [
+          "d4d2",
+          "g3h3",
+          "g2f4",
+          "h3g3"
+        ],
+        "info": "info depth 33 seldepth 41 multipv 1 score cp 0 nodes 13028000 nps 2611344 hashfull 409 time 4989 pv d4d2 g3h3 g2f4 h3g3"
+      },
+      "hce": {
+        "best": "g2f4",
+        "score_kind": "cp",
+        "score": 3,
+        "pv": [
+          "g2f4",
+          "h1f3",
+          "h3g2",
+          "f3g2",
+          "f4e2",
+          "g3h3"
+        ],
+        "info": "info depth 30 seldepth 39 multipv 1 score cp 3 nodes 14385000 nps 2883343 hashfull 370 time 4989 pv g2f4 h1f3 h3g2 f3g2 f4e2 g3h3"
+      },
+      "stash": {
+        "best": "d4d1",
+        "score_kind": "cp",
+        "score": 498,
+        "pv": [
+          "d4d1",
+          "h1g2",
+          "h3g2",
+          "g3g2",
+          "d1h1",
+          "g2g3",
+          "e3e2",
+          "g3g2",
+          "e2e1",
+          "g2g3",
+          "e1f1",
+          "h5h4",
+          "f1e2",
+          "g3g2",
+          "e2e1",
+          "h4h3",
+          "e1e2",
+          "g2g3",
+          "e2f1",
+          "b7b6",
+          "f1e2",
+          "g3g2",
+          "e2e1",
+          "g2f3",
+          "h1h2",
+          "f3g3",
+          "h2h1",
+          "g3g2",
+          "h1f1",
+          "g2g3",
+          "f1g1",
+          "g3f3",
+          "e1f1",
+          "f3f4",
+          "f1f2",
+          "h3h2",
+          "g1h1",
+          "f4g5",
+          "h1h2",
+          "h7h5",
+          "f2g3",
+          "g5f5",
+          "h2h1",
+          "f5f6"
+        ],
+        "info": "info depth 36 seldepth 47 multipv 1 score cp 498 nodes 18646643 nps 3751839 hashfull 464 time 4970 pv d4d1 h1g2 h3g2 g3g2 d1h1 g2g3 e3e2 g3g2 e2e1 g2g3 e1f1 h5h4 f1e2 g3g2 e2e1 h4h3 e1e2 g2g3 e2f1 b7b6 f1e2 g3g2 e2e1 g2f3 h1h2 f3g3 h2h1 g3g2 h1f1 g2g3 f1g1 g3f3 e1f1 f3f4 f1f2 h3h2 g1h1 f4g5 h1h2 h7h5 f2g3 g5f5 h2h1 f5f6"
+      },
+      "stockfish": {
+        "best": "d4d1",
+        "score_kind": "cp",
+        "score": 652,
+        "pv": [
+          "d4d1",
+          "h1g2"
+        ],
+        "info": "info depth 31 seldepth 72 multipv 1 score cp 652 lowerbound nodes 9699989 nps 1939997 hashfull 192 tbhits 0 time 5000 pv d4d1 h1g2"
+      }
+    },
+    "walk": [
+      {
+        "ply": 0,
+        "fen": "8/1p5p/6p1/1p4Pp/1PpR4/2P1K1kB/6Np/7b w - - 0 1",
+        "moves": [],
+        "nnue": 681,
+        "hce": 1199,
+        "stockfish_search": {
+          "best": "d4d1",
+          "score_kind": "cp",
+          "score": 314,
+          "pv": [
+            "d4d1",
+            "h1g2"
+          ],
+          "info": "info depth 31 seldepth 57 multipv 1 score cp 314 lowerbound nodes 331159 nps 1655795 hashfull 8 tbhits 0 time 200 pv d4d1 h1g2"
+        },
+        "stockfish_white": 314
+      },
+      {
+        "ply": 1,
+        "fen": "8/1p5p/6p1/1p4Pp/1Pp5/2P1K1kB/3R2Np/7b b - - 1 1",
+        "moves": [
+          "d4d2"
+        ],
+        "nnue": -70,
+        "hce": 1175,
+        "stockfish_search": {
+          "best": "g3h3",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "g3h3",
+            "g2f4",
+            "h3g3",
+            "d2f2",
+            "b7b6",
+            "f4e2",
+            "g3h3",
+            "e2f4"
+          ],
+          "info": "info depth 40 seldepth 9 multipv 1 score cp 0 nodes 282825 nps 1414125 hashfull 10 tbhits 0 time 200 pv g3h3 g2f4 h3g3 d2f2 b7b6 f4e2 g3h3 e2f4"
+        },
+        "stockfish_white": 0
+      },
+      {
+        "ply": 2,
+        "fen": "8/1p5p/6p1/1p4Pp/1Pp5/2P1K2k/3R2Np/7b w - - 0 2",
+        "moves": [
+          "d4d2",
+          "g3h3"
+        ],
+        "nnue": 88,
+        "hce": 425,
+        "stockfish_search": {
+          "best": "g2f4",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "g2f4",
+            "h3g3",
+            "d2f2",
+            "b7b6",
+            "f4e2",
+            "g3h3",
+            "e2f4"
+          ],
+          "info": "info depth 43 seldepth 8 multipv 1 score cp 0 nodes 287446 nps 1437230 hashfull 9 tbhits 0 time 200 pv g2f4 h3g3 d2f2 b7b6 f4e2 g3h3 e2f4"
+        },
+        "stockfish_white": 0
+      },
+      {
+        "ply": 3,
+        "fen": "8/1p5p/6p1/1p4Pp/1Pp2N2/2P1K2k/3R3p/7b b - - 1 2",
+        "moves": [
+          "d4d2",
+          "g3h3",
+          "g2f4"
+        ],
+        "nnue": 97,
+        "hce": 418,
+        "stockfish_search": {
+          "best": "h3g3",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "h3g3",
+            "f4e2",
+            "g3g4",
+            "e2f4",
+            "g4g3"
+          ],
+          "info": "info depth 52 seldepth 6 multipv 1 score cp 0 nodes 281948 nps 1409740 hashfull 9 tbhits 0 time 200 pv h3g3 f4e2 g3g4 e2f4 g4g3"
+        },
+        "stockfish_white": 0
+      },
+      {
+        "ply": 4,
+        "fen": "8/1p5p/6p1/1p4Pp/1Pp2N2/2P1K1k1/3R3p/7b w - - 2 3",
+        "moves": [
+          "d4d2",
+          "g3h3",
+          "g2f4",
+          "h3g3"
+        ],
+        "nnue": 135,
+        "hce": 401,
+        "stockfish_search": {
+          "best": "d2f2",
+          "score_kind": "cp",
+          "score": 0,
+          "pv": [
+            "d2f2",
+            "h1c6",
+            "f4e2",
+            "g3h3",
+            "e2f4"
+          ],
+          "info": "info depth 44 seldepth 6 multipv 1 score cp 0 nodes 282010 nps 1410050 hashfull 7 tbhits 0 time 200 pv d2f2 h1c6 f4e2 g3h3 e2f4"
+        },
+        "stockfish_white": 0
+      }
+    ]
+  }
+]
