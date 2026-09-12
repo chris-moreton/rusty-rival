@@ -41,7 +41,9 @@ label (for example `sf-2800`, Stockfish with `UCI_Elo` 2800). The binary's
 sha256 is always part of the record, so a rebuilt binary with the same
 version string is a different engine, and the UCI options are part of it
 too: the same binary with other options is another column, shown as
-`sha8#opthash` under the header and selectable as `family:label#opthash`.
+`sha8#opthash` under the header. A selector takes `#hash` suffixes that all
+have to match the binary sha8 or the options hash (`-` for no options), so
+`family:label#sha8#opthash` names one binary with one option set.
 
 ## Store
 

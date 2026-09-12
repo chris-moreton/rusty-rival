@@ -66,14 +66,10 @@ fn save_state(epd_dir: &Path, state: &State) {
     }
 }
 
-/// The identity a column is selected by: `family:label#hash`.
+/// The identity a column is selected by: family, label, binary sha8 and
+/// the options hash (or `-`), so no two columns share a selector.
 fn selector_of(c: &Column) -> String {
-    format!(
-        "{}:{}#{}",
-        c.family,
-        c.label,
-        c.options_hash8.clone().unwrap_or_else(|| c.sha8.clone())
-    )
+    table::unique_selector(c)
 }
 
 /// Everything that names one column: family, label and the binary/options
@@ -186,6 +182,9 @@ pub struct App {
     keys: Vec<TableKey>,
     key_index: usize,
     all_columns: Vec<Column>,
+    /// `runnable()` per column, computed at load and reload for the picker;
+    /// queueing a run re-checks the binary on disk instead of trusting this.
+    runnable_cache: BTreeMap<String, Result<String, String>>,
     /// Selectors as saved, including ones for engines not in the store.
     selected: Option<Vec<String>>,
     percent: bool,
@@ -233,6 +232,7 @@ impl App {
             keys,
             key_index,
             all_columns,
+            runnable_cache: BTreeMap::new(),
             selected: state.engines,
             percent: state.percent,
             table: Table {
@@ -261,8 +261,13 @@ impl App {
             events: Vec::new(),
             message: String::new(),
         };
+        app.refresh_runnable_cache();
         app.rebuild();
         Ok(app)
+    }
+
+    fn refresh_runnable_cache(&mut self) {
+        self.runnable_cache = self.all_columns.iter().map(|c| (column_id(c), self.runnable(c))).collect();
     }
 
     fn current_key(&self) -> Option<&TableKey> {
@@ -302,6 +307,7 @@ impl App {
         self.registry = Registry::load(&self.epd_dir)?;
         self.keys = keys_in_store(&self.files);
         self.all_columns = sorted_columns(&self.files);
+        self.refresh_runnable_cache();
         self.key_index = keep
             .and_then(|id| self.keys.iter().position(|k| key_id(k) == id))
             .unwrap_or(0)
@@ -895,9 +901,9 @@ impl App {
                     style = style.add_modifier(Modifier::REVERSED);
                 }
                 let options = c.options.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<_>>().join(" ");
-                let runnable = match self.runnable(c) {
-                    Ok(name) => format!("runs as {}", name),
-                    Err(_) => "not in engines.toml".to_string(),
+                let runnable = match self.runnable_cache.get(&column_id(c)) {
+                    Some(Ok(name)) => format!("runs as {}", name),
+                    _ => "not in engines.toml".to_string(),
                 };
                 Row::new(vec![
                     Cell::from(mark),
