@@ -1,0 +1,14 @@
+[
+  {
+    "arm": "control",
+    "network_sha256": "1a581eb565eed59ffe130f28d358b0bea83925f59c84a3ea3f2929c14c2e0fb3",
+    "binary_sha256": "77358086b499ab54515ea6311bc79170fa3b8e1b850570fe555bddb94f42c51e",
+    "network_bytes": 803904
+  },
+  {
+    "arm": "candidate",
+    "network_sha256": "71e86f53af79416524ebad5565a72943acfb8286b0996367834df3181c6a27b1",
+    "binary_sha256": "b19e8fc5d3e3c66cdb5959b96a9a678821c20a05f4d21cb3ebe91af73a2a5356",
+    "network_bytes": 803904
+  }
+]

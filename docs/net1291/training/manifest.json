@@ -7,143 +7,178 @@
   "data_files": [
     {
       "name": "sf_d9_1650000games_20260401-173756-1.data",
-      "bytes": 1389016000
+      "bytes": 1389016000,
+      "sha256": "f8237cb0d4eff9318b341c6c5e2be1d83d976c2a7a47eda6d28c7f818b2088bd"
     },
     {
       "name": "sf_d9_1650000games_20260401-173801-2.data",
-      "bytes": 524980000
+      "bytes": 524980000,
+      "sha256": "b0e65b648f32001b4ba5d6f43128b8f5f87823450a8257480444bdd85fc79a79"
     },
     {
       "name": "sf_d9_200000g_20260401-190305-s3.data",
-      "bytes": 262909472
+      "bytes": 262909472,
+      "sha256": "7d98be32587c8c05a4c648b0e77eb40f781c9543c4d793d355b52d64d73d8b53"
     },
     {
       "name": "sf_d9_200000g_20260401-190320-s6.data",
-      "bytes": 676520256
+      "bytes": 676520256,
+      "sha256": "3b2a2ceb66f9e2825c07ea6995569d6f29c15f6d30141bc13f466364284f007f"
     },
     {
       "name": "sf_d9_200000g_20260401-190344-s10.data",
-      "bytes": 675034528
+      "bytes": 675034528,
+      "sha256": "6351382827d33d3c174497229c70e32894dada9b1ff51cd946aa2837c89eb449"
     },
     {
       "name": "sf_d9_200000g_20260401-190349-s11.data",
-      "bytes": 262738304
+      "bytes": 262738304,
+      "sha256": "b7faa223a3d098256a82be2f10dd1010116848cb1b8c404a05d445ce683417f9"
     },
     {
       "name": "sf_d9_200000g_20260401-193340-x3.data",
-      "bytes": 188254816
+      "bytes": 188254816,
+      "sha256": "5c184d6b42d8c02d0e382f60e97ff27b3f775862280c13af9e100c9500259af1"
     },
     {
       "name": "sf_d9_200000g_20260401-193405-x7.data",
-      "bytes": 187445568
+      "bytes": 187445568,
+      "sha256": "ad25ff4cda8884062dd6a5e3408cd7b059cddb462568c66d42fc880a7960da75"
     },
     {
       "name": "sf_d9_200000g_20260401-193421-x10.data",
-      "bytes": 675076896
+      "bytes": 675076896,
+      "sha256": "8625a8371bd0c609025216413b6530b69290ba01527fb451d34835ac2413d6c3"
     },
     {
       "name": "sf_d9_200000g_20260401-193426-x11.data",
-      "bytes": 225619872
+      "bytes": 225619872,
+      "sha256": "4d8aabb245f103a7b2abac33abc9da7d1b01749c90ba2705ee56772d2bae64de"
     },
     {
       "name": "sf_d9_200000g_20260401-193452-x15.data",
-      "bytes": 412269824
+      "bytes": 412269824,
+      "sha256": "9ab21fa1f0efca6762a3bbbdb9fdb3b369a787f19689288fd897103a4f8e1bde"
     },
     {
       "name": "sf_d9_200000g_20260401-200254-y2.data",
-      "bytes": 637886208
+      "bytes": 637886208,
+      "sha256": "96eda03dc112c301e78d292b33d1732bbd5ba9ce03c8339a1991e271df2ab0b8"
     },
     {
       "name": "sf_d9_200000g_20260401-200259-y3.data",
-      "bytes": 337830464
+      "bytes": 337830464,
+      "sha256": "ab7723c6af355f3e6cf7a8e80a66ef4b323a649ee09d78655caeb801ceb0f4a6"
     },
     {
       "name": "sf_d9_200000g_20260401-200317-y6.data",
-      "bytes": 673530528
+      "bytes": 673530528,
+      "sha256": "f8050e1af4d40a3322c4cfdc408b5b20c92b9681f85aac958f21e2c39cc899a2"
     },
     {
       "name": "sf_d9_200000g_20260401-200322-y7.data",
-      "bytes": 150362144
+      "bytes": 150362144,
+      "sha256": "8e5457467b5400df255d795a1e8c7e53dec90a5bd8b78975a030289b4644d689"
     },
     {
       "name": "sf_d9_200000g_20260401-200338-y10.data",
-      "bytes": 674328352
+      "bytes": 674328352,
+      "sha256": "bb0e4e43d3bd27da7f663bbba3d9a2681e9d1fe654708f3ddaf990e3cf977868"
     },
     {
       "name": "sf_d9_200000g_20260401-200344-y11.data",
-      "bytes": 112340256
+      "bytes": 112340256,
+      "sha256": "b623d54056054158e8a3983b70d1144425b11a51081f8427c5ce2182ab55b1fb"
     },
     {
       "name": "sf_d9_200000g_20260401-200402-y14.data",
-      "bytes": 638923744
+      "bytes": 638923744,
+      "sha256": "7c205dcada7a97a23e842806afbf232d25a629bd63df1a22cae86fd8e5d71da2"
     },
     {
       "name": "sf_d9_200000g_20260401-200407-y15.data",
-      "bytes": 150119488
+      "bytes": 150119488,
+      "sha256": "0680d567b9ca377db6d5e3961504376dbc4eaf88ef271a7fba6da80fad6c37be"
     },
     {
       "name": "sf_d9_200000g_20260401-200423-y18.data",
-      "bytes": 637984768
+      "bytes": 637984768,
+      "sha256": "ba46fcc4642ae8fbf0c60b58c727543ac9ed7378f28a310e3273231f6f2c27de"
     },
     {
       "name": "sf_d9_200000g_20260401-203248-z2.data",
-      "bytes": 674943648
+      "bytes": 674943648,
+      "sha256": "34f97794e5617769b0af4f505a0e0912bddf9405b4888d0195b44a28f1d3dc1f"
     },
     {
       "name": "sf_d9_200000g_20260401-203253-z3.data",
-      "bytes": 261988672
+      "bytes": 261988672,
+      "sha256": "fc5239a2a621bc45a726a80f7e68cd6f4d856acbc8bd0488a8eb486cad32f20d"
     },
     {
       "name": "sf_d9_200000g_20260401-203310-z6.data",
-      "bytes": 675743104
+      "bytes": 675743104,
+      "sha256": "67c1ee413060f619864036b1645d49acd00e287f290fe60cea33116da5de29cb"
     },
     {
       "name": "sf_d9_200000g_20260401-203315-z7.data",
-      "bytes": 149974176
+      "bytes": 149974176,
+      "sha256": "e53aa39988f86b2ff041b5729ac2e9d9c5db797f49b212c19373ba29bb689613"
     },
     {
       "name": "sf_d9_200000g_20260401-203343-z11.data",
-      "bytes": 74738080
+      "bytes": 74738080,
+      "sha256": "859a5f9f484033595702c0e5fbe0658baf19dd19ec9022e2f3aea0e7e9cea574"
     },
     {
       "name": "sf_d9_200000g_20260401-203407-z15.data",
-      "bytes": 112744128
+      "bytes": 112744128,
+      "sha256": "dffd01fe992581ca3863285381d3a2e2a59cf7fa257495a419c4e6327ec4d39f"
     },
     {
       "name": "sf_d9_200000g_20260401-203432-z19.data",
-      "bytes": 262810080
+      "bytes": 262810080,
+      "sha256": "b57a1eedce498266a6b0f2edae9a8affabdc373c41b21f8786e9a4058059ed06"
     },
     {
       "name": "sf_d9_200000g_20260401-210245-q2.data",
-      "bytes": 637163904
+      "bytes": 637163904,
+      "sha256": "04a9cc6371971ce8050da3de8d78980c41d2568f1be8e5f6cfb48bbc37bbcf15"
     },
     {
       "name": "sf_d9_200000g_20260401-210315-q6.data",
-      "bytes": 638646176
+      "bytes": 638646176,
+      "sha256": "f764bc680c3cade4f12a92098aa3201c29950e11a212f40d98313ed6139c23a0"
     },
     {
       "name": "sf_d9_200000g_20260401-210340-q10.data",
-      "bytes": 675425056
+      "bytes": 675425056,
+      "sha256": "b71a0318234d4f48384a68269cdcade4589e73cb9e8e73036c57e41bdc27072c"
     },
     {
       "name": "sf_d9_200000g_20260401-210400-q14.data",
-      "bytes": 639056288
+      "bytes": 639056288,
+      "sha256": "09f1ad8709a9a1f627cf2fde48bdb3c11b483b2581f6d30f796bbc2407ba23a3"
     },
     {
       "name": "sf_d9_200000g_20260401-210422-q18.data",
-      "bytes": 674535680
+      "bytes": 674535680,
+      "sha256": "7ef0ef4ff8960213f09bba39380bfe6cc3e19079bef4cfa41bdf8bb41dbcc85e"
     },
     {
       "name": "sf_d9_200000games_20260401-183303-spot-3.data",
-      "bytes": 375274016
+      "bytes": 375274016,
+      "sha256": "ed782fcc9dd5267a8d2734ddb1424861deba01545a3449cc12e6047f979a8bf0"
     },
     {
       "name": "sf_d9_200000games_20260401-183319-spot-6.data",
-      "bytes": 637241568
+      "bytes": 637241568,
+      "sha256": "aee137d849da0dcf47d0527ca55bcffc7035634ced42f2759d280514aa3b1193"
     },
     {
       "name": "sf_d9_200000games_20260401-183327-spot-7.data",
-      "bytes": 412168256
+      "bytes": 412168256,
+      "sha256": "e315db2850c60306bf27a9d7256a331872328df1b0dee0dfa3cce4329d7c7cb6"
     }
   ],
   "protocol": {
@@ -162,5 +197,12 @@
     "data_order": "lexically sorted identical shard list",
     "checkpoint_selection": "final superbatch only, no intermediate selection",
     "acceptance": "Protocol S [0,10] 1+0.01 max4000 against v1.0.64; only passes advance to 10+0.1, ladder and reserved sample"
+  },
+  "parent_files": {
+    "quantised.bin": "27b35937dfa3d221ae5fb1d8e31f41b713f7e77cdae0b4efb93547197b4b70ff",
+    "raw.bin": "54fe1cc7ec6649dfa9b06f489b2a19bfd923f8625485477d1f400df76114fdc3",
+    "optimiser_state/momentum.bin": "f241963096773d3c166eb28c79a41de3418be1a81d9a15b98a47319cb4f2104a",
+    "optimiser_state/velocity.bin": "19d181735aba61210a88b7006f6a0ac85c05257f07e2b7d5eeb7c8eb41194e6d",
+    "optimiser_state/weights.bin": "450002531a62fdbcbae9f70ec33d0fe733fd30a93f741d2f8977f57a2813dc41"
   }
 }

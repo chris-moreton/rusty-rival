@@ -1,0 +1,31 @@
+import json, os, subprocess, sys, time, urllib.request
+SVC = 'rusty-rival-lichess-bot.service'
+def ctl(*args):
+    return subprocess.run(['systemctl', '--user', *args, SVC], check=False, capture_output=True, text=True)
+was_active = ctl('is-active').returncode == 0
+try:
+    if was_active:
+        while True:
+            engines = subprocess.run(['pgrep', '-f', '[l]ichess-bot/engines'], capture_output=True).returncode == 0
+            try:
+                with urllib.request.urlopen('https://lichess.org/api/user/RustyRival', timeout=15) as r:
+                    playing = bool(json.load(r).get('playing'))
+            except Exception as e:
+                print('Cannot establish bot idle:', e, flush=True)
+                time.sleep(10)
+                continue
+            if not engines and not playing:
+                break
+            print('Waiting for current bot game', flush=True)
+            time.sleep(10)
+        if ctl('stop').returncode:
+            raise RuntimeError('Could not stop bot')
+    while os.getloadavg()[0] >= 3:
+        time.sleep(10)
+    print('Idle measurement window started', flush=True)
+    subprocess.run(sys.argv[1:], check=True)
+finally:
+    if was_active:
+        ctl('reset-failed')
+        result = ctl('start')
+        print('Bot restart:', result.returncode, result.stderr, flush=True)

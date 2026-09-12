@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+trainer=/home/chris/benchmark/net1291-training/trainer/target/release/nnue-train
+parent=/home/chris/benchmark/net1291-training/parent
+for arm in control candidate; do
+  blend=0.75
+  if [[ "$arm" == candidate ]]; then blend=0.25; fi
+  cd "/home/chris/benchmark/net1291-training/$arm"
+  NNUE_HIDDEN_SIZE=512 NET_ID="net1291D-512x2-ob8-$arm" SUPERBATCHES=5 NET1291_WDL="$blend" "$trainer" "$parent" 1 > training.log 2>&1
+  sha256sum checkpoints/*/quantised.bin > quantised.sha256
+ done

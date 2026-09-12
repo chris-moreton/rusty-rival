@@ -1,0 +1,83 @@
+import json, pathlib, queue, re, subprocess, threading
+import chess
+
+ROOT = pathlib.Path('/home/chris/benchmark/net1291-worktree')
+OUT = pathlib.Path('/home/chris/benchmark/net1291-diagnosis.json')
+
+class Engine:
+    def __init__(self, path, nnue=None):
+        self.p = subprocess.Popen([path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1)
+        self.q = queue.Queue()
+        threading.Thread(target=self.read, daemon=True).start()
+        self.send('uci'); self.until('uciok')
+        self.send('setoption name Hash value 128')
+        self.send('setoption name Threads value 1')
+        if nnue is not None: self.send('setoption name UseNNUE value ' + str(nnue).lower())
+        self.sync()
+    def read(self):
+        for line in self.p.stdout: self.q.put(line.strip())
+        self.q.put('EOF')
+    def send(self, s):
+        self.p.stdin.write(s + '\n'); self.p.stdin.flush()
+    def until(self, marker):
+        lines=[]
+        while True:
+            line=self.q.get(timeout=40)
+            if line == 'EOF': raise RuntimeError('engine exited')
+            lines.append(line)
+            if line.startswith(marker): return lines
+    def sync(self):
+        self.send('isready'); return self.until('readyok')
+    def position(self, fen, moves=()):
+        self.send('position fen ' + fen + (' moves ' + ' '.join(moves) if moves else ''))
+    def search(self, fen, ms, moves=(), searchmoves=()):
+        self.send('ucinewgame'); self.sync(); self.position(fen,moves)
+        self.send(f'go movetime {ms}' + (' searchmoves ' + ' '.join(searchmoves) if searchmoves else ''))
+        lines=self.until('bestmove')
+        pvlines=[l for l in lines if ' pv ' in l and ' score ' in l]
+        final=pvlines[-1] if pvlines else ''
+        m=re.search(r'score (cp|mate) (-?\d+)', final)
+        return dict(best=lines[-1].split()[1], score_kind=m[1] if m else None, score=int(m[2]) if m else None,
+                    pv=final.split(' pv ')[-1].split() if final else [], info=final, transcript=lines)
+    def static(self, fen, moves=()):
+        self.position(fen,moves); self.send('eval'); lines=self.sync()
+        m=re.search(r'white_cp (-?\d+)', '\n'.join(lines))
+        return int(m[1]) if m else lines
+    def close(self):
+        self.send('quit'); self.p.wait(timeout=10)
+
+engines={
+    'nnue': Engine('/home/chris/benchmark/sprt/rival-v1.0.64',True),
+    'hce': Engine('/home/chris/benchmark/sprt/rival-v1.0.64',False),
+    'stash': Engine('/home/chris/benchmark/bin/stash'),
+    'stockfish': Engine('/home/chris/benchmark/bin/stockfish'),
+}
+results=[]
+try:
+    for line in (ROOT/'epd/suites/eet.epd').read_text().splitlines():
+        if not re.search(r'E_E_T (036|049|060|063|081) ',line): continue
+        board,ops=chess.Board.from_epd(line)
+        fen=board.fen(); roots={}
+        for name,e in engines.items():
+            roots[name]=e.search(fen,5000)
+            print(ops['id'],name,roots[name]['best'],roots[name]['score'],flush=True)
+        record=dict(id=ops['id'],fen=fen,bm=[m.uci() for m in ops['bm']],roots=roots,walk=[])
+        results.append(record)
+        moves=[]
+        for ply in range(len(roots['nnue']['pv'])+1):
+            row=dict(ply=ply,fen=board.fen(),moves=moves.copy(),
+                     nnue=engines['nnue'].static(fen,moves),hce=engines['hce'].static(fen,moves),
+                     stockfish_static=engines['stockfish'].static(fen,moves))
+            if not board.is_game_over():
+                peer=engines['stockfish'].search(fen,200,moves)
+                row['stockfish_search']=peer
+                row['stockfish_white']=peer['score'] * (1 if board.turn else -1) if peer['score'] is not None else None
+            record['walk'].append(row)
+            if ply == len(roots['nnue']['pv']):break
+            move=chess.Move.from_uci(roots['nnue']['pv'][ply])
+            if move not in board.legal_moves:
+                record['illegal_pv_move']=move.uci();break
+            moves.append(move.uci());board.push(move)
+        OUT.write_text(json.dumps(results,indent=2))
+finally:
+    for e in engines.values():e.close()

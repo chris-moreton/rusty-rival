@@ -1,0 +1,44 @@
+import array, json, pathlib, random, re
+import chess
+exec(open('/home/chris/benchmark/net1291-diagnose.py').read().split('engines={')[0])
+root=pathlib.Path('/home/chris/benchmark/net1291-worktree')
+golden=re.search(r'let golden:.*?= &\[(.*?)\n    \];',(root/'tests/nnue.rs').read_text(),re.S)[1]
+fens=re.findall(r'\(-?\d+, "([^"]+)"\)',golden)
+rng=random.Random(129102)
+for game in range(8):
+    board=chess.Board()
+    for ply in range(250):
+        if board.is_game_over():break
+        board.push(rng.choice(list(board.legal_moves)))
+        if ply%8==0:fens.append(board.fen())
+
+def predict(path,fen):
+    board=chess.Board(fen); values=array.array('h');values.frombytes(path.read_bytes())
+    assert values.itemsize==2
+    bias=values[768*512:769*512];activations=[]
+    for pov in [board.turn,not board.turn]:
+        features=[(384 if pc.color!=pov else 0)+64*(pc.piece_type-1)+(sq if pov==chess.WHITE else sq^56) for sq,pc in board.piece_map().items()]
+        hidden=[int(bias[i])+sum(values[ft*512+i] for ft in features) for i in range(512)]
+        assert min(hidden)>=-32768 and max(hidden)<=32767
+        activations.extend([min(255,max(0,v))**2//255 for v in hidden])
+    bucket=(len(board.piece_map())-2)//4
+    offset=769*512+bucket*1024
+    out=sum(a*int(values[offset+i]) for i,a in enumerate(activations))+int(values[769*512+8192+bucket])
+    numerator=out*400
+    return (1 if numerator>=0 else -1)*(abs(numerator)//(255*64))
+
+report=[]
+for arm in ['control','candidate']:
+    net=root/'nets'/f'rival-net1291D-512x2-ob8-{arm}.bin'
+    engine=Engine(f'/home/chris/benchmark/sprt/rival-net1291D-{arm}')
+    rows=[]
+    try:
+        for fen in fens:
+            expected=predict(net,fen)
+            actual=engine.static(fen)*(1 if chess.Board(fen).turn else -1)
+            assert expected==actual,(arm,fen,expected,actual)
+            rows.append({'fen':fen,'cp':actual})
+    finally:engine.close()
+    report.append({'arm':arm,'checked_positions':len(rows),'rows':rows})
+    print(arm, len(rows),'positions match independent quantised reference',flush=True)
+pathlib.Path('/home/chris/benchmark/net1291-training/export-validation.json').write_text(json.dumps(report,indent=2)+'\n')

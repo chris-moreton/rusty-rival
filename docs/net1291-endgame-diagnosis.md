@@ -1,8 +1,24 @@
 # NET-1291: endgame diagnosis and experiments
 
 Work started from `ce4d3f6` (engine 1.0.64). Baseline binary SHA prefix
-`1c66b571`, bench 1,772,650. This is an ongoing investigation; no strength
-improvement or general cause of the entire suite gap has been established.
+`1c66b571`, bench 1,772,650. Five candidates completed 14,137 games without an SPRT improvement pass.
+No engine or production-network change is proposed for merge. NET-1291
+remains open: the investigation has found evaluator/search interactions and
+concrete search omissions, but no general cause of the entire suite gap or
+accepted strength improvement.
+
+| Experiment | Games | Elo ± 95% error | Verdict |
+|---|---:|---:|---|
+| A: qsearch draw policy | 4,000 | +4.9 ± 9.3 | Inconclusive at cap |
+| B: qsearch material draws | 4,000 | +1.0 ± 9.3 | Inconclusive at cap |
+| C: TT depth units | 3,941 | −1.8 ± 9.4 | H0 accepted |
+| D: 25% result-target continuation | 914 | −24.8 ± 19.7 | H0 accepted |
+| D control: original 75% target | 1,282 | −15.7 ± 16.4 | H0 accepted |
+
+H0 acceptance means failure of the required improvement test; it does not
+by itself prove a strength loss. All six suites were completed for every
+candidate. No nonpassing candidate advanced to the longer match, ladder or
+reserved rook sample. The Lichess bot was restarted and verified active.
 
 ## Baseline evaluator comparison
 
@@ -120,14 +136,14 @@ The exact source change is retained as [`net1291/arm-a.patch`](net1291/arm-a.pat
 
 All-suite diagnostic at 300,000 nodes, one thread, Hash 128:
 
-| Suite | Baseline | Arm A | Arm B |
-|---|---:|---:|---:|
-| arasan18 | 59/250 | 67/250 | 59/250 |
-| bratko-kopec | 20/24 | 20/24 | 20/24 |
-| eet | 43/100 | 44/100 | 43/100 |
-| quick | 7/10 | 7/10 | 7/10 |
-| sts | 967/1500; 11,364/15,000 points | 980/1500; 11,502/15,000 points | 967/1500; 11,364/15,000 points |
-| wac | 272/300 | 271/300 | 272/300 |
+| Suite | Baseline | Arm A | Arm B | Arm C |
+|---|---:|---:|---:|---:|
+| arasan18 | 59/250 | 67/250 | 59/250 | 68/250 |
+| bratko-kopec | 20/24 | 20/24 | 20/24 | 19/24 |
+| eet | 43/100 | 44/100 | 43/100 | 42/100 |
+| quick | 7/10 | 7/10 | 7/10 | 7/10 |
+| sts | 967/1500; 11,364/15,000 points | 980/1500; 11,502/15,000 points | 967/1500; 11,364/15,000 points | 959/1500; 11,299/15,000 points |
+| wac | 272/300 | 271/300 | 272/300 | 270/300 |
 
 Every suite completed without runner errors. These fixed-node scores are
 diagnostics only; they do not supersede the inconclusive game result. Arm A
@@ -236,3 +252,99 @@ metrics. Both final nets will face the existing Protocol S acceptance gate.
 If neither passes, this pilot ends without scaling or holdout evaluation.
 The exact trainer, dependency lockfile and pre-run manifest are retained in
 [`net1291/training/`](net1291/training/).
+
+### Pilot D training and export checks
+
+Both arms completed: control 136.8 seconds, candidate about 127 seconds.
+Different-target training losses are recorded solely for reproducibility.
+Each exported net is 803,904 bytes. Exact network and engine binary SHA256s
+are retained in [`training/artifacts.json`](net1291/training/artifacts.json).
+The full local shard set and parent checkpoint files are hashed in the manifest.
+
+Each candidate passes 226 release tests with three existing ignores. The one
+excluded test, `nnue_golden_values_match_net1095`, intentionally asserts exact
+outputs of the old production weights; it first failed on the control, as
+expected when weights change. It remains untouched in the repository. No
+other test is excluded. Both new networks independently match a scalar
+quantised reference on all 254 positions (the eight original golden FENs plus
+deterministic random legal play, seed 129102). Loading/overflow, perspective,
+material-sign, bucket selection and incremental accumulator checks pass.
+If a network is accepted, the golden test must be deliberately regenerated
+and the complete unfiltered suite rerun before merging.
+
+Both candidates completed Protocol S, candidate first then control, with
+opening RNG seed 1291. All six 300k-node suites followed each match. There is
+no engine search change in either binary. The worktree's embedded-network
+reference was restored to production before starting games.
+
+### Pilot D candidate — rejected
+
+The 25%-result candidate crossed H0 at 914 completed games: **315 wins,
+380 losses, 219 draws; −24.8 ± 19.7 Elo**, LOS 0.7%, LLR −2.96.
+Bench is 2,513,915 versus 1,772,650 baseline. All six 300k-node suites
+completed without errors: arasan18 74/250, bratko-kopec 18/24, eet 38/100,
+quick 7/10, sts 982/1500 (11,582 points), wac 274/300. The improvement
+test rejects this candidate; no scaling, ladder or reserved-sample run follows.
+A short fine-tune is not a universal test of optimal training-target weights,
+but it provides no support for this proposed change. The 75%-result control
+was measured separately against baseline, as reported below.
+
+### Pilot D control — rejected
+
+The original-target continuation also crossed H0: **448 wins, 506 losses,
+328 draws over 1,282 games; −15.7 ± 16.4 Elo**, LOS 3.0%, LLR −2.96.
+Bench is 1,990,904. Each D match cancelled eleven in-flight games at its
+stopping bound; these are excluded from the completed counts. Neither match
+reported time losses or engine crashes.
+
+| Suite, 300k nodes | Baseline | D candidate (25%) | D control (75%) |
+|---|---:|---:|---:|
+| arasan18 | 59/250 | 74/250 | 68/250 |
+| bratko-kopec | 20/24 | 18/24 | 18/24 |
+| eet | 43/100 | 38/100 | 41/100 |
+| quick | 7/10 | 7/10 | 6/10 |
+| sts | 967/1500; 11,364 points | 982/1500; 11,582 points | 960/1500; 11,410 points |
+| wac | 272/300 | 274/300 | 271/300 |
+
+All suites finished without errors. Neither network is accepted. Since the
+unchanged-target continuation also failed, the measured loss cannot all be
+attributed to target blending. These separate baseline matches do not
+establish the direct Elo difference between the two new nets. Any retry
+should first establish a stable continuation control and state how its data
+or optimisation assumptions differ. No checkpoint was selected by suite score.
+
+## Remaining investigation
+
+The historical experiment register (NET-1149) rules out repeating blanket
+rule-50 tapering or hand-picked material scaling without a materially new
+mechanism. The earlier insufficient-material experiment (NET-230) applied
+its guard on every NNUE evaluation; A/B instead tested the existing full-search
+draw policy at quiescence entry, with no accepted gain. NET-1160 added dynamic
+null-move reduction, but deliberately deferred verification pending targeted
+evidence. No verification patch was added here on speculation.
+
+The next diagnosis needs independent positions that reproduce a specific
+missed resource, followed by controlled search instrumentation or deeper
+teacher-label checks. Neither another arbitrary search constant nor more
+training on the same assumptions is justified by these results. The 100
+reserved rook endings remain unused for eventual confirmation.
+
+## Reproduction and local records
+
+Archived scripts have a `.txt` suffix and retain this workstation's paths.
+Copy them into `~/benchmark/` with the original `net1291-` prefix (training
+scripts into `~/benchmark/net1291-training/`) to repeat the commands. Python
+chess is available via `~/services/lichess-bot/.venv/bin/python`. The idle
+window wrapper must use the normal Python interpreter; it checks both local
+engine processes and Lichess's public playing state before stopping the bot
+and restarts the service in `finally`. Never build during benchmark matches.
+
+Full game records and match logs are `~/benchmark/sprt/net1291{A,B,C}.{pgn,log}`.
+Training pilot game records use `net1291D-{candidate,control}` instead. Full
+EPD result JSONs remain untracked under `epd/results/rusty-rival/`, selected
+by their explicit binary SHA. They are not committed into the live result
+store: all experimental binaries report version 1.0.64, and multiple records
+with that label would make CI's baseline selector ambiguous. The tables above
+report every suite; exact diagnostic PVs and sampled-data counts are archived
+alongside this report. Patches contain ordinary unified-diff blank context
+lines (a single space), which a blanket whitespace check can flag.

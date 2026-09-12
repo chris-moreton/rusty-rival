@@ -1,0 +1,28 @@
+import hashlib,json,pathlib,re
+root=pathlib.Path('/home/chris/benchmark/net1291-worktree')
+store=root/'epd/results/rusty-rival'
+experiments=[('A','01386680'),('B','546fbee4'),('C','a7393247'),('D-candidate','b19e8fc5'),('D-control','77358086')]
+
+def suites(sha):
+    data=json.loads((store/f'1.0.64-{sha}.json').read_text())
+    summaries={r['suite']['name']:{k:v for k,v in r['summary'].items() if k in ['solved','total','points','max_points','errors']} for r in data['runs'] if r['mode']=='nodes' and r['budget']==300000 and r['threads']==1 and r['hash_mb']==128}
+    assert len(summaries)==6,(sha,summaries.keys())
+    assert all(v['errors']==0 for v in summaries.values())
+    return {'engine':data['engine'],'suites_300knodes':summaries}
+
+out={'baseline':suites('1c66b571'),'protocol':{'tc':'1+0.01','sprt_elo0':0,'sprt_elo1':10,'alpha':0.05,'beta':0.05,'max_games':4000,'threads':1,'hash_mb':128,'concurrency':12,'book':'8moves_v3.pgn','opening_plies':16,'paired':True},'experiments':[]}
+for arm,sha in experiments:
+    p=pathlib.Path('/home/chris/benchmark/sprt')/f'net1291{arm}.log'
+    text=p.read_text(); assert 'Finished match' in text
+    record=suites(sha);record['arm']=arm
+    w,l,d,g=map(int,re.findall(r'Score of .*?: (\d+) - (\d+) - (\d+)\s+\[[^\]]+\]\s+(\d+)',text)[-1])
+    assert w+l+d==g
+    elo,error,los=re.findall(r'Elo difference: ([\d.+-]+) \+/- ([\d.]+), LOS: ([\d.]+)',text)[-1]
+    llr=re.findall(r'SPRT: llr ([\d.+-]+)',text)[-1]
+    verdict='pass' if 'H1 was accepted' in text else 'rejected' if 'H0 was accepted' in text else 'inconclusive at cap'
+    record['games']={'wins':w,'losses':l,'draws':d,'completed':g,'elo':float(elo),'error_95':float(error),'los_percent':float(los),'llr':float(llr),'verdict':verdict,'cancelled_in_flight':len(re.findall(r'Finished game .*?\{No result\}',text))}
+    record['log']={'path':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+    out['experiments'].append(record)
+path=root/'docs/net1291/results.json'
+path.write_text(json.dumps(out,indent=2)+'\n')
+for r in out['experiments']:print(r['arm'],r['games'])

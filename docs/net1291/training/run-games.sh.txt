@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+for arm in candidate control; do
+  candidate="/home/chris/benchmark/sprt/rival-net1291D-$arm"
+  "$candidate" <<< bench > "/home/chris/benchmark/net1291-training/$arm/bench.log" 2>&1
+  /home/chris/benchmark/bin/cutechess-cli \
+    -engine cmd="$candidate" name=cand \
+    -engine cmd=/home/chris/benchmark/sprt/rival-v1.0.64 name=base \
+    -each proto=uci tc=1+0.01 option.Hash=128 option.Threads=1 timemargin=30 \
+    -openings file=/home/chris/benchmark/books/8moves_v3.pgn format=pgn order=random plies=16 \
+    -srand 1291 -repeat -games 2 -rounds 2000 -concurrency 12 \
+    -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
+    -resign movecount=3 score=400 -draw movenumber=40 movecount=8 score=10 \
+    -recover -ratinginterval 50 \
+    -pgnout "/home/chris/benchmark/sprt/net1291D-$arm.pgn" \
+    > "/home/chris/benchmark/sprt/net1291D-$arm.log" 2>&1
+  /home/chris/benchmark/net1291-worktree/target/release/epd-runner run \
+    --engine "$candidate" --suites all --nodes 300000 --concurrency 4 \
+    > "/home/chris/benchmark/net1291-training/$arm/suites.log" 2>&1
+ done

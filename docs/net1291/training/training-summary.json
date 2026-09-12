@@ -1,0 +1,18 @@
+{
+  "control": [
+    "Estimated time to end of superbatch: 0.3s     superbatch 1 | time 24.0s | running loss 0.029965 | 4167986 pos/sec | total time 25.5s",
+    "Estimated time to end of superbatch: 0.4s     superbatch 2 | time 26.6s | running loss 0.029990 | 3757973 pos/sec | total time 52.1s",
+    "Estimated time to end of superbatch: 0.5s     superbatch 3 | time 32.6s | running loss 0.030227 | 3069835 pos/sec | total time 84.7s",
+    "Estimated time to end of superbatch: 0.4s     superbatch 4 | time 28.2s | running loss 0.030294 | 3540954 pos/sec | total time 112.9s",
+    "Estimated time to end of superbatch: 0.3s     superbatch 5 | time 23.8s | running loss 0.030395 | 4196383 pos/sec | total time 136.8s",
+    "Total Training Time: 0h 2m 16s"
+  ],
+  "candidate": [
+    "Estimated time to end of superbatch: 0.3s     superbatch 1 | time 23.6s | running loss 0.006905 | 4238283 pos/sec | total time 24.8s",
+    "Estimated time to end of superbatch: 0.4s     superbatch 2 | time 28.3s | running loss 0.006755 | 3534030 pos/sec | total time 53.1s",
+    "Estimated time to end of superbatch: 0.4s     superbatch 3 | time 24.3s | running loss 0.006779 | 4112960 pos/sec | total time 77.4s",
+    "Estimated time to end of superbatch: 0.4s     superbatch 4 | time 25.6s | running loss 0.006789 | 3910933 pos/sec | total time 103.0s",
+    "Estimated time to end of superbatch: 0.4s     superbatch 5 | time 24.4s | running loss 0.006803 | 4096692 pos/sec | total time 127.4s",
+    "Total Training Time: 0h 2m 7s"
+  ]
+}

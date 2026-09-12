@@ -1,0 +1,25 @@
+exec(open('/home/chris/benchmark/net1291-diagnose.py').read().split('engines={')[0])
+records=json.loads(OUT.read_text())
+engines={'nnue':Engine('/home/chris/benchmark/sprt/rival-v1.0.64',True),
+         'hce':Engine('/home/chris/benchmark/sprt/rival-v1.0.64',False),
+         'stockfish':Engine('/home/chris/benchmark/bin/stockfish')}
+results=[]
+try:
+    for record in records:
+        fen=record['fen']; roots={}
+        for name,e in engines.items():
+            roots[name]=e.search(fen,5000,searchmoves=record['bm'])
+            print(record['id'],'forced',name,roots[name]['info'],flush=True)
+        result={'id':record['id'],'forced':roots,'peer_walk':[]};results.append(result)
+        board=chess.Board(fen);moves=[]
+        for ply,move in enumerate(record['roots']['stockfish']['pv'][:24]):
+            row={'ply':ply,'fen':board.fen(),'nnue':engines['nnue'].static(fen,moves),'hce':engines['hce'].static(fen,moves)}
+            search=engines['nnue'].search(fen,200,moves)
+            row['rival_search']=search
+            row['rival_white']=search['score']*(1 if board.turn else -1) if search['score'] is not None else None
+            result['peer_walk'].append(row)
+            board.push_uci(move);moves.append(move)
+            if board.is_game_over():break
+        pathlib.Path('/home/chris/benchmark/net1291-controls.json').write_text(json.dumps(results,indent=2))
+finally:
+    for e in engines.values():e.close()

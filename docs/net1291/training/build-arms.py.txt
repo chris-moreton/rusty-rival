@@ -1,0 +1,27 @@
+import hashlib,json,pathlib,shutil,subprocess,time
+root=pathlib.Path('/home/chris/benchmark/net1291-worktree')
+training=pathlib.Path('/home/chris/benchmark/net1291-training')
+original=subprocess.check_output(['git','show','HEAD:src/nnue.rs'],cwd=root)
+results=[]
+try:
+    for arm in ['control','candidate']:
+        net=training/arm/f'checkpoints/net1291D-512x2-ob8-{arm}-5/quantised.bin'
+        deadline=time.monotonic()+600
+        while not net.exists():
+            if time.monotonic()>deadline:raise RuntimeError('Checkpoint timeout '+str(net))
+            time.sleep(3)
+        # The final writer may still be closing the file; wait for the arm's manifest.
+        while not (training/arm/'quantised.sha256').exists():time.sleep(1)
+        name=f'rival-net1291D-512x2-ob8-{arm}.bin'
+        shutil.copyfile(net,root/'nets'/name)
+        (root/'src/nnue.rs').write_bytes(original.replace(b'rival-512x2-ob8-corrected-net1095.bin',name.encode()))
+        with (training/arm/'engine-checks.log').open('w') as log:
+            subprocess.run(['cargo','build','--release','--bin','rusty-rival'],cwd=root,stdout=log,stderr=subprocess.STDOUT,check=True)
+            subprocess.run(['bash','-c','RUST_MIN_STACK=67108864 cargo test --release -- --skip nnue_golden_values_match_net1095'],cwd=root,stdout=log,stderr=subprocess.STDOUT,check=True)
+        binary=pathlib.Path(f'/home/chris/benchmark/sprt/rival-net1291D-{arm}')
+        shutil.copy2(root/'target/release/rusty-rival',binary)
+        results.append({'arm':arm,'network_sha256':hashlib.sha256(net.read_bytes()).hexdigest(),'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),'network_bytes':net.stat().st_size})
+        print('Built and tested',arm,flush=True)
+finally:
+    (root/'src/nnue.rs').write_bytes(original)
+(training/'artifacts.json').write_text(json.dumps(results,indent=2)+'\n')

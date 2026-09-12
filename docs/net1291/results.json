@@ -1,0 +1,373 @@
+{
+  "baseline": {
+    "engine": {
+      "name": "Rusty Rival 1.0.64",
+      "family": "rusty-rival",
+      "label": "1.0.64",
+      "version": "1.0.64",
+      "sha256": "1c66b5718ef2e25b9b565003fc73267ec96d9a2910f383dd3a943cc2a139237f",
+      "options": {},
+      "bench": 1772650
+    },
+    "suites_300knodes": {
+      "arasan18": {
+        "solved": 59,
+        "total": 250,
+        "errors": 0
+      },
+      "bratko-kopec": {
+        "solved": 20,
+        "total": 24,
+        "errors": 0
+      },
+      "eet": {
+        "solved": 43,
+        "total": 100,
+        "errors": 0
+      },
+      "quick": {
+        "solved": 7,
+        "total": 10,
+        "errors": 0
+      },
+      "sts": {
+        "solved": 967,
+        "total": 1500,
+        "points": 11364,
+        "max_points": 15000,
+        "errors": 0
+      },
+      "wac": {
+        "solved": 272,
+        "total": 300,
+        "errors": 0
+      }
+    }
+  },
+  "protocol": {
+    "tc": "1+0.01",
+    "sprt_elo0": 0,
+    "sprt_elo1": 10,
+    "alpha": 0.05,
+    "beta": 0.05,
+    "max_games": 4000,
+    "threads": 1,
+    "hash_mb": 128,
+    "concurrency": 12,
+    "book": "8moves_v3.pgn",
+    "opening_plies": 16,
+    "paired": true
+  },
+  "experiments": [
+    {
+      "engine": {
+        "name": "Rusty Rival 1.0.64",
+        "family": "rusty-rival",
+        "label": "1.0.64",
+        "version": "1.0.64",
+        "sha256": "01386680304a1a73afb2eaa957149b5b73776cceb5f6ffb54a8b2b27455234d4",
+        "options": {},
+        "bench": 1625045
+      },
+      "suites_300knodes": {
+        "arasan18": {
+          "solved": 67,
+          "total": 250,
+          "errors": 0
+        },
+        "bratko-kopec": {
+          "solved": 20,
+          "total": 24,
+          "errors": 0
+        },
+        "eet": {
+          "solved": 44,
+          "total": 100,
+          "errors": 0
+        },
+        "quick": {
+          "solved": 7,
+          "total": 10,
+          "errors": 0
+        },
+        "sts": {
+          "solved": 980,
+          "total": 1500,
+          "points": 11502,
+          "max_points": 15000,
+          "errors": 0
+        },
+        "wac": {
+          "solved": 271,
+          "total": 300,
+          "errors": 0
+        }
+      },
+      "arm": "A",
+      "games": {
+        "wins": 1511,
+        "losses": 1455,
+        "draws": 1034,
+        "completed": 4000,
+        "elo": 4.9,
+        "error_95": 9.3,
+        "los_percent": 84.8,
+        "llr": -0.0613,
+        "verdict": "inconclusive at cap",
+        "cancelled_in_flight": 0
+      },
+      "log": {
+        "path": "/home/chris/benchmark/sprt/net1291A.log",
+        "sha256": "a537fe8958fd9208a11ca3f1f36eb60a790172a34603a9a9b067bfba2ddec0cf"
+      }
+    },
+    {
+      "engine": {
+        "name": "Rusty Rival 1.0.64",
+        "family": "rusty-rival",
+        "label": "1.0.64",
+        "version": "1.0.64",
+        "sha256": "546fbee46eae628aa0426c7ba113b330e7d1cc26463cf75488be3e7b09a67131",
+        "options": {},
+        "bench": 1772650
+      },
+      "suites_300knodes": {
+        "arasan18": {
+          "solved": 59,
+          "total": 250,
+          "errors": 0
+        },
+        "bratko-kopec": {
+          "solved": 20,
+          "total": 24,
+          "errors": 0
+        },
+        "eet": {
+          "solved": 43,
+          "total": 100,
+          "errors": 0
+        },
+        "quick": {
+          "solved": 7,
+          "total": 10,
+          "errors": 0
+        },
+        "sts": {
+          "solved": 967,
+          "total": 1500,
+          "points": 11364,
+          "max_points": 15000,
+          "errors": 0
+        },
+        "wac": {
+          "solved": 272,
+          "total": 300,
+          "errors": 0
+        }
+      },
+      "arm": "B",
+      "games": {
+        "wins": 1497,
+        "losses": 1486,
+        "draws": 1017,
+        "completed": 4000,
+        "elo": 1.0,
+        "error_95": 9.3,
+        "los_percent": 58.0,
+        "llr": -1.8,
+        "verdict": "inconclusive at cap",
+        "cancelled_in_flight": 0
+      },
+      "log": {
+        "path": "/home/chris/benchmark/sprt/net1291B.log",
+        "sha256": "6dc628b0c5d08c6ca10736457ac068b087342c3336425a25fe1b52dc6d61ac0e"
+      }
+    },
+    {
+      "engine": {
+        "name": "Rusty Rival 1.0.64",
+        "family": "rusty-rival",
+        "label": "1.0.64",
+        "version": "1.0.64",
+        "sha256": "a7393247499ae0641e8b046946338062ceb996e9b242a1e40cb4acedeff21606",
+        "options": {},
+        "bench": 2050657
+      },
+      "suites_300knodes": {
+        "arasan18": {
+          "solved": 68,
+          "total": 250,
+          "errors": 0
+        },
+        "bratko-kopec": {
+          "solved": 19,
+          "total": 24,
+          "errors": 0
+        },
+        "eet": {
+          "solved": 42,
+          "total": 100,
+          "errors": 0
+        },
+        "quick": {
+          "solved": 7,
+          "total": 10,
+          "errors": 0
+        },
+        "sts": {
+          "solved": 959,
+          "total": 1500,
+          "points": 11299,
+          "max_points": 15000,
+          "errors": 0
+        },
+        "wac": {
+          "solved": 270,
+          "total": 300,
+          "errors": 0
+        }
+      },
+      "arm": "C",
+      "games": {
+        "wins": 1468,
+        "losses": 1488,
+        "draws": 985,
+        "completed": 3941,
+        "elo": -1.8,
+        "error_95": 9.4,
+        "los_percent": 35.6,
+        "llr": -2.94,
+        "verdict": "rejected",
+        "cancelled_in_flight": 11
+      },
+      "log": {
+        "path": "/home/chris/benchmark/sprt/net1291C.log",
+        "sha256": "510c514184c7a94b95691237877ec43cf49fb0463dcd89f33cd04d0d6bc0992e"
+      }
+    },
+    {
+      "engine": {
+        "name": "Rusty Rival 1.0.64",
+        "family": "rusty-rival",
+        "label": "1.0.64",
+        "version": "1.0.64",
+        "sha256": "b19e8fc5d3e3c66cdb5959b96a9a678821c20a05f4d21cb3ebe91af73a2a5356",
+        "options": {},
+        "bench": 2513915
+      },
+      "suites_300knodes": {
+        "arasan18": {
+          "solved": 74,
+          "total": 250,
+          "errors": 0
+        },
+        "bratko-kopec": {
+          "solved": 18,
+          "total": 24,
+          "errors": 0
+        },
+        "eet": {
+          "solved": 38,
+          "total": 100,
+          "errors": 0
+        },
+        "quick": {
+          "solved": 7,
+          "total": 10,
+          "errors": 0
+        },
+        "sts": {
+          "solved": 982,
+          "total": 1500,
+          "points": 11582,
+          "max_points": 15000,
+          "errors": 0
+        },
+        "wac": {
+          "solved": 274,
+          "total": 300,
+          "errors": 0
+        }
+      },
+      "arm": "D-candidate",
+      "games": {
+        "wins": 315,
+        "losses": 380,
+        "draws": 219,
+        "completed": 914,
+        "elo": -24.8,
+        "error_95": 19.7,
+        "los_percent": 0.7,
+        "llr": -2.96,
+        "verdict": "rejected",
+        "cancelled_in_flight": 11
+      },
+      "log": {
+        "path": "/home/chris/benchmark/sprt/net1291D-candidate.log",
+        "sha256": "ee9b157c07492bef78678544a346d2a1852e13aea985fd3fafc535acd6fc6867"
+      }
+    },
+    {
+      "engine": {
+        "name": "Rusty Rival 1.0.64",
+        "family": "rusty-rival",
+        "label": "1.0.64",
+        "version": "1.0.64",
+        "sha256": "77358086b499ab54515ea6311bc79170fa3b8e1b850570fe555bddb94f42c51e",
+        "options": {},
+        "bench": 1990904
+      },
+      "suites_300knodes": {
+        "arasan18": {
+          "solved": 68,
+          "total": 250,
+          "errors": 0
+        },
+        "bratko-kopec": {
+          "solved": 18,
+          "total": 24,
+          "errors": 0
+        },
+        "eet": {
+          "solved": 41,
+          "total": 100,
+          "errors": 0
+        },
+        "quick": {
+          "solved": 6,
+          "total": 10,
+          "errors": 0
+        },
+        "sts": {
+          "solved": 960,
+          "total": 1500,
+          "points": 11410,
+          "max_points": 15000,
+          "errors": 0
+        },
+        "wac": {
+          "solved": 271,
+          "total": 300,
+          "errors": 0
+        }
+      },
+      "arm": "D-control",
+      "games": {
+        "wins": 448,
+        "losses": 506,
+        "draws": 328,
+        "completed": 1282,
+        "elo": -15.7,
+        "error_95": 16.4,
+        "los_percent": 3.0,
+        "llr": -2.96,
+        "verdict": "rejected",
+        "cancelled_in_flight": 11
+      },
+      "log": {
+        "path": "/home/chris/benchmark/sprt/net1291D-control.log",
+        "sha256": "89eef7a8e3c13d56de1d306ee1c40f7092ac115262a8c8ce0a98383d1f2a4609"
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+import hashlib, json, pathlib, random
+import chess, chess.pgn
+root=pathlib.Path('/home/chris/benchmark/net1291-worktree')
+source=pathlib.Path('/home/chris/benchmark/sprt/net1284-scale.pgn')
+excluded=set()
+for p in (root/'epd/suites').glob('*.epd'):
+    for line in p.read_text(encoding="latin-1").splitlines():
+        fields=line.split()
+        if len(fields)>=4:excluded.add(' '.join(fields[:4]))
+rng=random.Random(1291); candidates=[]; game_index=0
+with source.open() as f:
+    while game:=chess.pgn.read_game(f):
+        game_index+=1
+        if game.errors:raise RuntimeError(game.errors)
+        board=game.board()
+        for ply,move in enumerate(game.mainline_moves(),1):
+            board.push(move)
+            # One first eligible position per game; no scores or outcomes used.
+            if ply<40 or not 6<=len(board.piece_map())<=12:continue
+            if board.queens or board.bishops or board.knights:continue
+            if not board.pieces(chess.ROOK,chess.WHITE) or not board.pieces(chess.ROOK,chess.BLACK):continue
+            if ' '.join(board.fen().split()[:4]) in excluded:continue
+            candidates.append({'game':game_index,'ply':ply,'fen':board.fen()});break
+selected=rng.sample(candidates,min(100,len(candidates)))
+payload={'source':str(source),'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),
+         'seed':1291,'eligible_games':len(candidates),'positions':selected}
+out=pathlib.Path('/home/chris/benchmark/net1291-holdout.json')
+out.write_text(json.dumps(payload,indent=2))
+print('Holdout frozen:',len(selected),'positions; sha256',hashlib.sha256(out.read_bytes()).hexdigest(),flush=True)
