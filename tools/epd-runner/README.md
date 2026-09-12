@@ -107,6 +107,51 @@ position that errored, or is missing on one side). A search change legitimately
 moves these counts; a pull request that intends one updates the baseline by
 running the suites for the new binary, as with the bench signature.
 
+## Calibration (NET-1288, 12 September 2026)
+
+Fourteen engines (rusty-rival 1.0.59 to 1.0.64, Ethereal 14.40, Stash
+v37.25, Berserk 20260524, Obsidian dev-16.15, Stockfish dev-20260726 full and
+capped at 2600, 2800 and 3000) ran every suite at 300k and 1M nodes and at
+1 s per position (5 s on arasan18, bratko-kopec and eet), one thread, 128 MB,
+time mode at concurrency 4 on an otherwise idle Ryzen 5950X with the bot
+stopped. `scripts/calibrate.py` orders the engines per suite and budget and
+counts violations of 22 orderings known from games: the Rival series where a
+gain was measured (59 < 60 < 61 < 62 < 63), the capped Stockfish rungs,
+every peer and sf-2800 or above over Rival, full Stockfish over all, Rival
+over sf-2600.
+
+| suite | 300k nodes | 1M nodes | 1 s | 5 s |
+|---|---|---|---|---|
+| eet (100) | 4 | 2 | **1** | **1** |
+| arasan18 (250) | 5 | 4 | 3 | 3 |
+| sts (1500) | 4 | 4 | 5 | – |
+| bratko-kopec (24) | 8 | 6 | 5 | 8 |
+| wac (300) | 10 | 13 | 9 | – |
+
+Violations out of 22 pairs. What the numbers say:
+
+- **Node budgets do not compare engine families.** Ethereal and Stash, far
+  stronger than Rival in games, score below it at every node budget because
+  their nodes are cheap; the NNUE-heavy Berserk and Obsidian sit next to full
+  Stockfish. Node mode is a same-binary-family regression check and nothing
+  else, which is what the CI gate uses it for.
+- **Time budgets order the families roughly and the Stockfish rungs
+  correctly** on eet and arasan18, and eet at 1 s or 5 s is the only
+  suite-and-budget pair with a single violation, an adjacent Rival pair
+  inside sampling noise. wac and bratko-kopec saturate above 90% for every
+  strong engine and order nothing; sts orders the peers but places capped
+  Stockfish below Rival at every budget.
+- **No suite resolves the Rival release gains.** Six releases spanning about
+  70 Elo at 10+0.1 land within one or two sigma of each other everywhere
+  (arasan18's 250 positions give ±3 points; the whole series spans 5). Only
+  arasan18 and eet at 5 s show the series trending upward. Suites of this
+  size cannot rank changes worth 10 to 25 Elo; games do that.
+
+Chosen gate: the CI job keeps bratko-kopec + wac at 100k nodes as a fast,
+deterministic crash-and-blunder check with a threshold. For a look at where
+an engine stands against the peers, read the time-mode eet and arasan18
+columns, and treat everything else as informational.
+
 ## Suites
 
 `epd/suites/*.epd`; sources and terms in `epd/suites/NOTICE`. A line is four
