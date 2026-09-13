@@ -254,7 +254,9 @@ pub fn format_uci_score(score: Score) -> String {
 ///
 /// Called once per completed iteration from `iterative_deepening`, once more
 /// when a hard stop interrupts an iteration (with the last COMPLETED depth, so
-/// the line never claims a depth that was not finished), and for aspiration
+/// the line never claims a depth that was not finished; or, when a completed
+/// root fail-high from the interrupted iteration is played instead, with that
+/// iteration's depth and a `lowerbound` score, NET-1291), and for aspiration
 /// bound lines after `INFO_BOUND_MIN_MS`. `pv` and `score` are passed in
 /// rather than read from `current_best` because the bound lines report
 /// something else: the failing move's line on a fail-high, the previous

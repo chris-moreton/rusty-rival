@@ -610,8 +610,12 @@ fn show_result(
 
 fn get_main_move(uci_state: &mut UciState, search_state: &mut SearchState, millis: &u32) -> (Move, Score, u64) {
     run_command_sync(uci_state, search_state, &format!("go movetime {}", millis));
-    let best_move = search_state.current_best.0[0];
-    let best_score = search_state.current_best.1;
+    // The move the engine would play over UCI, including a retained root
+    // fail-high (a lower bound, which only makes the score gap conservative)
+    let (best_move, best_score) = {
+        let r = search_state.selected_result();
+        (r.0[0], r.1)
+    };
     (best_move, best_score, search_state.nodes)
 }
 
@@ -619,7 +623,9 @@ fn get_secondary_move(uci_state: &mut UciState, search_state: &mut SearchState, 
     search_state.ignore_root_move = best_move;
 
     run_command_sync(uci_state, search_state, &format!("go movetime {}", millis));
-    let second_best_move = search_state.current_best.0[0];
-    let second_best_score = search_state.current_best.1;
+    let (second_best_move, second_best_score) = {
+        let r = search_state.selected_result();
+        (r.0[0], r.1)
+    };
     (second_best_move, second_best_score)
 }

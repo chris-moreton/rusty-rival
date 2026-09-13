@@ -488,6 +488,10 @@ impl SearchHandle {
 #[derive(Debug)]
 pub struct SearchState {
     pub current_best: PathScore,
+    /// Completed root fail-high selected when its wider retry was interrupted.
+    /// Kept separate so current_best and last_completed_depth remain exact
+    /// results of a fully completed iteration. Used for the returned move/PV.
+    pub interrupted_best: Option<PathScore>,
     pub root_moves: MoveScoreList,
     pub start_time: Instant,
     pub end_time: Instant,
@@ -651,6 +655,15 @@ pub struct SearchState {
 }
 
 impl SearchState {
+    /// The result the last search chose to play: a completed root fail-high
+    /// retained when its wider aspiration retry was interrupted (a lower
+    /// bound, NET-1291), otherwise the exact result of the last completed
+    /// iteration. `current_best` stays the exact one; consumers that need an
+    /// exact score for a label (datagen) read that directly.
+    pub fn selected_result(&self) -> &PathScore {
+        self.interrupted_best.as_ref().unwrap_or(&self.current_best)
+    }
+
     /// Move thread 0's learned move-ordering and correction tables into this
     /// (master) state, so the next `go` starts from what the last search
     /// learned instead of from zero (NET-372).
@@ -692,6 +705,7 @@ impl Clone for SearchState {
     fn clone(&self) -> Self {
         SearchState {
             current_best: self.current_best.clone(),
+            interrupted_best: self.interrupted_best.clone(),
             root_moves: self.root_moves.clone(),
             start_time: self.start_time,
             end_time: self.end_time,
@@ -792,6 +806,7 @@ impl Clone for SearchState {
 pub fn default_search_state() -> SearchState {
     SearchState {
         current_best: (PV::new(), 0),
+        interrupted_best: None,
         root_moves: vec![],
         start_time: Instant::now(),
         end_time: Instant::now(),
