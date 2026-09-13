@@ -1,0 +1,25 @@
+from pathlib import Path
+import re,json,math,collections
+out=Path('/home/chris/benchmark/net1291-round4')
+s=Path('/home/chris/benchmark/sprt/net1291E.pgn').read_text();games=collections.defaultdict(list)
+for c in re.split(r'(?m)(?=^\[Event )',s):
+ if not c.strip():continue
+ header=dict(re.findall(r'^\[(\w+) "([^"\n]*)"\]$',c,re.M))
+ score={'1-0':1,'0-1':0,'1/2-1/2':.5}[header['Result']]
+ if header['White']=='base':score=1-score
+ opening=re.findall(r'([^\s{}]+)\s+\{book\}',c)
+ assert len(opening)==16,(header['Round'],opening)
+ games[int(header['Round'])].append({'score':score,'white':header['White'],'opening':opening})
+assert set(games)==set(range(1,2001))
+pairs=[]
+for number,group in games.items():
+ assert len(group)==2,number
+ a,b=group;assert a['opening']==b['opening'],number
+ assert a['white']!=b['white'],number
+ pairs.append(a['score']+b['score'])
+mean=sum(pairs)/len(pairs);var=sum((x-mean)**2 for x in pairs)/(len(pairs)-1)
+se=(var/len(pairs))**.5/2;score=mean/2
+elo=lambda p:400*math.log10(p/(1-p))
+summary={'completed_games':2*len(pairs),'verified_colour_swapped_same_opening_pairs':len(pairs),'pair_score_counts':{str(v):pairs.count(v) for v in [0,.5,1,1.5,2]},'score':score,'elo':elo(score),'paired_normal_95_elo_interval':[elo(score-1.96*se),elo(score+1.96*se)]}
+(out/'paired-check.json').write_text(json.dumps(summary,indent=2)+'\n')
+print(json.dumps(summary))

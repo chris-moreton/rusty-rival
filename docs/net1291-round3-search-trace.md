@@ -136,3 +136,5 @@ and completed-depth reporting honest. The trace supplies a concrete trigger
 for examining that policy; no such production change or strength claim has
 been made here. Any candidate still needs the ticket's independent strength,
 scaling, suite and reserved-sample acceptance checks.
+
+Follow-up: [arm E tests the general root-retention policy and finishes inconclusive at 4,000 games](net1291-round4-root-fail-high.md).

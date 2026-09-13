@@ -366,7 +366,6 @@ pub fn sync_nodes(search_state: &mut SearchState) {
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
     search_state.start_time = Instant::now();
     search_state.last_completed_depth = 0;
-    search_state.interrupted_best = None;
     // NOTE: the stop flag is NOT reset here. Each real `go` creates a fresh stop
     // flag (see cmd_go), so resetting here would race with a stop/quit/second-go
     // that arrived before this line ran, erasing the request and hanging the
@@ -488,9 +487,6 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     for iterative_depth in start_depth..=max_depth {
         //println!("Iterative depth {}", iterative_depth);
         let mut c = 0;
-        // A fully returned fail-high is usable even if its wider retry stops.
-        // Scope this to one iteration; never retain unfinished child results.
-        let mut completed_fail_high: Option<(PathScore, u8)> = None;
         search_state.iterative_depth = iterative_depth;
         search_state.sel_depth = 0;
         // Cost of this iteration, used to predict whether the next one fits in
@@ -506,14 +502,6 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 // not only the printing one (Codex review: helpers used to
                 // drop up to 999 nodes here)
                 sync_nodes(search_state);
-                if let Some((result, sel_depth)) = completed_fail_high {
-                    search_state.sel_depth = sel_depth;
-                    send_info(search_state, iterative_depth, result.1, &result.0, InfoBound::Lower, false);
-                    let best_move = result.0[0];
-                    search_state.interrupted_best = Some(result);
-                    emit_net365_diagnostic(search_state);
-                    return best_move;
-                }
                 // Final line for the GUI's node/time totals. Reports the
                 // last COMPLETED depth and its line and seldepth, never the
                 // interrupted iteration's; principal line only, because the
@@ -553,13 +541,6 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                     send_info(search_state, iterative_depth, aspire_best.1, &pv, bound, false);
                 }
                 let failed_high = aspire_best.1 >= aspiration_window.1;
-                if failed_high && search_state.multi_pv == 1 && aspire_best.1 > search_state.current_best.1 {
-                    completed_fail_high = Some((aspire_best.clone(), search_state.sel_depth));
-                } else {
-                    // A completed fail-low supersedes any earlier lower bound.
-                    // Do not reuse a result contradicted by a later attempt.
-                    completed_fail_high = None;
-                }
                 c += 1;
                 if c == ASPIRATION_RADIUS.len() {
                     aspiration_window = (-MAX_WINDOW, MAX_WINDOW);

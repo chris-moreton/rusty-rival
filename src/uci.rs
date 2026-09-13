@@ -916,13 +916,8 @@ fn cmd_ponderhit(search_handle: &mut Option<SearchHandle>) -> Either<String, Opt
 
 fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
     let bestmove = algebraic_move_from_move(mv);
-    // Use the PV belonging to the returned move, including a completed
-    // fail-high selected when an aspiration retry was interrupted.
-    let result = search_state.interrupted_best.as_ref().unwrap_or(&search_state.current_best);
-    if result.0.first() != Some(&mv) {
-        return format!("bestmove {}", bestmove);
-    }
-    if let Some(&ponder_mv) = result.0.get(1) {
+    // Include ponder move if we have a second move in the PV
+    if let Some(&ponder_mv) = search_state.current_best.0.get(1) {
         if ponder_mv != 0 {
             return format!("bestmove {} ponder {}", bestmove, algebraic_move_from_move(ponder_mv));
         }
@@ -1201,25 +1196,4 @@ fn cmd_ucinewgame(
     clear_countermoves(search_state);
     uci_state.fen = START_POS.parse().unwrap();
     Right(None)
-}
-
-#[cfg(test)]
-mod root_result_tests {
-    use super::format_bestmove;
-    use crate::fen::move_from_algebraic_move;
-    use crate::types::{default_search_state, PV};
-
-    #[test]
-    fn interrupted_root_result_uses_its_own_ponder_move() {
-        let pv = |moves: &[&str]| -> PV { moves.iter().map(|m| move_from_algebraic_move((*m).to_owned(), 0)).collect() };
-        let mut state = default_search_state();
-        state.current_best = (pv(&["e2e4", "e7e5"]), 10);
-        state.interrupted_best = Some((pv(&["d2d4", "d7d5"]), 40));
-        let selected_move = state.interrupted_best.as_ref().unwrap().0[0];
-        assert_eq!(format_bestmove(selected_move, &state), "bestmove d2d4 ponder d7d5");
-        // An early return can bypass PV setup; never attach an unrelated PV.
-        assert_eq!(format_bestmove(state.current_best.0[0], &state), "bestmove e2e4");
-        state.interrupted_best = None;
-        assert_eq!(format_bestmove(state.current_best.0[0], &state), "bestmove e2e4 ponder e7e5");
-    }
 }

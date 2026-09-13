@@ -1,0 +1,17 @@
+{
+  "completed_games": 4000,
+  "verified_colour_swapped_same_opening_pairs": 2000,
+  "pair_score_counts": {
+    "0": 257,
+    "0.5": 355,
+    "1": 716,
+    "1.5": 388,
+    "2": 284
+  },
+  "score": 0.510875,
+  "elo": 7.557915924365311,
+  "paired_normal_95_elo_interval": [
+    -1.6185527155937776,
+    16.74494219833448
+  ]
+}

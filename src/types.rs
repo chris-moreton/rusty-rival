@@ -488,10 +488,6 @@ impl SearchHandle {
 #[derive(Debug)]
 pub struct SearchState {
     pub current_best: PathScore,
-    /// Completed root fail-high selected when its wider retry was interrupted.
-    /// Kept separate so current_best and last_completed_depth remain exact
-    /// results of a fully completed iteration. Used for the returned move/PV.
-    pub interrupted_best: Option<PathScore>,
     pub root_moves: MoveScoreList,
     pub start_time: Instant,
     pub end_time: Instant,
@@ -696,7 +692,6 @@ impl Clone for SearchState {
     fn clone(&self) -> Self {
         SearchState {
             current_best: self.current_best.clone(),
-            interrupted_best: self.interrupted_best.clone(),
             root_moves: self.root_moves.clone(),
             start_time: self.start_time,
             end_time: self.end_time,
@@ -797,7 +792,6 @@ impl Clone for SearchState {
 pub fn default_search_state() -> SearchState {
     SearchState {
         current_best: (PV::new(), 0),
-        interrupted_best: None,
         root_moves: vec![],
         start_time: Instant::now(),
         end_time: Instant::now(),

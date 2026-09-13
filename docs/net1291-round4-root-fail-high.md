@@ -1,6 +1,36 @@
 # NET-1291 arm E: retain a completed root fail-high on interruption
 
-**Status: candidate validated and frozen; strength test pending.**
+**Final result: inconclusive at the 4,000-game cap; not accepted.**
+
+Protocol S finished **1534 wins, 1447 losses, 1019 draws**, **+7.6 ±9.3 Elo**,
+LOS 94.4%, LLR **1.14** against stopping bounds ±2.94. Neither hypothesis was
+accepted. All 4,000 games completed, with no cancelled games or reported time
+losses/crashes. Header/book checks verify all 2,000 colour-swapped opening
+pairs. A secondary paired normal interval is [-1.6,+16.7] Elo; the registered
+SPRT remains the decision rule.
+
+| Suite, 300k nodes | Baseline | E |
+| --- | --- | --- |
+| arasan18 | 59/250 | 62/250 |
+| bratko-kopec | 20/24 | 20/24 |
+| eet | 43/100 | 46/100 |
+| quick | 7/10 | 7/10 |
+| sts | 967/1500; 11364 points | 973/1500; 11425 points |
+| wac | 272/300 | 274/300 |
+
+All six suites completed with zero errors. The positive point estimate and
+suite improvements do not establish the required playing-strength gain.
+The candidate patch/tests and frozen binary are retained for reproducibility;
+engine source is restored byte-for-byte to the pre-arm state, and the bot is
+restarted and verified active. No scaling, ladder or reserved-sample test was
+run because E did not pass. Main remains unchanged and NET-1291 stays open.
+
+[Final results and hashes](net1291/round4/results.json),
+[compressed match log](net1291/round4/match.log.gz),
+[paired-opening verification](net1291/round4/paired-check.json),
+[complete suite record](net1291/round4/suite-record.json.gz), and
+[suite summary](net1291/round4/suites.log). Raw PGN is retained locally at
+`/home/chris/benchmark/sprt/net1291E.pgn`; its hash is in the results file.
 
 The [round 3 trace](net1291-round3-search-trace.md) showed Rival completing a
 root fail-high for winning Kb3, then discarding it when its wider aspiration
@@ -22,7 +52,8 @@ no lower bound is substituted for an exact training label.
 
 ## Frozen candidate and checks
 
-- Parent: `da0baba`; candidate source and tests are committed with this report.
+- Parent: `da0baba`; candidate source and tests are preserved in commit `ee748ad`,
+  then restored to baseline after the inconclusive result.
 - Binary: `/home/chris/benchmark/sprt/rival-net1291E`.
 - SHA256: `a3f61c54ae4dd0d5763ba0cf11560a9a3f4eac277889985d5663ae63ce460e4f`.
 - Baseline: production `rival-v1.0.64`, SHA256
@@ -84,3 +115,14 @@ The archived scripts retain this investigation's local paths. The patch
 covers tracked production source (including its unit test); add the separately
 archived integration-test file when reconstructing the candidate. The
 validation script refuses to overwrite a previously frozen match binary.
+
+
+## What this establishes
+
+The general retention rule repairs the diagnosed one-million-node choice
+without deeper search, and shows a modest positive match estimate. Its
+strength benefit remains unconfirmed under the registered test. Do not retry
+this unchanged arm merely because the point estimate is positive or the EET
+count improved. A follow-up needs a materially different policy or new
+frequency/impact evidence. The earlier reduced-scout trace remains valid;
+it does not make this root-retention policy an accepted fix for the rook gap.
