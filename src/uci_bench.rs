@@ -623,6 +623,10 @@ fn get_secondary_move(uci_state: &mut UciState, search_state: &mut SearchState, 
     search_state.ignore_root_move = best_move;
 
     run_command_sync(uci_state, search_state, &format!("go movetime {}", millis));
+    // A retained root fail-high is stored only when its score is above the
+    // exact score of the last completed iteration, so for the runner-up it is
+    // the larger of the two available scores and yields the smaller gap to the
+    // best move: the conservative choice for the score_is_good test.
     let (second_best_move, second_best_score) = {
         let r = search_state.selected_result();
         (r.0[0], r.1)
