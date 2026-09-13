@@ -1,0 +1,127 @@
+diff --git a/src/search.rs b/src/search.rs
+index 9083d23..c4b2d83 100644
+--- a/src/search.rs
++++ b/src/search.rs
+@@ -366,6 +366,7 @@ pub fn sync_nodes(search_state: &mut SearchState) {
+ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
+     search_state.start_time = Instant::now();
+     search_state.last_completed_depth = 0;
++    search_state.interrupted_best = None;
+     // NOTE: the stop flag is NOT reset here. Each real `go` creates a fresh stop
+     // flag (see cmd_go), so resetting here would race with a stop/quit/second-go
+     // that arrived before this line ran, erasing the request and hanging the
+@@ -487,6 +488,9 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
+     for iterative_depth in start_depth..=max_depth {
+         //println!("Iterative depth {}", iterative_depth);
+         let mut c = 0;
++        // A fully returned fail-high is usable even if its wider retry stops.
++        // Scope this to one iteration; never retain unfinished child results.
++        let mut completed_fail_high: Option<(PathScore, u8)> = None;
+         search_state.iterative_depth = iterative_depth;
+         search_state.sel_depth = 0;
+         // Cost of this iteration, used to predict whether the next one fits in
+@@ -502,6 +506,14 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
+                 // not only the printing one (Codex review: helpers used to
+                 // drop up to 999 nodes here)
+                 sync_nodes(search_state);
++                if let Some((result, sel_depth)) = completed_fail_high {
++                    search_state.sel_depth = sel_depth;
++                    send_info(search_state, iterative_depth, result.1, &result.0, InfoBound::Lower, false);
++                    let best_move = result.0[0];
++                    search_state.interrupted_best = Some(result);
++                    emit_net365_diagnostic(search_state);
++                    return best_move;
++                }
+                 // Final line for the GUI's node/time totals. Reports the
+                 // last COMPLETED depth and its line and seldepth, never the
+                 // interrupted iteration's; principal line only, because the
+@@ -541,6 +553,13 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
+                     send_info(search_state, iterative_depth, aspire_best.1, &pv, bound, false);
+                 }
+                 let failed_high = aspire_best.1 >= aspiration_window.1;
++                if failed_high && search_state.multi_pv == 1 && aspire_best.1 > search_state.current_best.1 {
++                    completed_fail_high = Some((aspire_best.clone(), search_state.sel_depth));
++                } else {
++                    // A completed fail-low supersedes any earlier lower bound.
++                    // Do not reuse a result contradicted by a later attempt.
++                    completed_fail_high = None;
++                }
+                 c += 1;
+                 if c == ASPIRATION_RADIUS.len() {
+                     aspiration_window = (-MAX_WINDOW, MAX_WINDOW);
+diff --git a/src/types.rs b/src/types.rs
+index 5b8f7ea..98f6707 100644
+--- a/src/types.rs
++++ b/src/types.rs
+@@ -488,6 +488,10 @@ impl SearchHandle {
+ #[derive(Debug)]
+ pub struct SearchState {
+     pub current_best: PathScore,
++    /// Completed root fail-high selected when its wider retry was interrupted.
++    /// Kept separate so current_best and last_completed_depth remain exact
++    /// results of a fully completed iteration. Used for the returned move/PV.
++    pub interrupted_best: Option<PathScore>,
+     pub root_moves: MoveScoreList,
+     pub start_time: Instant,
+     pub end_time: Instant,
+@@ -692,6 +696,7 @@ impl Clone for SearchState {
+     fn clone(&self) -> Self {
+         SearchState {
+             current_best: self.current_best.clone(),
++            interrupted_best: self.interrupted_best.clone(),
+             root_moves: self.root_moves.clone(),
+             start_time: self.start_time,
+             end_time: self.end_time,
+@@ -792,6 +797,7 @@ impl Clone for SearchState {
+ pub fn default_search_state() -> SearchState {
+     SearchState {
+         current_best: (PV::new(), 0),
++        interrupted_best: None,
+         root_moves: vec![],
+         start_time: Instant::now(),
+         end_time: Instant::now(),
+diff --git a/src/uci.rs b/src/uci.rs
+index 5b7365e..4d848dd 100644
+--- a/src/uci.rs
++++ b/src/uci.rs
+@@ -916,8 +916,13 @@ fn cmd_ponderhit(search_handle: &mut Option<SearchHandle>) -> Either<String, Opt
+ 
+ fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
+     let bestmove = algebraic_move_from_move(mv);
+-    // Include ponder move if we have a second move in the PV
+-    if let Some(&ponder_mv) = search_state.current_best.0.get(1) {
++    // Use the PV belonging to the returned move, including a completed
++    // fail-high selected when an aspiration retry was interrupted.
++    let result = search_state.interrupted_best.as_ref().unwrap_or(&search_state.current_best);
++    if result.0.first() != Some(&mv) {
++        return format!("bestmove {}", bestmove);
++    }
++    if let Some(&ponder_mv) = result.0.get(1) {
+         if ponder_mv != 0 {
+             return format!("bestmove {} ponder {}", bestmove, algebraic_move_from_move(ponder_mv));
+         }
+@@ -1197,3 +1202,24 @@ fn cmd_ucinewgame(
+     uci_state.fen = START_POS.parse().unwrap();
+     Right(None)
+ }
++
++#[cfg(test)]
++mod root_result_tests {
++    use super::format_bestmove;
++    use crate::fen::move_from_algebraic_move;
++    use crate::types::{default_search_state, PV};
++
++    #[test]
++    fn interrupted_root_result_uses_its_own_ponder_move() {
++        let pv = |moves: &[&str]| -> PV { moves.iter().map(|m| move_from_algebraic_move((*m).to_owned(), 0)).collect() };
++        let mut state = default_search_state();
++        state.current_best = (pv(&["e2e4", "e7e5"]), 10);
++        state.interrupted_best = Some((pv(&["d2d4", "d7d5"]), 40));
++        let selected_move = state.interrupted_best.as_ref().unwrap().0[0];
++        assert_eq!(format_bestmove(selected_move, &state), "bestmove d2d4 ponder d7d5");
++        // An early return can bypass PV setup; never attach an unrelated PV.
++        assert_eq!(format_bestmove(state.current_best.0[0], &state), "bestmove e2e4");
++        state.interrupted_best = None;
++        assert_eq!(format_bestmove(state.current_best.0[0], &state), "bestmove e2e4 ponder e7e5");
++    }
++}

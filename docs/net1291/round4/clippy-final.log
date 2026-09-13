@@ -1,0 +1,1567 @@
+    Checking rusty-rival v1.0.64 (/home/chris/benchmark/net1291-worktree)
+error: used `assert_eq!` with a literal bool
+  --> tests/bitboards.rs:65:5
+   |
+65 | /     assert_eq!(
+66 | |         exactly_one_bit_set(0b0000000010000000000000000000000000000000000000000000000000000000),
+67 | |         true
+68 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+   = note: `-D clippy::bool-assert-comparison` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::bool_assert_comparison)]`
+help: replace it with `assert!(..)`
+   |
+65 ~     assert!(
+66 ~         exactly_one_bit_set(0b0000000010000000000000000000000000000000000000000000000000000000)
+   |
+
+error: used `assert_eq!` with a literal bool
+  --> tests/bitboards.rs:69:5
+   |
+69 | /     assert_eq!(
+70 | |         exactly_one_bit_set(0b0000000010000000000001000000000000000000000000000000000000000000),
+71 | |         false
+72 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+   |
+69 ~     assert!(
+70 ~         !exactly_one_bit_set(0b0000000010000000000001000000000000000000000000000000000000000000)
+   |
+
+error: used `assert_eq!` with a literal bool
+  --> tests/bitboards.rs:73:5
+   |
+73 | /     assert_eq!(
+74 | |         exactly_one_bit_set(0b0000000000000000000000000000000000000000000000000000000000000000),
+75 | |         false
+76 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+   |
+73 ~     assert!(
+74 ~         !exactly_one_bit_set(0b0000000000000000000000000000000000000000000000000000000000000000)
+   |
+
+error: used `assert_eq!` with a literal bool
+  --> tests/bitboards.rs:77:5
+   |
+77 | /     assert_eq!(
+78 | |         exactly_one_bit_set(0b1000000000000000000000000000000000000000000000000000000000000000),
+79 | |         true
+80 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+   |
+77 ~     assert!(
+78 ~         exactly_one_bit_set(0b1000000000000000000000000000000000000000000000000000000000000000)
+   |
+
+error: used `assert_eq!` with a literal bool
+  --> tests/bitboards.rs:81:5
+   |
+81 | /     assert_eq!(
+82 | |         exactly_one_bit_set(0b0000000000000000000000000000000000000000000000000000000000000001),
+83 | |         true
+84 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+   |
+81 ~     assert!(
+82 ~         exactly_one_bit_set(0b0000000000000000000000000000000000000000000000000000000000000001)
+   |
+
+error: used `assert_eq!` with a literal bool
+  --> tests/bitboards.rs:85:5
+   |
+85 | /     assert_eq!(
+86 | |         exactly_one_bit_set(0b1000000000000000000000000000000000000000000000000000000000000001),
+87 | |         false
+88 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+   |
+85 ~     assert!(
+86 ~         !exactly_one_bit_set(0b1000000000000000000000000000000000000000000000000000000000000001)
+   |
+
+error: used `assert_eq!` with a literal bool
+  --> tests/bitboards.rs:89:5
+   |
+89 | /     assert_eq!(
+90 | |         exactly_one_bit_set(0b1111111111111111111111111111111111111111111111111111111111111111),
+91 | |         false
+92 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+   |
+89 ~     assert!(
+90 ~         !exactly_one_bit_set(0b1111111111111111111111111111111111111111111111111111111111111111)
+   |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/bitboards.rs:201:5
+    |
+201 | /     assert_eq!(
+202 | |         test_bit(0b0000000001001000000000001000100000010100000101000000100100000001, 0),
+203 | |         true
+204 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+201 ~     assert!(
+202 ~         test_bit(0b0000000001001000000000001000100000010100000101000000100100000001, 0)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/bitboards.rs:205:5
+    |
+205 | /     assert_eq!(
+206 | |         test_bit(0b0000000001001000000000001000100000010100000101000000100100000010, 1),
+207 | |         true
+208 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+205 ~     assert!(
+206 ~         test_bit(0b0000000001001000000000001000100000010100000101000000100100000010, 1)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/bitboards.rs:209:5
+    |
+209 | /     assert_eq!(
+210 | |         test_bit(0b1000000001001000000000001000100000010100000101000000100100000000, 63),
+211 | |         true
+212 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+209 ~     assert!(
+210 ~         test_bit(0b1000000001001000000000001000100000010100000101000000100100000000, 63)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/bitboards.rs:213:5
+    |
+213 | /     assert_eq!(
+214 | |         test_bit(0b0000000001001000000000001000100000010100000101000000100100000000, 0),
+215 | |         false
+216 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+213 ~     assert!(
+214 ~         !test_bit(0b0000000001001000000000001000100000010100000101000000100100000000, 0)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/bitboards.rs:217:5
+    |
+217 | /     assert_eq!(
+218 | |         test_bit(0b0000000001001000000000001000100000010100000101000000100100000001, 1),
+219 | |         false
+220 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+217 ~     assert!(
+218 ~         !test_bit(0b0000000001001000000000001000100000010100000101000000100100000001, 1)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/bitboards.rs:221:5
+    |
+221 | /     assert_eq!(
+222 | |         test_bit(0b0100000001001000000000001000100000010100000101000000100100000000, 63),
+223 | |         false
+224 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+221 ~     assert!(
+222 ~         !test_bit(0b0100000001001000000000001000100000010100000101000000100100000000, 63)
+    |
+
+error: could not compile `rusty-rival` (test "bitboards") due to 13 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: called `.iter().nth()` on a slice
+   --> tests/moves.rs:138:36
+    |
+138 |     let forward_moves_for_square = WHITE_PAWN_MOVES_FORWARD.iter().nth(from_square).unwrap();
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#iter_nth
+    = note: `-D clippy::iter-nth` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::iter_nth)]`
+help: `get` is equivalent but more concise
+    |
+138 -     let forward_moves_for_square = WHITE_PAWN_MOVES_FORWARD.iter().nth(from_square).unwrap();
+138 +     let forward_moves_for_square = WHITE_PAWN_MOVES_FORWARD.get(from_square).unwrap();
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:155:5
+    |
+155 |     assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(2) | bit(3)), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+    = note: `-D clippy::bool-assert-comparison` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::bool_assert_comparison)]`
+help: replace it with `assert!(..)`
+    |
+155 -     assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(2) | bit(3)), true);
+155 +     assert!(any_squares_in_bitboard_attacked(&position, WHITE, bit(2) | bit(3)));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:156:5
+    |
+156 | /     assert_eq!(
+157 | |         is_square_attacked(&position, bitref_from_algebraic_squareref("d1".to_string()) as Square, WHITE),
+158 | |         true
+159 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+156 ~     assert!(
+157 ~         is_square_attacked(&position, bitref_from_algebraic_squareref("d1".to_string()) as Square, WHITE)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:160:5
+    |
+160 |     assert_eq!(is_square_attacked(&position, 58, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+160 -     assert_eq!(is_square_attacked(&position, 58, BLACK), true);
+160 +     assert!(is_square_attacked(&position, 58, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:161:5
+    |
+161 |     assert_eq!(is_square_attacked(&position, 60, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+161 -     assert_eq!(is_square_attacked(&position, 60, BLACK), true);
+161 +     assert!(is_square_attacked(&position, 60, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:165:5
+    |
+165 |     assert_eq!(is_square_attacked(&position, 0, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+165 -     assert_eq!(is_square_attacked(&position, 0, BLACK), true);
+165 +     assert!(is_square_attacked(&position, 0, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:166:5
+    |
+166 |     assert_eq!(is_square_attacked(&position, 0, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+166 -     assert_eq!(is_square_attacked(&position, 0, WHITE), true);
+166 +     assert!(is_square_attacked(&position, 0, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:167:5
+    |
+167 |     assert_eq!(is_square_attacked(&position, 1, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+167 -     assert_eq!(is_square_attacked(&position, 1, BLACK), true);
+167 +     assert!(is_square_attacked(&position, 1, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:168:5
+    |
+168 |     assert_eq!(is_square_attacked(&position, 1, WHITE), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+168 -     assert_eq!(is_square_attacked(&position, 1, WHITE), false);
+168 +     assert!(!is_square_attacked(&position, 1, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:169:5
+    |
+169 |     assert_eq!(is_square_attacked(&position, 2, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+169 -     assert_eq!(is_square_attacked(&position, 2, BLACK), true);
+169 +     assert!(is_square_attacked(&position, 2, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:170:5
+    |
+170 |     assert_eq!(is_square_attacked(&position, 2, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+170 -     assert_eq!(is_square_attacked(&position, 2, WHITE), true);
+170 +     assert!(is_square_attacked(&position, 2, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:171:5
+    |
+171 |     assert_eq!(is_square_attacked(&position, 3, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+171 -     assert_eq!(is_square_attacked(&position, 3, BLACK), true);
+171 +     assert!(is_square_attacked(&position, 3, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:172:5
+    |
+172 |     assert_eq!(is_square_attacked(&position, 3, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+172 -     assert_eq!(is_square_attacked(&position, 3, WHITE), true);
+172 +     assert!(is_square_attacked(&position, 3, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:173:5
+    |
+173 |     assert_eq!(is_square_attacked(&position, 4, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+173 -     assert_eq!(is_square_attacked(&position, 4, BLACK), true);
+173 +     assert!(is_square_attacked(&position, 4, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:174:5
+    |
+174 |     assert_eq!(is_square_attacked(&position, 4, WHITE), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+174 -     assert_eq!(is_square_attacked(&position, 4, WHITE), false);
+174 +     assert!(!is_square_attacked(&position, 4, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:175:5
+    |
+175 |     assert_eq!(is_square_attacked(&position, 5, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+175 -     assert_eq!(is_square_attacked(&position, 5, BLACK), true);
+175 +     assert!(is_square_attacked(&position, 5, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:176:5
+    |
+176 |     assert_eq!(is_square_attacked(&position, 5, WHITE), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+176 -     assert_eq!(is_square_attacked(&position, 5, WHITE), false);
+176 +     assert!(!is_square_attacked(&position, 5, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:177:5
+    |
+177 |     assert_eq!(is_square_attacked(&position, 6, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+177 -     assert_eq!(is_square_attacked(&position, 6, BLACK), true);
+177 +     assert!(is_square_attacked(&position, 6, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:178:5
+    |
+178 |     assert_eq!(is_square_attacked(&position, 6, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+178 -     assert_eq!(is_square_attacked(&position, 6, WHITE), true);
+178 +     assert!(is_square_attacked(&position, 6, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:179:5
+    |
+179 |     assert_eq!(is_square_attacked(&position, 7, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+179 -     assert_eq!(is_square_attacked(&position, 7, BLACK), false);
+179 +     assert!(!is_square_attacked(&position, 7, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:180:5
+    |
+180 |     assert_eq!(is_square_attacked(&position, 7, WHITE), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+180 -     assert_eq!(is_square_attacked(&position, 7, WHITE), false);
+180 +     assert!(!is_square_attacked(&position, 7, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:181:5
+    |
+181 |     assert_eq!(is_square_attacked(&position, 8, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+181 -     assert_eq!(is_square_attacked(&position, 8, BLACK), false);
+181 +     assert!(!is_square_attacked(&position, 8, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:182:5
+    |
+182 |     assert_eq!(is_square_attacked(&position, 8, WHITE), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+182 -     assert_eq!(is_square_attacked(&position, 8, WHITE), false);
+182 +     assert!(!is_square_attacked(&position, 8, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:183:5
+    |
+183 |     assert_eq!(is_square_attacked(&position, 9, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+183 -     assert_eq!(is_square_attacked(&position, 9, BLACK), true);
+183 +     assert!(is_square_attacked(&position, 9, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:184:5
+    |
+184 |     assert_eq!(is_square_attacked(&position, 9, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+184 -     assert_eq!(is_square_attacked(&position, 9, WHITE), true);
+184 +     assert!(is_square_attacked(&position, 9, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:185:5
+    |
+185 |     assert_eq!(is_square_attacked(&position, 10, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+185 -     assert_eq!(is_square_attacked(&position, 10, BLACK), true);
+185 +     assert!(is_square_attacked(&position, 10, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:186:5
+    |
+186 |     assert_eq!(is_square_attacked(&position, 10, WHITE), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+186 -     assert_eq!(is_square_attacked(&position, 10, WHITE), false);
+186 +     assert!(!is_square_attacked(&position, 10, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:187:5
+    |
+187 |     assert_eq!(is_square_attacked(&position, 11, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+187 -     assert_eq!(is_square_attacked(&position, 11, BLACK), true);
+187 +     assert!(is_square_attacked(&position, 11, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:188:5
+    |
+188 |     assert_eq!(is_square_attacked(&position, 11, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+188 -     assert_eq!(is_square_attacked(&position, 11, WHITE), true);
+188 +     assert!(is_square_attacked(&position, 11, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:189:5
+    |
+189 |     assert_eq!(is_square_attacked(&position, 12, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+189 -     assert_eq!(is_square_attacked(&position, 12, BLACK), true);
+189 +     assert!(is_square_attacked(&position, 12, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:190:5
+    |
+190 |     assert_eq!(is_square_attacked(&position, 12, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+190 -     assert_eq!(is_square_attacked(&position, 12, WHITE), true);
+190 +     assert!(is_square_attacked(&position, 12, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:191:5
+    |
+191 |     assert_eq!(is_square_attacked(&position, 13, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+191 -     assert_eq!(is_square_attacked(&position, 13, BLACK), false);
+191 +     assert!(!is_square_attacked(&position, 13, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:192:5
+    |
+192 |     assert_eq!(is_square_attacked(&position, 13, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+192 -     assert_eq!(is_square_attacked(&position, 13, WHITE), true);
+192 +     assert!(is_square_attacked(&position, 13, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:193:5
+    |
+193 |     assert_eq!(is_square_attacked(&position, 14, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+193 -     assert_eq!(is_square_attacked(&position, 14, BLACK), false);
+193 +     assert!(!is_square_attacked(&position, 14, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:194:5
+    |
+194 |     assert_eq!(is_square_attacked(&position, 14, WHITE), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+194 -     assert_eq!(is_square_attacked(&position, 14, WHITE), false);
+194 +     assert!(!is_square_attacked(&position, 14, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:195:5
+    |
+195 |     assert_eq!(is_square_attacked(&position, 15, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+195 -     assert_eq!(is_square_attacked(&position, 15, BLACK), true);
+195 +     assert!(is_square_attacked(&position, 15, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:196:5
+    |
+196 |     assert_eq!(is_square_attacked(&position, 15, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+196 -     assert_eq!(is_square_attacked(&position, 15, WHITE), true);
+196 +     assert!(is_square_attacked(&position, 15, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:197:5
+    |
+197 |     assert_eq!(is_square_attacked(&position, 16, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+197 -     assert_eq!(is_square_attacked(&position, 16, BLACK), false);
+197 +     assert!(!is_square_attacked(&position, 16, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:198:5
+    |
+198 |     assert_eq!(is_square_attacked(&position, 16, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+198 -     assert_eq!(is_square_attacked(&position, 16, WHITE), true);
+198 +     assert!(is_square_attacked(&position, 16, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:199:5
+    |
+199 |     assert_eq!(is_square_attacked(&position, 17, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+199 -     assert_eq!(is_square_attacked(&position, 17, BLACK), true);
+199 +     assert!(is_square_attacked(&position, 17, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:200:5
+    |
+200 |     assert_eq!(is_square_attacked(&position, 17, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+200 -     assert_eq!(is_square_attacked(&position, 17, WHITE), true);
+200 +     assert!(is_square_attacked(&position, 17, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:201:5
+    |
+201 |     assert_eq!(is_square_attacked(&position, 18, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+201 -     assert_eq!(is_square_attacked(&position, 18, BLACK), true);
+201 +     assert!(is_square_attacked(&position, 18, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:202:5
+    |
+202 |     assert_eq!(is_square_attacked(&position, 18, WHITE), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+202 -     assert_eq!(is_square_attacked(&position, 18, WHITE), false);
+202 +     assert!(!is_square_attacked(&position, 18, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:203:5
+    |
+203 |     assert_eq!(is_square_attacked(&position, 19, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+203 -     assert_eq!(is_square_attacked(&position, 19, BLACK), false);
+203 +     assert!(!is_square_attacked(&position, 19, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:204:5
+    |
+204 |     assert_eq!(is_square_attacked(&position, 19, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+204 -     assert_eq!(is_square_attacked(&position, 19, WHITE), true);
+204 +     assert!(is_square_attacked(&position, 19, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:205:5
+    |
+205 |     assert_eq!(is_square_attacked(&position, 40, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+205 -     assert_eq!(is_square_attacked(&position, 40, BLACK), false);
+205 +     assert!(!is_square_attacked(&position, 40, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:206:5
+    |
+206 |     assert_eq!(is_square_attacked(&position, 40, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+206 -     assert_eq!(is_square_attacked(&position, 40, WHITE), true);
+206 +     assert!(is_square_attacked(&position, 40, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:207:5
+    |
+207 |     assert_eq!(is_square_attacked(&position, 41, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+207 -     assert_eq!(is_square_attacked(&position, 41, BLACK), false);
+207 +     assert!(!is_square_attacked(&position, 41, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:208:5
+    |
+208 |     assert_eq!(is_square_attacked(&position, 41, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+208 -     assert_eq!(is_square_attacked(&position, 41, WHITE), true);
+208 +     assert!(is_square_attacked(&position, 41, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:209:5
+    |
+209 |     assert_eq!(is_square_attacked(&position, 42, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+209 -     assert_eq!(is_square_attacked(&position, 42, BLACK), true);
+209 +     assert!(is_square_attacked(&position, 42, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:210:5
+    |
+210 |     assert_eq!(is_square_attacked(&position, 42, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+210 -     assert_eq!(is_square_attacked(&position, 42, WHITE), true);
+210 +     assert!(is_square_attacked(&position, 42, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:211:5
+    |
+211 |     assert_eq!(is_square_attacked(&position, 43, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+211 -     assert_eq!(is_square_attacked(&position, 43, BLACK), true);
+211 +     assert!(is_square_attacked(&position, 43, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:212:5
+    |
+212 |     assert_eq!(is_square_attacked(&position, 43, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+212 -     assert_eq!(is_square_attacked(&position, 43, WHITE), true);
+212 +     assert!(is_square_attacked(&position, 43, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:213:5
+    |
+213 |     assert_eq!(is_square_attacked(&position, 44, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+213 -     assert_eq!(is_square_attacked(&position, 44, BLACK), false);
+213 +     assert!(!is_square_attacked(&position, 44, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:214:5
+    |
+214 |     assert_eq!(is_square_attacked(&position, 44, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+214 -     assert_eq!(is_square_attacked(&position, 44, WHITE), true);
+214 +     assert!(is_square_attacked(&position, 44, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:215:5
+    |
+215 |     assert_eq!(is_square_attacked(&position, 45, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+215 -     assert_eq!(is_square_attacked(&position, 45, BLACK), true);
+215 +     assert!(is_square_attacked(&position, 45, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:216:5
+    |
+216 |     assert_eq!(is_square_attacked(&position, 45, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+216 -     assert_eq!(is_square_attacked(&position, 45, WHITE), true);
+216 +     assert!(is_square_attacked(&position, 45, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:217:5
+    |
+217 |     assert_eq!(is_square_attacked(&position, 61, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+217 -     assert_eq!(is_square_attacked(&position, 61, BLACK), true);
+217 +     assert!(is_square_attacked(&position, 61, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:218:5
+    |
+218 |     assert_eq!(is_square_attacked(&position, 61, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+218 -     assert_eq!(is_square_attacked(&position, 61, WHITE), true);
+218 +     assert!(is_square_attacked(&position, 61, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:219:5
+    |
+219 |     assert_eq!(is_square_attacked(&position, 62, BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+219 -     assert_eq!(is_square_attacked(&position, 62, BLACK), false);
+219 +     assert!(!is_square_attacked(&position, 62, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:220:5
+    |
+220 |     assert_eq!(is_square_attacked(&position, 62, WHITE), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+220 -     assert_eq!(is_square_attacked(&position, 62, WHITE), false);
+220 +     assert!(!is_square_attacked(&position, 62, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:221:5
+    |
+221 |     assert_eq!(is_square_attacked(&position, 63, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+221 -     assert_eq!(is_square_attacked(&position, 63, BLACK), true);
+221 +     assert!(is_square_attacked(&position, 63, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:222:5
+    |
+222 |     assert_eq!(is_square_attacked(&position, 63, WHITE), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+222 -     assert_eq!(is_square_attacked(&position, 63, WHITE), true);
+222 +     assert!(is_square_attacked(&position, 63, WHITE));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:229:5
+    |
+229 |     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bitboard), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+229 -     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bitboard), false);
+229 +     assert!(!any_squares_in_bitboard_attacked(&position, BLACK, bitboard));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:232:5
+    |
+232 |     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bitboard), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+232 -     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bitboard), true);
+232 +     assert!(any_squares_in_bitboard_attacked(&position, BLACK, bitboard));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:233:5
+    |
+233 |     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(60) | bit(61)), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+233 -     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(60) | bit(61)), true);
+233 +     assert!(any_squares_in_bitboard_attacked(&position, BLACK, bit(60) | bit(61)));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:234:5
+    |
+234 | /     assert_eq!(
+235 | |         any_squares_in_bitboard_attacked(&position, WHITE, EMPTY_CASTLE_SQUARES_WHITE_QUEEN),
+236 | |         true
+237 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+234 ~     assert!(
+235 ~         any_squares_in_bitboard_attacked(&position, WHITE, EMPTY_CASTLE_SQUARES_WHITE_QUEEN)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:240:5
+    |
+240 |     assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(3) | bit(2)), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+240 -     assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(3) | bit(2)), false);
+240 +     assert!(!any_squares_in_bitboard_attacked(&position, WHITE, bit(3) | bit(2)));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:241:5
+    |
+241 |     assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(3) | bit(4)), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+241 -     assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(3) | bit(4)), false);
+241 +     assert!(!any_squares_in_bitboard_attacked(&position, WHITE, bit(3) | bit(4)));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:244:5
+    |
+244 |     assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(3) | bit(2)), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+244 -     assert_eq!(any_squares_in_bitboard_attacked(&position, WHITE, bit(3) | bit(2)), true);
+244 +     assert!(any_squares_in_bitboard_attacked(&position, WHITE, bit(3) | bit(2)));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:245:5
+    |
+245 | /     assert_eq!(
+246 | |         any_squares_in_bitboard_attacked(&position, WHITE, 0b0000000000000000000000000000000000000000000000000000000000011000),
+247 | |         true
+248 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+245 ~     assert!(
+246 ~         any_squares_in_bitboard_attacked(&position, WHITE, 0b0000000000000000000000000000000000000000000000000000000000011000)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:251:5
+    |
+251 |     assert_eq!(is_square_attacked(&position, 60, BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+251 -     assert_eq!(is_square_attacked(&position, 60, BLACK), true);
+251 +     assert!(is_square_attacked(&position, 60, BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:252:5
+    |
+252 | /     assert_eq!(
+253 | |         any_squares_in_bitboard_attacked(&position, BLACK, 0b0001100000000000000000000000000000000000000000000000000000000000),
+254 | |         true
+255 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+252 ~     assert!(
+253 ~         any_squares_in_bitboard_attacked(&position, BLACK, 0b0001100000000000000000000000000000000000000000000000000000000000)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:256:5
+    |
+256 |     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(59) | bit(60)), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+256 -     assert_eq!(any_squares_in_bitboard_attacked(&position, BLACK, bit(59) | bit(60)), true);
+256 +     assert!(any_squares_in_bitboard_attacked(&position, BLACK, bit(59) | bit(60)));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:267:5
+    |
+267 |     assert_eq!(is_check(&get_position("5k2/8/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+267 -     assert_eq!(is_check(&get_position("5k2/8/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), true);
+267 +     assert!(is_check(&get_position("5k2/8/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:268:5
+    |
+268 |     assert_eq!(is_check(&get_position("8/4k3/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+268 -     assert_eq!(is_check(&get_position("8/4k3/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), true);
+268 +     assert!(is_check(&get_position("8/4k3/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:269:5
+    |
+269 |     assert_eq!(is_check(&get_position("3k4/8/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+269 -     assert_eq!(is_check(&get_position("3k4/8/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), false);
+269 +     assert!(!is_check(&get_position("3k4/8/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:270:5
+    |
+270 |     assert_eq!(is_check(&get_position("8/3k4/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+270 -     assert_eq!(is_check(&get_position("8/3k4/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), false);
+270 +     assert!(!is_check(&get_position("8/3k4/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:271:5
+    |
+271 |     assert_eq!(is_check(&get_position("8/5k2/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+271 -     assert_eq!(is_check(&get_position("8/5k2/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK), false);
+271 +     assert!(!is_check(&get_position("8/5k2/6N1/4K3/8/8/8/8 b - - 0 1"), BLACK));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:273:5
+    |
+273 | /     assert_eq!(
+274 | |         is_check(&get_position("n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1"), WHITE),
+275 | |         false
+276 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+273 ~     assert!(
+274 ~         !is_check(&get_position("n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1"), WHITE)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:277:5
+    |
+277 | /     assert_eq!(
+278 | |         is_check(&get_position("n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1"), BLACK),
+279 | |         false
+280 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+277 ~     assert!(
+278 ~         !is_check(&get_position("n5k1/1P2P1n1/1n5p/P1pP4/5R2/1q3B2/4Nr1P/R3K2R w Q - 0 1"), BLACK)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:282:5
+    |
+282 | /     assert_eq!(
+283 | |         is_check(&get_position("n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1"), WHITE),
+284 | |         false
+285 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+282 ~     assert!(
+283 ~         !is_check(&get_position("n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1"), WHITE)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:286:5
+    |
+286 | /     assert_eq!(
+287 | |         is_check(&get_position("n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1"), BLACK),
+288 | |         true
+289 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+286 ~     assert!(
+287 ~         is_check(&get_position("n4Rk1/1P2P1n1/1n5p/P1pP4/8/1q3B2/4Nr1P/R3K2R w Q - 0 1"), BLACK)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:291:5
+    |
+291 | /     assert_eq!(
+292 | |         is_check(&get_position("n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1"), WHITE),
+293 | |         true
+294 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+291 ~     assert!(
+292 ~         is_check(&get_position("n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1"), WHITE)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:295:5
+    |
+295 | /     assert_eq!(
+296 | |         is_check(&get_position("n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1"), BLACK),
+297 | |         true
+298 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+295 ~     assert!(
+296 ~         is_check(&get_position("n4Rk1/1P2P1n1/1n5p/P1pP4/8/2q2B2/4Nr1P/R3K2R w Q - 0 1"), BLACK)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:300:5
+    |
+300 | /     assert_eq!(
+301 | |         is_check(&get_position("n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1"), WHITE),
+302 | |         false
+303 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+300 ~     assert!(
+301 ~         !is_check(&get_position("n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1"), WHITE)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:304:5
+    |
+304 | /     assert_eq!(
+305 | |         is_check(&get_position("n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1"), BLACK),
+306 | |         true
+307 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+304 ~     assert!(
+305 ~         is_check(&get_position("n5k1/1P3Pn1/1n5p/P1pP1R2/8/3q1B2/4Nr1P/R3K2R w Q - 0 1"), BLACK)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:309:5
+    |
+309 | /     assert_eq!(
+310 | |         is_check(&get_position("n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1"), WHITE),
+311 | |         true
+312 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+309 ~     assert!(
+310 ~         is_check(&get_position("n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1"), WHITE)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:313:5
+    |
+313 | /     assert_eq!(
+314 | |         is_check(&get_position("n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1"), BLACK),
+315 | |         false
+316 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+313 ~     assert!(
+314 ~         !is_check(&get_position("n5k1/1P2P1n1/1n5p/P1pP1R2/8/3q1B2/4N2P/R3Kr1R w Q - 0 1"), BLACK)
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/moves.rs:318:5
+    |
+318 | /     assert_eq!(
+319 | |         is_check(&get_position("r2k3r/p6p/8/B7/1p2p3/2pb4/P4K1P/R6R w - - 0 1"), BLACK),
+320 | |         true
+321 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+318 ~     assert!(
+319 ~         is_check(&get_position("r2k3r/p6p/8/B7/1p2p3/2pb4/P4K1P/R6R w - - 0 1"), BLACK)
+    |
+
+error: could not compile `rusty-rival` (test "moves") due to 90 previous errors
+error: used `assert_eq!` with a literal bool
+   --> tests/fen.rs:196:5
+    |
+196 |     assert_eq!(is_wk_castle_available(&position), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+    = note: `-D clippy::bool-assert-comparison` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::bool_assert_comparison)]`
+help: replace it with `assert!(..)`
+    |
+196 -     assert_eq!(is_wk_castle_available(&position), false);
+196 +     assert!(!is_wk_castle_available(&position));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/fen.rs:197:5
+    |
+197 |     assert_eq!(is_wq_castle_available(&position), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+197 -     assert_eq!(is_wq_castle_available(&position), true);
+197 +     assert!(is_wq_castle_available(&position));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/fen.rs:198:5
+    |
+198 |     assert_eq!(is_bk_castle_available(&position), true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+198 -     assert_eq!(is_bk_castle_available(&position), true);
+198 +     assert!(is_bk_castle_available(&position));
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/fen.rs:199:5
+    |
+199 |     assert_eq!(is_bq_castle_available(&position), false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+199 -     assert_eq!(is_bq_castle_available(&position), false);
+199 +     assert!(!is_bq_castle_available(&position));
+    |
+
+error: could not compile `rusty-rival` (test "fen") due to 4 previous errors
+error: doc list item without indentation
+   --> tests/search.rs:127:5
+    |
+127 | /// positions failing as one test does not say that.
+    |     ^
+    |
+    = help: if this is supposed to be its own paragraph, add a blank line
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#doc_lazy_continuation
+    = note: `-D clippy::doc-lazy-continuation` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::doc_lazy_continuation)]`
+help: indent this line
+    |
+127 | ///   positions failing as one test does not say that.
+    |     ++
+
+error: manual implementation of `.is_multiple_of()`
+   --> tests/nnue.rs:233:12
+    |
+233 |         if pos.zobrist_lock % 3 != 0 {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!pos.zobrist_lock.is_multiple_of(3)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#manual_is_multiple_of
+    = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: this expression creates a reference which is immediately dereferenced by the compiler
+   --> tests/nnue.rs:238:66
+    |
+238 |             let full = net.evaluate(&acc, pos.mover, piece_count(&pos));
+    |                                                                  ^^^^ help: change this to: `pos`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#needless_borrow
+    = note: `-D clippy::needless-borrow` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_borrow)]`
+
+error: could not compile `rusty-rival` (test "search") due to 1 previous error
+error: could not compile `rusty-rival` (test "nnue") due to 2 previous errors
+error: used `assert_eq!` with a literal bool
+   --> tests/uci.rs:447:5
+    |
+447 |     assert_eq!(uci_state.debug, false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+    = note: `-D clippy::bool-assert-comparison` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::bool_assert_comparison)]`
+help: replace it with `assert!(..)`
+    |
+447 -     assert_eq!(uci_state.debug, false);
+447 +     assert!(!uci_state.debug);
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/uci.rs:451:5
+    |
+451 |     assert_eq!(uci_state.debug, true);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+451 -     assert_eq!(uci_state.debug, true);
+451 +     assert!(uci_state.debug);
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/uci.rs:455:5
+    |
+455 |     assert_eq!(uci_state.debug, false);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+455 -     assert_eq!(uci_state.debug, false);
+455 +     assert!(!uci_state.debug);
+    |
+
+error: could not compile `rusty-rival` (test "uci") due to 3 previous errors

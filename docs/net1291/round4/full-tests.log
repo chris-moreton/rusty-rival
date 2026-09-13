@@ -1,0 +1,379 @@
+   Compiling rusty-rival v1.0.64 (/home/chris/benchmark/net1291-worktree)
+    Finished `release` profile [optimized] target(s) in 58.75s
+     Running unittests src/lib.rs (target/release/deps/rusty_rival-7050ac74e0d9185b)
+
+running 14 tests
+test material_imbalance::tests::test_material_imbalance_score_position_8 ... ok
+test material_imbalance::tests::test_queen_vs_knight_and_pawns_position_8 ... ok
+test material_imbalance::tests::test_static_evaluation_position_8_post_promotion ... ok
+test nnue::avx2_tests::avx2_hidden_eval_matches_scalar_for_all_clipped_inputs ... ok
+test tablebase::tests::tablebase_scores_stay_outside_the_mate_band ... ok
+test tablebase::tests::positions_with_castling_rights_are_not_probeable ... ok
+test tablebase::tests::test_convert_square ... ok
+test tablebase::tests::test_count_pieces_kpk ... ok
+test tablebase::tests::test_count_pieces_krk ... ok
+test tablebase::tests::test_count_pieces_starting_position ... ok
+test search::search_unit_tests::tablebase_root_rejects_the_incident_threefold_move ... ok
+test search::search_unit_tests::tablebase_root_allows_a_non_repeating_move ... ok
+test search::search_unit_tests::repetition_scan_does_not_cross_a_null_move_boundary ... ok
+test uci::root_result_tests::interrupted_root_result_uses_its_own_ponder_move ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/release/deps/rusty_rival-5fab0822526c0683)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bitboards.rs (target/release/deps/bitboards-dd045610874dcf18)
+
+running 9 tests
+test it_gets_the_rank_bits_for_a_piece ... ok
+test it_knows_when_exactly_one_bit_is_set ... ok
+test it_north_fills ... ok
+test it_passes_sanity_checks_for_values_expressed_as_functions ... ok
+test it_returns_a_bitboard_with_the_given_bit_set_to_zero ... ok
+test it_returns_the_correct_bitboard_for_mover ... ok
+test it_sets_a_bit ... ok
+test it_south_fills ... ok
+test it_tests_whether_a_bit_is_set ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/datagen.rs (target/release/deps/datagen-4bd0030849bd9263)
+
+running 10 tests
+test datagen_rejects_directory_named_as_sealed_shard ... ok
+test datagen_rejects_ambiguous_sealed_and_partial_shards ... ok
+test datagen_rejects_malformed_partial_shard_names ... ok
+test search_score_is_from_side_to_move_perspective ... ok
+test parallel_datagen_produces_well_formed_output ... ok
+test datagen_does_not_redo_completed_work ... ok
+test datagen_white_pov_conversion_agrees_for_both_sides ... ok
+test datagen_extends_a_dataset_to_exactly_the_requested_size ... ok
+test datagen_survives_repeated_partial_shard_extensions ... ok
+test datagen_output_is_reproducible_across_threads ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.54s
+
+     Running tests/epd.rs (target/release/deps/epd-2d7b7c2d63797341)
+
+running 1 test
+test it_finds_the_best_move ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/evaluate.rs (target/release/deps/evaluate-dbb9536bb4a4e558)
+
+running 19 tests
+test it_detects_kpk_draws ... ok
+test it_detects_rook_open_and_semi_open_files ... ok
+test it_detects_wrong_colored_bishop_draws ... ok
+test it_evaluates_wrong_colored_bishop_as_draw ... ok
+test it_gets_the_material_score ... ok
+test it_evaluates_king_threats ... ok
+test it_evaluates_king_safety ... ok
+test it_gets_the_pawn_score ... ok
+test it_gets_the_passed_pawn_score ... ok
+test it_gets_knight_fork_threats ... ok
+test it_gives_king_centralization_bonus_in_endgames ... ok
+test it_gives_rook_behind_passed_pawn_bonus ... ok
+test it_gets_the_passed_knight_score ... ok
+test it_scores_connected_passed_pawns ... ok
+test test_issue_58_position_evaluation ... ok
+test test_blocked_passed_pawn_penalty ... ok
+test test_knight_blockade_penalty_position_9 ... ok
+test test_knight_blockade_reduces_passed_pawn_value ... ok
+test it_knows_insufficient_material ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/fen.rs (target/release/deps/fen-2e9a23d6ab29e34d)
+
+running 17 tests
+test it_converts_a_bit_array_to_decimal ... ok
+test it_converts_a_bitref_to_an_algebraic_square ... ok
+test it_converts_a_compact_move_to_an_algebraic_move ... ok
+test it_converts_a_simple_move_to_an_algebraic_move ... ok
+test it_converts_an_algebraic_move_to_a_move ... ok
+test it_converts_an_algebraic_square_to_a_bitref ... ok
+test it_creates_a_fen_from_a_position ... ok
+test it_creates_a_position_from_a_fen ... ok
+test it_creates_a_position_from_a_fen_2 ... ok
+test it_gets_a_char_as_a_number ... ok
+test it_gets_a_piece_bitboard ... ok
+test it_gets_the_board_bits ... ok
+test it_gets_the_board_part_from_the_fen ... ok
+test it_gets_the_fen_ranks ... ok
+test it_gets_the_rank_bits_for_a_piece ... ok
+test it_keeps_only_capturable_en_passant_from_fen ... ok
+test it_returns_a_char_representing_the_piece_on_a_square ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/make_move.rs (target/release/deps/make_move-230aeeec0c7ca37f)
+
+running 11 tests
+test it_calculates_correct_zobrist_after_a_capture ... ok
+test it_calculates_correct_zobrist_after_a_castle_move ... ok
+test it_calculates_correct_zobrist_after_a_king_makes_a_capture ... ok
+test it_calculates_correct_zobrist_after_a_king_move ... ok
+test it_calculates_correct_zobrist_after_a_non_capture ... ok
+test it_calculates_correct_zobrist_after_en_passant_capture ... ok
+test it_calculates_correct_zobrist_after_en_passant_option_removed ... ok
+test it_calculates_correct_zobrist_after_pawn_capture ... ok
+test it_calculates_correct_zobrist_after_pawn_promotion ... ok
+test it_calculates_correct_zobrist_after_simple_pawn_move ... ok
+test it_makes_a_move ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/make_unmake.rs (target/release/deps/make_unmake-b497b41a09ee6133)
+
+running 31 tests
+test double_pawn_push_keeps_a_capturable_en_passant_square ... ok
+test test_bishop_move ... ok
+test test_black_kingside_castle ... ok
+test test_black_promotion_to_knight ... ok
+test test_black_promotion_to_queen ... ok
+test test_black_queenside_castle ... ok
+test test_capture_resets_halfmove ... ok
+test test_double_pawn_push_black ... ok
+test test_double_pawn_push_white ... ok
+test test_en_passant_capture_black ... ok
+test test_en_passant_capture_white ... ok
+test test_king_capture ... ok
+test test_king_move ... ok
+test test_king_move_clears_both_castle_flags ... ok
+test test_knight_capture ... ok
+test test_knight_move ... ok
+test test_pawn_capture ... ok
+test test_pawn_move_resets_halfmove ... ok
+test test_piece_move_increments_halfmove ... ok
+test test_promotion_to_bishop ... ok
+test test_promotion_to_knight ... ok
+test test_promotion_to_queen ... ok
+test test_promotion_to_rook ... ok
+test test_promotion_with_capture ... ok
+test test_queen_capture ... ok
+test test_queen_move ... ok
+test test_rook_move ... ok
+test test_rook_move_clears_castle_flag ... ok
+test test_simple_pawn_push ... ok
+test test_white_kingside_castle ... ok
+test test_white_queenside_castle ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/move_ordering.rs (target/release/deps/move_ordering-86678b368d737382)
+
+running 2 tests
+test qsearch_orders_cheapest_attacker_first ... ok
+test qsearch_orders_pawn_captures_checker_above_quiet_evasions ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/moves.rs (target/release/deps/moves-63c7a0769ce00d57)
+
+running 14 tests
+test it_can_verify_a_move ... ok
+test it_generates_bishop_moves_including_diagonal_queen_moves_from_a_given_fen_ignoring_checks ... ok
+test it_checks_for_check ... ok
+test it_determines_if_a_given_square_is_attacked_by_a_given_colour_in_a_given_position ... ok
+test it_gets_all_capture_moves_for_a_position ... ok
+test it_generates_rook_moves_including_horizontal_queen_moves_from_a_given_fen_ignoring_checks ... ok
+test it_gets_all_pieces_bitboard ... ok
+test it_gets_all_moves_for_a_position ... ok
+test it_identifies_the_en_passant_square_from_a_fen ... ok
+test it_returns_a_bitboard_showing_available_landing_squares_capture_and_non_capture_for_a_pawn_on_a_given_square ... ok
+test it_returns_a_bitboard_showing_target_squares_for_pawn_captures_from_a_given_square_and_an_enemy_piece_bitboard ... ok
+test it_returns_a_bitboard_showing_target_squares_for_pawn_moves_that_would_land_on_the_two_move_rank_if_moved_one_more_rank ... ok
+test it_returns_true_if_any_squares_set_in_the_bitboard_are_attacked_by_the_given_attacker ... ok
+test staged_generator_emits_all_quiet_underpromotions ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/net372_persistence.rs (target/release/deps/net372_persistence-5db26da5d8e4fb53)
+
+running 6 tests
+test absorb_moves_learned_tables_and_leaves_the_rest_alone ... ok
+test stop_absorbs_the_tables ... ok
+test learning_is_actually_present_after_a_search ... ok
+test a_new_go_absorbs_the_previous_searchs_tables ... ok
+test absorbing_happens_at_every_thread_count ... ok
+test ucinewgame_merges_then_clears ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/nnue.rs (target/release/deps/nnue-233244a06ae2927a)
+
+running 12 tests
+test output_bucket_matches_bullet_material_count ... ok
+test fused_accumulator_update_matches_clone_then_update ... ok
+test debug_knight_eval ... ok
+test nnue_eval_signs_are_correct ... ok
+test nnue_eval_is_symmetric ... ok
+test nnue_golden_values_match_net1095 ... ok
+test nnue_material_ordering ... ok
+test nnue_startpos_is_roughly_equal ... ok
+test bucketed_net_selects_the_right_bucket ... ok
+test nnue_output_scaling_uses_i64 ... ok
+test single_bucket_net_is_piece_count_independent ... ok
+test incremental_accumulator_matches_full_recompute ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/perft.rs (target/release/deps/perft-158dcd803569207b)
+
+running 2 tests
+test it_clears_castle_rights_when_a_king_captures_a_rook ... ok
+test it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_with_a_given_position_as_its_head ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.71s
+
+     Running tests/perft_long.rs (target/release/deps/perft_long-604e67cad9bc7572)
+
+running 1 test
+test it_returns_the_total_number_of_moves_in_a_full_move_tree_of_a_given_depth_with_a_given_position_as_its_head_long_version ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.22s
+
+     Running tests/piece_square_tables.rs (target/release/deps/piece_square_tables-21c92c6383518dac)
+
+running 3 tests
+test it_calculates_the_knight_piece_square_values ... ok
+test it_calculates_the_bishop_piece_square_values ... ok
+test it_calculates_the_pawn_piece_square_values ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/search.rs (target/release/deps/search-d1a313656b199dc7)
+
+running 19 tests
+test it_calculates_the_null_move_reduced_depth ... ok
+test it_finds_a_mate_in_6 ... ignored
+test it_gets_the_12_piece_index_for_a_move ... ok
+test it_knows_a_pawn_push ... ok
+test it_rotates_the_failing_root_move_to_the_front_without_reordering_the_rest ... ok
+test test_is_passed_pawn_push ... ok
+test it_fails_low_when_the_excluded_move_is_the_only_legal_move ... ok
+test it_fails_low_when_the_excluded_move_is_the_only_legal_move_outside_check ... ok
+test it_returns_the_best_move_at_depth_1 ... ok
+test it_searches_the_alternatives_when_the_excluded_move_is_the_hash_move ... ok
+test razoring_does_not_hide_the_mate_after_a_sacrifice ... ok
+test it_recognises_a_draw ... ok
+test it_finds_a_mate_in_5 ... ok
+test it_stops_the_root_loop_on_an_aspiration_fail_high ... ok
+test it_avoids_thinking_stalemate_is_checkmate ... ok
+test it_finds_a_mate_in_3 ... ok
+test it_finds_a_mate_in_4 ... ok
+test search_leaves_the_repetition_history_balanced ... ok
+test it_returns_the_best_move_when_time_runs_out ... ok
+
+test result: ok. 18 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 3.91s
+
+     Running tests/search_root_fallback.rs (target/release/deps/search_root_fallback-debd857491ecb2ec)
+
+running 2 tests
+test completed_root_bound_survives_an_interrupted_retry_without_replacing_exact_state ... ok
+test completed_iteration_supersedes_earlier_fail_highs ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
+
+     Running tests/see.rs (target/release/deps/see-6a9ddeff56f5dff5)
+
+running 3 tests
+test it_handles_two_knights_both_capturing_on_same_square ... ok
+test it_handles_two_rooks_with_xray ... ok
+test it_gets_the_see_score ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/stop_reason.rs (target/release/deps/stop_reason-3434b39b0c749cd3)
+
+running 2 tests
+test external_observation_cannot_replace_a_local_cause ... ok
+test first_stop_reason_wins ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/uci.rs (target/release/deps/uci-230cf71ba9057053)
+
+running 42 tests
+test castling_is_not_generated_without_the_pieces ... ok
+test extract_go_param_handles_negative_and_garbage ... ok
+test extract_go_param_opt_distinguishes_absent_from_zero ... ok
+test hash_table_uses_the_memory_it_was_given ... ok
+test impossible_en_passant_square_is_dropped ... ok
+test it_declines_an_iteration_that_cannot_finish ... ok
+test it_extracts_a_u64_param ... ok
+test it_handles_cached_mates ... ignored
+test it_handles_the_register_command ... ok
+test it_handles_a_bad_setoption_name ... ok
+test it_handles_the_setoption_contempt_command ... ok
+test it_handles_the_isready_command ... ok
+test it_handles_the_movelist ... ok
+test it_knows_legal_moves ... ok
+test it_handles_a_bad_setoption_cmd ... ok
+test it_handles_an_unknown_command ... ok
+test it_handles_the_debug_command ... ok
+test fen_without_move_counters_is_accepted ... ok
+test it_handles_startpos ... ok
+test it_handles_the_uci_command ... ok
+test it_handles_searchmoves ... ok
+test bench_with_a_bad_argument_does_not_panic ... ok
+test it_handles_a_bad_fen ... ok
+test it_handles_the_setoption_multipv_command ... ok
+test oversized_move_counters_do_not_panic ... ok
+test it_parses_params_from_a_go_command ... ok
+test it_reports_raw_eval_with_an_explicit_perspective ... ok
+test go_depth_over_255_does_not_wrap_to_instant_move ... ok
+test bad_position_does_not_poison_state ... ok
+test malformed_commands_do_not_panic ... ok
+test it_runs_a_perft_test ... ok
+test it_sets_a_fen ... ok
+test it_takes_a_threefold_repetition_from_a_lost_position ... ok
+test kingless_fen_is_rejected_not_fatal ... ok
+test it_handles_the_setoption_hash_command ... ok
+test it_moves_immediately_when_the_clock_is_empty ... ok
+test it_handles_the_setoption_clear_hash_command ... ok
+test it_handles_the_ucinewgame_command ... ok
+test it_returns_a_best_move ... ok
+test it_treats_movetime_as_exact_when_clocks_are_present ... ok
+test it_handles_wtime_and_btime ... ok
+test it_respects_the_soft_time_limit ... ok
+
+test result: ok. 41 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 2.95s
+
+     Running tests/utils.rs (target/release/deps/utils-f2fabca377706990)
+
+running 10 tests
+test hashfull_counts_only_entries_of_the_current_generation ... ok
+test it_can_figure_out_the_captured_piece ... ok
+test it_can_figure_out_the_castle_mask ... ok
+test it_can_figure_out_the_moving_piece ... ok
+test it_can_hydrate_a_move ... ok
+test it_creates_a_move_with_the_from_part_only ... ok
+test it_formats_uci_scores_as_cp_or_mate_in_moves ... ok
+test it_gets_the_from_part_of_a_move ... ok
+test it_gets_the_to_part_of_a_move ... ok
+test it_inverts_a_fen ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/zobrist_consistency.rs (target/release/deps/zobrist_consistency-ac899fea841fe2c1)
+
+running 3 tests
+test test_pawn_key_matches_recomputation ... ok
+test test_zobrist_consistency_between_make_and_make_in_place ... ok
+test test_zobrist_consistency_through_game_sequence ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rusty_rival
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,29 @@
+Position  1/16:       64,209 nodes
+Position  2/16:      206,215 nodes
+Position  3/16:       40,675 nodes
+Position  4/16:      157,660 nodes
+Position  5/16:      116,305 nodes
+Position  6/16:      135,686 nodes
+Position  7/16:       40,715 nodes
+Position  8/16:       19,511 nodes
+Position  9/16:      255,983 nodes
+Position 10/16:      274,106 nodes
+Position 11/16:      107,458 nodes
+Position 12/16:       64,209 nodes
+Position 13/16:      224,775 nodes
+Position 14/16:        3,289 nodes
+Position 15/16:       38,590 nodes
+Position 16/16:       23,264 nodes
+===========================
+Depth         : 12
+Time          : 1,424 ms
+Nodes searched: 1772650
+NPS           : 1,244,838
+Cutoffs       : 268,130 (87.6% on first move)
+  by heuristic : TT move 27.1% capture 48.1% promo 0.2% killer 15.5% distant killer 2.0% countermove 1.2% other quiet 5.9%
+  by position  : 1st 87.6% 2nd 6.8% 3rd 2.4% 4-6th 2.2% 7th+ 1.0%
+TT probes     : 1,096,421 · hit 21.7% · deep enough 14.2% · slot taken by other pos 0.3%
+Scout searches: 860,794 · LMR verify (full depth, null window) 0.8% · then full window 0.0% · PVS re-search 0.1%
+Children      : 1,296,136 searched · no-cutoff nodes 165,496 · 5.70 children each
+  main search :    1,097,867 (61.9%)
+  quiescence  :      674,783 (38.1%)

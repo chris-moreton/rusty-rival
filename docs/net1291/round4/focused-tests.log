@@ -1,0 +1,10 @@
+   Compiling rusty-rival v1.0.64 (/home/chris/benchmark/net1291-worktree)
+    Finished `release` profile [optimized] target(s) in 35.43s
+     Running tests/search_root_fallback.rs (target/release/deps/search_root_fallback-debd857491ecb2ec)
+
+running 2 tests
+test completed_root_bound_survives_an_interrupted_retry_without_replacing_exact_state ... ok
+test completed_iteration_supersedes_earlier_fail_highs ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+

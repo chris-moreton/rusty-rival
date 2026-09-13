@@ -1,0 +1,47 @@
+from pathlib import Path
+import subprocess,hashlib,json,shutil,sys,re
+r=Path('/home/chris/benchmark/net1291-worktree');out=Path('/home/chris/benchmark/net1291-round4')
+candidate=Path('/home/chris/benchmark/sprt/rival-net1291E')
+assert not candidate.exists(),'Refusing to replace a frozen candidate'
+shutil.copy2(r/'target/release/rusty-rival',candidate)
+shutil.copy2(r/'target/release/epd-runner',out/'epd-runner')
+results={}
+fen='8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61'
+def run(label,engine,go,mpv=1):
+    p=subprocess.Popen([str(engine)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+    lines=[]
+    def send(s):p.stdin.write(s+'\n');p.stdin.flush()
+    def until(prefix):
+        while True:
+            line=p.stdout.readline()
+            assert line,'engine exited'
+            lines.append(line.rstrip())
+            if line.startswith(prefix):return line.strip()
+    send('uci');until('uciok');send('setoption name Threads value 1');send('setoption name Hash value 128')
+    send('setoption name MultiPV value '+str(mpv));send('ucinewgame');send('isready');until('readyok')
+    send('position fen '+fen);send('go '+go);best=until('bestmove');send('quit');p.wait(timeout=30)
+    (out/(label+'.uci')).write_text('\n'.join(lines)+'\n')
+    primary=[l for l in lines if l.startswith('info depth') and 'multipv 1 ' in l][-1]
+    result={'bestmove':best,'info':primary};results[label]=result
+    print(label,result,flush=True)
+    return result
+base='/home/chris/benchmark/sprt/rival-v1.0.64'
+b=run('baseline-1m',base,'nodes 1000000')
+c=run('candidate-1m',candidate,'nodes 1000000')
+assert b['bestmove'].startswith('bestmove c4b5')
+assert c['bestmove']=='bestmove c4b3 ponder g4g1'
+assert 'score cp 111 lowerbound' in c['info'] and 'depth 17 ' in c['info']
+assert ' pv c4b3 g4g1 ' in c['info']
+for label,go,mpv in [('300k','nodes 300000',1),('depth17','depth 17',1),('multipv','nodes 1000000',2)]:
+    b=run('baseline-'+label,base,go,mpv);c=run('candidate-'+label,candidate,go,mpv)
+    assert b['bestmove']==c['bestmove'],label
+    norm=lambda s:re.sub(r' nps \d+| time \d+','',s)
+    assert norm(b['info'])==norm(c['info']),label
+bench=subprocess.run([str(candidate)],input='bench\nquit\n',text=True,capture_output=True,timeout=60,check=True).stdout
+(out/'bench.log').write_text(bench)
+nodes=int(re.search(r'Nodes searched:\s*(\d+)',bench)[1]);assert nodes==1772650
+metadata={'binary':str(candidate),'sha256':hashlib.sha256(candidate.read_bytes()).hexdigest(),'bench':nodes,'base_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=r,text=True).strip(),'source_sha256':{str(p.relative_to(r)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [r/'src/search.rs',r/'src/types.rs',r/'src/uci.rs',r/'tests/search_root_fallback.rs']},'uci_checks':results}
+(out/'validation.json').write_text(json.dumps(metadata,indent=2)+'\n')
+(out/'candidate.patch').write_bytes(subprocess.check_output(['git','diff','--','src/search.rs','src/types.rs','src/uci.rs'],cwd=r))
+shutil.copy2(r/'tests/search_root_fallback.rs',out/'search_root_fallback.rs.txt')
+print('Frozen and validated',metadata['sha256'],flush=True)
