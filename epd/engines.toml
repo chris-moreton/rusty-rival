@@ -61,3 +61,8 @@ path = "~/benchmark/bin/stash"
 name = "obsidian"
 family = "obsidian"
 path = "~/benchmark/bin/Obsidian"
+
+[[engine]]
+name = "1.0.65"
+family = "rusty-rival"
+path = "../engines/v1.0.65/rusty-rival"

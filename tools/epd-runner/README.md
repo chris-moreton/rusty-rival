@@ -142,7 +142,7 @@ same suite revision.
 
 The `EPD regression` job in `.github/workflows/build.yml` builds the engine
 and the runner, runs `check` on Bratko-Kopec and WAC at 100k nodes against
-the committed rusty-rival 1.0.64 record, posts the delta as a comment on the
+the committed rusty-rival 1.0.65 record, posts the delta as a comment on the
 pull request (one comment, updated on each run), and fails when a suite's
 solved count drops by more than two or when the comparison is incomplete (a
 position that errored, or is missing on one side). A search change legitimately

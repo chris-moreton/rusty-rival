@@ -96,7 +96,7 @@ jobs:
       - name: Build the engine and the runner
         run: cargo build --release && cargo build --release -p epd-runner
       # Node-limited, so the runner's speed does not matter; the committed
-      # baseline is rusty-rival 1.0.64. A search change legitimately moves
+      # baseline is rusty-rival 1.0.65. A search change legitimately moves
       # these counts, so the job fails only on a drop beyond --max-drop and
       # otherwise just reports the delta on the pull request.
       - name: Check against the committed baseline
@@ -104,7 +104,7 @@ jobs:
         run: |
           set +e
           target/release/epd-runner check --engine target/release/rusty-rival \
-            --baseline rusty-rival:1.0.64 --suites bratko-kopec,wac --nodes 100000 \
+            --baseline rusty-rival:1.0.65 --suites bratko-kopec,wac --nodes 100000 \
             --max-drop 2 --concurrency 2 | tee check.txt
           echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       # Fork pull requests get a read-only token, so the comment is skipped
@@ -118,7 +118,7 @@ jobs:
         run: |
           {
             echo '<!-- epd-regression -->'
-            echo '#### EPD regression check (bratko-kopec + wac at 100k nodes vs rusty-rival 1.0.64)'
+            echo '#### EPD regression check (bratko-kopec + wac at 100k nodes vs rusty-rival 1.0.65)'
             echo '```'
             cat check.txt
             echo '```'
