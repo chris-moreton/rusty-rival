@@ -213,6 +213,10 @@ fn play_game(
         run_command_sync(uci_state, search_state, &cmd);
         run_command_sync(uci_state, search_state, &format!("go nodes {}", nodes));
 
+        // Deliberately the exact result of the last completed iteration, not
+        // `selected_result()`: a retained root fail-high (NET-1291) is a lower
+        // bound and must not become a training label. The played move stays
+        // paired with the score that was searched for it.
         let best_move = search_state.current_best.0[0];
         let stm_score = search_state.current_best.1;
         if best_move == 0 {
