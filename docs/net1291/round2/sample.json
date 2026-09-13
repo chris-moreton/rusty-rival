@@ -1,0 +1,689 @@
+{
+  "seed": 129113,
+  "sources": [
+    {
+      "path": "/home/chris/benchmark/sprt/v1063-scale.pgn",
+      "sha256": "0b41e32db9d1ae9cef3c95acf6a7aeaebef0493c9f77e5b568c3fffead153577"
+    },
+    {
+      "path": "/home/chris/benchmark/sprt/net1242-scale.pgn",
+      "sha256": "18b6a75cc2c0907c8da4bc510f144268f83f86484c2e6a436d9b2fdc7656a082"
+    }
+  ],
+  "eligible": 465,
+  "selection": "first eligible unique rook-only 6-12 piece position per game after ply 40; random sample, no eval/outcome selection; excludes suite and reserved FENs plus color mirrors",
+  "positions": [
+    {
+      "source": "v1063-scale",
+      "game": 1350,
+      "ply": 87,
+      "fen": "8/5pk1/6p1/4R3/4P3/5PK1/6P1/1r6 b - - 0 44",
+      "id": "R2-001"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 471,
+      "ply": 94,
+      "fen": "8/1R3p1k/7p/8/P4p2/6PK/2r4P/8 w - - 0 48",
+      "id": "R2-002"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1760,
+      "ply": 71,
+      "fen": "6k1/2r2p2/6p1/p7/P3r3/6PP/R6K/3R4 b - - 0 36",
+      "id": "R2-003"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 588,
+      "ply": 69,
+      "fen": "6k1/1p3p1p/3R1p2/5r2/8/7P/5PP1/6K1 b - - 0 35",
+      "id": "R2-004"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 847,
+      "ply": 132,
+      "fen": "6R1/8/3k2P1/1p6/8/P2K4/r7/8 w - - 0 67",
+      "id": "R2-005"
+    },
+    {
+      "source": "net1242-scale",
+      "game": 151,
+      "ply": 79,
+      "fen": "8/6pp/4kp2/4p3/R7/P3K1P1/2r2P1P/8 b - - 0 40",
+      "id": "R2-006"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1543,
+      "ply": 90,
+      "fen": "8/8/p6k/4R3/4p3/8/3r1K2/8 w - - 0 46",
+      "id": "R2-007"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 981,
+      "ply": 84,
+      "fen": "6k1/8/6pp/p2R4/P1pP2P1/2r4P/8/7K w - - 0 43",
+      "id": "R2-008"
+    },
+    {
+      "source": "net1242-scale",
+      "game": 78,
+      "ply": 94,
+      "fen": "6k1/6p1/1R6/1p3K2/1P5p/2r4P/6P1/8 w - - 0 48",
+      "id": "R2-009"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 969,
+      "ply": 84,
+      "fen": "r7/6k1/4p1p1/1R6/6p1/5PP1/4PK1P/8 w - - 0 43",
+      "id": "R2-010"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1207,
+      "ply": 64,
+      "fen": "8/1R6/6p1/4kp1p/p4r2/7P/PP4PK/8 w - - 0 33",
+      "id": "R2-011"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1083,
+      "ply": 83,
+      "fen": "8/1r3p2/6pk/3p4/R2P3p/5P1P/6P1/5K2 b - - 0 42",
+      "id": "R2-012"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 304,
+      "ply": 88,
+      "fen": "1r6/5p2/6k1/6pp/1pR5/P1K2P2/6PP/8 w - - 0 45",
+      "id": "R2-013"
+    },
+    {
+      "source": "net1242-scale",
+      "game": 40,
+      "ply": 91,
+      "fen": "8/6pk/1p2R3/1P6/7p/5P1P/6PK/r7 b - - 0 46",
+      "id": "R2-014"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 398,
+      "ply": 118,
+      "fen": "8/1p2Rpk1/p2r4/7P/1r3PK1/6P1/8/7R w - - 0 60",
+      "id": "R2-015"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1980,
+      "ply": 72,
+      "fen": "5rk1/8/4p1p1/8/8/p4R2/P4PK1/8 w - - 0 37",
+      "id": "R2-016"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1359,
+      "ply": 73,
+      "fen": "1r6/5p2/7p/1P2k3/p1Pp4/P4RP1/2K5/8 b - - 0 37",
+      "id": "R2-017"
+    },
+    {
+      "source": "net1242-scale",
+      "game": 104,
+      "ply": 75,
+      "fen": "4r3/1p6/p2R2k1/5p2/5Pp1/1P4P1/2P2K2/8 b - - 0 38",
+      "id": "R2-018"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1807,
+      "ply": 87,
+      "fen": "8/1R3p1k/8/8/1R4Pp/1pr4P/5PK1/1r6 b - - 0 44",
+      "id": "R2-019"
+    },
+    {
+      "source": "net1242-scale",
+      "game": 21,
+      "ply": 112,
+      "fen": "8/1p6/2r5/2k1Kp2/5P2/4p3/8/3R4 w - - 0 57",
+      "id": "R2-020"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1233,
+      "ply": 74,
+      "fen": "R7/p6p/1p3kp1/8/P3r3/1P4KP/6P1/8 w - - 0 38",
+      "id": "R2-021"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 46,
+      "ply": 199,
+      "fen": "8/4rk2/8/5K2/6R1/4p3/4R3/8 b - - 0 100",
+      "id": "R2-022"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1880,
+      "ply": 102,
+      "fen": "8/8/4k2p/p1r2p1P/R7/P4pP1/4P1K1/8 w - - 0 52",
+      "id": "R2-023"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1761,
+      "ply": 85,
+      "fen": "8/5p2/1p6/3k1p2/P1r5/2pKP1PP/8/R7 b - - 0 43",
+      "id": "R2-024"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 880,
+      "ply": 75,
+      "fen": "6k1/8/p5p1/2R2p2/P4Kp1/1r6/7P/8 b - - 0 38",
+      "id": "R2-025"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1829,
+      "ply": 60,
+      "fen": "6k1/6p1/6Rp/p7/8/1P2r3/P2r3P/R5K1 w - - 0 31",
+      "id": "R2-026"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 551,
+      "ply": 76,
+      "fen": "8/5p2/R1p1rkpp/2P5/8/7P/5PPK/8 w - - 0 39",
+      "id": "R2-027"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1882,
+      "ply": 94,
+      "fen": "7r/8/6k1/4p3/1P1p4/5P1p/P6R/1K6 w - - 0 48",
+      "id": "R2-028"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 990,
+      "ply": 93,
+      "fen": "8/p5pk/2r4p/2P2p2/7P/P4P2/8/2R3K1 b - - 0 47",
+      "id": "R2-029"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 665,
+      "ply": 90,
+      "fen": "8/3R1pk1/r5pp/8/1p4PP/4P3/5PK1/8 w - - 0 46",
+      "id": "R2-030"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1905,
+      "ply": 73,
+      "fen": "3R4/5k2/8/r3r2p/1p2p2P/1K2P1P1/8/2R5 b - - 0 37",
+      "id": "R2-031"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1122,
+      "ply": 68,
+      "fen": "6k1/1R4p1/2p5/2Pp2p1/3P4/5K1P/6P1/r7 w - - 0 35",
+      "id": "R2-032"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 131,
+      "ply": 92,
+      "fen": "8/2p5/2p2k2/2P2p1p/3r3P/P3R1P1/8/5K2 w - - 0 47",
+      "id": "R2-033"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 248,
+      "ply": 107,
+      "fen": "5r1k/8/1R4pp/3R4/8/8/8/7K b - - 0 54",
+      "id": "R2-034"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1977,
+      "ply": 129,
+      "fen": "8/8/7k/8/5p1p/8/3R3K/r7 b - - 0 65",
+      "id": "R2-035"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 872,
+      "ply": 81,
+      "fen": "8/p4rk1/6p1/5r2/8/2R5/P2R1PP1/6K1 b - - 0 41",
+      "id": "R2-036"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1636,
+      "ply": 97,
+      "fen": "8/5p2/4p2k/3pP2P/3P4/4P3/r3RK2/8 b - - 0 49",
+      "id": "R2-037"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1171,
+      "ply": 80,
+      "fen": "6k1/4Rpp1/7p/8/6P1/2rp1P2/5K1P/8 w - - 0 41",
+      "id": "R2-038"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1395,
+      "ply": 111,
+      "fen": "8/7p/8/2P3r1/1P2k3/5R2/8/7K b - - 0 56",
+      "id": "R2-039"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 77,
+      "ply": 101,
+      "fen": "8/8/4pk1K/5p2/r1pP1P2/P1P2P2/R7/8 b - - 0 51",
+      "id": "R2-040"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1723,
+      "ply": 99,
+      "fen": "r7/7k/5p2/5p1p/4pP2/PR2P3/5P2/7K b - - 0 50",
+      "id": "R2-041"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1081,
+      "ply": 86,
+      "fen": "8/5p2/p2p1k1p/3P4/1PR5/8/4rP1P/2K5 w - - 0 44",
+      "id": "R2-042"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 73,
+      "ply": 90,
+      "fen": "7k/R7/5rp1/7p/p7/8/5PK1/8 w - - 0 46",
+      "id": "R2-043"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1249,
+      "ply": 79,
+      "fen": "8/1r4k1/8/2Kp3R/1r6/3P2P1/8/R7 b - - 0 40",
+      "id": "R2-044"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1571,
+      "ply": 77,
+      "fen": "r7/5Rp1/3kp2p/1P6/p7/P5P1/5P2/6K1 b - - 0 39",
+      "id": "R2-045"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 443,
+      "ply": 64,
+      "fen": "8/5kpp/5p2/p6P/2P1P3/r7/5PK1/5R2 w - - 0 33",
+      "id": "R2-046"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1344,
+      "ply": 89,
+      "fen": "8/R4pkp/6p1/2p5/P5P1/1r5P/5P1K/8 b - - 0 45",
+      "id": "R2-047"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 680,
+      "ply": 73,
+      "fen": "1R6/6p1/8/1p4k1/1P1P2p1/6P1/1r3P1P/6K1 b - - 0 37",
+      "id": "R2-048"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1410,
+      "ply": 102,
+      "fen": "1R6/4rk2/5p2/5P2/6Pp/2r4P/3R1K2/8 w - - 0 52",
+      "id": "R2-049"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1668,
+      "ply": 104,
+      "fen": "5rk1/6p1/8/3P2Pp/1p5P/3rRPK1/8/8 w - - 0 53",
+      "id": "R2-050"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 427,
+      "ply": 100,
+      "fen": "8/R4pk1/6p1/p3P2P/5P2/2r2K2/7P/8 w - - 0 51",
+      "id": "R2-051"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 957,
+      "ply": 76,
+      "fen": "6k1/1r3pp1/p6p/8/1PR4P/6P1/5PK1/8 w - - 0 39",
+      "id": "R2-052"
+    },
+    {
+      "source": "net1242-scale",
+      "game": 33,
+      "ply": 72,
+      "fen": "8/1R6/3k1p2/3p4/1P1P2Pp/8/1r3P2/5K2 w - - 0 37",
+      "id": "R2-053"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1325,
+      "ply": 89,
+      "fen": "8/5k2/5p1p/8/RP5P/P2KR1P1/2r2r2/8 b - - 0 45",
+      "id": "R2-054"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1215,
+      "ply": 84,
+      "fen": "5k2/R4p1p/8/5r2/8/5P2/7P/7K w - - 0 43",
+      "id": "R2-055"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 724,
+      "ply": 86,
+      "fen": "8/3R1p1k/8/7p/6p1/Pp6/1r4PP/6K1 w - - 0 44",
+      "id": "R2-056"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 874,
+      "ply": 91,
+      "fen": "3k4/2p5/8/2R4p/p5r1/4K3/1P4P1/8 b - - 0 46",
+      "id": "R2-057"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1096,
+      "ply": 87,
+      "fen": "1k6/1p1r4/1R4pP/3p3r/3R4/P7/KP6/8 b - - 0 44",
+      "id": "R2-058"
+    },
+    {
+      "source": "net1242-scale",
+      "game": 174,
+      "ply": 93,
+      "fen": "8/6p1/1R6/1P2p1kp/p7/r5PK/5P1P/8 b - - 0 47",
+      "id": "R2-059"
+    },
+    {
+      "source": "net1242-scale",
+      "game": 120,
+      "ply": 163,
+      "fen": "8/4RKP1/8/8/2k5/4r3/1p6/8 b - - 0 82",
+      "id": "R2-060"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 103,
+      "ply": 125,
+      "fen": "8/3k4/3p1p2/3P3p/4P1pP/2R3P1/K7/4r3 b - - 0 63",
+      "id": "R2-061"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1824,
+      "ply": 81,
+      "fen": "8/5r1k/6p1/2R5/P2rp1p1/2R5/4PPK1/8 b - - 0 41",
+      "id": "R2-062"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 736,
+      "ply": 60,
+      "fen": "1k2r3/1p5p/8/6p1/P7/p5P1/5P1P/2R3K1 w - - 0 31",
+      "id": "R2-063"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 179,
+      "ply": 85,
+      "fen": "1R6/6p1/p5kp/P6r/3p3P/8/5PK1/8 b - - 0 43",
+      "id": "R2-064"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 664,
+      "ply": 67,
+      "fen": "8/2p2p2/5kpp/1R6/8/2r1P2P/5PP1/6K1 b - - 0 34",
+      "id": "R2-065"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 585,
+      "ply": 72,
+      "fen": "4r1k1/5pp1/2R4r/R3p3/8/4P2P/5PK1/8 w - - 0 37",
+      "id": "R2-066"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1288,
+      "ply": 84,
+      "fen": "3k4/R4p2/3p4/1p1P4/1Pr4p/1K6/6PP/8 w - - 0 43",
+      "id": "R2-067"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1637,
+      "ply": 72,
+      "fen": "7R/5kp1/5p1p/4r3/8/6PP/5P2/6K1 w - - 0 37",
+      "id": "R2-068"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1775,
+      "ply": 79,
+      "fen": "8/5pk1/5R2/pr4P1/4K3/2P5/PP6/8 b - - 0 40",
+      "id": "R2-069"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1657,
+      "ply": 84,
+      "fen": "5k2/5p2/1R3p1p/8/1Pp2P2/r7/4PK1P/8 w - - 0 43",
+      "id": "R2-070"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1066,
+      "ply": 92,
+      "fen": "8/R7/3p4/3Pkr1p/3p3P/3P2K1/8/8 w - - 0 47",
+      "id": "R2-071"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 565,
+      "ply": 81,
+      "fen": "8/5k2/1p6/p1p4R/4Pp1P/P1K2P2/8/3r4 b - - 0 41",
+      "id": "R2-072"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 582,
+      "ply": 136,
+      "fen": "8/8/8/5k2/1p5R/2r5/PKP5/8 w - - 0 69",
+      "id": "R2-073"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1009,
+      "ply": 77,
+      "fen": "5r2/6pk/1R5p/8/P2r4/7P/4RPP1/6K1 b - - 0 39",
+      "id": "R2-074"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1257,
+      "ply": 97,
+      "fen": "6k1/8/8/1p1K4/1P6/4R3/5r2/8 b - - 0 49",
+      "id": "R2-075"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 707,
+      "ply": 75,
+      "fen": "8/R6p/6p1/4kp2/7P/P3P1P1/KP4r1/8 b - - 0 38",
+      "id": "R2-076"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1698,
+      "ply": 94,
+      "fen": "3r4/1k6/8/4p2p/1pP2p2/7P/1P4K1/R7 w - - 0 48",
+      "id": "R2-077"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 696,
+      "ply": 65,
+      "fen": "8/R7/2p5/2Pk2p1/1P2pP2/P7/4KP1r/8 b - - 0 33",
+      "id": "R2-078"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1417,
+      "ply": 86,
+      "fen": "6k1/3r1p2/8/p3K1Pp/2p4P/P1P5/8/6R1 w - - 0 44",
+      "id": "R2-079"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1453,
+      "ply": 73,
+      "fen": "8/5pk1/5p1p/R4P1P/3r4/2p3K1/2P2P2/8 b - - 0 37",
+      "id": "R2-080"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1185,
+      "ply": 86,
+      "fen": "8/1p6/pk1P1R2/6r1/1P2p1P1/2r5/1P2K3/8 w - - 0 44",
+      "id": "R2-081"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 952,
+      "ply": 80,
+      "fen": "8/5p2/5k1p/r3p1pP/1p4P1/5K2/5P2/1R6 w - - 0 41",
+      "id": "R2-082"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1624,
+      "ply": 92,
+      "fen": "4r3/3R3p/p7/3P2k1/1Pp5/8/P7/6K1 w - - 0 47",
+      "id": "R2-083"
+    },
+    {
+      "source": "net1242-scale",
+      "game": 187,
+      "ply": 113,
+      "fen": "8/7p/3k2p1/6P1/7P/2r1R3/4K3/8 b - - 0 57",
+      "id": "R2-084"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1848,
+      "ply": 73,
+      "fen": "1kr5/1p6/1P1p4/P7/2p5/6Pp/7P/1R4K1 b - - 0 37",
+      "id": "R2-085"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 557,
+      "ply": 80,
+      "fen": "8/2k1rpR1/2P5/p1p3p1/P7/6P1/5PK1/8 w - - 0 41",
+      "id": "R2-086"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 507,
+      "ply": 110,
+      "fen": "8/8/4k3/4p3/6p1/2r3P1/1R3K2/8 w - - 0 56",
+      "id": "R2-087"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1123,
+      "ply": 102,
+      "fen": "6k1/3R2p1/7p/4r3/p2p4/P6P/1P4P1/6K1 w - - 0 52",
+      "id": "R2-088"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1361,
+      "ply": 162,
+      "fen": "8/8/2RP2p1/4p1k1/4K2p/5P1P/3r4/8 w - - 0 82",
+      "id": "R2-089"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 579,
+      "ply": 66,
+      "fen": "6k1/p5pp/R7/3p4/3r1P2/1P6/P5KP/8 w - - 0 34",
+      "id": "R2-090"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 770,
+      "ply": 83,
+      "fen": "8/5p2/1p3k2/8/8/4P1P1/3RK1P1/1r6 b - - 0 42",
+      "id": "R2-091"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 360,
+      "ply": 76,
+      "fen": "6k1/pp6/2p2R1p/8/P7/1P5P/6P1/3r3K w - - 0 39",
+      "id": "R2-092"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1403,
+      "ply": 117,
+      "fen": "8/8/1R3k1p/P5p1/2K3P1/6r1/8/8 b - - 0 59",
+      "id": "R2-093"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1449,
+      "ply": 80,
+      "fen": "R7/1p3p2/5k2/8/2rp1KP1/p6P/8/8 w - - 0 41",
+      "id": "R2-094"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 1875,
+      "ply": 111,
+      "fen": "5k2/R4p2/3R4/3P4/8/2p5/1r6/5K2 b - - 0 56",
+      "id": "R2-095"
+    },
+    {
+      "source": "v1063-scale",
+      "game": 570,
+      "ply": 121,
+      "fen": "8/7k/8/3P1RKP/2p3p1/2P5/4r3/8 b - - 0 61",
+      "id": "R2-096"
+    }
+  ]
+}

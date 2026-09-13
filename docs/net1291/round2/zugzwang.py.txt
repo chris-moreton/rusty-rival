@@ -1,0 +1,16 @@
+import json,pathlib,time,urllib.request,urllib.parse
+import chess
+root=pathlib.Path('/home/chris/benchmark/net1291-round2');fen='8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61'
+def query(board,endpoint='standard'):
+    url='https://tablebase.lichess.ovh/'+endpoint+'?'+urllib.parse.urlencode({'fen':board.fen()})
+    with urllib.request.urlopen(url,timeout=30) as r:data=json.load(r)
+    time.sleep(0.5)
+    return {'fen':board.fen(),'url':url,'response':data}
+b=chess.Board(fen); main=query(b,'standard/mainline'); rows=[]
+for ply,entry in enumerate(main['response']['mainline'][:24]):
+    if not b.turn and not b.is_check():
+        real=query(b);null=b.copy();null.push(chess.Move.null());hypothetical=query(null)
+        rows.append({'ply':ply,'real':real,'after_null':hypothetical})
+        print('ply',ply,'Black real:',real['response']['category'],'after pass White:',hypothetical['response']['category'],flush=True)
+    mv=chess.Move.from_uci(entry['uci']);assert mv in b.legal_moves;b.push(mv)
+(root/'zugzwang.json').write_text(json.dumps({'mainline':main,'checks':rows},indent=2)+'\n')

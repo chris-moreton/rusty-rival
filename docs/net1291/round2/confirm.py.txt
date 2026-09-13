@@ -1,0 +1,25 @@
+from probe import *
+STASH='/home/chris/benchmark/bin/stash'
+def confirm(row):
+    result={'screen':row};b=chess.Board(row['fen']);a=row['rival']['best'];c=row['sf']['best']
+    with chess.engine.SimpleEngine.popen_uci(SF) as sf,chess.engine.SimpleEngine.popen_uci(RIVAL) as rival,chess.engine.SimpleEngine.popen_uci(STASH) as stash:
+        for e in [sf,rival,stash]:e.configure({'Threads':1,'Hash':128})
+        result['sf_root_8s']=search(sf,b,8)
+        result['rival_root_5s']=search(rival,b,5)
+        result['stash_root_5s']=search(stash,b,5)
+        for seconds in [2,8]:
+            result[f'sf_rival_move_{seconds}s']=search(sf,b,seconds,a)
+            result[f'sf_peer_move_{seconds}s']=search(sf,b,seconds,c)
+        result['rival_forced_peer_5s']=search(rival,b,5,c)
+    return result
+if __name__=='__main__':
+    rows=json.loads((ROOT/'screen.json').read_text())
+    candidates=sorted((r for r in rows if r.get('provisional_regret_cp',0)>=100),key=lambda r:-r['provisional_regret_cp'])[:8]
+    (ROOT/'confirmation-selection.json').write_text(json.dumps({'rule':'up to eight largest provisional same-teacher regrets of at least 100 cp; confirmation is diagnostic, not population inference','ids':[r['id'] for r in candidates]},indent=2)+'\n')
+    results=[]
+    (ROOT/'confirm.json').write_text('[]\n')
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        for r in pool.map(confirm,candidates):
+            results.append(r)
+            print('Confirmed',r['screen']['id'],'original moves',r['sf_rival_move_8s']['cp'],r['sf_peer_move_8s']['cp'],'5s Rival',r['rival_root_5s']['best'],flush=True)
+            (ROOT/'confirm.json').write_text(json.dumps(results,indent=2)+'\n')

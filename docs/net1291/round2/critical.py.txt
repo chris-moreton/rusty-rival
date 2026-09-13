@@ -1,0 +1,26 @@
+from probe import *
+from ablate import DIAG
+import os
+BASE=next(r['fen'] for r in json.loads((ROOT/'screen.json').read_text()) if r['id']=='R2-093')
+
+def run(task):
+    line,name,mask,nodes,forced=task;b=chess.Board(BASE)
+    for mv in line:b.push_uci(mv)
+    b=chess.Board(b.fen())
+    binary={'production':RIVAL,'hce':RIVAL,'prior_full_qdraw':'/home/chris/benchmark/sprt/rival-net1291A','prior_tt_depth':'/home/chris/benchmark/sprt/rival-net1291C'}.get(name,DIAG)
+    with chess.engine.SimpleEngine.popen_uci(binary,env=dict(os.environ,RIVAL_DIAG_DISABLE=str(mask))) as e:
+        e.configure({'Threads':1,'Hash':128})
+        if name=='hce':e.configure({'UseNNUE':False})
+        kw={'root_moves':[chess.Move.from_uci(forced)]} if forced else {}
+        r=encode(e.play(b,chess.engine.Limit(nodes=nodes),game=object(),info=chess.engine.INFO_ALL,**kw),b)
+    return {'line':line,'fen':b.fen(),'name':name,'disabled_mask':mask,'budget_nodes':nodes,'forced':forced,**r}
+if __name__=='__main__':
+    line=['f6e5','a5a6','g3g4']
+    tasks=[(line,'production',0,n,None) for n in [100000,300000,1000000,3000000]]
+    tasks += [(line,name,mask,1000000,None) for name,mask in [('lmr',16),('q_delta',128),('q_see',256),('razoring',4),('hce',0)]]
+    tasks += [(line,'production',0,1000000,m) for m in ['c4b3','c4b5']]
+    results=[]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        for r in pool.map(run,tasks):
+            results.append(r);print(r['name'],r['budget_nodes'],r['forced'],r['best'],r['cp'],r['depth'],flush=True)
+            (ROOT/'critical.json').write_text(json.dumps(results,indent=2)+'\n')

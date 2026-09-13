@@ -1,0 +1,7 @@
+from critical import *
+if __name__=='__main__':
+    line=['f6e5','a5a6','g3g4']
+    configs=[('null_move',1),('reverse_futility',2),('futility',8),('probcut',32),('tt_cutoffs',64),('prior_full_qdraw',0),('prior_tt_depth',0)]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:results=list(pool.map(run,[(line,n,m,1000000,None) for n,m in configs]))
+    (ROOT/'critical-extra.json').write_text(json.dumps(results,indent=2)+'\n')
+    for r in results:print(r['name'],r['best'],r['cp'],r['depth'],flush=True)

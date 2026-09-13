@@ -1,0 +1,14 @@
+import json,pathlib,urllib.request,urllib.parse,time
+import chess
+root=pathlib.Path('/home/chris/benchmark/net1291-round2')
+fen=next(r['fen'] for r in json.loads((root/'screen.json').read_text()) if r['id']=='R2-093')
+rows=[]
+for line in [['f6g7','a5a6','g3g4'],['f6e5','a5a6','g3g4']]:
+    b=chess.Board(fen)
+    for mv in line: assert chess.Move.from_uci(mv) in b.legal_moves;b.push_uci(mv)
+    url='https://tablebase.lichess.ovh/standard?'+urllib.parse.urlencode({'fen':b.fen()})
+    with urllib.request.urlopen(url,timeout=30) as response:data=json.load(response)
+    rows.append({'moves':line,'fen':b.fen(),'url':url,'response':data})
+    print(line,data['category'],data['dtz'],[(m['san'],m['category']) for m in data['moves'][:4]],flush=True)
+    time.sleep(1)
+(root/'tablebase.json').write_text(json.dumps(rows,indent=2)+'\n')

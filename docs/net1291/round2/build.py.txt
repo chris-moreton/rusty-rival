@@ -1,0 +1,12 @@
+import pathlib,subprocess,shutil,re,hashlib,json
+root=pathlib.Path('/home/chris/benchmark/net1291-worktree');out=pathlib.Path('/home/chris/benchmark/net1291-round2')
+with (out/'build.log').open('w') as log:
+    subprocess.run(['cargo','fmt','--all'],cwd=root,stdout=log,stderr=subprocess.STDOUT,check=True)
+    subprocess.run(['cargo','build','--release','--features','search-width-diagnostics','--bin','rusty-rival'],cwd=root,stdout=log,stderr=subprocess.STDOUT,check=True)
+binary=out/'rival-diagnostic';shutil.copy2(root/'target/release/rusty-rival',binary)
+r=subprocess.run([str(binary)],input='bench\nquit\n',capture_output=True,text=True,timeout=60,check=True)
+(out/'diagnostic-bench.log').write_text(r.stdout)
+nodes=int(re.search(r'Nodes searched:\s*(\d+)',r.stdout)[1]);assert nodes==1772650,nodes
+(out/'instrumentation.patch').write_text(subprocess.check_output(['git','diff','--','src/search.rs','src/quiesce.rs'],cwd=root,text=True))
+(out/'diagnostic-build.json').write_text(json.dumps({'sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),'bench':nodes,'baseline_bench':1772650,'feature':'search-width-diagnostics','disabled_mask':0},indent=2)+'\n')
+print('Diagnostic build: baseline bench identity confirmed',nodes,flush=True)

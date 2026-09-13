@@ -1,0 +1,7 @@
+{
+  "sha256": "bc7e0938f97dc98d51516ec238014d90e18e664b16b361a657f1d855654bb0ce",
+  "bench": 1772650,
+  "baseline_bench": 1772650,
+  "feature": "search-width-diagnostics",
+  "disabled_mask": 0
+}

@@ -1,0 +1,36 @@
+import concurrent.futures,hashlib,json,pathlib,re,subprocess
+import chess,chess.engine
+ROOT=pathlib.Path('/home/chris/benchmark/net1291-round2')
+RIVAL='/home/chris/benchmark/sprt/rival-v1.0.64'; SF='/home/chris/benchmark/bin/stockfish'
+
+def encode(result,board):
+    score=result.info.get('score')
+    return {'best':result.move.uci() if result.move else None,'cp':score.pov(board.turn).score() if score else None,'mate':score.pov(board.turn).mate() if score else None,'depth':result.info.get('depth'),'nodes':result.info.get('nodes'),'pv':[m.uci() for m in result.info.get('pv',[])],'lowerbound':result.info.get('lowerbound',False),'upperbound':result.info.get('upperbound',False)}
+def search(engine,board,seconds,move=None):
+    kw={'root_moves':[chess.Move.from_uci(move)]} if move else {}
+    return encode(engine.play(board,chess.engine.Limit(time=seconds),game=object(),info=chess.engine.INFO_ALL,**kw),board)
+def run(row):
+    b=chess.Board(row['fen']); result=dict(row)
+    with chess.engine.SimpleEngine.popen_uci(RIVAL) as rival,chess.engine.SimpleEngine.popen_uci(SF) as sf:
+        for engine in [rival,sf]:engine.configure({'Threads':1,'Hash':128})
+        result['rival']=search(rival,b,1)
+        result['sf']=search(sf,b,1)
+        a=result['rival']['best']; c=result['sf']['best']
+        assert chess.Move.from_uci(a) in b.legal_moves and chess.Move.from_uci(c) in b.legal_moves
+        if a!=c:
+            result['sf_forced_rival']=search(sf,b,1,a)
+            result['sf_forced_peer']=search(sf,b,1,c)
+            x=result['sf_forced_peer']['cp'];y=result['sf_forced_rival']['cp']
+            if x is not None and y is not None:result['provisional_regret_cp']=x-y
+    return result
+if __name__=='__main__':
+    subprocess.run(['python3',str(ROOT/'build.py')],check=True)
+    rows=json.loads((ROOT/'sample.json').read_text())['positions']; results=[]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        for r in pool.map(run,rows):
+            results.append(r)
+            print(r['id'],r['rival']['best'],r['sf']['best'],'regret',r.get('provisional_regret_cp',0),flush=True)
+            (ROOT/'screen.json').write_text(json.dumps(results,indent=2)+'\n')
+
+    subprocess.run(['/home/chris/services/lichess-bot/.venv/bin/python',str(ROOT/'confirm.py')],check=True)
+    subprocess.run(['/home/chris/services/lichess-bot/.venv/bin/python',str(ROOT/'ablate.py')],check=True)

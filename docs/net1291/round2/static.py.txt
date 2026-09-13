@@ -1,0 +1,11 @@
+import json,pathlib
+exec(open('/home/chris/benchmark/net1291-diagnose.py').read().split('engines={')[0])
+root=pathlib.Path('/home/chris/benchmark/net1291-round2')
+rows=json.loads((root/'sample.json').read_text())['positions'];results=[]
+a=Engine('/home/chris/benchmark/sprt/rival-v1.0.64',True);b=Engine('/home/chris/benchmark/sprt/rival-v1.0.64',False)
+try:
+    for r in rows:
+        results.append({'id':r['id'],'fen':r['fen'],'nnue_white_cp':a.static(r['fen']),'hce_white_cp':b.static(r['fen'])})
+finally:a.close();b.close()
+(root/'static.json').write_text(json.dumps(results,indent=2)+'\n')
+print('Static evaluator controls recorded for',len(results),'positions')

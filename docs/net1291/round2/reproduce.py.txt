@@ -1,0 +1,21 @@
+"""Reproduce the independent, tablebase-confirmed missed king evasion.
+
+Run with the project's python-chess environment. Exit 1 means the resource
+was missed at the requested budget; it is the expected baseline observation.
+"""
+import argparse,json,os,sys
+import chess,chess.engine
+FEN='8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61'
+EXPECTED='c4b3'
+p=argparse.ArgumentParser(description=__doc__)
+p.add_argument('--engine',required=True)
+p.add_argument('--nodes',type=int,default=1000000)
+p.add_argument('--disable',type=int,default=0,help='diagnostic-build mask; 16 disables LMR')
+a=p.parse_args()
+b=chess.Board(FEN)
+with chess.engine.SimpleEngine.popen_uci(a.engine,env=dict(os.environ,RIVAL_DIAG_DISABLE=str(a.disable))) as e:
+    e.configure({'Threads':1,'Hash':128})
+    r=e.play(b,chess.engine.Limit(nodes=a.nodes),game=object(),info=chess.engine.INFO_ALL)
+actual=r.move.uci();ok=actual==EXPECTED
+print(json.dumps({'fen':FEN,'budget_nodes':a.nodes,'expected':EXPECTED,'actual':actual,'found_win':ok,'reported_depth':r.info.get('depth'),'searched_nodes':r.info.get('nodes')},indent=2))
+sys.exit(0 if ok else 1)

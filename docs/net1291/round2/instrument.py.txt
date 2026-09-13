@@ -1,0 +1,43 @@
+from pathlib import Path
+import subprocess
+root=Path('/home/chris/benchmark/net1291-worktree')
+p=root/'src/search.rs'; s=p.read_text()
+assert subprocess.check_output(['git','diff','--','src/search.rs','src/quiesce.rs'],cwd=root)==b''
+helper='''
+/// NET-1291 diagnosis only: independently disable a search mechanism.
+/// No behaviour change or environment lookup in production builds.
+#[inline(always)]
+pub(crate) fn diagnostic_disabled(bit: u32) -> bool {
+    #[cfg(feature = "search-width-diagnostics")]
+    {
+        static MASK: std::sync::LazyLock<u32> = std::sync::LazyLock::new(|| {
+            std::env::var("RIVAL_DIAG_DISABLE").ok().and_then(|s| s.parse().ok()).unwrap_or(0)
+        });
+        *MASK & bit != 0
+    }
+    #[cfg(not(feature = "search-width-diagnostics"))]
+    {
+        let _ = bit;
+        false
+    }
+}
+
+'''
+s=s.replace('/// Make a move with lazy NNUE tracking.',helper+'/// Make a move with lazy NNUE tracking.',1)
+repls=[
+('if excluded_move == 0 && !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH', 'if !diagnostic_disabled(1) && excluded_move == 0 && !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH'),
+('if excluded_move == 0 && scouting && depth <= BETA_PRUNE_MAX_DEPTH', 'if !diagnostic_disabled(2) && excluded_move == 0 && scouting && depth <= BETA_PRUNE_MAX_DEPTH'),
+('if scouting && !in_check && depth <= RAZOR_MAX_DEPTH', 'if !diagnostic_disabled(4) && scouting && !in_check && depth <= RAZOR_MAX_DEPTH'),
+('if excluded_move == 0 && depth <= ALPHA_PRUNE_MARGINS.len()', 'if !diagnostic_disabled(8) && excluded_move == 0 && depth <= ALPHA_PRUNE_MARGINS.len()'),
+('if excluded_move == 0 && scouting && !in_check && depth >= PROBCUT_MIN_DEPTH', 'if !diagnostic_disabled(32) && excluded_move == 0 && scouting && !in_check && depth >= PROBCUT_MIN_DEPTH'),
+('if excluded_move == 0 && hash_entry.height >= depth {','if !diagnostic_disabled(64) && excluded_move == 0 && hash_entry.height >= depth {'),
+('            debug_assert!(\n                lmr == 0', '            let lmr = if diagnostic_disabled(16) { 0 } else { lmr };\n            debug_assert!(\n                lmr == 0'),
+]
+for old,new in repls:
+    assert s.count(old)==1,(old,s.count(old));s=s.replace(old,new)
+p.write_text(s)
+p=root/'src/quiesce.rs';s=p.read_text()
+s=s.replace('if eval + see_value + DELTA_MARGIN < alpha {','if !crate::search::diagnostic_disabled(128) && eval + see_value + DELTA_MARGIN < alpha {')
+s=s.replace('if static_exchange_evaluation_with_value(position, m, see_value) < 0 {','if !crate::search::diagnostic_disabled(256) && static_exchange_evaluation_with_value(position, m, see_value) < 0 {')
+p.write_text(s)
+print('Instrumented isolated diagnostic gates; no build started')

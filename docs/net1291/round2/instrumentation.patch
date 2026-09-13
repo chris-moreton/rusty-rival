@@ -1,0 +1,133 @@
+diff --git a/src/quiesce.rs b/src/quiesce.rs
+index d00b758..b994e35 100644
+--- a/src/quiesce.rs
++++ b/src/quiesce.rs
+@@ -216,7 +216,7 @@ pub fn quiesce(
+         if !in_check && !is_promotion {
+             // Delta pruning: if capturing this piece can't possibly raise
+             // alpha, skip it
+-            if eval + see_value + DELTA_MARGIN < alpha {
++            if !crate::search::diagnostic_disabled(128) && eval + see_value + DELTA_MARGIN < alpha {
+                 continue;
+             }
+ 
+@@ -225,7 +225,7 @@ pub fn quiesce(
+             // discarded. The compact SEE state reads the same
+             // piece-bitboard/king/mover/EP subset as the old copy here.
+             // (Equal exchanges pass and are searched, as before.)
+-            if static_exchange_evaluation_with_value(position, m, see_value) < 0 {
++            if !crate::search::diagnostic_disabled(256) && static_exchange_evaluation_with_value(position, m, see_value) < 0 {
+                 continue;
+             }
+         }
+diff --git a/src/search.rs b/src/search.rs
+index 9083d23..df42804 100644
+--- a/src/search.rs
++++ b/src/search.rs
+@@ -12,6 +12,23 @@ use crate::engine_constants::{
+ use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
+ use arrayvec::ArrayVec;
+ 
++/// NET-1291 diagnosis only: independently disable a search mechanism.
++/// No behaviour change or environment lookup in production builds.
++#[inline(always)]
++pub(crate) fn diagnostic_disabled(bit: u32) -> bool {
++    #[cfg(feature = "search-width-diagnostics")]
++    {
++        static MASK: std::sync::LazyLock<u32> =
++            std::sync::LazyLock::new(|| std::env::var("RIVAL_DIAG_DISABLE").ok().and_then(|s| s.parse().ok()).unwrap_or(0));
++        *MASK & bit != 0
++    }
++    #[cfg(not(feature = "search-width-diagnostics"))]
++    {
++        let _ = bit;
++        false
++    }
++}
++
+ /// Make a move with lazy NNUE tracking. Saves pieces state and advances ply,
+ /// but defers accumulator computation until evaluate_position is called.
+ #[inline(always)]
+@@ -1167,7 +1184,7 @@ pub fn search(
+ 
+         // Skip hash cutoffs during singular extension search - the hash entry's score
+         // includes the excluded move's contribution, so we can't use it for cutoffs
+-        if excluded_move == 0 && hash_entry.height >= depth {
++        if !diagnostic_disabled(64) && excluded_move == 0 && hash_entry.height >= depth {
+             if hash_entry.bound == Exact {
+                 search_state.hash_hits_exact += 1;
+                 // The checksum rules out torn entries, but a TT move still
+@@ -1241,7 +1258,7 @@ pub fn search(
+         true
+     };
+ 
+-    if excluded_move == 0 && scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
++    if !diagnostic_disabled(2) && excluded_move == 0 && scouting && depth <= BETA_PRUNE_MAX_DEPTH && !in_check && beta.abs() < MATE_START {
+         // An improving eval supports the fail-high conclusion, so a smaller
+         // margin suffices; when not improving demand more
+         let margin = BETA_PRUNE_MARGIN_PER_DEPTH * (depth as Score - improving as Score);
+@@ -1254,7 +1271,7 @@ pub fn search(
+     // the node is hopeless. Verify with quiescence (which sees captures/checks the
+     // static eval misses) and only fail low if qsearch agrees - an unverified cut
+     // here would drop real tactics.
+-    if scouting && !in_check && depth <= RAZOR_MAX_DEPTH && alpha.abs() < MATE_START && excluded_move == 0 {
++    if !diagnostic_disabled(4) && scouting && !in_check && depth <= RAZOR_MAX_DEPTH && alpha.abs() < MATE_START && excluded_move == 0 {
+         let razor_margin = RAZOR_MARGINS[depth as usize];
+         if lazy_eval + razor_margin < alpha {
+             // This block is !in_check-gated, so the verification qsearch knows
+@@ -1269,19 +1286,31 @@ pub fn search(
+         }
+     }
+ 
+-    let alpha_prune_flag =
+-        if excluded_move == 0 && depth <= ALPHA_PRUNE_MARGINS.len() as u8 && scouting && !in_check && alpha.abs() < MATE_START {
+-            lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
+-        } else {
+-            false
+-        };
++    let alpha_prune_flag = if !diagnostic_disabled(8)
++        && excluded_move == 0
++        && depth <= ALPHA_PRUNE_MARGINS.len() as u8
++        && scouting
++        && !in_check
++        && alpha.abs() < MATE_START
++    {
++        lazy_eval + ALPHA_PRUNE_MARGINS[depth as usize - 1] < alpha
++    } else {
++        false
++    };
+ 
+     // NET-1194 ablation switch: the pre-bundle threat flag (a null move that
+     // fails by more than a piece) takes one ply off every quiet reduction at
+     // this node while LMR_THREAT_TERM is on
+     let mut threat_detected = false;
+ 
+-    if excluded_move == 0 && !on_null_move && scouting && depth >= NULL_MOVE_MIN_DEPTH && null_move_material(position) && !in_check {
++    if !diagnostic_disabled(1)
++        && excluded_move == 0
++        && !on_null_move
++        && scouting
++        && depth >= NULL_MOVE_MIN_DEPTH
++        && null_move_material(position)
++        && !in_check
++    {
+         let old_ep = make_null_move(position);
+         let old_repetition_history_start = search_state.repetition_history_start;
+         search_state.repetition_history_start = search_state.history.len();
+@@ -1322,7 +1351,7 @@ pub fn search(
+ 
+     // Probcut: at high depth, do a shallow search with raised beta
+     // If a capture fails high, the position is probably winning and can be cut
+-    if excluded_move == 0 && scouting && !in_check && depth >= PROBCUT_MIN_DEPTH && beta.abs() < MATE_START {
++    if !diagnostic_disabled(32) && excluded_move == 0 && scouting && !in_check && depth >= PROBCUT_MIN_DEPTH && beta.abs() < MATE_START {
+         let probcut_beta = beta + PROBCUT_MARGIN;
+         let probcut_depth = depth - PROBCUT_DEPTH_REDUCTION;
+ 
+@@ -2008,6 +2037,7 @@ pub fn search(
+             } else {
+                 (0, 0, 1)
+             };
++            let lmr = if diagnostic_disabled(16) { 0 } else { lmr };
+             debug_assert!(
+                 lmr == 0 || lmr as u16 + 2 <= depth as u16,
+                 "NET-1194: a reduced child must keep at least extension + 1 plies"

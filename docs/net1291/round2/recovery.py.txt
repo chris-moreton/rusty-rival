@@ -1,0 +1,26 @@
+from probe import *
+from ablate import DIAG,MASKS
+import os
+ROW=next(r for r in json.loads((ROOT/'screen.json').read_text()) if r['id']=='R2-093')
+
+def run(task):
+    name,mask,nodes=task;b=chess.Board(ROW['fen'])
+    binary={'production':RIVAL,'hce':RIVAL,'prior_full_qdraw':'/home/chris/benchmark/sprt/rival-net1291A','prior_tt_depth':'/home/chris/benchmark/sprt/rival-net1291C'}.get(name,DIAG)
+    with chess.engine.SimpleEngine.popen_uci(binary,env=dict(os.environ,RIVAL_DIAG_DISABLE=str(mask))) as e:
+        e.configure({'Threads':1,'Hash':128})
+        if name=='hce':e.configure({'UseNNUE':False})
+        r=encode(e.play(b,chess.engine.Limit(nodes=nodes),game=object(),info=chess.engine.INFO_ALL),b)
+    return {'name':name,'disabled_mask':mask,'budget_nodes':nodes,**r}
+if __name__=='__main__':
+    tasks=[('production',0,n) for n in [500000,1000000,2000000,3000000,5000000,10000000]]
+    tasks += [(name,mask,3000000) for name,mask in MASKS.items() if name!='production']+[('hce',0,3000000)]
+    out={'id':ROW['id'],'fen':ROW['fen'],'purpose':'exploratory depth-recovery follow-up; position failed the pre-registered persistent-5s criterion; fixed nodes permit concurrent live-bot activity without time comparisons','results':[]}
+    (ROOT/'recovery.json').write_text(json.dumps(out,indent=2)+'\n')
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        for r in pool.map(run,tasks):
+            out['results'].append(r);print(r['name'],r['budget_nodes'],r['best'],r['cp'],r['depth'],flush=True)
+            (ROOT/'recovery.json').write_text(json.dumps(out,indent=2)+'\n')
+    a=next(r for r in out['results'] if r['name']=='production' and r['budget_nodes']==3000000)
+    b=next(r for r in out['results'] if r['name']=='control')
+    assert all(a[k]==b[k] for k in ['best','cp','mate','depth','nodes','pv']),(a,b)
+    print('Same-budget production/control parity confirmed',flush=True)

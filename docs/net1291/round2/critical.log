@@ -1,0 +1,11 @@
+production 100000 None c4b5 58 11
+production 300000 None c4b5 36 13
+production 1000000 None c4b5 36 16
+production 3000000 None c4b3 137 20
+lmr 1000000 None c4b3 37 11
+q_delta 1000000 None c4b5 36 16
+q_see 1000000 None c4b5 35 17
+razoring 1000000 None c4b5 39 16
+hce 1000000 None c4b5 500 18
+production 1000000 c4b3 c4b3 84 20
+production 1000000 c4b5 c4b5 38 19

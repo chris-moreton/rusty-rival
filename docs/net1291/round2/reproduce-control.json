@@ -1,0 +1,9 @@
+{
+  "fen": "8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61",
+  "budget_nodes": 1000000,
+  "expected": "c4b3",
+  "actual": "c4b5",
+  "found_win": false,
+  "reported_depth": 16,
+  "searched_nodes": 1000000
+}

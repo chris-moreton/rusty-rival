@@ -1,0 +1,210 @@
+[
+  {
+    "line": [
+      "f6e5",
+      "a5a6",
+      "g3g4"
+    ],
+    "fen": "8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61",
+    "name": "null_move",
+    "disabled_mask": 1,
+    "budget_nodes": 1000000,
+    "forced": null,
+    "best": "c4b3",
+    "cp": 138,
+    "mate": null,
+    "depth": 16,
+    "nodes": 1000000,
+    "pv": [
+      "c4b3",
+      "g4g1",
+      "b3a2",
+      "g1g4",
+      "b6b5",
+      "e5e6"
+    ],
+    "lowerbound": false,
+    "upperbound": false
+  },
+  {
+    "line": [
+      "f6e5",
+      "a5a6",
+      "g3g4"
+    ],
+    "fen": "8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61",
+    "name": "reverse_futility",
+    "disabled_mask": 2,
+    "budget_nodes": 1000000,
+    "forced": null,
+    "best": "c4b5",
+    "cp": 43,
+    "mate": null,
+    "depth": 14,
+    "nodes": 1000000,
+    "pv": [
+      "c4b5",
+      "g4g2",
+      "b6h6",
+      "g2a2"
+    ],
+    "lowerbound": false,
+    "upperbound": false
+  },
+  {
+    "line": [
+      "f6e5",
+      "a5a6",
+      "g3g4"
+    ],
+    "fen": "8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61",
+    "name": "futility",
+    "disabled_mask": 8,
+    "budget_nodes": 1000000,
+    "forced": null,
+    "best": "c4b5",
+    "cp": 71,
+    "mate": null,
+    "depth": 15,
+    "nodes": 1000000,
+    "pv": [
+      "c4b5",
+      "g4g1",
+      "b6h6",
+      "g1a1",
+      "b5b6",
+      "e5f4",
+      "a6a7",
+      "g5g4",
+      "h6f6",
+      "f4e5"
+    ],
+    "lowerbound": false,
+    "upperbound": false
+  },
+  {
+    "line": [
+      "f6e5",
+      "a5a6",
+      "g3g4"
+    ],
+    "fen": "8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61",
+    "name": "probcut",
+    "disabled_mask": 32,
+    "budget_nodes": 1000000,
+    "forced": null,
+    "best": "c4b5",
+    "cp": 36,
+    "mate": null,
+    "depth": 16,
+    "nodes": 1000000,
+    "pv": [
+      "c4b5",
+      "g4g2",
+      "b6h6",
+      "g2a2",
+      "b5b6",
+      "g5g4"
+    ],
+    "lowerbound": false,
+    "upperbound": false
+  },
+  {
+    "line": [
+      "f6e5",
+      "a5a6",
+      "g3g4"
+    ],
+    "fen": "8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61",
+    "name": "tt_cutoffs",
+    "disabled_mask": 64,
+    "budget_nodes": 1000000,
+    "forced": null,
+    "best": "c4b5",
+    "cp": 46,
+    "mate": null,
+    "depth": 14,
+    "nodes": 1000000,
+    "pv": [
+      "c4b5",
+      "g4g1",
+      "b6h6",
+      "g1a1",
+      "b5b6",
+      "g5g4",
+      "h6h5",
+      "e5f4",
+      "a6a7",
+      "a1a7",
+      "b6a7",
+      "g4g3",
+      "h5h4",
+      "f4e3",
+      "h4g4",
+      "e3f3",
+      "g4g7",
+      "g3g2"
+    ],
+    "lowerbound": false,
+    "upperbound": false
+  },
+  {
+    "line": [
+      "f6e5",
+      "a5a6",
+      "g3g4"
+    ],
+    "fen": "8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61",
+    "name": "prior_full_qdraw",
+    "disabled_mask": 0,
+    "budget_nodes": 1000000,
+    "forced": null,
+    "best": "c4b3",
+    "cp": 130,
+    "mate": null,
+    "depth": 16,
+    "nodes": 1000000,
+    "pv": [
+      "c4b3",
+      "g4g1",
+      "b3a2",
+      "g1g4",
+      "b6b5",
+      "e5f6"
+    ],
+    "lowerbound": false,
+    "upperbound": false
+  },
+  {
+    "line": [
+      "f6e5",
+      "a5a6",
+      "g3g4"
+    ],
+    "fen": "8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61",
+    "name": "prior_tt_depth",
+    "disabled_mask": 0,
+    "budget_nodes": 1000000,
+    "forced": null,
+    "best": "c4b3",
+    "cp": 142,
+    "mate": null,
+    "depth": 16,
+    "nodes": 1000000,
+    "pv": [
+      "c4b3",
+      "g4g1",
+      "b3a2",
+      "g1g4",
+      "b6b5",
+      "e5f6",
+      "b5a5",
+      "g4g2",
+      "a2b3",
+      "g2g1",
+      "a6a7"
+    ],
+    "lowerbound": false,
+    "upperbound": false
+  }
+]

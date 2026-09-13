@@ -1,0 +1,22 @@
+import json,pathlib,urllib.request,urllib.parse,time
+import chess
+root=pathlib.Path('/home/chris/benchmark/net1291-round2')
+records=json.loads((root/'critical.json').read_text())
+selected=[r for r in records if r['forced']=='c4b3']
+cache={r['fen']:r for r in json.loads((root/'tablebase.json').read_text())}
+results=[]
+for r in selected:
+    b=chess.Board(r['fen']);walk=[]
+    for ply in range(min(len(r['pv']),16)+1):
+        fen=b.fen()
+        if fen not in cache:
+            url='https://tablebase.lichess.ovh/standard?'+urllib.parse.urlencode({'fen':fen})
+            with urllib.request.urlopen(url,timeout=30) as response:data=json.load(response)
+            cache[fen]={'fen':fen,'url':url,'response':data};time.sleep(0.5)
+        data=cache[fen]['response'];expected='win' if b.turn else 'loss'
+        row={'ply':ply,'fen':fen,'category':data['category'],'dtz':data['dtz'],'expected_for_white_win':expected,'best_moves':[{k:m[k] for k in ['uci','san','category']} for m in data['moves'][:4]]}
+        walk.append(row);print(ply,data['category'],data['dtz'],r['pv'][ply] if ply<len(r['pv']) else None,flush=True)
+        if data['category']!=expected or ply==min(len(r['pv']),16):break
+        move=chess.Move.from_uci(r['pv'][ply]);assert move in b.legal_moves;b.push(move)
+    results.append({'source':'production forced Kb3, one million nodes','walk':walk})
+(root/'tablebase-walk.json').write_text(json.dumps({'walks':results,'responses':list(cache.values())},indent=2)+'\n')

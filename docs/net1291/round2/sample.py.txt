@@ -1,0 +1,39 @@
+import hashlib,json,pathlib,random
+import chess,chess.pgn
+root=pathlib.Path('/home/chris/benchmark/net1291-worktree')
+out=pathlib.Path('/home/chris/benchmark/net1291-round2')
+reserved=json.loads((root/'docs/net1291/holdout.json').read_text())
+def keys(fen):
+    b=chess.Board(fen)
+    return {' '.join(b.fen().split()[:4]),' '.join(b.mirror().fen().split()[:4])}
+excluded=set()
+for r in reserved['positions']:excluded.update(keys(r['fen']))
+for p in (root/'epd/suites').glob('*.epd'):
+    for line in p.read_text(encoding='latin-1').splitlines():
+        fields=line.split()
+        if len(fields)>=4:
+            try:excluded.update(keys(' '.join(fields[:4])+' 0 1'))
+            except ValueError:pass
+rng=random.Random(129113); pool=[];sources=[];seen=set(excluded)
+for stem in ['v1063-scale','net1242-scale']:
+    path=pathlib.Path('/home/chris/benchmark/sprt')/(stem+'.pgn')
+    sources.append({'path':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+    with path.open() as f:
+        game_no=0
+        while (game:=chess.pgn.read_game(f)) is not None:
+            game_no+=1
+            if game.errors:raise RuntimeError(game.errors)
+            b=game.board()
+            for ply,m in enumerate(game.mainline_moves(),1):
+                b.push(m)
+                if ply<40 or not 6<=len(b.piece_map())<=12:continue
+                if b.queens or b.knights or b.bishops:continue
+                if not b.pieces(chess.ROOK,chess.WHITE) or not b.pieces(chess.ROOK,chess.BLACK):continue
+                if b.is_game_over() or keys(b.fen()) & seen:continue
+                pool.append({'source':stem,'game':game_no,'ply':ply,'fen':b.fen()})
+                seen.update(keys(b.fen()));break
+selected=rng.sample(pool,min(96,len(pool)))
+for i,r in enumerate(selected):r['id']=f'R2-{i+1:03}'
+payload={'seed':129113,'sources':sources,'eligible':len(pool),'selection':'first eligible unique rook-only 6-12 piece position per game after ply 40; random sample, no eval/outcome selection; excludes suite and reserved FENs plus color mirrors','positions':selected}
+p=out/'sample.json';p.write_text(json.dumps(payload,indent=2)+'\n')
+print('Frozen',len(selected),'positions from',len(pool),'eligible games; SHA256',hashlib.sha256(p.read_bytes()).hexdigest())

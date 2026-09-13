@@ -1,0 +1,20 @@
+production 500000 f6g7 -12 13
+production 1000000 f6e5 -29 16
+production 2000000 f6e5 -30 18
+production 3000000 f6e5 -42 20
+production 5000000 f6e5 -42 20
+production 10000000 f6g7 -66 21
+control 3000000 f6e5 -42 20
+null_move 3000000 f6e5 -37 17
+reverse_futility 3000000 f6e5 -74 17
+razoring 3000000 f6g7 -21 18
+futility 3000000 f6e5 -48 19
+late_move_reductions 3000000 f6f7 -99 12
+probcut 3000000 f6g7 -79 19
+tt_cutoffs 3000000 f6e5 -57 15
+q_delta 3000000 f6g7 -81 19
+q_see 3000000 f6g7 -74 18
+prior_full_qdraw 3000000 f6g7 -62 19
+prior_tt_depth 3000000 f6e5 -44 18
+hce 3000000 f6g7 -4 19
+Same-budget production/control parity confirmed

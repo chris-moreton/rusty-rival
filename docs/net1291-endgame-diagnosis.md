@@ -20,6 +20,10 @@ by itself prove a strength loss. All six suites were completed for every
 candidate. No nonpassing candidate advanced to the longer match, ladder or
 reserved rook sample. The Lichess bot was restarted and verified active.
 
+Follow-up: [Round 2 — independent rook-ending resource diagnosis](net1291-round2-resource-diagnosis.md)
+(13 September 2026) isolates a tablebase-confirmed missed king evasion and
+provides a fixed-node reproducer. No new strength change is accepted.
+
 ## Baseline evaluator comparison
 
 EET, 5 seconds per position, one thread, Hash 128, concurrency 4. The bot was

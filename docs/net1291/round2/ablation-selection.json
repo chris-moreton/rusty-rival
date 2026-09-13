@@ -1,0 +1,4 @@
+{
+  "rule": "SF forced regret >=100 cp at both 2s and 8s; Rival still chooses original move at 5s",
+  "ids": []
+}

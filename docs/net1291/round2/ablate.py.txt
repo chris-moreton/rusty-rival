@@ -1,0 +1,36 @@
+from probe import *
+import os
+DIAG=str(ROOT/'rival-diagnostic')
+MASKS={'production':0,'control':0,'null_move':1,'reverse_futility':2,'razoring':4,'futility':8,'late_move_reductions':16,'probcut':32,'tt_cutoffs':64,'q_delta':128,'q_see':256,'prior_full_qdraw':0,'prior_tt_depth':0}
+
+def run_case(task):
+    row,name,mask=task;b=chess.Board(row['screen']['fen'])
+    env=dict(os.environ,RIVAL_DIAG_DISABLE=str(mask))
+    binary={'production':RIVAL,'prior_full_qdraw':'/home/chris/benchmark/sprt/rival-net1291A','prior_tt_depth':'/home/chris/benchmark/sprt/rival-net1291C'}.get(name,DIAG)
+    with chess.engine.SimpleEngine.popen_uci(binary,env=env) as engine:
+        engine.configure({'Threads':1,'Hash':128})
+        r=encode(engine.play(b,chess.engine.Limit(nodes=1000000),game=object(),info=chess.engine.INFO_ALL),b)
+    return {'id':row['screen']['id'],'fen':b.fen(),'disabled':name,'mask':mask,'budget_nodes':1000000,**r}
+if __name__=='__main__':
+    rows=json.loads((ROOT/'confirm.json').read_text())
+    selected=[]
+    for row in rows:
+        # A stable resource remains missed at five seconds and is preferred by
+        # the same teacher at both confirmation budgets. Scores are not ground truth.
+        a=row['sf_rival_move_2s']['cp'];b=row['sf_peer_move_2s']['cp']
+        c=row['sf_rival_move_8s']['cp'];d=row['sf_peer_move_8s']['cp']
+        if None not in [a,b,c,d] and b-a>=100 and d-c>=100 and row['rival_root_5s']['best']==row['screen']['rival']['best']:
+            selected.append(row)
+    (ROOT/'ablation-selection.json').write_text(json.dumps({'rule':'SF forced regret >=100 cp at both 2s and 8s; Rival still chooses original move at 5s','ids':[r['screen']['id'] for r in selected]},indent=2)+'\n')
+    tasks=[(r,name,mask) for r in selected for name,mask in MASKS.items()];results=[]
+    (ROOT/'ablation.json').write_text('[]\n')
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        for r in pool.map(run_case,tasks):
+            results.append(r);print(r['id'],r['disabled'],r['best'],r['depth'],r['cp'],flush=True)
+            (ROOT/'ablation.json').write_text(json.dumps(results,indent=2)+'\n')
+
+    for row in selected:
+        a=next(r for r in results if r['id']==row['screen']['id'] and r['disabled']=='production')
+        b=next(r for r in results if r['id']==row['screen']['id'] and r['disabled']=='control')
+        assert all(a[k]==b[k] for k in ['best','cp','mate','depth','nodes','pv']), ('Instrumentation changed search',a,b)
+    print('Ablation positions checked:',len(selected),'; each control compared with production at the same node budget',flush=True)
