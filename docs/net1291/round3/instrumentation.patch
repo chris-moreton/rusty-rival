@@ -1,0 +1,156 @@
+diff --git a/src/search.rs b/src/search.rs
+index 9083d23..d20dae8 100644
+--- a/src/search.rs
++++ b/src/search.rs
+@@ -1036,6 +1036,72 @@ pub fn null_move_reduced_depth(depth: u8, eval_above_beta: Score) -> u8 {
+     depth.saturating_sub(1 + reduction).max(1)
+ }
+ 
++fn trace_enabled(ply: u8) -> bool {
++    static LIMIT: std::sync::LazyLock<u8> =
++        std::sync::LazyLock::new(|| std::env::var("RIVAL_TRACE_PLY").ok().and_then(|s| s.parse().ok()).unwrap_or(0));
++    ply <= *LIMIT && *LIMIT > 0
++}
++#[allow(clippy::too_many_arguments)]
++pub fn search(
++    position: &mut Position,
++    mut depth: u8,
++    ply: u8,
++    window: Window,
++    search_state: &mut SearchState,
++    on_null_move: bool,
++    excluded_move: Move,
++    known_in_check: Option<bool>,
++) -> PathScore {
++    let start = search_state.nodes;
++    static INTERVENTION: std::sync::LazyLock<u8> = std::sync::LazyLock::new(|| {
++        std::env::var("RIVAL_TRACE_INTERVENTION")
++            .ok()
++            .and_then(|s| s.parse().ok())
++            .unwrap_or(0)
++    });
++    if *INTERVENTION == 1 && start == 457126 && ply == 3 && depth == 10 {
++        eprintln!("INTERVENTION full-depth Ka2 at node {}", start);
++        depth = 12;
++    }
++    if trace_enabled(ply) {
++        eprintln!(
++            "TRACE\tenter\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
++            start,
++            search_state.iterative_depth,
++            ply,
++            depth,
++            window.0,
++            window.1,
++            on_null_move,
++            excluded_move,
++            crate::fen::get_fen(position)
++        );
++    }
++    let result = search_inner(
++        position,
++        depth,
++        ply,
++        window,
++        search_state,
++        on_null_move,
++        excluded_move,
++        known_in_check,
++    );
++    if trace_enabled(ply) {
++        eprintln!(
++            "TRACE\texit\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
++            start,
++            search_state.nodes,
++            search_state.iterative_depth,
++            ply,
++            depth,
++            result.1,
++            crate::fen::algebraic_path_from_path(&result.0)
++        );
++    }
++    result
++}
++
+ /// Prefetch the hash entry for the current position
+ /// Call this right after making a move to hide memory latency
+ #[inline(always)]
+@@ -1046,7 +1112,7 @@ fn prefetch_hash(position: &Position, search_state: &SearchState, hash_mask: u64
+ 
+ #[inline(always)]
+ #[allow(clippy::too_many_arguments)]
+-pub fn search(
++fn search_inner(
+     position: &mut Position,
+     depth: u8,
+     ply: u8,
+@@ -1167,6 +1233,18 @@ pub fn search(
+ 
+         // Skip hash cutoffs during singular extension search - the hash entry's score
+         // includes the excluded move's contribution, so we can't use it for cutoffs
++        if trace_enabled(ply) {
++            eprintln!(
++                "TRACE\ttt\t{}\t{}\t{}\t{}\t{:?}\t{}\t{}",
++                search_state.nodes,
++                ply,
++                depth,
++                hash_entry.height,
++                hash_entry.bound,
++                score,
++                crate::fen::algebraic_move_from_move(hash_entry.mv)
++            );
++        }
+         if excluded_move == 0 && hash_entry.height >= depth {
+             if hash_entry.bound == Exact {
+                 search_state.hash_hits_exact += 1;
+@@ -1312,6 +1390,17 @@ pub fn search(
+             return (pv_single(0), 0);
+         }
+ 
++        if trace_enabled(ply) {
++            eprintln!(
++                "TRACE\tnull\t{}\t{}\t{}\t{}\t{}\t{}",
++                search_state.nodes,
++                ply,
++                depth,
++                null_move_reduced_depth(depth, lazy_eval - beta),
++                score,
++                beta
++            );
++        }
+         if score >= beta {
+             return (pv_single(0), beta);
+         }
+@@ -2332,6 +2421,19 @@ fn lmr_scout_search(
+         known_in_check,
+     );
+ 
++    if trace_enabled(ply) {
++        eprintln!(
++            "TRACE\tscout\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
++            search_state.nodes,
++            ply,
++            real_depth,
++            lmr,
++            alpha,
++            beta,
++            scout_path.1,
++            crate::fen::get_fen(new_position)
++        );
++    }
+     if scout_path.1 > alpha && lmr > 0 {
+         // The reduced scout beat alpha: verify at full depth on the same null
+         // window (NET-1194). The old middle step re-ran the REDUCED search on
+@@ -2364,6 +2466,12 @@ fn lmr_scout_search(
+         scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
+     }
+ 
++    if trace_enabled(ply) {
++        eprintln!(
++            "TRACE\tscout_done\t{}\t{}\t{}\t{}\t{}",
++            search_state.nodes, ply, real_depth, lmr, scout_path.1
++        );
++    }
+     scout_path
+ }
+ 

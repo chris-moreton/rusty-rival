@@ -1,0 +1,35 @@
+from pathlib import Path
+import sys,os,json,gzip,shutil,re,subprocess,hashlib
+out=Path('/home/chris/benchmark/net1291-round3');root=Path('/home/chris/benchmark/net1291-worktree')
+sys.path.insert(0,str(out));from run import run
+os.environ.pop('RIVAL_TRACE_INTERVENTION',None)
+run('baseline-3m','/home/chris/benchmark/sprt/rival-v1.0.64',3000000,0)
+run('final-control-3m',str(out/'rival-trace'),3000000,4)
+def normalized(label):
+ lines=(out/(label+'.uci')).read_text().splitlines()
+ info=[l for l in lines if l.startswith('info depth')][-1]
+ return {'bestmove':[l for l in lines if l.startswith('bestmove')][-1], 'info':re.sub(r' nps \d+| time \d+','',info)}
+assert normalized('baseline-1m')==normalized('final-control-1m')
+assert normalized('baseline-3m')==normalized('final-control-3m')
+a=(out/'final-control-1m.trace').read_text().splitlines();b=(out/'single-ka2-full-depth-1m.trace').read_text().splitlines()
+prefix=next(i for i,(x,y) in enumerate(zip(a,b)) if x!=y)
+assert prefix==53743
+assert sum(l.startswith('INTERVENTION') for l in b)==1
+assert a[prefix].startswith('TRACE\tenter\t457126\t16\t3\t10\t')
+assert 'bestmove c4b3' in normalized('single-ka2-full-depth-1m')['bestmove']
+bench=subprocess.run([str(out/'rival-trace')],input='bench\nquit\n',capture_output=True,text=True,timeout=60,check=True).stdout
+(out/'bench.log').write_text(bench)
+assert int(re.search(r'Nodes searched:\s*(\d+)',bench)[1])==1772650
+verification={'baseline_identity':{'1m':normalized('baseline-1m'),'3m':normalized('baseline-3m')},'intervention':normalized('single-ka2-full-depth-1m'),'identical_trace_prefix_lines':prefix,'intervention_count':1,'bench':1772650}
+(out/'verification.json').write_text(json.dumps(verification,indent=2)+'\n')
+archive=root/'docs/net1291/round3';archive.mkdir(exist_ok=True)
+for name in ['trace.py','run.py','archive.py','build.json','instrumentation.patch','verification.json','bench.log','build.log']:
+ shutil.copy2(out/name,archive/(name+'.txt' if name.endswith('.py') else name))
+for label in ['baseline-1m','baseline-3m','final-control-1m','final-control-3m','single-ka2-full-depth-1m']:
+ shutil.copy2(out/(label+'.uci'),archive/(label+'.uci'))
+ if label not in ['baseline-1m','baseline-3m']:
+  raw=(out/(label+'.trace')).read_bytes()
+  (archive/(label+'.trace.gz')).write_bytes(gzip.compress(raw,mtime=0))
+manifest={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(archive.iterdir()) if p.name!='sha256.json'}
+(archive/'sha256.json').write_text(json.dumps(manifest,indent=2)+'\n')
+print(json.dumps(verification,indent=2))

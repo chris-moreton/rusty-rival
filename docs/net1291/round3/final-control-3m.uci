@@ -1,0 +1,37 @@
+id name Rusty Rival 1.0.64
+id author Chris Moreton
+option name Hash type spin default 128 min 1 max 16384
+option name Clear Hash type button
+option name MultiPV type spin default 1 min 1 max 20
+option name Contempt type spin default 0 min -1000 max 1000
+option name SyzygyPath type string default <empty>
+option name Threads type spin default 1 min 1 max 256
+option name EvalNoise type spin default 0 min 0 max 100
+option name UseNNUE type check default true
+option name Ponder type check default false
+option name Move Overhead type spin default 10 min 0 max 5000
+option name UCI_ShowWDL type check default false
+uciok
+readyok
+info depth 1 seldepth 1 multipv 1 score cp 84 nodes 8 nps 8000 hashfull 0 time 1 pv c4b5
+info depth 2 seldepth 3 multipv 1 score cp 50 nodes 39 nps 19500 hashfull 0 time 2 pv c4b5 h6h5
+info depth 3 seldepth 6 multipv 1 score cp 126 nodes 486 nps 19440 hashfull 0 time 25 pv c4b5 g4g1 b6e6 e5e6
+info depth 4 seldepth 8 multipv 1 score cp 57 nodes 1055 nps 21100 hashfull 0 time 50 pv c4b5 g4g1 b6h6 g1a1
+info depth 5 seldepth 10 multipv 1 score cp 60 nodes 1532 nps 22865 hashfull 0 time 67 pv c4b5 g4g1 b6h6 g1b1 b5a5 b1a1 a5b6
+info depth 6 seldepth 10 multipv 1 score cp 60 nodes 2483 nps 26136 hashfull 0 time 95 pv c4b5 g4g1 b6h6 g1b1 b5a5
+info depth 7 seldepth 13 multipv 1 score cp 45 nodes 5968 nps 41158 hashfull 0 time 145 pv c4b5 g4g1 b6h6 g1b1 b5a5 b1a1 a5b6 e5f5 h6c6
+info depth 8 seldepth 15 multipv 1 score cp 69 nodes 12438 nps 60378 hashfull 0 time 206 pv c4b5 g4g2 a6a7 g2a2 b6a6 a2b2 b5c6 b2c2 c6b7 c2b2 a6b6 b2b6 b7b6
+info depth 9 seldepth 17 multipv 1 score cp 94 nodes 20289 nps 68776 hashfull 0 time 295 pv c4b5 g4g1 a6a7 g1b1 b5a6 b1a1 a6b7 g5g4 b6h6 e5f4 a7a8q a1a8
+info depth 10 seldepth 17 multipv 1 score cp 89 nodes 26668 nps 74910 hashfull 0 time 356 pv c4b5 g4g1 a6a7 g1b1 b5a6 b1a1 a6b7 a1a7 b7a7 g5g4 b6h6 g4g3 h6g6
+info depth 11 seldepth 23 multipv 1 score cp 58 nodes 93979 nps 185362 hashfull 2 time 507 pv c4b5 g4g1 b6h6 g1a1 b5b6 e5f4
+info depth 12 seldepth 27 multipv 1 score cp 35 nodes 252693 nps 365691 hashfull 5 time 691 pv c4b5 g4g2 b6h6 g2a2 b5b6 g5g4 h6h5 e5f4 a6a7 g4g3 h5a5 a2b2 b6a6
+info depth 13 seldepth 26 multipv 1 score cp 36 nodes 285934 nps 370861 hashfull 6 time 771 pv c4b5 g4g2 b6h6 g2a2 b5b6 g5g4 h6h5 e5f4 a6a7 g4g3 h5a5 a2a5 b6a5
+info depth 14 seldepth 25 multipv 1 score cp 36 nodes 308056 nps 367170 hashfull 6 time 839 pv c4b5 g4g2 b6h6 g2a2 b5b6 g5g4 h6h5 e5f4 a6a7 g4g3 h5h8 f4f3 h8g8 a2a3 g8f8 f3g4 a7a8r a3a8
+info depth 15 seldepth 30 multipv 1 score cp 36 nodes 423772 nps 428052 hashfull 12 time 990 pv c4b5 g4g2 b6h6 g2a2 b5b6 g5g4 h6h5 e5f4
+info depth 16 seldepth 24 multipv 1 score cp 36 nodes 473090 nps 424295 hashfull 15 time 1115 pv c4b5 g4g2 b6h6 g2a2 b5b6 g5g4
+info depth 17 seldepth 36 multipv 1 score cp 134 nodes 1175103 nps 698634 hashfull 47 time 1682 pv c4b3 g4g1 b3a2 g1g4 b6b5 e5d6 b5a5 g4f4 a6a7 f4f8 a7a8q f8a8 a5a8 d6e5 a2b3 g5g4
+info depth 18 seldepth 25 multipv 1 score cp 134 nodes 1241458 nps 687788 hashfull 49 time 1805 pv c4b3 g4g1 b3a2 g1g4 b6b5 e5d6
+info depth 19 seldepth 39 multipv 1 score cp 137 nodes 1816429 nps 849990 hashfull 70 time 2137 pv c4b3 g4g1 b3a2 g1g4 b6b5 e5e6 b5a5 g4f4 a6a7 f4f8 a7a8q f8a8 a5a8 e6f5 a2b3 h6h5 b3c4 h5h4 c4d3 h4h3 d3e3 h3h2 a8h8 f5g4 h8h2 g4g3
+info depth 20 seldepth 36 multipv 1 score cp 137 nodes 2088292 nps 887124 hashfull 78 time 2354 pv c4b3 g4g1 b3a2 g1g4 b6b5 e5e6
+info depth 20 seldepth 36 multipv 1 score cp 137 nodes 3000000 nps 1123595 hashfull 97 time 2670 pv c4b3 g4g1 b3a2 g1g4 b6b5 e5e6
+bestmove c4b3 ponder g4g1

@@ -1,0 +1,28 @@
+from pathlib import Path
+import subprocess, os, json, sys
+out=Path('/home/chris/benchmark/net1291-round3')
+fen='8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61'
+def run(label,engine,nodes,trace):
+    with (out/(label+'.trace')).open('w') as err:
+        p=subprocess.Popen([engine],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=err,text=True,env=dict(os.environ,RIVAL_TRACE_PLY=str(trace)))
+        lines=[]
+        def send(s):p.stdin.write(s+'\n');p.stdin.flush()
+        def until(prefix):
+            while True:
+                line=p.stdout.readline()
+                if not line:raise RuntimeError('engine exited')
+                lines.append(line.rstrip())
+                if line.startswith(prefix):return line.strip()
+        send('uci');until('uciok')
+        send('setoption name Threads value 1');send('setoption name Hash value 128');send('ucinewgame');send('isready');until('readyok')
+        send('position fen '+fen);send('go nodes '+str(nodes));best=until('bestmove')
+        send('quit');p.wait(timeout=15)
+    (out/(label+'.uci')).write_text('\n'.join(lines)+'\n')
+    last=[l for l in lines if l.startswith('info depth')][-1]
+    print(label,best,last,flush=True)
+    return best,last
+if __name__=='__main__':
+    run('baseline-1m','/home/chris/benchmark/sprt/rival-v1.0.64',1000000,0)
+    run('trace-off-1m',str(out/'rival-trace'),1000000,0)
+    run('trace-1m',str(out/'rival-trace'),1000000,4)
+    run('trace-3m',str(out/'rival-trace'),3000000,4)

@@ -1,0 +1,64 @@
+from pathlib import Path
+import subprocess, shutil, hashlib, json
+root=Path('/home/chris/benchmark/net1291-worktree')
+out=Path('/home/chris/benchmark/net1291-round3')
+p=root/'src/search.rs'
+base=p.read_text()
+assert subprocess.check_output(['git','diff','--','src'],cwd=root)==b''
+s=base
+helper=r'''
+fn trace_enabled(ply: u8) -> bool {
+    static LIMIT: std::sync::LazyLock<u8> = std::sync::LazyLock::new(|| std::env::var("RIVAL_TRACE_PLY").ok().and_then(|s| s.parse().ok()).unwrap_or(0));
+    ply <= *LIMIT && *LIMIT > 0
+}
+#[allow(clippy::too_many_arguments)]
+pub fn search(position: &mut Position, mut depth: u8, ply: u8, window: Window, search_state: &mut SearchState, on_null_move: bool, excluded_move: Move, known_in_check: Option<bool>) -> PathScore {
+    let start = search_state.nodes;
+    static INTERVENTION: std::sync::LazyLock<u8> = std::sync::LazyLock::new(|| std::env::var("RIVAL_TRACE_INTERVENTION").ok().and_then(|s| s.parse().ok()).unwrap_or(0));
+    if *INTERVENTION == 1 && start == 457126 && ply == 3 && depth == 10 {
+        eprintln!("INTERVENTION full-depth Ka2 at node {}", start);
+        depth = 12;
+    }
+    if trace_enabled(ply) {
+        eprintln!("TRACE\tenter\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}", start, search_state.iterative_depth, ply, depth, window.0, window.1, on_null_move, excluded_move, crate::fen::get_fen(position));
+    }
+    let result = search_inner(position, depth, ply, window, search_state, on_null_move, excluded_move, known_in_check);
+    if trace_enabled(ply) {
+        eprintln!("TRACE\texit\t{}\t{}\t{}\t{}\t{}\t{}\t{}", start, search_state.nodes, search_state.iterative_depth, ply, depth, result.1, crate::fen::algebraic_path_from_path(&result.0));
+    }
+    result
+}
+'''
+s=s.replace('pub fn search(\n','fn search_inner(\n',1)
+s=s.replace('/// Prefetch the hash entry for the current position',helper+'\n/// Prefetch the hash entry for the current position',1)
+old='        if excluded_move == 0 && hash_entry.height >= depth {'
+s=s.replace(old,r'''        if trace_enabled(ply) {
+            eprintln!("TRACE\ttt\t{}\t{}\t{}\t{}\t{:?}\t{}\t{}", search_state.nodes, ply, depth, hash_entry.height, hash_entry.bound, score, crate::fen::algebraic_move_from_move(hash_entry.mv));
+        }
+'''+old,1)
+s=s.replace('        if score >= beta {\n            return (pv_single(0), beta);',r'''        if trace_enabled(ply) {
+            eprintln!("TRACE\tnull\t{}\t{}\t{}\t{}\t{}\t{}", search_state.nodes, ply, depth, null_move_reduced_depth(depth, lazy_eval - beta), score, beta);
+        }
+        if score >= beta {
+            return (pv_single(0), beta);''',1)
+s=s.replace('    if scout_path.1 > alpha && lmr > 0 {',r'''    if trace_enabled(ply) {
+        eprintln!("TRACE\tscout\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}", search_state.nodes, ply, real_depth, lmr, alpha, beta, scout_path.1, crate::fen::get_fen(new_position));
+    }
+    if scout_path.1 > alpha && lmr > 0 {''',1)
+s=s.replace('    scout_path\n}\n',r'''    if trace_enabled(ply) {
+        eprintln!("TRACE\tscout_done\t{}\t{}\t{}\t{}\t{}", search_state.nodes, ply, real_depth, lmr, scout_path.1);
+    }
+    scout_path
+}
+''',1)
+try:
+    p.write_text(s)
+    with (out/'build.log').open('w') as log:
+        subprocess.run(['cargo','fmt','--all'],cwd=root,stdout=log,stderr=subprocess.STDOUT,check=True)
+        subprocess.run(['cargo','build','--release','--features','search-width-diagnostics','--bin','rusty-rival'],cwd=root,stdout=log,stderr=subprocess.STDOUT,check=True)
+    binary=out/'rival-trace'; shutil.copy2(root/'target/release/rusty-rival',binary)
+    (out/'instrumentation.patch').write_bytes(subprocess.check_output(['git','diff','--','src/search.rs'],cwd=root))
+    (out/'build.json').write_text(json.dumps({'base':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest()},indent=2)+'\n')
+finally:
+    p.write_text(base)
+print('Built trace binary; production source restored',flush=True)

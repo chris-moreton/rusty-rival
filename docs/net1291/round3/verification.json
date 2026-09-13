@@ -1,0 +1,19 @@
+{
+  "baseline_identity": {
+    "1m": {
+      "bestmove": "bestmove c4b5 ponder g4g2",
+      "info": "info depth 16 seldepth 24 multipv 1 score cp 36 nodes 1000000 hashfull 38 pv c4b5 g4g2 b6h6 g2a2 b5b6 g5g4"
+    },
+    "3m": {
+      "bestmove": "bestmove c4b3 ponder g4g1",
+      "info": "info depth 20 seldepth 36 multipv 1 score cp 137 nodes 3000000 hashfull 97 pv c4b3 g4g1 b3a2 g1g4 b6b5 e5e6"
+    }
+  },
+  "intervention": {
+    "bestmove": "bestmove c4b3 ponder g4g1",
+    "info": "info depth 17 seldepth 24 multipv 1 score cp 141 nodes 1000000 hashfull 33 pv c4b3 g4g1 b3a2 g1g4 b6b5 e5d6"
+  },
+  "identical_trace_prefix_lines": 53743,
+  "intervention_count": 1,
+  "bench": 1772650
+}

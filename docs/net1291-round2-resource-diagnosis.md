@@ -204,3 +204,5 @@ was commissioned in round 2. The bot is active, and the 100-position reserved
 confirmation set remains unused. JSON records, scripts and logs live in
 [`net1291/round2/`](net1291/round2/); local binaries remain under
 `~/benchmark/net1291-round2/`.
+
+Follow-up: [round 3 traces a single reduced Ka2 scout and verifies a one-call counterfactual](net1291-round3-search-trace.md).
