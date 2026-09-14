@@ -73,3 +73,55 @@ RUSTFLAGS='-C link-args=-Wl,-z,stack-size=8388608 -C target-cpu=x86-64-v3' cargo
 Run the harness only on an idle host after coordinating with the bot agent.
 
 The [committed evidence](../results/performance/net1293.json) records binary hashes, host, all 80 FENs and matching trace digests per build, and every timing block. Full raw transcripts are in `/tmp/net1293/comparison.json` and `/tmp/net1293/comparison-avx2.json` on the experiment host; their hashes are recorded in the evidence.
+
+### Exporting the compact evidence
+
+The harness writes **one raw run** per invocation. The committed file combines
+two runs and replaces matching full traces with digests. After running the
+native and AVX2 comparisons, this separate conversion produces its schema:
+
+```sh
+python3 - native.json avx2.json evidence.json <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+out = {
+    'baseline_commit': '61e6ae5947943f6b2b56a82e011e71dc1e097f81',
+    'rustc': '1.98.1 (48a229cea 2026-09-01)',
+    'date': '2026-09-15',
+    'runs': {},
+}
+for name, path in zip(('native', 'avx2'), sys.argv[1:3]):
+    raw = Path(path).read_bytes()
+    run = json.loads(raw)
+    assert len(run['identity']) == 80 and len(run['blocks']) == 20
+    assert all(item['equal'] and item['results'][0] == item['results'][1]
+               for item in run['identity'])
+    summary = {key: run[key] for key in (
+        'binaries', 'cpu', 'nodes', 'depth', 'host', 'cpu_model', 'bench_nodes',
+        'speed_percent', 'ci95_percent', 'accepted',
+    )}
+    summary['identity'] = [{
+        'fen': item['fen'], 'equal': item['equal'],
+        'trace_sha256': hashlib.sha256(
+            json.dumps(item['results'][0], sort_keys=True).encode()).hexdigest(),
+    } for item in run['identity']]
+    summary['blocks'] = [{
+        'runs': [{key: item[key] for key in ('arm', 'ms', 'nodes')}
+                 for item in block['runs']],
+        'log_speed_ratio': block['log_speed_ratio'],
+    } for block in run['blocks']]
+    summary['raw_result_sha256'] = hashlib.sha256(raw).hexdigest()
+    out['runs'][name] = summary
+Path(sys.argv[3]).write_text(json.dumps(out, indent=2) + '\n')
+PY
+```
+
+The trace digest is SHA-256 of Python `json.dumps(trace, sort_keys=True)` encoded
+as UTF-8, using the default separators and ASCII escaping. The raw-result digest
+hashes the file's exact bytes, including whitespace. The metadata above identifies
+this experiment; update it when using the conversion for a different experiment.
+Running it on the two archived raw files reproduces the committed evidence
+byte for byte.
