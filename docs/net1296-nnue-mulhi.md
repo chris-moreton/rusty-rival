@@ -106,3 +106,28 @@ Each trace digest hashes Python `json.dumps(trace, sort_keys=True).encode()`
 with default separators/ASCII escaping. Raw-result hashes cover exact file
 bytes. Update baseline/compiler/date metadata when adapting to another run.
 
+
+## CodeRabbit validation correction
+
+CodeRabbit found an invalid `E` in a legacy `BENCH_FENS` entry. The original
+identity harness accepted that string; UCI rejected it and searched the initial
+position instead. The original timing/evidence file is retained unchanged and
+must not be read as 80 valid identity cases.
+
+The corrected harness checks FEN structure before sampling and checks engine
+errors at an `isready` barrier before `go`. It skips the invalid bench entry
+and selects 15 valid bench cases plus 65 suite cases (17 Arasan, 16 each from
+EET/WAC/STS). All **80 valid, distinct positions** were rerun on both unchanged
+build pairs; every trace and final move matches. New regression tests verify
+malformed FEN rejection, no search after an engine error and sample coverage;
+all 10 Python tool tests pass locally. The existing CI workflow is unchanged.
+
+`results/performance/net1296-corrected-identity.json` supersedes the identity
+coverage claim in the original timing file. It retains each FEN, equality and
+trace digest using the same encoding described above, plus binary hashes and
+the SHA-256 of the archived raw corrected-identity JSON.
+
+The paired timing samples are unchanged: the legacy internal bench input is
+identical for baseline and candidate. No benchmark input, engine code or timing
+sample was changed in response to review. The correction strengthens identity
+validation without selecting new timing results.
