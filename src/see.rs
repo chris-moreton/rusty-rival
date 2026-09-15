@@ -231,7 +231,17 @@ fn see_moves(position: &SeePosition, valid_destinations: Bitboard) -> MoveList {
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
 
-    generate_capture_pawn_moves_with_destinations_see(&mut move_list, position.mover as usize, friendly.pawn_bitboard, valid_destinations);
+    // SEE has one destination. Looking backwards from it selects the same
+    // lowest-square pawn as the forward generator without scanning every pawn.
+    let pawns = PAWN_MOVES_CAPTURE[opponent!(position.mover) as usize][capture_square] & friendly.pawn_bitboard;
+    if pawns != 0 {
+        let base_move = from_square_mask(pawns.trailing_zeros() as Square) | capture_square as Move;
+        move_list.push(if valid_destinations & PROMOTION_SQUARES != 0 {
+            base_move | PROMOTION_QUEEN_MOVE_MASK
+        } else {
+            base_move
+        });
+    }
 
     if move_list.is_empty() {
         let knights = KNIGHT_MOVES_BITBOARDS[capture_square] & friendly.knight_bitboard;
@@ -308,4 +318,33 @@ fn is_check_see(position: &SeePosition, mover: Mover) -> bool {
                     && BISHOP_RAYS[attacked_square as usize] & diagonal != 0
                     && magic_moves_bishop(attacked_square, all_pieces) & diagonal != 0)
         }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fen::get_position;
+
+    #[test]
+    fn pawn_recapture_matches_forward_generator() {
+        let mut position = SeePosition::from(&get_position("7k/8/8/8/8/8/8/K7 w - - 0 1"));
+        for mover in [WHITE, BLACK] {
+            position.mover = mover;
+            for target in 0..64 {
+                // Single pawns cover every origin/destination, including edge
+                // files and promotions. All pawns and alternating squares also
+                // exercise two attackers and irrelevant lower-square pawns.
+                for pawns in (0..64).map(bit).chain([0, u64::MAX, 0x5555555555555555, 0xaaaaaaaaaaaaaaaa]) {
+                    let friendly = &mut position.pieces[mover as usize];
+                    friendly.pawn_bitboard = pawns;
+                    friendly.all_pieces_bitboard = pawns | bit(friendly.king_square);
+                    let mut expected = MoveList::new();
+                    generate_capture_pawn_moves_with_destinations_see(&mut expected, mover as usize, pawns, bit(target));
+                    let actual = see_moves(&position, bit(target));
+                    let pawn = actual.iter().copied().find(|m| m & PIECE_MASK_FULL == PIECE_MASK_PAWN);
+                    assert_eq!(pawn, expected.first().copied(), "mover={mover}, target={target}, pawns={pawns:x}");
+                }
+            }
+        }
+    }
 }
