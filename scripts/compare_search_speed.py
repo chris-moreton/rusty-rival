@@ -64,10 +64,65 @@ class Engine:
                 self.proc.wait()
 
 
+def valid_fen(fen):
+    """Check FEN structure, not whether the position is reachable in a game."""
+    parts = fen.split()
+    if len(parts) != 6:
+        return False
+    board, turn, castle, ep, halfmove, fullmove = parts
+    ranks = board.split('/')
+    return (len(ranks) == 8
+            and all(re.fullmatch(r'[prnbqkPRNBQK1-8]+', rank)
+                    and sum(int(c) if c.isdigit() else 1 for c in rank) == 8
+                    for rank in ranks)
+            and board.count('K') == board.count('k') == 1
+            and turn in ('w', 'b')
+            and (castle == '-' or bool(re.fullmatch(r'K?Q?k?q?', castle)) and bool(castle))
+            and bool(re.fullmatch(r'-|[a-h][36]', ep))
+            and bool(re.fullmatch(r'[0-9]+', halfmove))
+            and bool(re.fullmatch(r'[0-9]+', fullmove)) and int(fullmove) >= 1)
+
+
+def sample_fens(root):
+    source = (root / 'src/uci_bench.rs').read_text().split('const BENCH_FENS:')[1].split('];', 1)[0]
+    fens, seen = [], set()
+    for fen in re.findall(r'"([^"]+)"', source):
+        key = ' '.join(fen.split()[:4])
+        if valid_fen(fen) and key not in seen:
+            fens.append(fen)
+            seen.add(key)
+        else:
+            print('Skipping invalid/duplicate bench FEN: ' + fen, flush=True)
+    # Replace invalid/duplicate bench entries with additional Arasan cases.
+    extra = 16 - len(fens)
+    for suite in ['arasan18', 'eet', 'wac', 'sts']:
+        entries = [line for line in (root / f'epd/suites/{suite}.epd').read_text(encoding='latin-1').splitlines()
+                   if line.strip() and not line.startswith('#')]
+        count = 16 + (extra if suite == 'arasan18' else 0)
+        for i in range(count):
+            start = i * (len(entries) - 1) // (count - 1)
+            for offset in range(len(entries)):
+                key = ' '.join(entries[(start + offset) % len(entries)].split()[:4])
+                fen = key + ' 0 1'
+                if valid_fen(fen) and key not in seen:
+                    seen.add(key)
+                    fens.append(fen)
+                    break
+            else:
+                raise RuntimeError('Not enough distinct valid positions in ' + suite)
+    return fens
+
+
 def search(path, fen, nodes):
+    if not valid_fen(fen):
+        raise ValueError('Invalid FEN: ' + fen)
     engine = Engine(path)
     try:
         engine.send('position fen ' + fen)
+        engine.send('isready')
+        response = engine.until('readyok')
+        if any(re.search(r'\b(?:error|invalid|illegal)\b', line, re.I) for line in response):
+            raise RuntimeError('Engine rejected FEN: ' + '\n'.join(response))
         engine.send('go nodes ' + str(nodes))
         lines = engine.until('bestmove')
         info = [line for line in lines if line.startswith('info depth ')]
@@ -122,15 +177,7 @@ def main():
         raise RuntimeError('Identical binaries: verify build provenance before timing')
     def save():
         args.output.write_text(json.dumps(result, indent=2) + '\n')
-    # Include all bench positions plus 64 evenly spaced independent suite cases.
-    source = (root / 'src/uci_bench.rs').read_text().split('const BENCH_FENS:')[1].split('];', 1)[0]
-    fens = re.findall(r'"([^"]+)"', source)
-    for suite in ['arasan18', 'eet', 'wac', 'sts']:
-        # Legacy EPD comments contain Latin-1 names; FEN fields are ASCII.
-        entries = [line for line in (root / f'epd/suites/{suite}.epd').read_text(encoding='latin-1').splitlines()
-                   if line.strip() and not line.startswith('#')]
-        fens.extend(' '.join(entries[i * (len(entries) - 1) // 15].split()[:4]) + ' 0 1'
-                    for i in range(16))
+    fens = sample_fens(root)
     for i, fen in enumerate(fens):
         records = [search(path, fen, args.nodes) for path in paths]
         result['identity'].append({'fen': fen, 'equal': records[0] == records[1], 'results': records})
