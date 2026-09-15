@@ -309,7 +309,8 @@ impl NnueNetwork {
 /// AVX2 SCReLU dot product, 16 neurons per vector.
 ///
 /// For `n=x*x` and a clipped activation `x` in 0..=255, `floor(n/255)` is
-/// exactly `(n + 1 + (n >> 8)) >> 8`. The intermediate fits in u16, and the
+/// exactly `((n + 1) * 257) >> 16`. The addition fits in u16, and unsigned
+/// multiply-high performs the product and shift in one instruction. The
 /// result is again an i16 in 0..=255, ready for `_mm256_madd_epi16` with signed
 /// L1 weights.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
@@ -320,6 +321,7 @@ unsafe fn evaluate_hidden_avx2(stm: &[i16; HIDDEN_SIZE], ntm: &[i16; HIDDEN_SIZE
     debug_assert_eq!(HIDDEN_SIZE % 16, 0);
     let zero = _mm256_setzero_si256();
     let one = _mm256_set1_epi16(1);
+    let reciprocal = _mm256_set1_epi16(257);
     let max = _mm256_set1_epi16(QA as i16);
     let mut sum = _mm256_setzero_si256();
 
@@ -330,8 +332,8 @@ unsafe fn evaluate_hidden_avx2(stm: &[i16; HIDDEN_SIZE], ntm: &[i16; HIDDEN_SIZE
         let n = _mm256_min_epi16(_mm256_max_epi16(n, zero), max);
         let s = _mm256_mullo_epi16(s, s);
         let n = _mm256_mullo_epi16(n, n);
-        let s = _mm256_srli_epi16::<8>(_mm256_add_epi16(_mm256_add_epi16(s, _mm256_srli_epi16::<8>(s)), one));
-        let n = _mm256_srli_epi16::<8>(_mm256_add_epi16(_mm256_add_epi16(n, _mm256_srli_epi16::<8>(n)), one));
+        let s = _mm256_mulhi_epu16(_mm256_add_epi16(s, one), reciprocal);
+        let n = _mm256_mulhi_epu16(_mm256_add_epi16(n, one), reciprocal);
         let sw = _mm256_loadu_si256(weights.as_ptr().add(i).cast());
         let nw = _mm256_loadu_si256(weights.as_ptr().add(HIDDEN_SIZE + i).cast());
         sum = _mm256_add_epi32(sum, _mm256_madd_epi16(s, sw));
@@ -346,6 +348,36 @@ unsafe fn evaluate_hidden_avx2(stm: &[i16; HIDDEN_SIZE], ntm: &[i16; HIDDEN_SIZE
 #[cfg(all(test, target_arch = "x86_64", target_feature = "avx2"))]
 mod avx2_tests {
     use super::*;
+
+    #[test]
+    fn avx2_normalization_matches_scalar_lane_by_lane() {
+        // Isolate each activation's contribution to prevent incorrect lanes
+        // cancelling in a whole-vector dot-product comparison. Exercise both
+        // perspectives and negative weights, including values outside clipping.
+        let mut stm = [0i16; HIDDEN_SIZE];
+        let mut ntm = [0i16; HIDDEN_SIZE];
+        let mut weights = [0i16; 2 * HIDDEN_SIZE];
+        for (i, x) in (0..=255i16).chain([i16::MIN, -1, 256, i16::MAX]).enumerate() {
+            let lane = i % HIDDEN_SIZE;
+            let clipped = i32::from(x).clamp(0, QA);
+            for perspective in 0..2 {
+                if perspective == 0 {
+                    stm[lane] = x;
+                } else {
+                    ntm[lane] = x;
+                }
+                weights[perspective * HIDDEN_SIZE + lane] = -127;
+                assert_eq!(
+                    unsafe { evaluate_hidden_avx2(&stm, &ntm, &weights) },
+                    clipped * clipped / QA * -127,
+                    "x={x}, perspective={perspective}"
+                );
+                stm[lane] = 0;
+                ntm[lane] = 0;
+                weights[perspective * HIDDEN_SIZE + lane] = 0;
+            }
+        }
+    }
 
     #[test]
     fn avx2_hidden_eval_matches_scalar_for_all_clipped_inputs() {

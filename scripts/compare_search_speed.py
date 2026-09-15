@@ -125,12 +125,21 @@ def main():
     # Include all bench positions plus 64 evenly spaced independent suite cases.
     source = (root / 'src/uci_bench.rs').read_text().split('const BENCH_FENS:')[1].split('];', 1)[0]
     fens = re.findall(r'"([^"]+)"', source)
+    seen = {' '.join(fen.split()[:4]) for fen in fens}
     for suite in ['arasan18', 'eet', 'wac', 'sts']:
         # Legacy EPD comments contain Latin-1 names; FEN fields are ASCII.
         entries = [line for line in (root / f'epd/suites/{suite}.epd').read_text(encoding='latin-1').splitlines()
                    if line.strip() and not line.startswith('#')]
-        fens.extend(' '.join(entries[i * (len(entries) - 1) // 15].split()[:4]) + ' 0 1'
-                    for i in range(16))
+        for i in range(16):
+            start = i * (len(entries) - 1) // 15
+            for offset in range(len(entries)):
+                fen = ' '.join(entries[(start + offset) % len(entries)].split()[:4])
+                if fen not in seen:
+                    seen.add(fen)
+                    fens.append(fen + ' 0 1')
+                    break
+            else:
+                raise RuntimeError('Not enough distinct positions in ' + suite)
     for i, fen in enumerate(fens):
         records = [search(path, fen, args.nodes) for path in paths]
         result['identity'].append({'fen': fen, 'equal': records[0] == records[1], 'results': records})
