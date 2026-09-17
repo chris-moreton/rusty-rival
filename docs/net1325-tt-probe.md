@@ -59,3 +59,20 @@ attached to NET-1325. `results/performance/net1325.json` contains compact record
 trace SHA256 hashes use Python `json.dumps(trace, sort_keys=True).encode()`;
 raw hashes cover exact archived JSON bytes. CPU reservation came only after
 explicit idle/no-process confirmation; bot remained stopped throughout.
+
+## Provenance and observed SMP records (review clarification)
+
+The AVX2 and SMP baseline intentionally reuse the **v1.0.67 baseline** built for
+NET-1322, not that experiment's rejected candidate. Every tracked baseline-source
+file was checked against commit 2912930's Git blob IDs. The source tree ID,
+compiler, exact flags/build command, build-log digest and candidate commit are
+recorded in `build_provenance`; executable SHA256 values remain in each run.
+The native baseline was independently built from the same verified source.
+No binary, timing sample, or engine code changed during this clarification.
+
+Each compact SMP run now includes observed aggregate `nodes` and `time_ms`, plus
+per-position `searches` with node count, reported search time, wall-clock duration
+and final `bestmove`. `position_index` selects the FEN from `runs.smp.fens`.
+`nps` is recomputable as 1000 * aggregate nodes / aggregate reported time_ms;
+`movetime_ms` remains the requested limit, not measured elapsed time. Full UCI
+lines and CPU samples remain in the NET-1325 raw evidence attachment.
