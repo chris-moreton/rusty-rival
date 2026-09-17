@@ -158,27 +158,39 @@ impl SharedHashTable {
     /// checksum confirms an untorn entry written for this exact lock.
     #[inline(always)]
     pub fn probe(&self, index: usize, lock: HashLock) -> Option<HashEntry> {
+        self.probe_with_meta(index, lock).0
+    }
+
+    /// Read an entry and its replacement metadata from the same three words.
+    /// Metadata is advisory even on a foreign key or checksum mismatch; only
+    /// the checked entry may supply search bounds, moves or evaluations.
+    #[inline(always)]
+    pub fn probe_with_meta(&self, index: usize, lock: HashLock) -> (Option<HashEntry>, (u8, u32, bool)) {
         let words = &self.data[index];
         let check = words[HASH_WORD_CHECK].load(Ordering::Relaxed);
         let move_score = words[HASH_WORD_MOVE_SCORE].load(Ordering::Relaxed);
         let meta = words[HASH_WORD_META].load(Ordering::Relaxed);
-        if check ^ move_score ^ meta != hash_entry_key(lock) || (check | move_score | meta) == 0 {
-            return None;
+        let entry_meta = (meta as u8, (meta >> 16) as u32, (check | move_score | meta) != 0);
+        if check ^ move_score ^ meta != hash_entry_key(lock) || !entry_meta.2 {
+            return (None, entry_meta);
         }
         let bound = match (meta >> 8) & 0x3 {
             0 => BoundType::Exact,
             1 => BoundType::Lower,
             _ => BoundType::Upper,
         };
-        Some(HashEntry {
-            score: (move_score >> 32) as u32 as Score,
-            version: (meta >> 16) as u32,
-            height: meta as u8,
-            mv: move_score as u32 as Move,
-            bound,
-            lock,
-            static_eval: (meta >> 48) as u16 as i16 as Score,
-        })
+        (
+            Some(HashEntry {
+                score: (move_score >> 32) as u32 as Score,
+                version: (meta >> 16) as u32,
+                height: meta as u8,
+                mv: move_score as u32 as Move,
+                bound,
+                lock,
+                static_eval: (meta >> 48) as u16 as i16 as Score,
+            }),
+            entry_meta,
+        )
     }
 
     /// Height/version/occupancy of whatever occupies the slot (no key check) -
@@ -1090,5 +1102,69 @@ impl PartialEq for Position {
             && self.castle_flags == other.castle_flags
             && self.half_moves == other.half_moves
             && self.move_number == other.move_number
+    }
+}
+
+#[cfg(test)]
+mod combined_probe_tests {
+    use super::*;
+
+    #[test]
+    fn combined_probe_keeps_foreign_metadata_without_returning_foreign_scores() {
+        let table = SharedHashTable::new_with_mb(1);
+        let lock = (0x12345678u128 << 64) | 7;
+        assert_eq!(table.probe_with_meta(0, lock).1, (0, 0, false));
+        assert!(table.probe_with_meta(0, lock).0.is_none());
+        for bound in [BoundType::Exact, BoundType::Lower, BoundType::Upper] {
+            table.store(
+                0,
+                HashEntry {
+                    score: -9999,
+                    version: 0xfedcba98,
+                    height: 123,
+                    mv: 0x81234567,
+                    bound,
+                    lock,
+                    static_eval: STATIC_EVAL_NONE,
+                },
+            );
+            let (entry, metadata) = table.probe_with_meta(0, lock);
+            assert_eq!(metadata, (123, 0xfedcba98, true));
+            let entry = entry.unwrap();
+            assert_eq!(entry.score, -9999);
+            assert_eq!(entry.mv, 0x81234567);
+            assert_eq!(entry.bound, bound);
+            assert_eq!(entry.static_eval, STATIC_EVAL_NONE);
+            let (foreign, foreign_meta) = table.probe_with_meta(0, lock ^ (1u128 << 100));
+            assert!(foreign.is_none());
+            assert_eq!(foreign_meta, metadata);
+        }
+    }
+
+    #[test]
+    fn combined_probe_rejects_each_corrupted_word() {
+        let table = SharedHashTable::new_with_mb(1);
+        let lock = 0x12345678u128 << 64;
+        for word in 0..3 {
+            table.store(
+                0,
+                HashEntry {
+                    score: 42,
+                    version: 17,
+                    height: 6,
+                    mv: 1234,
+                    bound: BoundType::Lower,
+                    lock,
+                    static_eval: -73,
+                },
+            );
+            table.data[0][word].fetch_xor(1 << 20, Ordering::Relaxed);
+            let (entry, meta) = table.probe_with_meta(0, lock);
+            assert!(entry.is_none(), "word {word}");
+            assert_eq!(meta, table.entry_meta(0));
+        }
+        table.clear();
+        assert!(table.probe_with_meta(0, lock).0.is_none());
+        assert_eq!(table.probe_with_meta(0, lock).1, (0, 0, false));
     }
 }
