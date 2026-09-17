@@ -1142,10 +1142,9 @@ pub fn search(
     let hash_mask = search_state.hash_table.mask();
     let hash_index: usize = (position.zobrist_lock as u64 & hash_mask) as usize;
     // Checksum-verified probe: None on miss, foreign entry, or torn write
-    let probed_entry = search_state.hash_table.probe(hash_index, position.zobrist_lock);
-    // Whatever occupies the slot (matching or not) informs the replacement
-    // decision for stores from this node
-    let (hash_height, hash_version, slot_occupied) = search_state.hash_table.entry_meta(hash_index);
+    // Reuse the same words for replacement metadata, including on a key miss.
+    let (probed_entry, (hash_height, hash_version, slot_occupied)) =
+        search_state.hash_table.probe_with_meta(hash_index, position.zobrist_lock);
     // Track hash entry info for singular extension (needed even if depth isn't sufficient for cutoff)
     search_state.tt_probes += 1;
     match probed_entry {
