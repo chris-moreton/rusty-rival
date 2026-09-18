@@ -1,6 +1,6 @@
 # EPD resource investigation, 18 September 2026
 
-Diagnosis only. No engine source changes or parameter selection. PGO work remains preserved on perf/linux-avx2-pgo and is not an arm in this comparison.
+Diagnosis only. No production engine source changes or parameter selection. PGO work remains preserved on perf/linux-avx2-pgo and is not an arm in this comparison.
 
 ## Baselines
 - Public v1.0.68 AVX2, SHA256 fb4c0ef1d088a2d25abdf890acc277cafbb9cb30c90c999e200e3131e29b748b.
