@@ -104,7 +104,35 @@ jobs:
           toolchain: 1.98.1
           targets: ${{ matrix.target }}
 
+      - name: Install LLVM profile tools
+        if: matrix.suffix == 'linux-x86_64-avx2'
+        run: rustup component add llvm-tools
+
+      - name: Build Linux AVX2 with a fresh PGO profile
+        if: matrix.suffix == 'linux-x86_64-avx2'
+        shell: bash
+        run: |
+          python3 scripts/build_pgo.py \
+            --positions scripts/pgo/positions.json \
+            --work-dir "$RUNNER_TEMP/rival-pgo" \
+            --lock-file "$RUNNER_TEMP/rival-pgo.lock" \
+            --output target/x86_64-unknown-linux-gnu/release/rusty-rival
+
+      - name: Archive Linux AVX2 profile provenance
+        if: always() && matrix.suffix == 'linux-x86_64-avx2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgo-provenance-linux-x86_64-avx2
+          path: |
+            ${{ runner.temp }}/rival-pgo/provenance.json
+            ${{ runner.temp }}/rival-pgo/merged.profdata
+            ${{ runner.temp }}/rival-pgo/training.json
+            ${{ runner.temp }}/rival-pgo/profile-counts.txt
+            ${{ runner.temp }}/rival-pgo/*.log
+          if-no-files-found: warn
+
       - name: Build
+        if: matrix.suffix != 'linux-x86_64-avx2'
         shell: bash
         run: |
           # Set stack size flags per platform, plus optional CPU target level

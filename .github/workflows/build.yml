@@ -33,7 +33,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Test evaluation attribution parser
-        run: python3 -m unittest scripts/test_eval_attribution.py
+        run: python3 -m unittest scripts/test_eval_attribution.py scripts/test_build_pgo.py
 
   check:
     name: Check
