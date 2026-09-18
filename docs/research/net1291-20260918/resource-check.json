@@ -1,0 +1,15 @@
+[
+  {
+    "moves": "b5b6 g4g3 b6c6 g3g2 a1b1 b8c8 b1a1 h2h1q",
+    "fen": "2k5/8/2K5/8/5p2/8/4Ppp1/R6q w - - 0 5",
+    "promotion_checks": false,
+    "ra8_legal": true,
+    "ra8_mates": true
+  },
+  {
+    "moves": "b5c6 g4g3 a1b1 b8c8 b1a1 h2h1q",
+    "fen": "2k5/8/2K5/8/5p2/6p1/4Pp2/R6q w - - 0 4",
+    "promotion_checks": true,
+    "ra8_legal": false
+  }
+]

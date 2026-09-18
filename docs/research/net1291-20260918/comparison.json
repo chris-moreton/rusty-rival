@@ -1,0 +1,1519 @@
+{
+  "totals": {
+    "1000": {
+      "ethereal": 69,
+      "stash": 72,
+      "rival": 55
+    },
+    "5000": {
+      "ethereal": 79,
+      "stash": 83,
+      "rival": 67
+    }
+  },
+  "disagreements": {
+    "1000": [
+      {
+        "id": "E_E_T 008 - B vs S",
+        "fen": "8/1Pk2Kpp/8/8/4nPP1/7P/8/8 b - - 0 1",
+        "pieces": 9,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 008 - B vs S",
+            "bm": [
+              "Nf2"
+            ],
+            "best": "e4f2",
+            "solved": true,
+            "solved_at": {
+              "depth": 21,
+              "nodes": 2150840,
+              "ms": 438
+            },
+            "score_cp": -81,
+            "depth": 24,
+            "nodes": 3912466,
+            "ms": 767
+          },
+          "stash": {
+            "id": "E_E_T 008 - B vs S",
+            "bm": [
+              "Nf2"
+            ],
+            "best": "e4f2",
+            "solved": true,
+            "solved_at": {
+              "depth": 18,
+              "nodes": 1168208,
+              "ms": 242
+            },
+            "score_cp": -4,
+            "depth": 23,
+            "nodes": 5751711,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 008 - B vs S",
+            "bm": [
+              "Nf2"
+            ],
+            "best": "g7g5",
+            "solved": false,
+            "score_cp": -62,
+            "depth": 21,
+            "nodes": 3716000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 033 - L&S vs D",
+        "fen": "8/p5pq/8/p2N3p/k2P3P/8/KP3PB1/8 w - - 0 1",
+        "pieces": 13,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 033 - L&S vs D",
+            "bm": [
+              "Be4"
+            ],
+            "best": "g2e4",
+            "solved": true,
+            "solved_at": {
+              "depth": 29,
+              "nodes": 251370,
+              "ms": 50
+            },
+            "score_cp": 0,
+            "depth": 42,
+            "nodes": 3917017,
+            "ms": 741
+          },
+          "stash": {
+            "id": "E_E_T 033 - L&S vs D",
+            "bm": [
+              "Be4"
+            ],
+            "best": "g2e4",
+            "solved": true,
+            "solved_at": {
+              "depth": 31,
+              "nodes": 282897,
+              "ms": 73
+            },
+            "score_cp": 411,
+            "depth": 36,
+            "nodes": 4055347,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 033 - L&S vs D",
+            "bm": [
+              "Be4"
+            ],
+            "best": "g2f1",
+            "solved": false,
+            "score_cp": 0,
+            "depth": 31,
+            "nodes": 2838000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 041 - S vs L",
+        "fen": "8/8/6Np/2p3kP/1pPbP3/1P3K2/8/8 w - - 0 1",
+        "pieces": 11,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 041 - S vs L",
+            "bm": [
+              "e5"
+            ],
+            "best": "e4e5",
+            "solved": true,
+            "solved_at": {
+              "depth": 23,
+              "nodes": 1342350,
+              "ms": 277
+            },
+            "score_cp": 142,
+            "depth": 27,
+            "nodes": 4971503,
+            "ms": 922
+          },
+          "stash": {
+            "id": "E_E_T 041 - S vs L",
+            "bm": [
+              "e5"
+            ],
+            "best": "e4e5",
+            "solved": true,
+            "solved_at": {
+              "depth": 27,
+              "nodes": 4355054,
+              "ms": 970
+            },
+            "score_cp": 348,
+            "depth": 27,
+            "nodes": 4355054,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 041 - S vs L",
+            "bm": [
+              "e5"
+            ],
+            "best": "g6f8",
+            "solved": false,
+            "score_cp": 216,
+            "depth": 26,
+            "nodes": 3204000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 042 - S vs L",
+        "fen": "8/3P4/1p3b1p/p7/P7/1P3NPP/4p1K1/3k4 w - - 0 1",
+        "pieces": 13,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 042 - S vs L",
+            "bm": [
+              "g4"
+            ],
+            "best": "g3g4",
+            "solved": true,
+            "solved_at": {
+              "depth": 27,
+              "nodes": 2227194,
+              "ms": 497
+            },
+            "score_cp": 109,
+            "depth": 27,
+            "nodes": 2227194,
+            "ms": 497
+          },
+          "stash": {
+            "id": "E_E_T 042 - S vs L",
+            "bm": [
+              "g4"
+            ],
+            "best": "g3g4",
+            "solved": true,
+            "solved_at": {
+              "depth": 30,
+              "nodes": 2056078,
+              "ms": 459
+            },
+            "score_cp": 266,
+            "depth": 31,
+            "nodes": 3974365,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 042 - S vs L",
+            "bm": [
+              "g4"
+            ],
+            "best": "g2f2",
+            "solved": false,
+            "score_cp": -2,
+            "depth": 25,
+            "nodes": 3135000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 047 - S vs T",
+        "fen": "8/7k/2P5/2p4p/P3N2K/8/8/5r2 w - - 0 1",
+        "pieces": 8,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 047 - S vs T",
+            "bm": [
+              "Ng5+"
+            ],
+            "best": "e4g5",
+            "solved": true,
+            "solved_at": {
+              "depth": 19,
+              "nodes": 995848,
+              "ms": 217
+            },
+            "score_cp": 252,
+            "depth": 24,
+            "nodes": 3637731,
+            "ms": 733
+          },
+          "stash": {
+            "id": "E_E_T 047 - S vs T",
+            "bm": [
+              "Ng5+"
+            ],
+            "best": "e4g5",
+            "solved": true,
+            "solved_at": {
+              "depth": 28,
+              "nodes": 4560674,
+              "ms": 970
+            },
+            "score_cp": -33,
+            "depth": 28,
+            "nodes": 4560674,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 047 - S vs T",
+            "bm": [
+              "Ng5+"
+            ],
+            "best": "h4h5",
+            "solved": false,
+            "score_cp": -21,
+            "depth": 19,
+            "nodes": 3309000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 048 - S vs T",
+        "fen": "2k1r3/p7/K7/1P6/P2N4/8/P7/8 w - - 0 1",
+        "pieces": 8,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 048 - S vs T",
+            "bm": [
+              "Nc6"
+            ],
+            "best": "d4c6",
+            "solved": true,
+            "solved_at": {
+              "depth": 24,
+              "nodes": 2228623,
+              "ms": 428
+            },
+            "score_cp": 141,
+            "depth": 27,
+            "nodes": 4986689,
+            "ms": 925
+          },
+          "stash": {
+            "id": "E_E_T 048 - S vs T",
+            "bm": [
+              "Nc6"
+            ],
+            "best": "d4c6",
+            "solved": true,
+            "solved_at": {
+              "depth": 22,
+              "nodes": 1549742,
+              "ms": 366
+            },
+            "score_cp": 532,
+            "depth": 26,
+            "nodes": 4440569,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 048 - S vs T",
+            "bm": [
+              "Nc6"
+            ],
+            "best": "a4a5",
+            "solved": false,
+            "score_cp": 466,
+            "depth": 23,
+            "nodes": 3479000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 049 - T vs B",
+        "fen": "1k6/8/8/1K6/5pp1/8/4Pp1p/R7 w - - 0 1",
+        "pieces": 8,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 049 - T vs B",
+            "bm": [
+              "Kb6"
+            ],
+            "best": "b5b6",
+            "solved": true,
+            "solved_at": {
+              "depth": 19,
+              "nodes": 377676,
+              "ms": 80
+            },
+            "score_cp": 0,
+            "depth": 37,
+            "nodes": 4662580,
+            "ms": 975
+          },
+          "stash": {
+            "id": "E_E_T 049 - T vs B",
+            "bm": [
+              "Kb6"
+            ],
+            "best": "b5b6",
+            "solved": true,
+            "solved_at": {
+              "depth": 20,
+              "nodes": 583688,
+              "ms": 116
+            },
+            "score_cp": 0,
+            "depth": 36,
+            "nodes": 4296268,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 049 - T vs B",
+            "bm": [
+              "Kb6"
+            ],
+            "best": "b5c6",
+            "solved": false,
+            "score_cp": -1004,
+            "depth": 26,
+            "nodes": 3354000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 066 - T vs T",
+        "fen": "8/1pp1r3/p1p2k2/6p1/P5P1/1P3P2/2P1RK2/8 b - - 0 1",
+        "pieces": 14,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 066 - T vs T",
+            "bm": [],
+            "am": [
+              "Rxe2+",
+              "Re5"
+            ],
+            "best": "e7h7",
+            "solved": true,
+            "solved_at": {
+              "depth": 16,
+              "nodes": 240235,
+              "ms": 70
+            },
+            "score_cp": -32,
+            "depth": 22,
+            "nodes": 3320366,
+            "ms": 906
+          },
+          "stash": {
+            "id": "E_E_T 066 - T vs T",
+            "bm": [],
+            "am": [
+              "Rxe2+",
+              "Re5"
+            ],
+            "best": "e7h7",
+            "solved": true,
+            "solved_at": {
+              "depth": 15,
+              "nodes": 278318,
+              "ms": 71
+            },
+            "score_cp": -61,
+            "depth": 21,
+            "nodes": 3467469,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 066 - T vs T",
+            "bm": [],
+            "am": [
+              "Rxe2+",
+              "Re5"
+            ],
+            "best": "e7e2",
+            "solved": false,
+            "score_cp": 0,
+            "depth": 19,
+            "nodes": 3309000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 072 - T&L vs L&B",
+        "fen": "5k2/8/2Pb1B2/8/6RK/7p/5p1P/8 w - - 0 1",
+        "pieces": 9,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 072 - T&L vs L&B",
+            "bm": [
+              "Be5"
+            ],
+            "best": "f6e5",
+            "solved": true,
+            "solved_at": {
+              "depth": 23,
+              "nodes": 2122156,
+              "ms": 500
+            },
+            "score_cp": -168,
+            "depth": 29,
+            "nodes": 4164217,
+            "ms": 925
+          },
+          "stash": {
+            "id": "E_E_T 072 - T&L vs L&B",
+            "bm": [
+              "Be5"
+            ],
+            "best": "f6e5",
+            "solved": true,
+            "solved_at": {
+              "depth": 23,
+              "nodes": 3012963,
+              "ms": 734
+            },
+            "score_cp": -34,
+            "depth": 24,
+            "nodes": 4217286,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 072 - T&L vs L&B",
+            "bm": [
+              "Be5"
+            ],
+            "best": "f6g7",
+            "solved": false,
+            "score_cp": -189,
+            "depth": 17,
+            "nodes": 3144000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 081 - T&L&S vs L&B",
+        "fen": "8/1p5p/6p1/1p4Pp/1PpR4/2P1K1kB/6Np/7b w - - 0 1",
+        "pieces": 16,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 081 - T&L&S vs L&B",
+            "bm": [
+              "Rd1"
+            ],
+            "best": "d4d1",
+            "solved": true,
+            "solved_at": {
+              "depth": 36,
+              "nodes": 2755182,
+              "ms": 607
+            },
+            "score_cp": 0,
+            "depth": 37,
+            "nodes": 3217817,
+            "ms": 713
+          },
+          "stash": {
+            "id": "E_E_T 081 - T&L&S vs L&B",
+            "bm": [
+              "Rd1"
+            ],
+            "best": "d4d1",
+            "solved": true,
+            "solved_at": {
+              "depth": 35,
+              "nodes": 3229499,
+              "ms": 750
+            },
+            "score_cp": 319,
+            "depth": 35,
+            "nodes": 4111210,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 081 - T&L&S vs L&B",
+            "bm": [
+              "Rd1"
+            ],
+            "best": "d4d2",
+            "solved": false,
+            "score_cp": 0,
+            "depth": 29,
+            "nodes": 2788000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 088 - T&S vs T&S",
+        "fen": "5n1k/1r3P1p/p2p3P/P7/8/1N6/5R2/4K3 b - - 0 1",
+        "pieces": 12,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 088 - T&S vs T&S",
+            "bm": [
+              "Re7+"
+            ],
+            "best": "b7e7",
+            "solved": true,
+            "solved_at": {
+              "depth": 28,
+              "nodes": 1648947,
+              "ms": 387
+            },
+            "score_cp": -32,
+            "depth": 28,
+            "nodes": 1648947,
+            "ms": 387
+          },
+          "stash": {
+            "id": "E_E_T 088 - T&S vs T&S",
+            "bm": [
+              "Re7+"
+            ],
+            "best": "b7e7",
+            "solved": true,
+            "solved_at": {
+              "depth": 19,
+              "nodes": 171002,
+              "ms": 36
+            },
+            "score_cp": -85,
+            "depth": 24,
+            "nodes": 3485609,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 088 - T&S vs T&S",
+            "bm": [
+              "Re7+"
+            ],
+            "best": "b7b3",
+            "solved": false,
+            "score_cp": 264,
+            "depth": 21,
+            "nodes": 3457000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 095 - T&T vs T&T",
+        "fen": "1k1K4/1p6/P4P2/2R5/4p2R/r2p4/8/3r4 w - - 0 1",
+        "pieces": 11,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 095 - T&T vs T&T",
+            "bm": [
+              "Rf4"
+            ],
+            "best": "h4f4",
+            "solved": true,
+            "solved_at": {
+              "depth": 20,
+              "nodes": 1812705,
+              "ms": 443
+            },
+            "score_cp": 73,
+            "depth": 23,
+            "nodes": 3220473,
+            "ms": 820
+          },
+          "stash": {
+            "id": "E_E_T 095 - T&T vs T&T",
+            "bm": [
+              "Rf4"
+            ],
+            "best": "h4f4",
+            "solved": true,
+            "solved_at": {
+              "depth": 17,
+              "nodes": 1023689,
+              "ms": 259
+            },
+            "score_cp": 0,
+            "depth": 20,
+            "nodes": 3562330,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 095 - T&T vs T&T",
+            "bm": [
+              "Rf4"
+            ],
+            "best": "c5c8",
+            "solved": false,
+            "score_cp": 51,
+            "depth": 16,
+            "nodes": 2705000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 16b - T&S vs T&S",
+        "fen": "4k1r1/pp2p2p/3pN1n1/2pP4/2P3P1/PP5P/8/5RK1 b - - 0 1",
+        "pieces": 18,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 16b - T&S vs T&S",
+            "bm": [],
+            "am": [
+              "Nf8"
+            ],
+            "best": "g6e5",
+            "solved": true,
+            "solved_at": {
+              "depth": 1,
+              "nodes": 2,
+              "ms": 0
+            },
+            "score_cp": -77,
+            "depth": 24,
+            "nodes": 2840868,
+            "ms": 825
+          },
+          "stash": {
+            "id": "E_E_T 16b - T&S vs T&S",
+            "bm": [],
+            "am": [
+              "Nf8"
+            ],
+            "best": "a7a6",
+            "solved": true,
+            "solved_at": {
+              "depth": 14,
+              "nodes": 172914,
+              "ms": 46
+            },
+            "score_cp": -140,
+            "depth": 20,
+            "nodes": 3095850,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 16b - T&S vs T&S",
+            "bm": [],
+            "am": [
+              "Nf8"
+            ],
+            "best": "g6f8",
+            "solved": false,
+            "score_cp": -151,
+            "depth": 19,
+            "nodes": 2669000,
+            "ms": 989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 70b - D vs T&L&B",
+        "fen": "8/1k6/8/Q7/7p/6p1/6pr/6Kb w - - 0 1",
+        "pieces": 8,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 70b - D vs T&L&B",
+            "bm": [
+              "Qc5"
+            ],
+            "best": "a5c5",
+            "solved": true,
+            "solved_at": {
+              "depth": 11,
+              "nodes": 7759,
+              "ms": 3
+            },
+            "score_cp": 589,
+            "depth": 40,
+            "nodes": 7777840,
+            "ms": 962
+          },
+          "stash": {
+            "id": "E_E_T 70b - D vs T&L&B",
+            "bm": [
+              "Qc5"
+            ],
+            "best": "a5c5",
+            "solved": true,
+            "solved_at": {
+              "depth": 35,
+              "nodes": 398392,
+              "ms": 60
+            },
+            "score_cp": 900,
+            "depth": 41,
+            "nodes": 5752555,
+            "ms": 970
+          },
+          "rival": {
+            "id": "E_E_T 70b - D vs T&L&B",
+            "bm": [
+              "Qc5"
+            ],
+            "best": "a5b5",
+            "solved": false,
+            "score_cp": 439,
+            "depth": 26,
+            "nodes": 3603000,
+            "ms": 989
+          }
+        }
+      }
+    ],
+    "5000": [
+      {
+        "id": "E_E_T 014 - D&L vs D&T",
+        "fen": "4qr2/4p2k/1p2P1pP/5P2/1P3P2/6Q1/8/3B1K2 w - - 0 1",
+        "pieces": 14,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 014 - D&L vs D&T",
+            "bm": [
+              "Ba4"
+            ],
+            "best": "d1a4",
+            "solved": true,
+            "solved_at": {
+              "depth": 26,
+              "nodes": 10920629,
+              "ms": 2590
+            },
+            "score_cp": 401,
+            "depth": 30,
+            "nodes": 20616131,
+            "ms": 4992
+          },
+          "stash": {
+            "id": "E_E_T 014 - D&L vs D&T",
+            "bm": [
+              "Ba4"
+            ],
+            "best": "d1a4",
+            "solved": true,
+            "solved_at": {
+              "depth": 18,
+              "nodes": 188235,
+              "ms": 49
+            },
+            "score_cp": 0,
+            "depth": 32,
+            "nodes": 16766918,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 014 - D&L vs D&T",
+            "bm": [
+              "Ba4"
+            ],
+            "best": "f5g6",
+            "solved": false,
+            "score_cp": 2,
+            "depth": 23,
+            "nodes": 15378000,
+            "ms": 4988
+          }
+        }
+      },
+      {
+        "id": "E_E_T 029 - L vs S",
+        "fen": "8/3k1p2/n3pP2/1p2P2p/5K2/1PB5/7P/8 b - - 0 1",
+        "pieces": 12,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 029 - L vs S",
+            "bm": [],
+            "am": [
+              "Kc6",
+              "b4"
+            ],
+            "best": "d7e8",
+            "solved": true,
+            "solved_at": {
+              "depth": 31,
+              "nodes": 14226798,
+              "ms": 3116
+            },
+            "score_cp": -86,
+            "depth": 37,
+            "nodes": 21499865,
+            "ms": 4632
+          },
+          "stash": {
+            "id": "E_E_T 029 - L vs S",
+            "bm": [],
+            "am": [
+              "Kc6",
+              "b4"
+            ],
+            "best": "d7e8",
+            "solved": true,
+            "solved_at": {
+              "depth": 26,
+              "nodes": 12790730,
+              "ms": 3064
+            },
+            "score_cp": -229,
+            "depth": 28,
+            "nodes": 20970926,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 029 - L vs S",
+            "bm": [],
+            "am": [
+              "Kc6",
+              "b4"
+            ],
+            "best": "b5b4",
+            "solved": false,
+            "score_cp": -248,
+            "depth": 31,
+            "nodes": 16450000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 033 - L&S vs D",
+        "fen": "8/p5pq/8/p2N3p/k2P3P/8/KP3PB1/8 w - - 0 1",
+        "pieces": 13,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 033 - L&S vs D",
+            "bm": [
+              "Be4"
+            ],
+            "best": "g2e4",
+            "solved": true,
+            "solved_at": {
+              "depth": 49,
+              "nodes": 12903202,
+              "ms": 2490
+            },
+            "score_cp": 0,
+            "depth": 51,
+            "nodes": 15705518,
+            "ms": 3098
+          },
+          "stash": {
+            "id": "E_E_T 033 - L&S vs D",
+            "bm": [
+              "Be4"
+            ],
+            "best": "g2e4",
+            "solved": true,
+            "solved_at": {
+              "depth": 31,
+              "nodes": 282897,
+              "ms": 70
+            },
+            "score_cp": 814,
+            "depth": 36,
+            "nodes": 20864862,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 033 - L&S vs D",
+            "bm": [
+              "Be4"
+            ],
+            "best": "g2f1",
+            "solved": false,
+            "score_cp": 0,
+            "depth": 36,
+            "nodes": 14589000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 042 - S vs L",
+        "fen": "8/3P4/1p3b1p/p7/P7/1P3NPP/4p1K1/3k4 w - - 0 1",
+        "pieces": 13,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 042 - S vs L",
+            "bm": [
+              "g4"
+            ],
+            "best": "g3g4",
+            "solved": true,
+            "solved_at": {
+              "depth": 27,
+              "nodes": 2227194,
+              "ms": 480
+            },
+            "score_cp": 206,
+            "depth": 30,
+            "nodes": 20544950,
+            "ms": 4473
+          },
+          "stash": {
+            "id": "E_E_T 042 - S vs L",
+            "bm": [
+              "g4"
+            ],
+            "best": "g3g4",
+            "solved": true,
+            "solved_at": {
+              "depth": 30,
+              "nodes": 2056078,
+              "ms": 459
+            },
+            "score_cp": 473,
+            "depth": 32,
+            "nodes": 19132602,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 042 - S vs L",
+            "bm": [
+              "g4"
+            ],
+            "best": "g2f2",
+            "solved": false,
+            "score_cp": -2,
+            "depth": 33,
+            "nodes": 15724000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 048 - S vs T",
+        "fen": "2k1r3/p7/K7/1P6/P2N4/8/P7/8 w - - 0 1",
+        "pieces": 8,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 048 - S vs T",
+            "bm": [
+              "Nc6"
+            ],
+            "best": "d4c6",
+            "solved": true,
+            "solved_at": {
+              "depth": 24,
+              "nodes": 2228623,
+              "ms": 430
+            },
+            "score_cp": 304,
+            "depth": 31,
+            "nodes": 27273214,
+            "ms": 4678
+          },
+          "stash": {
+            "id": "E_E_T 048 - S vs T",
+            "bm": [
+              "Nc6"
+            ],
+            "best": "d4c6",
+            "solved": true,
+            "solved_at": {
+              "depth": 22,
+              "nodes": 1549742,
+              "ms": 329
+            },
+            "score_cp": 1041,
+            "depth": 28,
+            "nodes": 24353098,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 048 - S vs T",
+            "bm": [
+              "Nc6"
+            ],
+            "best": "a4a5",
+            "solved": false,
+            "score_cp": 517,
+            "depth": 30,
+            "nodes": 18439000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 049 - T vs B",
+        "fen": "1k6/8/8/1K6/5pp1/8/4Pp1p/R7 w - - 0 1",
+        "pieces": 8,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 049 - T vs B",
+            "bm": [
+              "Kb6"
+            ],
+            "best": "b5b6",
+            "solved": true,
+            "solved_at": {
+              "depth": 19,
+              "nodes": 377676,
+              "ms": 78
+            },
+            "score_cp": 0,
+            "depth": 48,
+            "nodes": 22102344,
+            "ms": 4388
+          },
+          "stash": {
+            "id": "E_E_T 049 - T vs B",
+            "bm": [
+              "Kb6"
+            ],
+            "best": "b5b6",
+            "solved": true,
+            "solved_at": {
+              "depth": 20,
+              "nodes": 583688,
+              "ms": 116
+            },
+            "score_cp": 0,
+            "depth": 47,
+            "nodes": 22729021,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 049 - T vs B",
+            "bm": [
+              "Kb6"
+            ],
+            "best": "b5c6",
+            "solved": false,
+            "score_cp": -1004,
+            "depth": 32,
+            "nodes": 17027000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 067 - T vs T",
+        "fen": "8/1p2R3/8/p5P1/3k4/P2p2K1/1P6/5r2 w - - 0 1",
+        "pieces": 10,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 067 - T vs T",
+            "bm": [
+              "Kg2"
+            ],
+            "best": "g3g2",
+            "solved": true,
+            "solved_at": {
+              "depth": 12,
+              "nodes": 60117,
+              "ms": 22
+            },
+            "score_cp": -40,
+            "depth": 32,
+            "nodes": 17774081,
+            "ms": 4345
+          },
+          "stash": {
+            "id": "E_E_T 067 - T vs T",
+            "bm": [
+              "Kg2"
+            ],
+            "best": "g3g2",
+            "solved": true,
+            "solved_at": {
+              "depth": 23,
+              "nodes": 11818453,
+              "ms": 2819
+            },
+            "score_cp": -187,
+            "depth": 28,
+            "nodes": 20728250,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 067 - T vs T",
+            "bm": [
+              "Kg2"
+            ],
+            "best": "e7d7",
+            "solved": false,
+            "score_cp": -153,
+            "depth": 22,
+            "nodes": 16822000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 072 - T&L vs L&B",
+        "fen": "5k2/8/2Pb1B2/8/6RK/7p/5p1P/8 w - - 0 1",
+        "pieces": 9,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 072 - T&L vs L&B",
+            "bm": [
+              "Be5"
+            ],
+            "best": "f6e5",
+            "solved": true,
+            "solved_at": {
+              "depth": 23,
+              "nodes": 2122156,
+              "ms": 511
+            },
+            "score_cp": -162,
+            "depth": 38,
+            "nodes": 22490632,
+            "ms": 4622
+          },
+          "stash": {
+            "id": "E_E_T 072 - T&L vs L&B",
+            "bm": [
+              "Be5"
+            ],
+            "best": "f6e5",
+            "solved": true,
+            "solved_at": {
+              "depth": 23,
+              "nodes": 3012963,
+              "ms": 731
+            },
+            "score_cp": -69,
+            "depth": 26,
+            "nodes": 19508374,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 072 - T&L vs L&B",
+            "bm": [
+              "Be5"
+            ],
+            "best": "f6g7",
+            "solved": false,
+            "score_cp": -160,
+            "depth": 21,
+            "nodes": 16853000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 081 - T&L&S vs L&B",
+        "fen": "8/1p5p/6p1/1p4Pp/1PpR4/2P1K1kB/6Np/7b w - - 0 1",
+        "pieces": 16,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 081 - T&L&S vs L&B",
+            "bm": [
+              "Rd1"
+            ],
+            "best": "d4d1",
+            "solved": true,
+            "solved_at": {
+              "depth": 36,
+              "nodes": 2755182,
+              "ms": 580
+            },
+            "score_cp": 154,
+            "depth": 39,
+            "nodes": 24060561,
+            "ms": 4236
+          },
+          "stash": {
+            "id": "E_E_T 081 - T&L&S vs L&B",
+            "bm": [
+              "Rd1"
+            ],
+            "best": "d4d1",
+            "solved": true,
+            "solved_at": {
+              "depth": 35,
+              "nodes": 3229499,
+              "ms": 733
+            },
+            "score_cp": 509,
+            "depth": 37,
+            "nodes": 23772770,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 081 - T&L&S vs L&B",
+            "bm": [
+              "Rd1"
+            ],
+            "best": "d4d2",
+            "solved": false,
+            "score_cp": 0,
+            "depth": 33,
+            "nodes": 13896000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 084 - T&S vs T&L",
+        "fen": "8/7p/6p1/3Np1bk/4Pp2/1R3PPK/5r1P/8 w - - 0 1",
+        "pieces": 14,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 084 - T&S vs T&L",
+            "bm": [
+              "Nc7"
+            ],
+            "best": "d5c7",
+            "solved": true,
+            "solved_at": {
+              "depth": 21,
+              "nodes": 825933,
+              "ms": 214
+            },
+            "score_cp": 53,
+            "depth": 30,
+            "nodes": 18111630,
+            "ms": 4869
+          },
+          "stash": {
+            "id": "E_E_T 084 - T&S vs T&L",
+            "bm": [
+              "Nc7"
+            ],
+            "best": "d5c7",
+            "solved": true,
+            "solved_at": {
+              "depth": 14,
+              "nodes": 97556,
+              "ms": 28
+            },
+            "score_cp": 168,
+            "depth": 29,
+            "nodes": 16660814,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 084 - T&S vs T&L",
+            "bm": [
+              "Nc7"
+            ],
+            "best": "d5b6",
+            "solved": false,
+            "score_cp": 127,
+            "depth": 24,
+            "nodes": 14501000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 085 - T&S vs T&L",
+        "fen": "1r6/3b1p2/2k4P/1N3p1P/5P2/8/3R4/2K5 w - - 0 1",
+        "pieces": 11,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 085 - T&S vs T&L",
+            "bm": [
+              "Na7+"
+            ],
+            "best": "b5a7",
+            "solved": true,
+            "solved_at": {
+              "depth": 28,
+              "nodes": 12280835,
+              "ms": 2521
+            },
+            "score_cp": 367,
+            "depth": 30,
+            "nodes": 21558202,
+            "ms": 4618
+          },
+          "stash": {
+            "id": "E_E_T 085 - T&S vs T&L",
+            "bm": [
+              "Na7+"
+            ],
+            "best": "b5a7",
+            "solved": true,
+            "solved_at": {
+              "depth": 22,
+              "nodes": 884586,
+              "ms": 199
+            },
+            "score_cp": 905,
+            "depth": 29,
+            "nodes": 19456090,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 085 - T&S vs T&L",
+            "bm": [
+              "Na7+"
+            ],
+            "best": "b5d4",
+            "solved": false,
+            "score_cp": 148,
+            "depth": 23,
+            "nodes": 16299000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 089 - T&S vs T&T",
+        "fen": "6R1/P2k1N2/r7/7P/r7/p7/7K/8 w - - 0 1",
+        "pieces": 9,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 089 - T&S vs T&T",
+            "bm": [
+              "Nh6"
+            ],
+            "best": "f7h6",
+            "solved": true,
+            "solved_at": {
+              "depth": 22,
+              "nodes": 9615497,
+              "ms": 2037
+            },
+            "score_cp": 0,
+            "depth": 41,
+            "nodes": 23663078,
+            "ms": 4912
+          },
+          "stash": {
+            "id": "E_E_T 089 - T&S vs T&T",
+            "bm": [
+              "Nh6"
+            ],
+            "best": "f7h6",
+            "solved": true,
+            "solved_at": {
+              "depth": 19,
+              "nodes": 2846383,
+              "ms": 757
+            },
+            "score_cp": 0,
+            "depth": 38,
+            "nodes": 22936764,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 089 - T&S vs T&T",
+            "bm": [
+              "Nh6"
+            ],
+            "best": "h5h6",
+            "solved": false,
+            "score_cp": -499,
+            "depth": 19,
+            "nodes": 15536000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 090 - T&T vs D",
+        "fen": "2K5/k3q3/6pR/6p1/6Pp/7P/8/3R4 w - - 0 1",
+        "pieces": 10,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 090 - T&T vs D",
+            "bm": [
+              "Rh7"
+            ],
+            "best": "h6h7",
+            "solved": true,
+            "solved_at": {
+              "depth": 34,
+              "nodes": 5075460,
+              "ms": 1256
+            },
+            "score_cp": 908,
+            "depth": 37,
+            "nodes": 37176872,
+            "ms": 4820
+          },
+          "stash": {
+            "id": "E_E_T 090 - T&T vs D",
+            "bm": [
+              "Rh7"
+            ],
+            "best": "h6h7",
+            "solved": true,
+            "solved_at": {
+              "depth": 25,
+              "nodes": 766940,
+              "ms": 195
+            },
+            "score_cp": 8074,
+            "depth": 40,
+            "nodes": 45444930,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 090 - T&T vs D",
+            "bm": [
+              "Rh7"
+            ],
+            "best": "d1d7",
+            "solved": false,
+            "score_cp": 34,
+            "depth": 24,
+            "nodes": 14424000,
+            "ms": 4989
+          }
+        }
+      },
+      {
+        "id": "E_E_T 70b - D vs T&L&B",
+        "fen": "8/1k6/8/Q7/7p/6p1/6pr/6Kb w - - 0 1",
+        "pieces": 8,
+        "engines": {
+          "ethereal": {
+            "id": "E_E_T 70b - D vs T&L&B",
+            "bm": [
+              "Qc5"
+            ],
+            "best": "a5c5",
+            "solved": true,
+            "solved_at": {
+              "depth": 11,
+              "nodes": 7759,
+              "ms": 2
+            },
+            "score_cp": 589,
+            "depth": 62,
+            "nodes": 34757643,
+            "ms": 4777
+          },
+          "stash": {
+            "id": "E_E_T 70b - D vs T&L&B",
+            "bm": [
+              "Qc5"
+            ],
+            "best": "a5c5",
+            "solved": true,
+            "solved_at": {
+              "depth": 35,
+              "nodes": 398392,
+              "ms": 61
+            },
+            "score_cp": 992,
+            "depth": 42,
+            "nodes": 30354322,
+            "ms": 4970
+          },
+          "rival": {
+            "id": "E_E_T 70b - D vs T&L&B",
+            "bm": [
+              "Qc5"
+            ],
+            "best": "a5b5",
+            "solved": false,
+            "score_cp": 504,
+            "depth": 32,
+            "nodes": 18130000,
+            "ms": 4989
+          }
+        }
+      }
+    ]
+  }
+}

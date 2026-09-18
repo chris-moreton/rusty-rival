@@ -1,0 +1,14 @@
+{
+  "archive_sha256": "0fd88fdee0fca840fb863dbd4846004cac413c75b0becb35cd86ae1e9f451247",
+  "binaries": {
+    "/tmp/rival-epd-round/rusty-rival-v1.0.68-linux-x86_64-avx2": "fb4c0ef1d088a2d25abdf890acc277cafbb9cb30c90c999e200e3131e29b748b",
+    "/tmp/rival-epd-stash/src/stash": "6db1ceb7c4b6c669c2c218fb66766ae9ea37236c15fc816f12ca2882896ab975",
+    "/tmp/rival-epd-ethereal/src/Ethereal": "32734518bc116a4b0ae6760aba2ae1282851e75ecb5b3188d40264fd0520ab7d",
+    "/tmp/rival-epd-round/stockfish/stockfish-linux-x86-64-universal": "0f83d24cc46d2c66c60f16001af5444873bc112b7d028594513426894c12da19",
+    "/tmp/rival-epd-round/diagnostic-target/release/rusty-rival": "33c97bbdb2ab4f1cc700949ab8a961f5cef2525a5683b8db21d7604fdeff465d"
+  },
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "compiler": "gcc (GCC) 16.2.1 20260810",
+  "scope": "diagnostics only; no strength measurement; no release change",
+  "all_commands_exited": true
+}
