@@ -88,7 +88,10 @@ def train(binary, positions, profile_dir, expected_version, output):
         captured = []
         deadline = time.monotonic() + 120
         while True:
-            line = lines.get(timeout=max(0.001, deadline - time.monotonic()))
+            try:
+                line = lines.get(timeout=max(0.001, deadline - time.monotonic()))
+            except queue.Empty:
+                raise TimeoutError('Engine did not send ' + prefix) from None
             if line is None:
                 raise RuntimeError('Engine exited before ' + prefix)
             captured.append(line)
@@ -175,6 +178,32 @@ def validate_profile_warnings(report):
         raise RuntimeError('Engine function missing profile data')
 
 
+def validate_canary_log(canary, log):
+    warnings = profile_warnings(log)
+    missing = warnings['missing_function_lines']
+    mismatch = warnings['hash_mismatch']
+    search = [line for line in missing
+              if re.search(r'11rusty_rival6search6search\s+Hash\s*=', line)]
+    quiesce = [line for line in mismatch
+               if re.search(r'11rusty_rival7quiesce7quiesce\s+Hash\s*=', line)]
+    derived = {
+        'all_missing_count': len(missing),
+        'all_mismatch_count': len(mismatch),
+        'engine_missing_lines': warnings['engine_missing_function_lines'],
+        'engine_mismatch_lines': [line for line in mismatch if '11rusty_rival' in line],
+        'missing_search_diagnostics': search,
+        'mismatched_quiesce_diagnostics': quiesce,
+        'passed': bool(search and quiesce and canary.get('exit_code') == 0
+                       and 'Finished `release` profile' in log),
+    }
+    for key, value in derived.items():
+        if canary.get(key) != value:
+            raise RuntimeError('Diagnostic canary metadata disagrees with hashed log: ' + key)
+    if not derived['passed']:
+        raise RuntimeError('Diagnostic canary log lacks successful positive controls')
+    return derived
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, default=Path(__file__).resolve().parents[1])
@@ -211,8 +240,7 @@ def main():
         raise RuntimeError('Diagnostic canary must pass for this exact compiler; regenerate after toolchain changes')
     if sha(canary_log) != canary['log_sha256']:
         raise RuntimeError('Diagnostic canary log checksum mismatch')
-    if not canary['missing_search_diagnostics'] or not canary['mismatched_quiesce_diagnostics']:
-        raise RuntimeError('Diagnostic canary lacks required positive controls')
+    validate_canary_log(canary, canary_log.read_text())
     if work.exists() and any(work.iterdir()):
         raise ValueError('PGO work directory must be empty (no stale profiles)')
     work.mkdir(parents=True, exist_ok=True)

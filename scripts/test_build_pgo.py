@@ -1,8 +1,20 @@
 import importlib.util,json,os,sys,tempfile,unittest
+from unittest import mock
 from pathlib import Path
 spec=importlib.util.spec_from_file_location('build_pgo',str(Path(__file__).with_name('build_pgo.py')));build=importlib.util.module_from_spec(spec);spec.loader.exec_module(build)
 
 class BuilderTests(unittest.TestCase):
+ def test_canary_metadata_must_match_hashed_log(self):
+  root=Path(__file__).parent/'pgo'
+  canary=json.loads((root/'diagnostic-canary.json').read_text())
+  log=(root/'diagnostic-canary.log').read_text()
+  self.assertTrue(build.validate_canary_log(canary,log)['passed'])
+  for key,value in [('all_missing_count',2),('missing_search_diagnostics',[]),('exit_code',1)]:
+   with self.subTest(key=key),self.assertRaises(RuntimeError):
+    build.validate_canary_log(dict(canary,**{key:value}),log)
+  for altered in [log.replace('6search6search','6search7closure'),log.replace('Finished `release` profile','unfinished')]:
+   with self.assertRaises(RuntimeError):build.validate_canary_log(canary,altered)
+
  def test_frozen_training_has_no_holdout_or_bench_leakage(self):
   data=json.loads((Path(__file__).parent/'pgo/positions.json').read_text())
   with tempfile.TemporaryDirectory() as tmp:
@@ -62,4 +74,11 @@ for line in sys.stdin:
     r=Path(tmp);p=self.fake(r,mode)
     with self.assertRaisesRegex(RuntimeError,pattern):build.train(p,[{'fen':'8/8/8/8/8/8/4P3/K6k w - - 0 1'}],r,'1.0.68',r/'record.json')
     self.assertTrue((r/'quit').exists())
+ def test_silent_engine_timeout_names_awaited_response(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   r=Path(tmp);p=self.fake(r,'ok')
+   with mock.patch.object(build.queue.Queue,'get',side_effect=build.queue.Empty):
+    with self.assertRaisesRegex(TimeoutError,'Engine did not send uciok'):
+     build.train(p,[],r,'1.0.68',r/'record.json')
+   self.assertTrue((r/'quit').exists())
 if __name__=='__main__':unittest.main()

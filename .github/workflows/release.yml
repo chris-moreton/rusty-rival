@@ -118,6 +118,17 @@ jobs:
             --lock-file "$RUNNER_TEMP/rival-pgo.lock" \
             --output target/x86_64-unknown-linux-gnu/release/rusty-rival
 
+      - name: Verify Linux AVX2 profile evidence exists
+        if: matrix.suffix == 'linux-x86_64-avx2'
+        shell: bash
+        run: |
+          for evidence in provenance.json merged.profdata training.json profile-counts.txt; do
+            test -s "$RUNNER_TEMP/rival-pgo/$evidence" || {
+              echo "Missing or empty PGO evidence: $evidence" >&2
+              exit 1
+            }
+          done
+
       - name: Archive Linux AVX2 profile provenance
         if: always() && matrix.suffix == 'linux-x86_64-avx2'
         uses: actions/upload-artifact@v4
