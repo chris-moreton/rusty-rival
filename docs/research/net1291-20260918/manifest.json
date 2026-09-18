@@ -1,0 +1,25 @@
+{
+  "purpose": "diagnostic only; no strength claim or parameter selection",
+  "budgets_seconds": [
+    1,
+    5
+  ],
+  "threads": 1,
+  "hash_mb": 128,
+  "concurrency": 4,
+  "engines": {
+    "rival": {
+      "path": "/tmp/rival-epd-round/rusty-rival-v1.0.68-linux-x86_64-avx2",
+      "sha256": "fb4c0ef1d088a2d25abdf890acc277cafbb9cb30c90c999e200e3131e29b748b"
+    },
+    "stash": {
+      "path": "/tmp/rival-epd-stash/src/stash",
+      "sha256": "6db1ceb7c4b6c669c2c218fb66766ae9ea37236c15fc816f12ca2882896ab975"
+    },
+    "ethereal": {
+      "path": "/tmp/rival-epd-ethereal/src/Ethereal",
+      "sha256": "32734518bc116a4b0ae6760aba2ae1282851e75ecb5b3188d40264fd0520ab7d"
+    }
+  },
+  "start": 1789767570.5888777
+}

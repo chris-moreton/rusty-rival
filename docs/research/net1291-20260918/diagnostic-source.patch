@@ -1,0 +1,23 @@
+--- /home/chris/Work/rusty-rival/rusty-rival/src/search.rs	2026-09-17 17:01:32.404952064 +0100
++++ /tmp/rival-epd-round/diagnostic-source/src/search.rs	2026-09-18 22:49:41.809101510 +0100
+@@ -1,3 +1,11 @@
++// Investigation-only switch. Not a proposed production change or timed binary.
++fn epd_disable_pv_tt() -> bool {
++    static DISABLED: std::sync::LazyLock<bool> = std::sync::LazyLock::new(|| {
++        std::env::var_os("RIVAL_EPD_DISABLE_PV_TT").is_some()
++    });
++    *DISABLED
++}
++
+ use crate::engine_constants::{
+     lmr_reduction, ALPHA_PRUNE_MARGINS, ASPIRATION_RADIUS, BETA_PRUNE_MARGIN_PER_DEPTH, BETA_PRUNE_MAX_DEPTH, CORRECTION_HISTORY_GRAIN,
+     CORRECTION_HISTORY_MAX, CORRECTION_HISTORY_SIZE, CORRECTION_HISTORY_WEIGHT_MAX, HISTORY_MAX, LMP_MAX_DEPTH, LMP_MOVE_THRESHOLDS,
+@@ -1187,7 +1195,7 @@
+ 
+         // Skip hash cutoffs during singular extension search - the hash entry's score
+         // includes the excluded move's contribution, so we can't use it for cutoffs
+-        if excluded_move == 0 && hash_entry.height >= depth {
++        if excluded_move == 0 && hash_entry.height >= depth && (window.1 - window.0 == 1 || !epd_disable_pv_tt()) {
+             if hash_entry.bound == Exact {
+                 search_state.hash_hits_exact += 1;
+                 // The checksum rules out torn entries, but a TT move still

@@ -1,0 +1,252 @@
+[
+  {
+    "ply": 0,
+    "fen": "1k6/8/8/1K6/5pp1/8/4Pp1p/R7 w - - 0 1",
+    "expected": "b5b6",
+    "nnue": [
+      "info string eval raw cp -292 white_cp -292 evaluator nnue"
+    ],
+    "hce": [
+      "info string eval raw cp -404 white_cp -404 evaluator hce"
+    ],
+    "search": {
+      "score_white": -1004,
+      "depth": 18,
+      "nodes": 1000000,
+      "pv": [
+        "b5c6",
+        "g4g3",
+        "a1b1",
+        "b8c8",
+        "b1h1",
+        "c8d8",
+        "c6d6",
+        "d8e8",
+        "d6e6",
+        "e8f8",
+        "e6f6",
+        "f8g8"
+      ],
+      "san": "1. Kc6 g3 2. Rb1+ Kc8 3. Rh1 Kd8 4. Kd6 Ke8 5. Ke6 Kf8 6. Kf6 Kg8"
+    }
+  },
+  {
+    "ply": 1,
+    "fen": "1k6/8/1K6/8/5pp1/8/4Pp1p/R7 b - - 1 1",
+    "expected": "g4g3",
+    "nnue": [
+      "info string eval raw cp 597 white_cp -597 evaluator nnue"
+    ],
+    "hce": [
+      "info string eval raw cp 433 white_cp -433 evaluator hce"
+    ],
+    "search": {
+      "score_white": -1671,
+      "depth": 18,
+      "nodes": 1000000,
+      "pv": [
+        "g4g3",
+        "a1d1",
+        "b8c8",
+        "d1c1",
+        "c8d7",
+        "c1h1",
+        "g3g2",
+        "h1h2",
+        "g2g1q",
+        "h2h8"
+      ],
+      "san": "1...g3 2. Rd1 Kc8 3. Rc1+ Kd7 4. Rh1 g2 5. Rxh2 g1=Q 6. Rh8"
+    }
+  },
+  {
+    "ply": 2,
+    "fen": "1k6/8/1K6/8/5p2/6p1/4Pp1p/R7 w - - 0 2",
+    "expected": "b6c6",
+    "nnue": [
+      "info string eval raw cp -584 white_cp -584 evaluator nnue"
+    ],
+    "hce": [
+      "info string eval raw cp -530 white_cp -530 evaluator hce"
+    ],
+    "search": {
+      "score_white": -1622,
+      "depth": 15,
+      "nodes": 1000000,
+      "pv": [
+        "a1d1",
+        "b8c8",
+        "d1h1",
+        "c8d7",
+        "h1d1",
+        "d7e6",
+        "d1h1",
+        "g3g2",
+        "h1h2",
+        "f2f1q",
+        "h2h6",
+        "e6f5",
+        "h6h5",
+        "f5g4",
+        "h5h6",
+        "g2g1q",
+        "b6c6",
+        "g1d4",
+        "h6e6",
+        "g4f5",
+        "e6e5",
+        "d4e5"
+      ],
+      "san": "2. Rd1 Kc8 3. Rh1 Kd7 4. Rd1+ Ke6 5. Rh1 g2 6. Rxh2 f1=Q 7. Rh6+ Kf5 8. Rh5+ Kg4 9. Rh6 g1=Q+ 10. Kc6 Qd4 11. Re6 Kf5 12. Re5+ Qxe5"
+    }
+  },
+  {
+    "ply": 3,
+    "fen": "1k6/8/2K5/8/5p2/6p1/4Pp1p/R7 b - - 1 2",
+    "expected": "g3g2",
+    "nnue": [
+      "info string eval raw cp 848 white_cp -848 evaluator nnue"
+    ],
+    "hce": [
+      "info string eval raw cp 517 white_cp -517 evaluator hce"
+    ],
+    "search": {
+      "score_white": -1746,
+      "depth": 17,
+      "nodes": 1000000,
+      "pv": [
+        "g3g2",
+        "a1b1",
+        "b8c8"
+      ],
+      "san": "2...g2 3. Rb1+ Kc8"
+    }
+  },
+  {
+    "ply": 4,
+    "fen": "1k6/8/2K5/8/5p2/8/4Pppp/R7 w - - 0 3",
+    "expected": "a1b1",
+    "nnue": [
+      "info string eval raw cp -672 white_cp -672 evaluator nnue"
+    ],
+    "hce": [
+      "info string eval raw cp -446 white_cp -446 evaluator hce"
+    ],
+    "search": {
+      "score_white": 0,
+      "depth": 36,
+      "nodes": 1000000,
+      "pv": [
+        "a1b1",
+        "b8c8",
+        "b1a1",
+        "c8d8",
+        "c6d6",
+        "d8e8",
+        "d6e6",
+        "e8f8",
+        "e6f6",
+        "f8g8",
+        "a1a8",
+        "g8h7",
+        "a8a7",
+        "h7h6",
+        "a7a8",
+        "h6h5",
+        "a8h8",
+        "h5g4",
+        "h8g8",
+        "g4h5",
+        "g8h8"
+      ],
+      "san": "3. Rb1+ Kc8 4. Ra1 Kd8 5. Kd6 Ke8 6. Ke6 Kf8 7. Kf6 Kg8 8. Ra8+ Kh7 9. Ra7+ Kh6 10. Ra8 Kh5 11. Rh8+ Kg4 12. Rg8+ Kh5 13. Rh8+"
+    }
+  },
+  {
+    "ply": 5,
+    "fen": "1k6/8/2K5/8/5p2/8/4Pppp/1R6 b - - 1 3",
+    "expected": "b8c8",
+    "nnue": [
+      "info string eval raw cp 1050 white_cp -1050 evaluator nnue"
+    ],
+    "hce": [
+      "info string eval raw cp 474 white_cp -474 evaluator hce"
+    ],
+    "search": {
+      "score_white": 0,
+      "depth": 38,
+      "nodes": 1000000,
+      "pv": [
+        "b8c8",
+        "b1a1",
+        "c8d8",
+        "c6d6",
+        "d8e8",
+        "d6e6",
+        "e8f8",
+        "e6f6",
+        "f8g8",
+        "a1a8",
+        "g8h7"
+      ],
+      "san": "3...Kc8 4. Ra1 Kd8 5. Kd6 Ke8 6. Ke6 Kf8 7. Kf6 Kg8 8. Ra8+ Kh7"
+    }
+  },
+  {
+    "ply": 6,
+    "fen": "2k5/8/2K5/8/5p2/8/4Pppp/1R6 w - - 2 4",
+    "expected": "b1a1",
+    "nnue": [
+      "info string eval raw cp -695 white_cp -695 evaluator nnue"
+    ],
+    "hce": [
+      "info string eval raw cp -449 white_cp -449 evaluator hce"
+    ],
+    "search": {
+      "score_white": 0,
+      "depth": 37,
+      "nodes": 1000000,
+      "pv": [
+        "b1a1",
+        "c8d8",
+        "c6d6",
+        "d8e8",
+        "d6e6",
+        "e8f8",
+        "e6f6",
+        "f8g8",
+        "a1a8",
+        "g8h7"
+      ],
+      "san": "4. Ra1 Kd8 5. Kd6 Ke8 6. Ke6 Kf8 7. Kf6 Kg8 8. Ra8+ Kh7"
+    }
+  },
+  {
+    "ply": 7,
+    "fen": "2k5/8/2K5/8/5p2/8/4Pppp/R7 b - - 3 4",
+    "expected": null,
+    "nnue": [
+      "info string eval raw cp 1062 white_cp -1062 evaluator nnue"
+    ],
+    "hce": [
+      "info string eval raw cp 488 white_cp -488 evaluator hce"
+    ],
+    "search": {
+      "score_white": 0,
+      "depth": 36,
+      "nodes": 1000000,
+      "pv": [
+        "c8d8",
+        "c6d6",
+        "d8e8",
+        "d6e6",
+        "e8f8",
+        "e6f6",
+        "f8g8",
+        "a1a8",
+        "g8h7"
+      ],
+      "san": "4...Kd8 5. Kd6 Ke8 6. Ke6 Kf8 7. Kf6 Kg8 8. Ra8+ Kh7"
+    }
+  }
+]
