@@ -1,0 +1,41 @@
+{
+  "source_commit": "bd521c645f96a6638e8dbbac8ad2bb249e7d5e1e",
+  "source_tree_sha256": "b1280ccef508ce3c7b84b10f2e91036f84db90739fe9ac0630b74372f286e41b",
+  "source_scope": "Frozen study source archive. Future production adds toolchain pin; compiler must equal this recorded compiler.",
+  "canary_binary_sha256": "9e40983d34489a4be50f9c0be81af8d5fce060a2e207563c686980ad37bd8d51",
+  "canary_binary_permissions": "000; never execute",
+  "all_missing_count": 1,
+  "all_mismatch_count": 1,
+  "engine_missing_lines": [
+    "warning: rusty_rival.c1fb7f3d0bdc1373-cgu.0: no profile data available for function _RNvNtCsgEyXjC21UJj_11rusty_rival6search6search Hash = 687231566874637922 up to 0 count discarded"
+  ],
+  "engine_mismatch_lines": [
+    "warning: rusty_rival.c1fb7f3d0bdc1373-cgu.0: function control flow change detected (hash mismatch) _RNvNtCsgEyXjC21UJj_11rusty_rival7quiesce7quiesce Hash = 464322551143527036 up to 1890693161 count discarded"
+  ],
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "command": [
+    "cargo",
+    "build",
+    "--offline",
+    "--locked",
+    "--bin",
+    "rusty-rival",
+    "--release",
+    "--target",
+    "x86_64-unknown-linux-gnu",
+    "--manifest-path",
+    "/tmp/rival-pgo/src/Cargo.toml"
+  ],
+  "rustflags": "-C link-args=-Wl,-z,stack-size=8388608 -C target-cpu=x86-64-v3 -C profile-use=/tmp/rival-pgo/study/canary-invalid.profdata -C llvm-args=-pgo-warn-missing-function",
+  "exit_code": 0,
+  "missing_search_diagnostics": [
+    "warning: rusty_rival.c1fb7f3d0bdc1373-cgu.0: no profile data available for function _RNvNtCsgEyXjC21UJj_11rusty_rival6search6search Hash = 687231566874637922 up to 0 count discarded"
+  ],
+  "mismatched_quiesce_diagnostics": [
+    "warning: rusty_rival.c1fb7f3d0bdc1373-cgu.0: function control flow change detected (hash mismatch) _RNvNtCsgEyXjC21UJj_11rusty_rival7quiesce7quiesce Hash = 464322551143527036 up to 1890693161 count discarded"
+  ],
+  "passed": true,
+  "log_sha256": "0823793fc51c763181198377879e7b89e0a8a6593f0e31313756f26565ee3fee",
+  "invalid_profile_sha256": "202f36864665f3a6b89b8ba8dd259bfedf45b4ddfffd421cc6652487e6134875",
+  "binary_policy": "Deliberately invalid profile; binary must never be timed or released."
+}

@@ -1,0 +1,158 @@
+{
+  "source": {
+    "source_commit": "bd521c645f96a6638e8dbbac8ad2bb249e7d5e1e",
+    "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+    "common_flags": "-C link-args=-Wl,-z,stack-size=8388608 -C target-cpu=x86-64-v3",
+    "target": "x86_64-unknown-linux-gnu",
+    "merged_profile_sha256": "b904991f6e536bdc709cd8ec9d964ae484ea804d884274d93ba072c068e120b7",
+    "binaries": {
+      "baseline": "ee2d24f34aa4a5e1420d1a3ca53456dd0e5a5ec57573a92a248173840ba31363",
+      "candidate": "6235d5bbed999803e1f47ff669bc74760e121b4568d6558c78bbade077022e85"
+    }
+  },
+  "stages": {
+    "primary": {
+      "speed_percent": 4.9213847371227155,
+      "ci95_percent": [
+        4.701354062269014,
+        5.141877808077308
+      ],
+      "accepted": true,
+      "result": "primary-idle-1.json",
+      "host_guard": "passed",
+      "blocks": 20
+    },
+    "heldout": {
+      "speed_percent": 5.685493683880131,
+      "ci95_percent": [
+        5.593952667046408,
+        5.7771140590251155
+      ],
+      "accepted": true,
+      "result": "heldout-idle-6.json",
+      "host_guard": "passed",
+      "blocks": 20
+    },
+    "qualification": {
+      "result": "smp-qualify-3.json",
+      "host_guard": "passed",
+      "blocks": 0,
+      "selected_positions": 8
+    },
+    "aa": {
+      "speed_percent": -0.11146839879265548,
+      "ci95_percent": [
+        -0.6985547741952131,
+        0.47908892722295265
+      ],
+      "halfwidth_pp": 0.5888218507090829,
+      "accepted": true,
+      "result": "smp-aa-5.json",
+      "host_guard": "passed",
+      "blocks": 10
+    },
+    "ab": {
+      "speed_percent": 6.3033265824857425,
+      "ci95_percent": [
+        5.806911338904972,
+        6.802070861957846
+      ],
+      "halfwidth_pp": 0.497579761526437,
+      "accepted": true,
+      "result": "smp-ab-6.json",
+      "host_guard": "passed",
+      "blocks": 20
+    }
+  },
+  "invalid_runs": [
+    {
+      "file": "smp-ab-5.monitor.json",
+      "status": "INVALID",
+      "failure": {
+        "type": "HostBusy",
+        "message": "block-4: host contention ['peak_sibling']: {\"label\": \"block-4\", \"samples\": 37, \"mean_sibling\": 2.034990731564988, \"mean_other\": 0.0, \"peak_sibling\": [31.34328358208955, 17, 1789775778.9679875], \"peak_other\": [0.0, null, null], \"reserved\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], \"siblings\": [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]}"
+      },
+      "performance_inferred": false
+    },
+    {
+      "file": "smp-aa-4.monitor.json",
+      "status": "INVALID",
+      "failure": {
+        "type": "HostBusy",
+        "message": "block-4: host contention ['peak_sibling']: {\"label\": \"block-4\", \"samples\": 37, \"mean_sibling\": 2.0307604689069465, \"mean_other\": 0.0, \"peak_sibling\": [47.73869346733668, 17, 1789774459.8013313], \"peak_other\": [0.0, null, null], \"reserved\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], \"siblings\": [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]}"
+      },
+      "performance_inferred": false
+    },
+    {
+      "file": "smp-aa-3.monitor.json",
+      "status": "INVALID",
+      "failure": {
+        "type": "HostBusy",
+        "message": "block-1: host contention ['mean_sibling', 'peak_sibling']: {\"label\": \"block-1\", \"samples\": 36, \"mean_sibling\": 4.272093279407905, \"mean_other\": 0.0, \"peak_sibling\": [95.0, 21, 1789774014.5606065], \"peak_other\": [0.0, null, null], \"reserved\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], \"siblings\": [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]}"
+      },
+      "performance_inferred": false
+    },
+    {
+      "file": "smp-qualify-2.monitor.json",
+      "status": "failed",
+      "failure": null,
+      "performance_inferred": false
+    },
+    {
+      "file": "smp-qualify-1.monitor.json",
+      "status": "INVALID",
+      "failure": {
+        "type": "HostBusy",
+        "message": "preflight: host contention ['mean_other']: {\"label\": \"preflight\", \"samples\": 5, \"mean_sibling\": 1.8010323998246947, \"mean_other\": 4.057550897092372, \"peak_sibling\": [18.26923076923077, 22, 1789773488.057019], \"peak_other\": [34.32835820895522, 6, 1789773480.0557692], \"reserved\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], \"siblings\": [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]}"
+      },
+      "performance_inferred": false
+    },
+    {
+      "file": "heldout-idle-5.monitor.json",
+      "status": "INVALID",
+      "failure": {
+        "type": "HostBusy",
+        "message": "block-17: host contention ['peak_other']: {\"label\": \"block-17\", \"samples\": 34, \"mean_sibling\": 2.4944209418896888, \"mean_other\": 1.2834216718253841, \"peak_sibling\": [4.477611940298507, 18, 1789771903.3309798], \"peak_other\": [100.0, 21, 1789771883.3265743], \"reserved\": [2], \"siblings\": [18]}"
+      },
+      "performance_inferred": false
+    },
+    {
+      "file": "heldout-idle-4.monitor.json",
+      "status": "INVALID",
+      "failure": {
+        "type": "HostBusy",
+        "message": "block-10: host contention ['peak_other']: {\"label\": \"block-10\", \"samples\": 34, \"mean_sibling\": 2.377637476755207, \"mean_other\": 1.0792082401486789, \"peak_sibling\": [4.0201005025125625, 18, 1789770054.5036545], \"peak_other\": [58.70646766169154, 22, 1789770034.4974616], \"reserved\": [2], \"siblings\": [18]}"
+      },
+      "performance_inferred": false
+    },
+    {
+      "file": "heldout-idle-3.monitor.json",
+      "status": "INVALID",
+      "failure": {
+        "type": "HostBusy",
+        "message": "block-3: host contention ['peak_other']: {\"label\": \"block-3\", \"samples\": 34, \"mean_sibling\": 2.5069876273697758, \"mean_other\": 1.9371485712349987, \"peak_sibling\": [13.5, 18, 1789751356.2182105], \"peak_other\": [63.31658291457286, 21, 1789751356.2182105], \"reserved\": [2], \"siblings\": [18]}"
+      },
+      "performance_inferred": false
+    },
+    {
+      "file": "heldout-idle-2.monitor.json",
+      "status": "INVALID",
+      "failure": {
+        "type": "HostBusy",
+        "message": "block-5: host contention ['peak_other']: {\"label\": \"block-5\", \"samples\": 34, \"mean_sibling\": 2.6214038322711124, \"mean_other\": 1.243422431651147, \"peak_sibling\": [5.970149253731344, 18, 1789745691.6268375], \"peak_other\": [100.0, 22, 1789745721.6338317], \"reserved\": [2], \"siblings\": [18]}"
+      },
+      "performance_inferred": false
+    },
+    {
+      "file": "heldout-idle-1.monitor.json",
+      "status": "INVALID",
+      "failure": {
+        "type": "HostBusy",
+        "message": "block-16: host contention ['peak_other']: {\"label\": \"block-16\", \"samples\": 34, \"mean_sibling\": 1.1756811975046029, \"mean_other\": 1.1906945984301331, \"peak_sibling\": [3.5175879396984926, 18, 1789744828.0775726], \"peak_other\": [77.0, 22, 1789744822.076192], \"reserved\": [2], \"siblings\": [18]}"
+      },
+      "performance_inferred": false
+    }
+  ],
+  "claims": "Throughput only; no measured Elo gain. Public RC and final binary validation remain required.",
+  "environment": "Bot stopped. Usage-bar scan locks held. AA5/AB6: Toolbox paused and two Chrome app scopes CPU-limited to5% each; agent-farm snapshot timer additionally deferred for AB6. All controls restored after the completed local window. Invalid prior runs never pooled or used for inference."
+}
