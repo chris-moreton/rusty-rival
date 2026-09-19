@@ -1,0 +1,97 @@
+{
+  "source": "bd521c645f96a6638e8dbbac8ad2bb249e7d5e1e",
+  "low_material_max_pieces": 13,
+  "game_sample_plies": "60,80,100,...until end",
+  "positions_sha256": "99b942a5931eb73644ed76609087ab821a70aa249f7da312646f9256a97399b5",
+  "selector_sha256": "559c3d8c8818ca7a0edaca5196d64c7f7c37d7eaec9314159515816be64f9b87",
+  "original_positions_sha256": "4dfce0a768a0105c343a9561a4931d34f33e44790ed56040a4aba52b6bfc20d9",
+  "suites_sha256": {
+    "arasan18.epd": "f46b55bd029ce8c6f175e5d742c7c59950d47a1e468b05dbbcc968a36ac0b300",
+    "bratko-kopec.epd": "793d000e6f544013a8d67dc84ac2a775e645c02cdcecd9524053315b3e695cab",
+    "eet.epd": "63e31c0a233a24affd07ec26b991771374339f252a8f269a541456d498e03f6b",
+    "quick.epd": "9dd446e778d3de44c95f6f09e402c068f1699e42bd48ccdb5298359e1428def9",
+    "sts.epd": "c0fa4198911474eceda41ea290b012e82f64adb051ab699c27ea099c19487ad6",
+    "wac.epd": "9bfb7b42cf5bbc7f3d60ff767ca3be460e0ae4d9110ef9a71ddf0bd7071d4d46"
+  },
+  "bench_gate": "20 ABBA/BAAB blocks, >=3% and positive lower95%",
+  "heldout_gate": "40 positions,1Mnodes,Hash128,20ABBA/BAAB,>=3% and positive lower95%",
+  "smp": {
+    "threads": 16,
+    "hash_mb": 512,
+    "hash_actual_bytes": 402653184,
+    "ponder": false,
+    "cpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "idle_seconds": 2,
+    "selection": "SHA256(full FEN string), first2 qualifying <=13pieces thenfirst6others;3baseline repeats",
+    "qualification": "all reported1950..2500ms,wall1.95..<4s,nonmate,abs(cp)<9000,depth<MAX_DEPTH-8,legal,protocolclean",
+    "blocks_aa": 10,
+    "aa_gate": "halfwidth<=0.75percentagepoints andCIincludes0; otherwiseSTOP",
+    "blocks_ab": 20,
+    "ab_gate": "lower95%>-1%",
+    "block_stat": "log((sumCandNodes/sumCandReportedMS)/(sumBaseNodes/sumBaseReportedMS))",
+    "no_smp_identity": true,
+    "idle_placement": "2 s idle after each arm run of 8 searches; no idle between searches within a run; warmups establish thermal steady state. Qualification: fresh engine and 2 s idle per trial."
+  },
+  "host_guard": {
+    "preflight_seconds": 10,
+    "sample_seconds": 2,
+    "mean_sibling_max": 3,
+    "mean_other_max": 3,
+    "peak_sibling_max": 20,
+    "peak_other_max": 50,
+    "rule": "any contaminated window invalidates ENTIRE run; no block exclusion or threshold relaxation",
+    "reserved_single": [
+      2
+    ],
+    "reserved_smp": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "monitor_affinity": {
+      "single": [
+        0
+      ],
+      "smp": [
+        31
+      ]
+    },
+    "result_polling": "stat each second; JSON parse only on changed mtime/size"
+  },
+  "script_sha256": {
+    "heldout_compare.py": "a212e7b98b2d1e78ed237eee859d5c50d849e0d072db0a7381024affc1c6e94a",
+    "smp_compare.py": "7ea8f57cd7a47cc1a22f40aefb46d4698cf29b3a7d95f43d5d0944db581207d9",
+    "host_guard.py": "429979476c8c203ad74657016986ae5ad0d9e8b98fcb683cad14778abb8ec13c",
+    "monitor.py": "f0c5ab8e1a336817b3459c8a1f14a69309597ce0525f80ca5e199fb3bb2445cd"
+  }
+}
