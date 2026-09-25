@@ -412,10 +412,8 @@ mod tests {
 
     #[test]
     fn tablebase_scores_stay_outside_the_mate_band() {
-        const {
-            assert!(TB_WIN_SCORE < crate::search::MATE_START);
-            assert!(TB_LOSS_SCORE > -crate::search::MATE_START);
-        }
+        assert!(TB_WIN_SCORE < crate::search::MATE_START);
+        assert!(TB_LOSS_SCORE > -crate::search::MATE_START);
     }
 
     #[test]
