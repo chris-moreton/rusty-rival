@@ -230,12 +230,12 @@ fn incremental_accumulator_matches_full_recompute() {
     fn dfs(pos: &mut Position, ss: &mut SearchState, depth: u8, checked: &mut u32) {
         // Skip evaluation at some nodes (keyed off the zobrist) so the lazy
         // chain has to span multiple plies, not just parent-to-child
-        if !pos.zobrist_lock.is_multiple_of(3) {
+        if pos.zobrist_lock % 3 != 0 {
             let incremental = evaluate_position(pos, ss);
             let net = ss.nnue_network.clone().unwrap();
             let mut acc = Accumulator::new();
             acc.compute(&net, pos);
-            let full = net.evaluate(&acc, pos.mover, piece_count(pos));
+            let full = net.evaluate(&acc, pos.mover, piece_count(&pos));
             assert_eq!(
                 incremental, full,
                 "incremental {} != full {} at nnue_ply {}",

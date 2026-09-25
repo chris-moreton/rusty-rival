@@ -123,7 +123,7 @@ fn it_finds_a_mate_in_3() {
 /// It is pinned separately from `it_finds_a_mate_in_3` because the failure mode
 /// is specific and the diagnosis was not obvious: with root PVS and
 /// RAZOR_MAX_DEPTH at its old value of 3, the engine returned h3f1 scoring 188
-/// — it did not pick a slower mate, it never saw a mate at all. A suite of four
+/// - it did not pick a slower mate, it never saw a mate at all. A suite of four
 /// positions failing as one test does not say that.
 ///
 /// Depth 6 rather than 7 so this fails if mate detection slips a further
