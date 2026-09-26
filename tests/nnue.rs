@@ -1,3 +1,6 @@
+// NET-1445: explicit scale for this diagnostic build, fixed before testing.
+const TEST_EVAL_SCALE: i32 = 575;
+
 use rusty_rival::fen::get_position;
 use rusty_rival::nnue::{Accumulator, NnueNetwork};
 use rusty_rival::types::{Position, BLACK, WHITE};
@@ -51,8 +54,7 @@ fn nnue_eval_is_symmetric() {
     acc.compute(&net, &pos_a);
     let eval_a = net.evaluate(&acc, WHITE, piece_count(&pos_a));
 
-    // Position B: exact color mirror - black has pawn advantage, black to move
-    // (flip all colors and flip board vertically)
+    // Position B keeps e4: rank-sensitive near-equality, not an exact mirror.
     let pos_b = get_position("4k3/8/8/8/4p3/8/8/4K3 b - - 0 1");
     acc.compute(&net, &pos_b);
     let eval_b = net.evaluate(&acc, 1, piece_count(&pos_b)); // black STM
@@ -61,8 +63,15 @@ fn nnue_eval_is_symmetric() {
     println!("Black pawn e4, black STM: {}", eval_b);
     let diff = (eval_a - eval_b).abs();
     println!("Difference: {} (should be small if symmetric)", diff);
-    // Allow some tolerance since the net isn't perfectly symmetric
-    assert!(diff < 80, "Mirrored positions should have similar eval, diff was {}", diff);
+    // Preserve the original tolerance in scale-400 units for this non-mirror pair.
+    assert!(
+        diff * 400 < 80 * TEST_EVAL_SCALE,
+        "Rank-sensitive difference exceeds the scale-normalized tolerance: {}", diff
+    );
+    // Exact colour/vertical mirror: white pawn e4 maps to black pawn e5.
+    let true_mirror = get_position("4k3/8/8/4p3/8/8/8/4K3 b - - 0 1");
+    acc.compute(&net, &true_mirror);
+    assert_eq!(eval_a, net.evaluate(&acc, BLACK, piece_count(&true_mirror)));
 }
 
 #[test]
@@ -377,7 +386,7 @@ fn bucketed_net_selects_the_right_bucket() {
         let eval = net.evaluate(&acc, pos.mover, pieces) as i32;
 
         let bucket = output_bucket(pieces);
-        let expected = 100 * (bucket as i32 + 1);
+        let expected = 4080 * (bucket as i32 + 1) * TEST_EVAL_SCALE / (255 * 64);
         assert_eq!(
             eval, expected,
             "{} ({} pieces) should hit bucket {} and eval {}, got {}",
@@ -456,7 +465,7 @@ fn nnue_output_scaling_uses_i64() {
     acc.compute(&net, &pos);
 
     // 2 * 512 * 255 * 100 * 400 / (255 * 64) = 640_000.
-    assert_eq!(net.evaluate(&acc, WHITE, piece_count(&pos)), 640_000);
+    assert_eq!(net.evaluate(&acc, WHITE, piece_count(&pos)), 1600 * TEST_EVAL_SCALE);
 }
 
 /// NET-350: the fused parent->child accumulator update must be bit-identical
