@@ -66,7 +66,8 @@ fn nnue_eval_is_symmetric() {
     // Preserve the original tolerance in scale-400 units for this non-mirror pair.
     assert!(
         diff * 400 < 80 * TEST_EVAL_SCALE,
-        "Rank-sensitive difference exceeds the scale-normalized tolerance: {}", diff
+        "Rank-sensitive difference exceeds the scale-normalized tolerance: {}",
+        diff
     );
     // Exact colour/vertical mirror: white pawn e4 maps to black pawn e5.
     let true_mirror = get_position("4k3/8/8/4p3/8/8/8/4K3 b - - 0 1");
@@ -172,45 +173,28 @@ fn debug_knight_eval() {
     println!("Rook e4 delta from kings: {}", rook_eval - kings_eval);
 }
 
-/// Golden-value test (NET-320): pins the exact centipawn output of the NNUE
-/// forward pass for a fixed set of positions against the embedded net.
-///
-/// These numbers are not "correct" in any absolute sense — they are simply what
-/// `nets/rival-512x2-ob8-corrected-net1095.bin` (8 output buckets, corrected
-/// white-relative labels and corrected L1 indexing) produces today.
-/// They were regenerated deliberately when that net replaced the single-bucket
-/// `rival-256x2.bin`, after `check_net` confirmed it loads with correct signs. The point is that any change to the
-/// inference path (SIMD, i64 accumulation, quantisation, weight layout) must be
-/// **bit-identical**, so this test failing means the refactor changed the eval.
-///
-/// If the net itself is retrained, these values must be regenerated deliberately
-/// — never "fixed" by pasting in whatever the new code happens to print.
+/// Golden values for the NET-1445 network at runtime scale 575.
+/// Expectations come from an independent integer reference, then are checked
+/// against the engine. Inference-only changes must preserve these values.
 #[test]
-fn nnue_golden_values_match_net1095() {
+fn nnue_golden_values_match_net1445() {
     let net = NnueNetwork::embedded();
     let mut acc = Accumulator::new();
 
-    // (expected_cp, fen) — evaluated from the side to move's perspective.
-    //
-    // Regenerated for NET-1095, which changed the hidden width and net. Each
-    // value was checked for plausibility before being pinned,
-    // not pasted in blind: the two positions where a side is up material score
-    // strongly positive for that side (+779 a rook up to move, +325 a queen up),
-    // and the balanced positions sit near zero.
-    //
-    // The bare-kings entry is the one that looks wrong at +63 rather than ~0.
-    // It is left as measured: `insufficient_material` adjudicates K-v-K as a
-    // draw before the evaluation is ever consulted, so it cannot affect play,
-    // and bucket 0 sees almost no such positions in training.
+    // Independently calculated from the quantised bytes using integer Chess768
+    // features, SCReLU, bucket-major L1 and scale 575 (NET-1445).
+    // See docs/net1445-v1.0.70.md. Both side-to-move perspectives are covered.
+    // Bare kings score 104 here; the search adjudicates insufficient material
+    // before consulting this raw network value. This is not an endgame oracle.
     let golden: &[(i32, &str)] = &[
-        (74, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
-        (-55, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
-        (78, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
-        (-69, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
-        (779, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
-        (325, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
-        (63, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
-        (0, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
+        (75, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
+        (-109, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"),
+        (105, "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1"),
+        (-9, "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"),
+        (765, "4r1k1/5bpp/2p5/3pr3/8/1B3pPq/PPR2P2/2R2QK1 b - - 0 1"),
+        (537, "4k3/8/8/8/8/8/8/3QK3 w - - 0 1"),
+        (104, "8/8/8/4k3/8/8/4K3/8 w - - 0 1"),
+        (-10, "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 1"),
     ];
 
     let mut actuals = Vec::with_capacity(golden.len());

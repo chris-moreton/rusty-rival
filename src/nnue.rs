@@ -51,10 +51,15 @@ const EVAL_SCALE: i32 = 575; // Converts network output to centipawns
 
 /// Embedded network weights (trained with bullet, quantised.bin format).
 ///
-/// `rival-512x2-ob8-corrected-net1095.bin` — 8 output buckets by material
-/// count, 600 superbatches over the full Stockfish depth-9 corpus. Every shard
-/// was validated before mutation and its white-relative WDL field corrected;
-/// measured score/result coherence moved from roughly 4.5% to 95.5%.
+/// NET-1445 full-corpus WDL25 network, seed 198273616, 600 superbatches
+/// over 512,363,260 Stockfish depth-9 records. The historical blanket result
+/// flip is retained; target blend is 25% result and 75% teacher score.
+/// The runtime output scale is 575 (training scale 400).
+///
+/// The filename retains its historical net1095 spelling for path compatibility;
+/// its contents are the new NET-1445 network, not net1095. SHA-256:
+/// `efb2a47d2aece73939066679f0445ea3d542ed36faff6a9b4134b62aa50e743c`.
+/// See `docs/net1445-v1.0.70.md` for provenance and qualification limits.
 ///
 /// ⚠ **Every other net in `nets/` is incompatible with this build.** They were
 /// all trained against the inverted WDL label that the transposed L1 indexing
