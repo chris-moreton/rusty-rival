@@ -12,7 +12,8 @@ const FEN: &str = "8/8/PR5p/4k1p1/2K3r1/8/8/8 w - - 0 61";
 fn completed_root_bound_survives_an_interrupted_retry_without_replacing_exact_state() {
     let mut state = default_search_state();
     state.show_info = false;
-    state.nodes_limit = 1_000_000;
+    // NET-1445 scale575: measured retained interval990k..1480k; midpoint1235k.
+    state.nodes_limit = 1_235_000;
     state.end_time = Instant::now() + Duration::from_secs(120);
     let mv = iterative_deepening(&mut get_position(FEN), 100, &mut state, 1);
     assert_eq!(algebraic_move_from_move(mv), "c4b3");
@@ -39,9 +40,10 @@ fn completed_iteration_supersedes_earlier_fail_highs() {
     let mut state = default_search_state();
     state.show_info = false;
     state.end_time = Instant::now() + Duration::from_secs(120);
-    let mv = iterative_deepening(&mut get_position(FEN), 17, &mut state, 1);
+    // NET-1445: the full-corpus WDL25 net completes this retry at depth 18.
+    let mv = iterative_deepening(&mut get_position(FEN), 18, &mut state, 1);
     assert_eq!(algebraic_move_from_move(mv), "c4b3");
     assert_eq!(state.current_best.0[0], mv);
-    assert_eq!(state.last_completed_depth, 17);
+    assert_eq!(state.last_completed_depth, 18);
     assert!(state.interrupted_best.is_none());
 }
