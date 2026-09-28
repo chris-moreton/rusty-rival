@@ -19,7 +19,7 @@ pub const STARTING_MATERIAL: Score =
 
 pub const UCI_MILLIS_REDUCTION: u128 = 5;
 
-pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 133; // SPSA tuned, Run 20
+pub const BETA_PRUNE_MARGIN_PER_DEPTH: Score = 113; // SPSA tuned, Run 20
 pub const BETA_PRUNE_MAX_DEPTH: u8 = 12; // SPSA tuned, Run 20
 
 pub const NUM_KILLER_MOVES: usize = 2;
@@ -114,7 +114,7 @@ pub const LMP_MOVE_THRESHOLDS: [u8; 9] = [0, 9, 6, 9, 19, 28, 39, 52, 67]; // 1-
 // Depth 3 -> 1 is what makes root PVS safe. Depth 2 also passes the mate tests
 // but costs more nodes than the baseline, so it is not a middle ground.
 pub const RAZOR_MAX_DEPTH: u8 = 1;
-pub const RAZOR_MARGINS: [Score; 4] = [0, 240, 400, 620];
+pub const RAZOR_MARGINS: [Score; 4] = [0, 230, 400, 620];
 
 // Fractional extensions: use fixed-point arithmetic with 4 units = 1 ply
 // This allows multiple factors to combine (e.g., check + pawn push)
@@ -134,7 +134,7 @@ pub const HASH_SIZE_MB: u64 = 128;
 // Pawn hash table: 16K entries, each entry is 20 bytes (16 byte key + 4 byte score)
 pub const NUM_PAWN_HASH_ENTRIES: usize = 16384;
 // SPSA tuned: base=70, per_depth=54 (Run 20)
-pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [77, 121, 165, 209, 253, 297, 341, 385];
+pub const ALPHA_PRUNE_MARGINS: [Score; 8] = [81, 125, 169, 213, 257, 301, 345, 389];
 
 // Delta pruning (quiescence): skip a capture when the static eval plus the full
 // captured piece value plus this margin still cannot reach alpha.
