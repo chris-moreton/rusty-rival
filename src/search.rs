@@ -2312,17 +2312,17 @@ fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bo
 }
 
 #[inline(always)]
-#[allow(clippy::needless_range_loop)]
 pub fn pick_high_score_move(move_scores: &mut MoveScoreArray) -> Move {
-    let mut best_index = 0;
-    let mut best_score = move_scores[0].1;
-    for j in 1..move_scores.len() {
-        if move_scores[j].1 > best_score {
-            best_score = move_scores[j].1;
-            best_index = j;
-        }
-    }
-
+    // The signed score occupies the high half of the key. The reversed index
+    // occupies the low half, so equal scores still choose the first entry.
+    // This is exact even at i32::MIN/MAX and lets LLVM vectorize the reduction.
+    let key = move_scores
+        .iter()
+        .enumerate()
+        .map(|(i, entry)| ((entry.1 as i64) << 32) | ((u32::MAX - i as u32) as i64))
+        .max()
+        .expect("nonempty move list");
+    let best_index = (u32::MAX - key as u32) as usize;
     move_scores.swap_remove(best_index).0
 }
 
@@ -2905,5 +2905,53 @@ mod search_unit_tests {
 
         state.repetition_history_start = 1;
         assert!(!is_repeat_position(&position, &mut state));
+    }
+}
+
+#[cfg(test)]
+mod pick_equivalence_tests {
+    use super::*;
+    fn reference(moves: &mut MoveScoreArray) -> Move {
+        let mut best = 0;
+        for j in 1..moves.len() {
+            if moves[j].1 > moves[best].1 {
+                best = j;
+            }
+        }
+        moves.swap_remove(best).0
+    }
+    #[test]
+    fn exact_pick_and_remaining_order_including_ties() {
+        let mut rng = 827364827364u64;
+        for n in 1..=crate::types::MAX_MOVES {
+            for mode in 0..6 {
+                let mut moves = MoveScoreArray::new();
+                for i in 0..n {
+                    rng ^= rng << 13;
+                    rng ^= rng >> 7;
+                    rng ^= rng << 17;
+                    let score = match mode {
+                        0 => 0,
+                        1 => i as i32,
+                        2 => -(i as i32),
+                        3 => (rng % 7) as i32 - 3,
+                        4 => {
+                            if i % 2 == 0 {
+                                i32::MIN
+                            } else {
+                                i32::MAX
+                            }
+                        }
+                        _ => rng as i32,
+                    };
+                    moves.push((i as Move + 1, score));
+                }
+                let mut expected = moves.clone();
+                while !moves.is_empty() {
+                    assert_eq!(pick_high_score_move(&mut moves), reference(&mut expected));
+                    assert_eq!(moves, expected);
+                }
+            }
+        }
     }
 }
