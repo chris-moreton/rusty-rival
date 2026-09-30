@@ -1,0 +1,87 @@
+{
+  "method": "Parsed JSON reserialization; no timing rows excluded. Binding drops local binary paths, environment variable names and generic source label. Original input JSON hashes retained. Heldout rows retain every per-position result/time.",
+  "exports": {
+    "native": {
+      "sha256": "184312ed790c9c104ac870db85d4b1a4837f25967ad54521114c15af6ee303ad",
+      "input_files": {
+        "binding.json": "4590831eeeb7ea2e8db8e12a47d75283404fc6881953656f1fdf217bccf7c4eb",
+        "measurements.json": "7ef292de0e543951bb9c27f826c657af2747a27f6fe3c5c2f502a170bff5d3ab",
+        "report.json": "6243c17f2e6753e91c9bc144dfe2612643b48afa043f04d914e09ef9587cf5cc"
+      }
+    },
+    "pgo": {
+      "sha256": "af8ae987a670bb8fe81462d2d7c3c1c720eba0531b20568bb6f8175549ac10d3",
+      "input_files": {
+        "binding.json": "7c3ce0c663430bf0d4fe7fbba7ea60327843bea76da0df72d3a10e0bd4586fdf",
+        "measurements.json": "c07c52b49f55a0570769c466e32a5f8be54e3e880b4f2b20d4162a3bec0c965f",
+        "report.json": "6af2b6c9c78a72868ac8b7eb507991c8056ae62c1ce55b5ca7afa7321f821ffc"
+      }
+    },
+    "portable": {
+      "sha256": "efebc6eda248cf3e48e83a79f1605edf2de1e0e90b396258b08e497e4d201deb",
+      "input_files": {
+        "binding.json": "3a6ffa5f6087e5edb69d9ddefdabe0fd88234753ac4e5df6441116cc3c0ae286",
+        "measurements.json": "68587d09140b6c689c79e11d1ba305106d8d7be6c14cecc946278faedb7319c9",
+        "report.json": "6e879874396ed45f5bb95dac02871f445e5e8825424fdaaefaa4eaf9c2b6c5ea"
+      }
+    },
+    "pgo-rebuild": {
+      "sha256": "5d325583e6752674d0d8646a654e7a8bd7a9ff72fe1c5dfcd1f6dceb2117af29",
+      "input_files": {
+        "binding.json": "20acf483a9f3b26e12d1f27081a5498a01eedda3dd4652a6099cf19a404024b2",
+        "measurements.json": "44a4e634d251d8a75cb347972d4403127e25029e67c1698689398ed6ba559b13",
+        "report.json": "8e897f89435180747723e2f9219dff577873b48555d8ae101aaa8c203817ecb4"
+      }
+    },
+    "heldout": {
+      "sha256": "9f0ea0d2725826edb7b89d3bd3860314e6b090d294cfa3cb235b987948d163e9",
+      "input_files": {
+        "binding.json": "270766420c4c6f5323d131f6857c891ac280c88788547c7952386824467bb26f",
+        "00-base.json": "78677c8da36961337c00cef24c0555c3b248f7ef0d1789629bb5c58cd8c7fb4d",
+        "01-candidate.json": "7f9a83a281dfaae2452c4f416ee159673b5ed0b50b41c280caa79ec546477acc",
+        "02-base.json": "d8d0f5406ab71ab93c00ac5381d984ab4015cc1b35d92dbb00588227e8936de5",
+        "03-candidate.json": "3dff61d76fdc2e9b5ecf7662c85fc9e40cfaf59da05455ab20317acfc274e71d",
+        "04-candidate.json": "6a8b6a6f14486fb2b4d6b0a36ab56a877255465838ab2793619b9fb90bfc151f",
+        "05-base.json": "2ba2242519fdbad31099a6dd43ff0df5ebdccb2d3f31bb8344e940e1d448e075",
+        "06-base.json": "c87a18771754107e181479de432f12a13d3f545bad9d7c682261714957a3599b",
+        "07-candidate.json": "6cecac48714c775c4cec07dcbbf8eef71b5fc2e841dc2578dd0594f69c6917a0",
+        "08-candidate.json": "9a86100048a2b1c3924d4fc498df06ac39c2592636b90360c6f4cb89f4c2dffc",
+        "09-base.json": "1ea79d2422041ad9a8a59f43da1ed7650a6dd9ea31ea288fd6d17932ce18adff",
+        "10-base.json": "361357c42c67bc73f0236aaf76718cd5f2ab838b0dc0214d51d4f32e3049972f",
+        "11-candidate.json": "b182dae21820bd35229baffe88f5ce67f47c1f399cadb7869a92a1357ab90b16",
+        "12-candidate.json": "f8d73823ada1c8394410119914be09ee86f9d89bfe185e0152b8f31c2f46877b",
+        "13-base.json": "e70b3f6b2c178b316e6025cb6c6a3cde77c5683168a103ee43f5e50d53b8e4b2",
+        "14-base.json": "65cc07328e856d370e7bb1bda4a4fd31a83eb9da2ac4ff7ba9d279ba808b0ff0",
+        "15-candidate.json": "107acdff4bcc86435fe3d182d71ec75524f2e8e8dbb82897dcf7c5ccbd46e1c4",
+        "16-candidate.json": "ef3eb4e5a9f3e6534383002c167856adb7a3162f6ea9373f4959cf7087a1b74e",
+        "17-base.json": "f3d97291a3863f76b418c7c028ceee2178e552fbb5fdf4e9c8f4a58675623987",
+        "report.json": "c5b2dc9c2bc8dca5094eef046adde1696431d03e1f2ed293b46e3440a1d2f92f"
+      }
+    },
+    "heldout-rebuild": {
+      "sha256": "c2cc00f64364d1b19ea994281f8fb3b5ec1e52b2c4e875bb7d482a478b31400c",
+      "input_files": {
+        "binding.json": "7d8a69b9f5a7ed71a318a884efdd8ce4f5439dc67012e15f345bdcc885589a14",
+        "00-base.json": "087607670af61110aed2828396740c9fc6231e6e2d70c7ac97a8675918b280d2",
+        "01-candidate.json": "e5243c373633b856d4d7510edb3e46727a274eeccb0f9a5894acd50383999f38",
+        "02-base.json": "bc2290327a214bfe847e91e0e6485ac301cbfba5fe13883e2617dd4c9fc8d607",
+        "03-candidate.json": "286e35bf69882f0c95e4569d89fdcbb25139e0aacfb940ce03ccd85758bf3d8d",
+        "04-candidate.json": "66f0d1dffcdd4c51b2c9a24d63f54284a3fa6ef45778c2bb409d81e7f0fa142c",
+        "05-base.json": "9fbd84525c39a43ab0ff2151602b54cec5b0c40ddfefb1928911569d9efa2fba",
+        "06-base.json": "93fc416b8a75f3cf4b708335ab999b57d18c4b7b1250b24688cc7d9a98d63ca3",
+        "07-candidate.json": "5f16232472c57692b814f3c59846ac5b445d0ad3462bcbb6038cb9e9065cfe70",
+        "08-candidate.json": "aa0d7ad345b7614a596f29e2df92730e9444ba64308158c383b0ecc3b5cb4f36",
+        "09-base.json": "33c15f7d3d98144a8ec7303fa71d9a714a3738ff42cb9da90dff1ff3aa340a2e",
+        "10-base.json": "7686069122300830de8aebcff57a9de575b20960b62e6519f97eb67e5d861bc0",
+        "11-candidate.json": "4479d0009c908841c44c8f21d6717b0d1e0bcd5e35f75cc70d6cc92cab892872",
+        "12-candidate.json": "692a929dc4c904b1ef9cbca4c78e576b91648a9e413021daee8aec5656d715b7",
+        "13-base.json": "dd1332e027b4e3f90f31ab8aa27afe38743d4431f5ab075ddd305a10859b10a1",
+        "14-base.json": "4c99f0e7bb26d0b01c2586d574c1b7fc873ca6bf2c69effdfd685e5f6336c4d8",
+        "15-candidate.json": "82cf153a34ab5489eee05b1927482fd680f97d2041a6c63f5264501d39177eef",
+        "16-candidate.json": "b3c4029e542045453a2a6c8e26e57ec10ee00021094ee5686b108eaef447140c",
+        "17-base.json": "57f884e449c25e5715b243e485359fc88767000aacb083e7aba74a6016e7a486",
+        "report.json": "5be448b8c58590fbf52c6630243285fa6a542b56dc9f012e3a20ef345e735f41"
+      }
+    }
+  }
+}
