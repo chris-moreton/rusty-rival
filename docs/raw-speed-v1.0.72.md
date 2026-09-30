@@ -65,6 +65,6 @@ A short-list scalar special case (+0.82% bench, +0.11% held-out versus packed) r
 
 The [evidence directory](evidence/raw-speed-v1.0.72/) contains all warmup and measured rows for the six main comparisons, per-position node/result signatures, binary hashes, exact report values and an export manifest binding the original local JSON hashes. No timing rows were excluded. The reports retain their original approximate normal intervals; the table above uses small-sample t intervals descriptively.
 
-Local bench invocation: `taskset -c 6 ENGINE bench depth 20` with Hash 128 configured through UCI as in the original harness. Native and PGO timings use 16 bench positions. Held-out runs use one-thread fresh-state UCI searches at depth 16; each timing pair runs A, B, B, A after warmups. PGO uses the existing `scripts/build_pgo.py` and frozen `scripts/pgo/positions.json`. Hardware/build limits above apply.
+Local bench invocation: start `taskset -c 6 ENGINE`, then send `setoption name Hash value 128`, `bench depth 20`, and `quit` as separate lines on standard input. Native and PGO timings use 16 bench positions. Held-out runs use one-thread fresh-state UCI searches at depth 16; each timing pair runs A, B, B, A after warmups. PGO uses the existing `scripts/build_pgo.py` and frozen `scripts/pgo/positions.json`. Hardware/build limits above apply.
 
 This is a speed release, not a new strength experiment or an Elo claim.
