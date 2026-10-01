@@ -571,38 +571,47 @@ pub fn update_accumulator_from(
     let mut n_sub = 0usize;
     let mut overflowed = false;
 
-    for color in 0..2usize {
-        let before = bitboard_piece_types(&pieces_before[color]);
-        let after = bitboard_piece_types(&pieces_after[color]);
-
-        for i in 0..5 {
-            let (bb_before, piece_type) = before[i];
-            let (bb_after, _) = after[i];
-
-            let mut removed = bb_before & !bb_after;
-            while removed != 0 {
-                let sq = removed.trailing_zeros() as i8;
-                removed &= removed - 1;
-                if n_sub == MAX_FEATURE_DELTA {
-                    overflowed = true;
-                    break;
+    // Gathers one piece type's changed squares in a single ascending pass,
+    // routing each to `subs` if it was set before the move and to `adds`
+    // otherwise. Within each list the order is still ascending square within
+    // type, type order pawn..queen, colour order white then black, so the
+    // lists are identical to the former separate removed/added loops. Any
+    // overflow selects the generic fallback, which reads only the boards, so
+    // the gather stops at once and the partial lists are discarded. (The loop
+    // label is passed in because macro_rules labels are hygienic.)
+    macro_rules! gather {
+        ($exit:lifetime, $color:expr, $field:ident, $piece_type:expr) => {{
+            let bb_before = pieces_before[$color].$field;
+            let mut changed = bb_before ^ pieces_after[$color].$field;
+            while changed != 0 {
+                let sq = changed.trailing_zeros() as i8;
+                changed &= changed - 1;
+                let feature = (white_feature($color, $piece_type, sq), black_feature($color, $piece_type, sq));
+                if bb_before & (1u64 << sq) != 0 {
+                    if n_sub == MAX_FEATURE_DELTA {
+                        overflowed = true;
+                        break $exit;
+                    }
+                    subs[n_sub] = feature;
+                    n_sub += 1;
+                } else {
+                    if n_add == MAX_FEATURE_DELTA {
+                        overflowed = true;
+                        break $exit;
+                    }
+                    adds[n_add] = feature;
+                    n_add += 1;
                 }
-                subs[n_sub] = (white_feature(color, piece_type, sq), black_feature(color, piece_type, sq));
-                n_sub += 1;
             }
+        }};
+    }
 
-            let mut added = !bb_before & bb_after;
-            while added != 0 {
-                let sq = added.trailing_zeros() as i8;
-                added &= added - 1;
-                if n_add == MAX_FEATURE_DELTA {
-                    overflowed = true;
-                    break;
-                }
-                adds[n_add] = (white_feature(color, piece_type, sq), black_feature(color, piece_type, sq));
-                n_add += 1;
-            }
-        }
+    'gather: for color in 0..2usize {
+        gather!('gather, color, pawn_bitboard, 0);
+        gather!('gather, color, knight_bitboard, 1);
+        gather!('gather, color, bishop_bitboard, 2);
+        gather!('gather, color, rook_bitboard, 3);
+        gather!('gather, color, queen_bitboard, 4);
 
         let king_before = pieces_before[color].king_square;
         let king_after = pieces_after[color].king_square;
