@@ -28,8 +28,6 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
         return false;
     }
 
-    let mut move_list = MoveList::new();
-
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
     let valid_destinations = !friendly.all_pieces_bitboard;
@@ -37,11 +35,15 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
     match m & PIECE_MASK_FULL {
         PIECE_MASK_KING => {
             let from_square = from_square_part(m);
-            return if from_square == friendly.king_square {
+            if from_square == friendly.king_square {
                 let landing_squares = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
                 if bit(to_square_part(m)) & landing_squares != 0 {
                     true
                 } else {
+                    // Move lists are created only where needed (castling and
+                    // pawn moves): constructing a MoveList zero-fills all
+                    // 1,028 bytes, and most verified moves are piece moves.
+                    let mut move_list = MoveList::new();
                     if position.castle_flags != 0 {
                         generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize)
                     }
@@ -49,40 +51,41 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
                 }
             } else {
                 false
-            };
+            }
         }
         PIECE_MASK_QUEEN => {
             let from_square = from_square_part(m);
-            return if bit(from_square) & friendly.queen_bitboard != 0 {
+            if bit(from_square) & friendly.queen_bitboard != 0 {
                 let tsp = bit(to_square_part(m));
                 (tsp & magic_moves_rook(from_square, all_pieces) & valid_destinations != 0)
                     || (tsp & magic_moves_bishop(from_square, all_pieces) & valid_destinations != 0)
             } else {
                 false
-            };
+            }
         }
         PIECE_MASK_ROOK => {
             let from_square = from_square_part(m);
-            return if bit(from_square) & friendly.rook_bitboard != 0 {
+            if bit(from_square) & friendly.rook_bitboard != 0 {
                 bit(to_square_part(m)) & magic_moves_rook(from_square, all_pieces) & valid_destinations != 0
             } else {
                 false
-            };
+            }
         }
         PIECE_MASK_BISHOP => {
             let from_square = from_square_part(m);
-            return if bit(from_square) & friendly.bishop_bitboard != 0 {
+            if bit(from_square) & friendly.bishop_bitboard != 0 {
                 bit(to_square_part(m)) & magic_moves_bishop(from_square, all_pieces) & valid_destinations != 0
             } else {
                 false
-            };
+            }
         }
         PIECE_MASK_KNIGHT => {
             let from_square = from_square_part(m);
             let landing_squares = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
-            return bit(from_square) & friendly.knight_bitboard != 0 && bit(to_square_part(m)) & landing_squares != 0;
+            bit(from_square) & friendly.knight_bitboard != 0 && bit(to_square_part(m)) & landing_squares != 0
         }
         _ => {
+            let mut move_list = MoveList::new();
             generate_pawn_moves(
                 position,
                 &mut move_list,
@@ -90,10 +93,9 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
                 position.mover as usize,
                 friendly.pawn_bitboard,
             );
+            move_list.contains(&m)
         }
     }
-
-    move_list.contains(&m)
 }
 
 #[inline(always)]
@@ -733,5 +735,167 @@ fn generate_pawn_evasion_blocks(
                 move_list.push(base_move);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod verify_move_reference_tests {
+    use super::*;
+    use crate::fen::get_position;
+    use crate::make_move::{make_move_in_place, unmake_move};
+    use crate::move_constants::{
+        BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK,
+    };
+
+    // The former verify_move, verbatim, as the reference.
+    fn reference_verify_move(position: &Position, m: Move) -> bool {
+        if m == 0 {
+            return false;
+        }
+
+        let mut move_list = MoveList::new();
+
+        let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+        let friendly = position.pieces[position.mover as usize];
+        let valid_destinations = !friendly.all_pieces_bitboard;
+
+        match m & PIECE_MASK_FULL {
+            PIECE_MASK_KING => {
+                let from_square = from_square_part(m);
+                return if from_square == friendly.king_square {
+                    let landing_squares = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
+                    if bit(to_square_part(m)) & landing_squares != 0 {
+                        true
+                    } else {
+                        if position.castle_flags != 0 {
+                            generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize)
+                        }
+                        move_list.contains(&m)
+                    }
+                } else {
+                    false
+                };
+            }
+            PIECE_MASK_QUEEN => {
+                let from_square = from_square_part(m);
+                return if bit(from_square) & friendly.queen_bitboard != 0 {
+                    let tsp = bit(to_square_part(m));
+                    (tsp & magic_moves_rook(from_square, all_pieces) & valid_destinations != 0)
+                        || (tsp & magic_moves_bishop(from_square, all_pieces) & valid_destinations != 0)
+                } else {
+                    false
+                };
+            }
+            PIECE_MASK_ROOK => {
+                let from_square = from_square_part(m);
+                return if bit(from_square) & friendly.rook_bitboard != 0 {
+                    bit(to_square_part(m)) & magic_moves_rook(from_square, all_pieces) & valid_destinations != 0
+                } else {
+                    false
+                };
+            }
+            PIECE_MASK_BISHOP => {
+                let from_square = from_square_part(m);
+                return if bit(from_square) & friendly.bishop_bitboard != 0 {
+                    bit(to_square_part(m)) & magic_moves_bishop(from_square, all_pieces) & valid_destinations != 0
+                } else {
+                    false
+                };
+            }
+            PIECE_MASK_KNIGHT => {
+                let from_square = from_square_part(m);
+                let landing_squares = KNIGHT_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
+                return bit(from_square) & friendly.knight_bitboard != 0 && bit(to_square_part(m)) & landing_squares != 0;
+            }
+            _ => {
+                generate_pawn_moves(
+                    position,
+                    &mut move_list,
+                    !all_pieces,
+                    position.mover as usize,
+                    friendly.pawn_bitboard,
+                );
+            }
+        }
+
+        move_list.contains(&m)
+    }
+
+    /// Every encoding built from all 8 piece codes x 64 origins x 64
+    /// destinations x {none, each promotion, each castle flag}, plus random
+    /// 32-bit words and every generated move, agrees with the reference.
+    fn compare_at(position: &Position, rng: &mut u32, compared: &mut u64) {
+        let extras = [
+            0,
+            PROMOTION_QUEEN_MOVE_MASK,
+            PROMOTION_ROOK_MOVE_MASK,
+            PROMOTION_BISHOP_MOVE_MASK,
+            PROMOTION_KNIGHT_MOVE_MASK,
+            WHITE_KING_CASTLE_MOVE_MASK,
+            WHITE_QUEEN_CASTLE_MOVE_MASK,
+            BLACK_KING_CASTLE_MOVE_MASK,
+            BLACK_QUEEN_CASTLE_MOVE_MASK,
+        ];
+        for code in 0..8u32 {
+            for from in 0..64i8 {
+                for to in 0..64u32 {
+                    for extra in extras {
+                        let m = (code << 22) | from_square_mask(from) | to | extra;
+                        assert_eq!(verify_move(position, m), reference_verify_move(position, m), "move {m:#x}");
+                        *compared += 1;
+                    }
+                }
+            }
+        }
+        for _ in 0..20_000 {
+            *rng ^= *rng << 13;
+            *rng ^= *rng >> 17;
+            *rng ^= *rng << 5;
+            assert_eq!(
+                verify_move(position, *rng),
+                reference_verify_move(position, *rng),
+                "move {:#x}",
+                *rng
+            );
+        }
+        for m in generate_moves(position) {
+            assert_eq!(
+                verify_move(position, m),
+                reference_verify_move(position, m),
+                "generated move {m:#x}"
+            );
+        }
+    }
+
+    #[test]
+    fn verify_move_matches_reference_for_all_encodings() {
+        let mut rng = 0x2f6b_4c1du32;
+        let mut compared = 0;
+        let mut accepted = 0;
+        for fen in [
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1",
+            "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1",
+            "8/8/8/KPp4r/8/8/8/4k3 w - c6 0 1",
+            "rnbqkbnr/ppp1pppp/8/8/3pP3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+            "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1",
+        ] {
+            let mut position = get_position(fen);
+            compare_at(&position, &mut rng, &mut compared);
+            accepted += generate_moves(&position).iter().filter(|&&m| verify_move(&position, m)).count();
+            // One ply deeper on every legal move: positions after castling,
+            // en passant, promotions and captures
+            for m in generate_moves(&position) {
+                let mover = position.mover;
+                let unmake = make_move_in_place(&mut position, m);
+                if !is_check(&position, mover) {
+                    for reply in generate_moves(&position) {
+                        assert_eq!(verify_move(&position, reply), reference_verify_move(&position, reply));
+                    }
+                }
+                unmake_move(&mut position, m, &unmake);
+            }
+        }
+        assert!(compared > 1_000_000 && accepted > 0, "compared {compared}, accepted {accepted}");
     }
 }

@@ -234,6 +234,7 @@ impl SharedHashTable {
             unsafe {
                 let ptr = &self.data[index] as *const [AtomicU64; 3] as *const i8;
                 _mm_prefetch(ptr, _MM_HINT_T0);
+                _mm_prefetch(&self.data[index][2] as *const AtomicU64 as *const i8, _MM_HINT_T0);
             }
         }
         #[cfg(target_arch = "x86")]
@@ -242,6 +243,7 @@ impl SharedHashTable {
             unsafe {
                 let ptr = &self.data[index] as *const [AtomicU64; 3] as *const i8;
                 _mm_prefetch(ptr, _MM_HINT_T0);
+                _mm_prefetch(&self.data[index][2] as *const AtomicU64 as *const i8, _MM_HINT_T0);
             }
         }
         // No-op on other architectures (ARM, etc.)
@@ -627,6 +629,8 @@ pub struct SearchState {
     pub nnue_accumulators: Vec<nnue::Accumulator>,
     pub nnue_pieces: Vec<[Pieces; 2]>,
     pub nnue_computed: Vec<bool>,
+    /// Reusable per-ply buffers for search()'s node-local lists; see `NodeScratch`.
+    pub node_scratch: NodeScratch,
     pub nnue_ply: usize,
     // Search-width diagnostics (NET-1155) live at the end deliberately: normal
     // builds compile out every write, and appending them preserves the layout
@@ -810,8 +814,48 @@ impl Clone for SearchState {
             nnue_accumulators: self.nnue_accumulators.clone(),
             nnue_pieces: self.nnue_pieces.clone(),
             nnue_computed: self.nnue_computed.clone(),
+            // Scratch buffers hold no state between nodes; each clone owns fresh ones
+            node_scratch: NodeScratch::new(),
             nnue_ply: self.nnue_ply,
         }
+    }
+}
+
+/// Reusable per-ply buffers for the node-local lists in `search()`.
+///
+/// Constructing an empty 1-3 KiB `ArrayVec` compiles to a full zero-fill, and
+/// `search()` built several per node. These `Vec`s keep their capacity instead.
+///
+/// Ownership: at a node, `search()` moves the buffers for its `ply` out with
+/// `std::mem::take` (an empty `Vec` is three words: no zero-fill, no
+/// allocation), clears them, uses them as plain locals, and moves them back
+/// before each return. No frame holds a reference into the pool across a
+/// recursive call, so re-entry cannot alias: a same-ply re-entry would find an
+/// empty `Vec` and allocate, and a missed move-back only loses capacity. List
+/// contents and order are exactly what the former `ArrayVec`s held. Each
+/// `SearchState` (one per search thread) owns its own pool; nothing is shared.
+#[derive(Debug)]
+pub struct NodeScratch {
+    pub searched_quiets: Vec<Vec<Move>>,
+    pub searched_captures: Vec<Vec<MoveScore>>,
+    pub bad_captures: Vec<Vec<(Move, Score, Score)>>,
+}
+
+impl NodeScratch {
+    pub fn new() -> Self {
+        // search() only reaches the list code for ply < MAX_DEPTH
+        let plies = MAX_DEPTH as usize + 1;
+        NodeScratch {
+            searched_quiets: vec![Vec::new(); plies],
+            searched_captures: vec![Vec::new(); plies],
+            bad_captures: vec![Vec::new(); plies],
+        }
+    }
+}
+
+impl Default for NodeScratch {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -911,6 +955,7 @@ pub fn default_search_state() -> SearchState {
         nnue_pieces: vec![[Pieces::default(); 2]; MAX_DEPTH as usize + MAX_QUIESCE_DEPTH as usize + 2],
         nnue_computed: vec![false; MAX_DEPTH as usize + MAX_QUIESCE_DEPTH as usize + 2],
         nnue_ply: 0,
+        node_scratch: NodeScratch::new(),
     }
 }
 
@@ -1066,6 +1111,7 @@ pub struct Pieces {
 }
 
 impl PartialEq for Pieces {
+    #[inline(always)]
     fn eq(&self, other: &Self) -> bool {
         self.pawn_bitboard == other.pawn_bitboard
             && self.knight_bitboard == other.knight_bitboard

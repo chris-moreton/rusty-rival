@@ -445,7 +445,6 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
     let to = to_square_part(mv);
     let piece_mask = mv & PIECE_MASK_FULL;
 
-    position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[position.castle_flags as usize];
     if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];
     }
@@ -487,7 +486,9 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
     };
 
     position.mover ^= 1;
-    position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[position.castle_flags as usize];
+    if castle_flags != position.castle_flags {
+        position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[castle_flags as usize] ^ ZOBRIST_KEYS_CASTLE[position.castle_flags as usize];
+    }
     if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];
     }
@@ -646,5 +647,44 @@ fn restore_captured_piece(position: &mut Position, to: Square, captured: u8, opp
         CAPTURED_ROOK => position.pieces[opponent].rook_bitboard |= bit_restore,
         CAPTURED_QUEEN => position.pieces[opponent].queen_bitboard |= bit_restore,
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod castle_hash_delta_tests {
+    use super::*;
+    use crate::{fen::get_position, hash::zobrist_lock, moves::generate_moves};
+    #[test]
+    fn corner_rook_moves_and_captures_keep_exact_hashes() {
+        for (fen, capture) in [
+            ("4k2r/6B1/8/8/8/8/8/4K3 w k - 0 1", true),
+            ("4k3/8/8/8/8/8/6b1/4K2R b K - 0 1", true),
+            ("4k3/8/8/8/8/8/8/4K2R w K - 0 1", false),
+            ("4k2r/8/8/8/8/8/8/4K3 b k - 0 1", false),
+        ] {
+            let original = get_position(fen);
+            let mut qualifying = 0;
+            for mv in generate_moves(&original) {
+                let mut copied = original;
+                make_move(&original, mv, &mut copied);
+                let mut inplace = original;
+                let undo = make_move_in_place(&mut inplace, mv);
+                assert_eq!(inplace.zobrist_lock, copied.zobrist_lock);
+                assert_eq!(inplace.zobrist_lock, zobrist_lock(&inplace));
+                if inplace.castle_flags != original.castle_flags
+                    && if capture {
+                        undo.captured_piece == CAPTURED_ROOK
+                    } else {
+                        mv & PIECE_MASK_FULL == PIECE_MASK_ROOK
+                    }
+                {
+                    qualifying += 1;
+                }
+                unmake_move(&mut inplace, mv, &undo);
+                assert_eq!(inplace.zobrist_lock, original.zobrist_lock);
+                assert_eq!(inplace.castle_flags, original.castle_flags);
+            }
+            assert!(qualifying > 0, "fixture did not exercise its corner-rook case: {fen}");
+        }
     }
 }
