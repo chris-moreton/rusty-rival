@@ -10,7 +10,6 @@ use crate::engine_constants::{
     TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
-use arrayvec::ArrayVec;
 
 /// Make a move with lazy NNUE tracking. Saves pieces state and advances ply,
 /// but defers accumulator computation until evaluate_position is called.
@@ -70,8 +69,8 @@ use crate::quiesce::quiesce;
 use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    is_stopped, pv_prepend, pv_single, set_stop, Bitboard, BoundType, HashEntry, Move, MoveList, MoveScore, MoveScoreArray, MoveScoreList,
-    Mover, PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, STATIC_EVAL_NONE, WHITE,
+    is_stopped, pv_prepend, pv_single, set_stop, Bitboard, BoundType, HashEntry, Move, MoveScore, MoveScoreArray, MoveScoreList, Mover,
+    PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, STATIC_EVAL_NONE, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part, InfoBound, INFO_BOUND_MIN_MS};
 
@@ -1441,11 +1440,6 @@ pub fn search(
 
     let mut scout_search = false;
 
-    // Quiets and captures already searched at this node without cutting off -
-    // they get a history malus if a later move turns out to be the best one
-    let mut searched_quiets: MoveList = MoveList::new();
-    let mut searched_captures: MoveScoreArray = MoveScoreArray::new();
-
     // NET-1187: a singular-verification search must not search the move it is
     // meant to exclude. The TT probe inside the verification call returns the
     // same entry, so hash_move == excluded_move here; only the generated move
@@ -1543,6 +1537,24 @@ pub fn search(
         0
     };
 
+    // Quiets and captures already searched at this node without cutting off -
+    // they get a history malus if a later move turns out to be the best one.
+    // Taken from this ply's scratch pool (see NodeScratch) after the
+    // same-ply singular verification above, and moved back before every
+    // return below via `return_node_scratch!`.
+    let ply_index = ply as usize;
+    let mut searched_quiets = std::mem::take(&mut search_state.node_scratch.searched_quiets[ply_index]);
+    searched_quiets.clear();
+    let mut searched_captures = std::mem::take(&mut search_state.node_scratch.searched_captures[ply_index]);
+    searched_captures.clear();
+    macro_rules! return_node_scratch {
+        ($($bad_captures:ident)?) => {{
+            search_state.node_scratch.searched_quiets[ply_index] = searched_quiets;
+            search_state.node_scratch.searched_captures[ply_index] = searched_captures;
+            $(search_state.node_scratch.bad_captures[ply_index] = $bad_captures;)?
+        }};
+    }
+
     if verified_hash_move {
         let hash_captured_value = captured_piece_value(position, hash_move);
         let old_mover = position.mover;
@@ -1586,6 +1598,7 @@ pub fn search(
             unmake_move_nnue(position, hash_move, &unmake, search_state);
             check_time!(search_state);
             if is_stopped(&search_state.stop) {
+                return_node_scratch!();
                 return best_pathscore;
             }
 
@@ -1594,7 +1607,7 @@ pub fn search(
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        return cutoff_unmake(
+                        let result = cutoff_unmake(
                             position,
                             singular_depth,
                             ply,
@@ -1615,6 +1628,8 @@ pub fn search(
                             true,
                             &children_here_by_kind,
                         );
+                        return_node_scratch!();
+                        return result;
                     }
                     hash_flag = Exact;
                 }
@@ -1641,7 +1656,8 @@ pub fn search(
     // staging, not the score, decided the order.
     // Entries carry (move, ordering score, SEE) - the staging SEE is reused by
     // SEE pruning at pick time instead of recomputing it (NET-353).
-    let mut bad_captures: ArrayVec<(Move, Score, Score), 256> = ArrayVec::new();
+    let mut bad_captures = std::mem::take(&mut search_state.node_scratch.bad_captures[ply_index]);
+    bad_captures.clear();
     let mut bad_captures_added: bool = false;
 
     if in_check {
@@ -2102,6 +2118,7 @@ pub fn search(
             if is_stopped(&search_state.stop) {
                 // Don't fall through to the TT store: the move list is only
                 // partially searched, so the bound would be unsound
+                return_node_scratch!(bad_captures);
                 return best_pathscore;
             }
 
@@ -2110,7 +2127,7 @@ pub fn search(
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        return cutoff_unmake(
+                        let result = cutoff_unmake(
                             position,
                             real_depth,
                             ply,
@@ -2131,6 +2148,8 @@ pub fn search(
                             false,
                             &children_here_by_kind,
                         );
+                        return_node_scratch!(bad_captures);
+                        return result;
                     }
                     hash_flag = Exact;
                 }
@@ -2244,6 +2263,7 @@ pub fn search(
         );
     }
 
+    return_node_scratch!(bad_captures);
     best_pathscore
 }
 
@@ -2329,7 +2349,7 @@ pub fn pick_high_score_move(move_scores: &mut MoveScoreArray) -> Move {
         }
         offset += 4;
     }
-    let mut best = maxima.into_iter().max().unwrap();
+    let mut best = maxima[0].max(maxima[1]).max(maxima[2].max(maxima[3]));
     for (i, entry) in move_scores.iter().enumerate().skip(offset) {
         let key = ((entry.1 as i64) << 32) | ((u32::MAX - i as u32) as i64);
         best = best.max(key);
@@ -2466,8 +2486,8 @@ fn cutoff_unmake(
     captured_value: Score,
     hash_index: usize,
     excluded_move: Move,
-    searched_quiets: &MoveList,
-    searched_captures: &MoveScoreArray,
+    searched_quiets: &[Move],
+    searched_captures: &[MoveScore],
     static_eval: Score,
     // Raw (pre-correction) eval for the TT entry; `static_eval` above is the
     // correction-adjusted value and feeds correction history instead.
