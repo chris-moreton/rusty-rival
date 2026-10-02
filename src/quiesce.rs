@@ -10,7 +10,7 @@ use crate::moves::{
     generate_check_evasions_into, generate_diagonal_slider_moves, generate_knight_moves, generate_straight_slider_moves, is_check,
 };
 use crate::search::MATE_SCORE;
-use crate::see::{captured_piece_value_see, static_exchange_evaluation_with_value};
+use crate::see::{captured_piece_value_see, see_is_certainly_non_negative, static_exchange_evaluation_with_value};
 use crate::types::{
     is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
     Window, BLACK, WHITE,
@@ -225,7 +225,14 @@ pub fn quiesce(
             // discarded. The compact SEE state reads the same
             // piece-bitboard/king/mover/EP subset as the old copy here.
             // (Equal exchanges pass and are searched, as before.)
-            if static_exchange_evaluation_with_value(position, m, see_value) < 0 {
+            // A capture that cannot lose material skips the exchange. The gate
+            // reads only the sign, so its decision is unchanged.
+            let certainly_non_negative = see_is_certainly_non_negative(m, see_value);
+            debug_assert!(
+                !certainly_non_negative || static_exchange_evaluation_with_value(position, m, see_value) >= 0,
+                "SEE non-negative certificate failed for {m:#x}"
+            );
+            if !certainly_non_negative && static_exchange_evaluation_with_value(position, m, see_value) < 0 {
                 continue;
             }
         }

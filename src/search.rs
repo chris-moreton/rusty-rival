@@ -2312,17 +2312,29 @@ fn is_repeat_position(position: &Position, search_state: &mut SearchState) -> bo
 }
 
 #[inline(always)]
+#[allow(clippy::needless_range_loop)]
 pub fn pick_high_score_move(move_scores: &mut MoveScoreArray) -> Move {
-    // The signed score occupies the high half of the key. The reversed index
-    // occupies the low half, so equal scores still choose the first entry.
-    // This is exact even at i32::MIN/MAX and lets LLVM vectorize the reduction.
-    let key = move_scores
-        .iter()
-        .enumerate()
-        .map(|(i, entry)| ((entry.1 as i64) << 32) | ((u32::MAX - i as u32) as i64))
-        .max()
-        .expect("nonempty move list");
-    let best_index = (u32::MAX - key as u32) as usize;
+    // Same packed key as before: the signed score in the high half and the
+    // reversed index in the low half, so the maximum key is the first entry
+    // with the highest score. Four independent running maxima (then the
+    // remainder) give the same global maximum, because max is associative and
+    // commutative and every key is distinct. Every real key exceeds the
+    // i64::MIN starting value, whose low half would be zero.
+    let mut maxima = [i64::MIN; 4];
+    let mut offset = 0usize;
+    for chunk in move_scores.as_chunks::<4>().0 {
+        for lane in 0..4 {
+            let key = ((chunk[lane].1 as i64) << 32) | ((u32::MAX - (offset + lane) as u32) as i64);
+            maxima[lane] = maxima[lane].max(key);
+        }
+        offset += 4;
+    }
+    let mut best = maxima.into_iter().max().unwrap();
+    for (i, entry) in move_scores.iter().enumerate().skip(offset) {
+        let key = ((entry.1 as i64) << 32) | ((u32::MAX - i as u32) as i64);
+        best = best.max(key);
+    }
+    let best_index = (u32::MAX - best as u32) as usize;
     move_scores.swap_remove(best_index).0
 }
 

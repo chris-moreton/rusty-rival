@@ -511,3 +511,56 @@ fn fused_accumulator_update_matches_clone_then_update() {
     }
     assert!(compared > 100, "too few move comparisons: {}", compared);
 }
+
+/// The fused update's delta gather must match the generic clone-then-update
+/// path for arbitrary bitboard differences, not only legal moves: several
+/// pieces of one type changing at once, both colours changing, king moves,
+/// and deltas beyond the fused path's capacity (which must fall back).
+#[test]
+fn fused_accumulator_update_matches_generic_for_arbitrary_deltas() {
+    use rusty_rival::nnue::{update_accumulator, update_accumulator_from};
+
+    let net = NnueNetwork::embedded();
+    let base = get_position("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    let mut parent = Accumulator::new();
+    parent.compute(&net, &base);
+
+    let mut rng = 0x2545f4914f6cdd1du64;
+    let mut next = || {
+        rng ^= rng << 13;
+        rng ^= rng >> 7;
+        rng ^= rng << 17;
+        rng
+    };
+    let mut compared = 0u32;
+    for flips in 0..=10u32 {
+        for _ in 0..200 {
+            let before = base.pieces;
+            let mut after = before;
+            for _ in 0..flips {
+                let r = next();
+                let color = (r & 1) as usize;
+                let bit = 1u64 << ((r >> 1) & 63);
+                let pieces = &mut after[color];
+                match (r >> 8) % 6 {
+                    0 => pieces.pawn_bitboard ^= bit,
+                    1 => pieces.knight_bitboard ^= bit,
+                    2 => pieces.bishop_bitboard ^= bit,
+                    3 => pieces.rook_bitboard ^= bit,
+                    4 => pieces.queen_bitboard ^= bit,
+                    _ => pieces.king_square = ((r >> 16) & 63) as i8,
+                }
+            }
+
+            let mut expected = parent.clone();
+            update_accumulator(&mut expected, &net, &before, &after);
+            let mut actual = Accumulator::new();
+            update_accumulator_from(&parent, &mut actual, &net, &before, &after);
+
+            assert_eq!(expected.white, actual.white, "flips {flips}: white perspective differs");
+            assert_eq!(expected.black, actual.black, "flips {flips}: black perspective differs");
+            compared += 1;
+        }
+    }
+    assert!(compared > 2000);
+}

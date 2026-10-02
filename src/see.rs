@@ -41,6 +41,32 @@ pub fn static_exchange_evaluation(position: &Position, mv: Move) -> Score {
     static_exchange_evaluation_with_value(position, mv, score)
 }
 
+/// Sound sufficient condition for `static_exchange_evaluation_with_value(.., mv,
+/// captured_value) >= 0` for a non-promotion `mv`, without running the exchange.
+///
+/// `see` returns either `score` or `min(score, score - r)`, where `r` is the
+/// opponent's own `see` result and so never exceeds the value it captured on
+/// the first recapture. That recapture takes our moved piece, valued by the same
+/// bitboard lookup as `captured_piece_value` (a king is in no piece bitboard, so
+/// it is valued 0). `make_see_move` clears en passant, so the only other term is
+/// a promotion bonus, possible only on ranks 1 and 8. Off those ranks the
+/// exchange is therefore at least `captured_value - attacker value`.
+#[inline(always)]
+pub(crate) fn see_is_certainly_non_negative(mv: Move, captured_value: Score) -> bool {
+    if bit(to_square_part(mv)) & PROMOTION_SQUARES != 0 {
+        return false;
+    }
+    let attacker_value = match mv & PIECE_MASK_FULL {
+        PIECE_MASK_PAWN => PAWN_VALUE_AVERAGE,
+        PIECE_MASK_KNIGHT => KNIGHT_VALUE_AVERAGE,
+        PIECE_MASK_BISHOP => BISHOP_VALUE_AVERAGE,
+        PIECE_MASK_ROOK => ROOK_VALUE_AVERAGE,
+        PIECE_MASK_QUEEN => QUEEN_VALUE_AVERAGE,
+        _ => 0,
+    };
+    captured_value >= attacker_value
+}
+
 #[inline(always)]
 pub(crate) fn static_exchange_evaluation_with_value(position: &Position, mv: Move, score: Score) -> Score {
     let mut new_position = SeePosition::from(position);
@@ -346,5 +372,80 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// Every certified pseudo-legal capture, at every position reached by legal
+    /// moves from tactical, endgame, en passant and promotion roots, has a
+    /// non-negative exchange. The certificate must also fire and also decline,
+    /// so the test cannot pass vacuously.
+    #[test]
+    fn non_negative_certificate_is_sound() {
+        use crate::make_move::{make_move_in_place, unmake_move};
+        use crate::moves::{generate_moves, is_check};
+        fn walk(position: &mut Position, depth: u8, certified: &mut u64, checked: &mut u64) {
+            for m in generate_moves(position) {
+                // Direct coverage of every pseudo-legal capture at this valid position
+                if m & PROMOTION_FULL_MOVE_MASK == 0 {
+                    let value = captured_piece_value_see(position, m);
+                    if value > 0 {
+                        *checked += 1;
+                        if see_is_certainly_non_negative(m, value) {
+                            *certified += 1;
+                            assert!(static_exchange_evaluation_with_value(position, m, value) >= 0, "move {m:#x}");
+                        }
+                    }
+                }
+                // Recurse only through legal moves, so no position with a
+                // capturable king is ever reached
+                if depth > 0 {
+                    let mover = position.mover;
+                    let unmake = make_move_in_place(position, m);
+                    if !is_check(position, mover) {
+                        walk(position, depth - 1, certified, checked);
+                    }
+                    unmake_move(position, m, &unmake);
+                }
+            }
+        }
+        let (mut certified, mut checked) = (0, 0);
+        for fen in [
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+            "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
+            "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+            "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+            "8/8/8/KPp4r/8/8/8/4k3 w - c6 0 1",
+            "1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - - 0 1",
+            "3r2k1/p4ppp/1p6/2p5/2P1q3/1P2Q3/P4PPP/3R2K1 w - - 0 1",
+            "7K/8/8/8/8/3N4/1p6/2n4k w - - 0 1",
+        ] {
+            walk(&mut get_position(fen), 2, &mut certified, &mut checked);
+        }
+        assert!(certified > 0 && certified < checked, "certified={certified}, checked={checked}");
+    }
+
+    /// En passant: the pawn on the en passant square is valued by the caller's
+    /// `captured_value`, and the certificate holds.
+    #[test]
+    fn non_negative_certificate_en_passant() {
+        let position = get_position("8/8/8/KPp4r/8/8/8/4k3 w - c6 0 1");
+        let m = crate::utils::hydrate_move_from_algebraic_move(&position, "b5c6".to_string());
+        let value = captured_piece_value_see(&position, m);
+        assert_eq!(value, PAWN_VALUE_AVERAGE);
+        assert!(see_is_certainly_non_negative(m, value));
+        assert!(static_exchange_evaluation_with_value(&position, m, value) >= 0);
+    }
+
+    /// Promotion-rank fallback is required, not merely conservative: an equal
+    /// knight trade on c1 loses a queen's worth to bxc1=Q, so the certificate
+    /// must decline although the captured value equals the attacker's.
+    #[test]
+    fn non_negative_certificate_declines_on_promotion_ranks() {
+        let position = get_position("7K/8/8/8/8/3N4/1p6/2n4k w - - 0 1");
+        let m = crate::utils::hydrate_move_from_algebraic_move(&position, "d3c1".to_string());
+        let value = captured_piece_value_see(&position, m);
+        assert_eq!(value, KNIGHT_VALUE_AVERAGE);
+        assert!(!see_is_certainly_non_negative(m, value));
+        assert!(static_exchange_evaluation_with_value(&position, m, value) < 0);
     }
 }
