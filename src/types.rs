@@ -839,6 +839,13 @@ pub struct NodeScratch {
     pub searched_quiets: Vec<Vec<Move>>,
     pub searched_captures: Vec<Vec<MoveScore>>,
     pub bad_captures: Vec<Vec<(Move, Score, Score)>>,
+    /// quiesce()'s generated list and its scored copy, one pair per ply
+    /// (indexed by the u8 ply, so every ply has a slot). They stay `ArrayVec`s
+    /// but live in boxes moved out and back, so the 1 KiB + 2 KiB lists are
+    /// not re-created (zero-filled) at every quiescence node. `None` while a
+    /// frame owns the buffer.
+    pub qsearch_moves: Vec<Option<Box<MoveList>>>,
+    pub qsearch_scores: Vec<Option<Box<MoveScoreArray>>>,
 }
 
 impl NodeScratch {
@@ -849,7 +856,31 @@ impl NodeScratch {
             searched_quiets: vec![Vec::new(); plies],
             searched_captures: vec![Vec::new(); plies],
             bad_captures: vec![Vec::new(); plies],
+            qsearch_moves: (0..=u8::MAX as usize).map(|_| None).collect(),
+            qsearch_scores: (0..=u8::MAX as usize).map(|_| None).collect(),
         }
+    }
+}
+
+/// Moves a pooled boxed buffer out of its slot, emptied. An empty slot (first
+/// use at that ply, or a frame already holding it) gets a new box; ownership
+/// moves, so two frames can never share one buffer.
+#[inline(always)]
+pub fn take_pooled<T: Default + PooledClear>(slot: &mut Option<Box<T>>) -> Box<T> {
+    let mut buffer = slot.take().unwrap_or_default();
+    buffer.pooled_clear();
+    buffer
+}
+
+/// `clear()` for the pooled buffer types.
+pub trait PooledClear {
+    fn pooled_clear(&mut self);
+}
+
+impl<T, const N: usize> PooledClear for ArrayVec<T, N> {
+    #[inline(always)]
+    fn pooled_clear(&mut self) {
+        self.clear();
     }
 }
 

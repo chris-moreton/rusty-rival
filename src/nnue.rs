@@ -528,7 +528,9 @@ const MAX_FEATURE_DELTA: usize = 4;
 /// the order features are applied in, so this is bit-identical to the previous
 /// clone-then-add/sub sequence even in the (practically unreachable) case where
 /// an intermediate value would overflow i16.
-#[inline(always)]
+// Keep each const-specialized kernel shared between the two perspectives.
+// Arithmetic and feature order are unchanged; this only controls code layout.
+#[inline(never)]
 fn fuse_features<const A: usize, const S: usize>(
     dst: &mut [i16; HIDDEN_SIZE],
     src: &[i16; HIDDEN_SIZE],

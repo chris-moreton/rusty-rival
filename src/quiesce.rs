@@ -12,7 +12,7 @@ use crate::moves::{
 use crate::search::MATE_SCORE;
 use crate::see::{captured_piece_value_see, see_is_certainly_non_negative, static_exchange_evaluation_with_value};
 use crate::types::{
-    is_stopped, pv_single, set_stop, Bitboard, Move, MoveList, MoveScoreArray, PathScore, Pieces, Position, Score, SearchState, Square,
+    is_stopped, pv_single, set_stop, take_pooled, Bitboard, Move, MoveList, PathScore, Pieces, Position, Score, SearchState, Square,
     Window, BLACK, WHITE,
 };
 use crate::utils::{from_square_mask, to_square_part};
@@ -176,8 +176,11 @@ pub fn quiesce(
     let mut alpha = if in_check { window.0 } else { window.0.max(eval) };
     let mut best_move: Move = 0;
 
-    // In check: every evasion must be considered, not just captures
-    let mut ms = MoveList::new();
+    // In check: every evasion must be considered, not just captures.
+    // Both lists are pooled per ply (NodeScratch::qsearch_moves/scores) and
+    // moved back before every return below.
+    let ply_index = ply as usize;
+    let mut ms = take_pooled(&mut search_state.node_scratch.qsearch_moves[ply_index]);
     if in_check {
         generate_check_evasions_into(position, &mut ms);
     } else {
@@ -185,6 +188,7 @@ pub fn quiesce(
     }
 
     if ms.is_empty() {
+        search_state.node_scratch.qsearch_moves[ply_index] = Some(ms);
         // No pseudo-legal evasions while in check = mated at the horizon
         return if in_check {
             (pv_single(0), -MATE_SCORE + ply as Score)
@@ -193,12 +197,14 @@ pub fn quiesce(
         };
     }
 
-    let mut move_scores: MoveScoreArray = MoveScoreArray::new();
+    let mut move_scores = take_pooled(&mut search_state.node_scratch.qsearch_scores[ply_index]);
 
-    for &m in &ms {
+    for &m in ms.iter() {
         let score = score_quiesce_move(position, m, &position.pieces[opponent!(position.mover) as usize], search_state);
         move_scores.push((m, score));
     }
+    // The generated list is not read again at this node
+    search_state.node_scratch.qsearch_moves[ply_index] = Some(ms);
 
     // NOTE (NET-352): replacing this sort with lazy selection
     // (pick_high_score_move) changes tie ordering vs sort_unstable and altered
@@ -207,8 +213,12 @@ pub fn quiesce(
     move_scores.sort_unstable_by_key(|b| std::cmp::Reverse(b.1));
 
     let mut legal_move_count = 0;
+    // A beta cutoff leaves the loop and returns right after the scored list is
+    // moved back; nothing runs in between, so the result is the same as
+    // returning from inside the loop.
+    let mut cutoff: Option<Move> = None;
 
-    for &(m, _) in &move_scores {
+    for &(m, _) in move_scores.iter() {
         let is_promotion = m & PROMOTION_FULL_MOVE_MASK != 0;
         let see_value = captured_piece_value_see(position, m);
 
@@ -253,7 +263,8 @@ pub fn quiesce(
             }
 
             if score >= window.1 {
-                return (pv_single(m), window.1);
+                cutoff = Some(m);
+                break;
             }
             if score > alpha {
                 alpha = score;
@@ -262,6 +273,11 @@ pub fn quiesce(
         } else {
             unmake_move_nnue(position, m, &unmake, search_state);
         }
+    }
+
+    search_state.node_scratch.qsearch_scores[ply_index] = Some(move_scores);
+    if let Some(m) = cutoff {
+        return (pv_single(m), window.1);
     }
 
     // All evasions were illegal (pins) - the check is mate
