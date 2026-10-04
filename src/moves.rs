@@ -159,7 +159,14 @@ pub fn generate_moves(position: &Position) -> MoveList {
 #[inline(always)]
 pub fn generate_captures(position: &Position) -> MoveList {
     let mut move_list = MoveList::new();
+    generate_captures_into(position, &mut move_list);
+    move_list
+}
 
+/// Appends exactly what `generate_captures` returns, in the same order, to
+/// `move_list` (the search fills a pooled list with it).
+#[inline(always)]
+pub fn generate_captures_into(position: &Position, move_list: &mut MoveList) {
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
     let enemy = position.pieces[opponent!(position.mover) as usize];
@@ -173,54 +180,41 @@ pub fn generate_captures(position: &Position) -> MoveList {
     );
 
     // Rook captures
-    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, capture_targets, PIECE_MASK_ROOK);
+    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, move_list, capture_targets, PIECE_MASK_ROOK);
 
     // Knight captures
-    generate_knight_moves(&mut move_list, capture_targets, friendly.knight_bitboard);
+    generate_knight_moves(move_list, capture_targets, friendly.knight_bitboard);
 
     // Bishop captures
-    generate_diagonal_slider_moves(
-        friendly.bishop_bitboard,
-        all_pieces,
-        &mut move_list,
-        capture_targets,
-        PIECE_MASK_BISHOP,
-    );
+    generate_diagonal_slider_moves(friendly.bishop_bitboard, all_pieces, move_list, capture_targets, PIECE_MASK_BISHOP);
 
     // Queen captures
-    generate_straight_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        capture_targets,
-        PIECE_MASK_QUEEN,
-    );
-    generate_diagonal_slider_moves(
-        friendly.queen_bitboard,
-        all_pieces,
-        &mut move_list,
-        capture_targets,
-        PIECE_MASK_QUEEN,
-    );
+    generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, move_list, capture_targets, PIECE_MASK_QUEEN);
+    generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, move_list, capture_targets, PIECE_MASK_QUEEN);
 
     // Pawn captures (including en passant and capture-promotions)
-    generate_pawn_captures(position, &mut move_list, position.mover as usize, friendly.pawn_bitboard);
-
-    move_list
+    generate_pawn_captures(position, move_list, position.mover as usize, friendly.pawn_bitboard);
 }
 
 /// Generate only quiet (non-capture) moves
 #[inline(always)]
 pub fn generate_quiet_moves(position: &Position) -> MoveList {
     let mut move_list = MoveList::new();
+    generate_quiet_moves_into(position, &mut move_list);
+    move_list
+}
 
+/// Appends exactly what `generate_quiet_moves` returns, in the same order, to
+/// `move_list` (the search fills a pooled list with it).
+#[inline(always)]
+pub fn generate_quiet_moves_into(position: &Position, move_list: &mut MoveList) {
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let empty_squares = !all_pieces;
     let friendly = position.pieces[position.mover as usize];
 
     // Castling
     if position.castle_flags != 0 {
-        generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize)
+        generate_castle_moves(position, move_list, all_pieces, position.mover as usize)
     }
 
     // King quiet moves
@@ -231,34 +225,20 @@ pub fn generate_quiet_moves(position: &Position) -> MoveList {
     );
 
     // Rook quiet moves
-    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, empty_squares, PIECE_MASK_ROOK);
+    generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, move_list, empty_squares, PIECE_MASK_ROOK);
 
     // Knight quiet moves
-    generate_knight_moves(&mut move_list, empty_squares, friendly.knight_bitboard);
+    generate_knight_moves(move_list, empty_squares, friendly.knight_bitboard);
 
     // Bishop quiet moves
-    generate_diagonal_slider_moves(
-        friendly.bishop_bitboard,
-        all_pieces,
-        &mut move_list,
-        empty_squares,
-        PIECE_MASK_BISHOP,
-    );
+    generate_diagonal_slider_moves(friendly.bishop_bitboard, all_pieces, move_list, empty_squares, PIECE_MASK_BISHOP);
 
     // Queen quiet moves
-    generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, empty_squares, PIECE_MASK_QUEEN);
-    generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, empty_squares, PIECE_MASK_QUEEN);
+    generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, move_list, empty_squares, PIECE_MASK_QUEEN);
+    generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, move_list, empty_squares, PIECE_MASK_QUEEN);
 
     // Pawn quiet moves (forward moves and non-capture promotions)
-    generate_pawn_quiet_moves(
-        position,
-        &mut move_list,
-        empty_squares,
-        position.mover as usize,
-        friendly.pawn_bitboard,
-    );
-
-    move_list
+    generate_pawn_quiet_moves(position, move_list, empty_squares, position.mover as usize, friendly.pawn_bitboard);
 }
 
 /// Generate only pawn captures (including en passant and capture-promotions)
@@ -897,5 +877,162 @@ mod verify_move_reference_tests {
             }
         }
         assert!(compared > 1_000_000 && accepted > 0, "compared {compared}, accepted {accepted}");
+    }
+}
+
+#[cfg(test)]
+mod into_generator_tests {
+    use super::*;
+    use crate::fen::get_position;
+    use crate::make_move::{make_move_in_place, unmake_move};
+
+    // The v1.0.75 by-value bodies, verbatim apart from their names.
+    fn reference_generate_captures(position: &Position) -> MoveList {
+        let mut move_list = MoveList::new();
+
+        let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+        let friendly = position.pieces[position.mover as usize];
+        let enemy = position.pieces[opponent!(position.mover) as usize];
+        let capture_targets = enemy.all_pieces_bitboard;
+
+        // King captures
+        add_moves!(
+            move_list,
+            from_square_mask(friendly.king_square) | PIECE_MASK_KING,
+            KING_MOVES_BITBOARDS[friendly.king_square as usize] & capture_targets
+        );
+
+        // Rook captures
+        generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, capture_targets, PIECE_MASK_ROOK);
+
+        // Knight captures
+        generate_knight_moves(&mut move_list, capture_targets, friendly.knight_bitboard);
+
+        // Bishop captures
+        generate_diagonal_slider_moves(
+            friendly.bishop_bitboard,
+            all_pieces,
+            &mut move_list,
+            capture_targets,
+            PIECE_MASK_BISHOP,
+        );
+
+        // Queen captures
+        generate_straight_slider_moves(
+            friendly.queen_bitboard,
+            all_pieces,
+            &mut move_list,
+            capture_targets,
+            PIECE_MASK_QUEEN,
+        );
+        generate_diagonal_slider_moves(
+            friendly.queen_bitboard,
+            all_pieces,
+            &mut move_list,
+            capture_targets,
+            PIECE_MASK_QUEEN,
+        );
+
+        // Pawn captures (including en passant and capture-promotions)
+        generate_pawn_captures(position, &mut move_list, position.mover as usize, friendly.pawn_bitboard);
+
+        move_list
+    }
+
+    fn reference_generate_quiet_moves(position: &Position) -> MoveList {
+        let mut move_list = MoveList::new();
+
+        let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
+        let empty_squares = !all_pieces;
+        let friendly = position.pieces[position.mover as usize];
+
+        // Castling
+        if position.castle_flags != 0 {
+            generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize)
+        }
+
+        // King quiet moves
+        add_moves!(
+            move_list,
+            from_square_mask(friendly.king_square) | PIECE_MASK_KING,
+            KING_MOVES_BITBOARDS[friendly.king_square as usize] & empty_squares
+        );
+
+        // Rook quiet moves
+        generate_straight_slider_moves(friendly.rook_bitboard, all_pieces, &mut move_list, empty_squares, PIECE_MASK_ROOK);
+
+        // Knight quiet moves
+        generate_knight_moves(&mut move_list, empty_squares, friendly.knight_bitboard);
+
+        // Bishop quiet moves
+        generate_diagonal_slider_moves(
+            friendly.bishop_bitboard,
+            all_pieces,
+            &mut move_list,
+            empty_squares,
+            PIECE_MASK_BISHOP,
+        );
+
+        // Queen quiet moves
+        generate_straight_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, empty_squares, PIECE_MASK_QUEEN);
+        generate_diagonal_slider_moves(friendly.queen_bitboard, all_pieces, &mut move_list, empty_squares, PIECE_MASK_QUEEN);
+
+        // Pawn quiet moves (forward moves and non-capture promotions)
+        generate_pawn_quiet_moves(
+            position,
+            &mut move_list,
+            empty_squares,
+            position.mover as usize,
+            friendly.pawn_bitboard,
+        );
+
+        move_list
+    }
+
+    fn walk(position: &mut Position, depth: u8, compared: &mut u64) {
+        let junk: Vec<Move> = (1..=40).collect();
+        let mut captures = MoveList::new();
+        generate_captures_into(position, &mut captures);
+        assert_eq!(captures, reference_generate_captures(position));
+        assert_eq!(generate_captures(position), captures);
+        let mut quiets = MoveList::new();
+        generate_quiet_moves_into(position, &mut quiets);
+        assert_eq!(quiets, reference_generate_quiet_moves(position));
+        assert_eq!(generate_quiet_moves(position), quiets);
+        // Appending keeps the existing prefix and adds the same sequence
+        let mut prefixed: MoveList = junk.iter().copied().collect();
+        generate_quiet_moves_into(position, &mut prefixed);
+        assert_eq!(&prefixed[..junk.len()], &junk[..]);
+        assert_eq!(&prefixed[junk.len()..], &quiets[..]);
+        *compared += 1;
+        if depth > 0 {
+            for m in generate_moves(position) {
+                let mover = position.mover;
+                let unmake = make_move_in_place(position, m);
+                if !is_check(position, mover) {
+                    walk(position, depth - 1, compared);
+                }
+                unmake_move(position, m, &unmake);
+            }
+        }
+    }
+
+    /// Ordered list identity with the former by-value bodies over legal move
+    /// trees covering castling, en passant, and quiet and capture promotions.
+    #[test]
+    fn into_generators_match_former_bodies() {
+        let mut compared = 0;
+        for fen in [
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1",
+            "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1",
+            "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1",
+            "8/8/8/KPp4r/8/8/8/4k3 w - c6 0 1",
+            "rnbqkbnr/ppp1pppp/8/8/3pP3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        ] {
+            walk(&mut get_position(fen), 2, &mut compared);
+        }
+        assert!(compared > 1000, "compared {compared}");
     }
 }

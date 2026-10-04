@@ -846,6 +846,11 @@ pub struct NodeScratch {
     /// frame owns the buffer.
     pub qsearch_moves: Vec<Option<Box<MoveList>>>,
     pub qsearch_scores: Vec<Option<Box<MoveScoreArray>>>,
+    /// search()'s generated capture, quiet or evasion list. One slot is
+    /// enough: each staged generation takes it, filters and scores it, and
+    /// puts it back with no search call in between, so no two frames ever
+    /// hold it at once (a nested take would simply get a new box).
+    pub search_moves: Option<Box<MoveList>>,
 }
 
 impl NodeScratch {
@@ -858,6 +863,7 @@ impl NodeScratch {
             bad_captures: vec![Vec::new(); plies],
             qsearch_moves: (0..=u8::MAX as usize).map(|_| None).collect(),
             qsearch_scores: (0..=u8::MAX as usize).map(|_| None).collect(),
+            search_moves: None,
         }
     }
 }

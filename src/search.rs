@@ -62,15 +62,16 @@ use crate::move_constants::{
 };
 use crate::move_scores::{score_move, score_move_with_see, victim_piece_index};
 use crate::moves::{
-    between_squares, generate_captures, generate_check_evasions, generate_moves, generate_quiet_moves, is_check, verify_move,
+    between_squares, generate_captures, generate_captures_into, generate_check_evasions_into, generate_moves, generate_quiet_moves_into,
+    is_check, verify_move,
 };
 use crate::opponent;
 use crate::quiesce::quiesce;
 use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
-    is_stopped, pv_prepend, pv_single, set_stop, Bitboard, BoundType, HashEntry, Move, MoveScore, MoveScoreArray, MoveScoreList, Mover,
-    PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, STATIC_EVAL_NONE, WHITE,
+    is_stopped, pv_prepend, pv_single, set_stop, take_pooled, Bitboard, BoundType, HashEntry, Move, MoveScore, MoveScoreArray,
+    MoveScoreList, Mover, PathScore, Position, Score, SearchState, Square, UnmakeInfo, Window, BLACK, STATIC_EVAL_NONE, WHITE,
 };
 use crate::utils::{captured_piece_value, from_square_part, send_info, to_square_part, InfoBound, INFO_BOUND_MIN_MS};
 
@@ -1662,7 +1663,9 @@ pub fn search(
 
     if in_check {
         // When in check, generate only check evasion moves
-        let mut evasions = generate_check_evasions(position);
+        // Pooled list (NodeScratch::search_moves), returned right after scoring
+        let mut evasions = take_pooled(&mut search_state.node_scratch.search_moves);
+        generate_check_evasions_into(position, &mut evasions);
         if verified_hash_move {
             evasions.retain(|m| *m != hash_move);
         }
@@ -1671,13 +1674,15 @@ pub fn search(
             evasions.retain(|m| *m != excluded_move);
         }
         move_scores = MoveScoreArray::new();
-        for &m in &evasions {
+        for &m in evasions.iter() {
             move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
         }
+        search_state.node_scratch.search_moves = Some(evasions);
         quiets_added = true; // No staged generation when in check
     } else {
         // Normal staged move generation: captures first, then quiets
-        let mut captures = generate_captures(position);
+        let mut captures = take_pooled(&mut search_state.node_scratch.search_moves);
+        generate_captures_into(position, &mut captures);
         if verified_hash_move {
             captures.retain(|m| *m != hash_move);
         }
@@ -1686,7 +1691,7 @@ pub fn search(
             captures.retain(|m| *m != excluded_move);
         }
         move_scores = MoveScoreArray::new();
-        for &m in &captures {
+        for &m in captures.iter() {
             let (score, see_score) = score_move_with_see(position, m, search_state, ply as usize, &enemy);
             // Promotions change material too much to demote on SEE alone
             if see_score < 0 && m & PROMOTION_FULL_MOVE_MASK == 0 {
@@ -1695,6 +1700,7 @@ pub fn search(
                 move_scores.push((m, score));
             }
         }
+        search_state.node_scratch.search_moves = Some(captures);
         quiets_added = false;
     }
 
@@ -1712,7 +1718,8 @@ pub fn search(
         while move_scores.is_empty() {
             if !quiets_added {
                 quiets_added = true;
-                let mut quiets = generate_quiet_moves(position);
+                let mut quiets = take_pooled(&mut search_state.node_scratch.search_moves);
+                generate_quiet_moves_into(position, &mut quiets);
                 if verified_hash_move {
                     quiets.retain(|m| *m != hash_move);
                 }
@@ -1720,9 +1727,10 @@ pub fn search(
                 if excluded_move != 0 {
                     quiets.retain(|m| *m != excluded_move);
                 }
-                for &m in &quiets {
+                for &m in quiets.iter() {
                     move_scores.push((m, score_move(position, m, search_state, ply as usize, &enemy)));
                 }
+                search_state.node_scratch.search_moves = Some(quiets);
             } else if !bad_captures_added {
                 bad_captures_added = true;
                 // Copy only the live entries (mem::take of the full-capacity
