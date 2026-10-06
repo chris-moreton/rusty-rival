@@ -1186,8 +1186,14 @@ pub fn search(
         };
 
         // Skip hash cutoffs during singular extension search - the hash entry's score
-        // includes the excluded move's contribution, so we can't use it for cutoffs
-        if excluded_move == 0 && hash_entry.height >= depth {
+        // includes the excluded move's contribution, so we can't use it for cutoffs.
+        // Score returns and window narrowing are also limited to null-window
+        // (scout) nodes, as in essentially every stronger engine: a PV node
+        // (incoming window wider than one) always searches, so the PV and its
+        // score come from this search rather than from an entry written under a
+        // different window or path. The entry's move, static eval and singular
+        // metadata are still used below.
+        if excluded_move == 0 && scouting && hash_entry.height >= depth {
             if hash_entry.bound == Exact {
                 search_state.hash_hits_exact += 1;
                 // The checksum rules out torn entries, but a TT move still
