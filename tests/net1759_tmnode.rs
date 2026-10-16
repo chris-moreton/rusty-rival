@@ -4,7 +4,10 @@
 // untouched. These tests pin the factor, the accounting and the clamping.
 use rusty_rival::engine_constants::{TM_NODE_BASE, TM_NODE_FACTOR_MAX, TM_NODE_FACTOR_MIN, TM_NODE_SCALE};
 use rusty_rival::fen::get_position;
-use rusty_rival::search::{best_move_node_fraction, iterative_deepening, node_scaled_soft_limit, node_time_factor, record_root_move_nodes};
+use rusty_rival::search::{
+    best_move_node_fraction, current_soft_limit, iterative_deepening, node_factor_for, node_scaled_soft_limit, node_time_factor,
+    record_root_move_nodes,
+};
 use rusty_rival::types::default_search_state;
 use std::time::{Duration, Instant};
 
@@ -128,4 +131,58 @@ fn accounting_is_cleared_between_searches() {
         .root_move_nodes
         .iter()
         .all(|entry| state.root_moves.iter().any(|(root, _)| *root == entry.0)));
+}
+
+/// A state whose real budget was installed at a ponderhit `origin`, long after
+/// the search itself started (as check_time! does on ponderhit).
+fn ponderhit_state(start: Instant, origin: Instant) -> rusty_rival::types::SearchState {
+    let mut state = default_search_state();
+    state.start_time = start;
+    state.budget_origin = origin;
+    state.soft_time_limit = origin + Duration::from_millis(1000);
+    state.original_soft_time_limit = state.soft_time_limit;
+    state.max_soft_time_limit = origin + Duration::from_millis(2000);
+    state.end_time = origin + Duration::from_millis(5000);
+    state.time_management_active = true;
+    state
+}
+
+#[test]
+fn scaling_measures_the_budget_from_the_ponderhit_origin_not_the_search_start() {
+    let origin = Instant::now();
+    let start = origin - Duration::from_secs(10); // ten seconds of pondering before the hit
+    let state = ponderhit_state(start, origin);
+    // Factor below one: 1000 ms * 0.675 from the hit, still in the future.
+    // Measured from start_time the deadline would be 11000 * 0.675 = 7425 ms
+    // after start, i.e. 2575 ms BEFORE the hit, and the move would stop at once.
+    assert_eq!(current_soft_limit(&state, 0.675), origin + Duration::from_millis(675));
+    assert!(current_soft_limit(&state, 0.675) > origin);
+    // Factor above one: 1000 * 1.5 = 1500 ms from the hit, under the 2000 ms ceiling
+    assert_eq!(current_soft_limit(&state, 1.5), origin + Duration::from_millis(1500));
+    // Clamps still apply from the rebased budget
+    assert_eq!(current_soft_limit(&state, 2.0), state.max_soft_time_limit);
+    assert_eq!(current_soft_limit(&state, 9.0), state.max_soft_time_limit);
+    assert_eq!(current_soft_limit(&state, 1.0), state.soft_time_limit);
+}
+
+#[test]
+fn a_normal_search_uses_its_start_as_the_budget_origin() {
+    let (_, state) = fixed_depth(START, 4);
+    assert_eq!(state.budget_origin, state.start_time);
+}
+
+#[test]
+fn exact_budgets_bypass_node_scaling_and_clock_budgets_do_not() {
+    let origin = Instant::now();
+    let mut state = ponderhit_state(origin, origin);
+    record_root_move_nodes(&mut state, 0x1234, 1000); // everything on the best move: factor 0.675
+    assert!(close(node_factor_for(&state, 0x1234), 0.675));
+    // Exact budget (movetime / emergency): soft == hard, factor stays 1.0
+    state.soft_time_limit = state.end_time;
+    state.original_soft_time_limit = state.end_time;
+    assert!(close(node_factor_for(&state, 0x1234), 1.0));
+    assert_eq!(current_soft_limit(&state, node_factor_for(&state, 0x1234)), state.end_time);
+    // No information: factor 1.0 even on a clock budget
+    let empty = ponderhit_state(origin, origin);
+    assert!(close(node_factor_for(&empty, 0x1234), 1.0));
 }

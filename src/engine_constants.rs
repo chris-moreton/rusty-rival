@@ -474,8 +474,11 @@ pub const TM_MAX_EXTENSION_FACTOR: f64 = 2.0;
 //                  TM_NODE_FACTOR_MIN, TM_NODE_FACTOR_MAX)
 //
 // This is the (1.5 - f) * 1.35 form used by Berserk, Obsidian and Clover; it is
-// 1.0 at f = 0.76, 2.0 (capped) with no concentration and 0.675 when every node
-// went to the best move. With no node information (total 0) the factor is 1.0.
+// 1.0 at f = 0.7593 (1.5 - 1/1.35), 2.0 (capped) with no concentration and
+// 0.675 when every node went to the best move. The distribution of f in Rival
+// games is unmeasured, so the effect on average time use is unknown; the arm
+// is tested by games, not by a time-use target. With no node information
+// (total 0) the factor is 1.0.
 // The scaled limit is still clamped to the NET-339 extension ceiling and the
 // hard limit, and only applies to clock-derived budgets (soft < hard), never to
 // movetime/exact budgets. Frozen for NET-1759; not tuned.
