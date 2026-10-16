@@ -835,7 +835,8 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
 
         search_state.history.pop();
         unmake_move_nnue(position, mv.0, &unmake, search_state);
-        record_root_move_nodes(search_state, mv.0, search_state.nodes.saturating_sub(nodes_before));
+        let spent = search_state.nodes.saturating_sub(nodes_before);
+        record_root_move_nodes(search_state, mv.0, spent);
         mv.1 = path_score.1;
 
         search_state.pv.insert(mv.0, (pv_prepend(mv.0, &path_score.0), mv.1));
