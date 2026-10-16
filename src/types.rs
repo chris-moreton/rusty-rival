@@ -617,6 +617,12 @@ pub struct SearchState {
     pub best_move_stability: u8,
     pub prev_best_move: Move,
     pub prev_score: Score,
+    /// Nodes this thread spent under each root move since the search began
+    /// (NET-1759 TMNODE): every `start_search` child search, including
+    /// aspiration retries and the root scout-then-research pair, is attributed
+    /// to its root move. Cleared at the start of each search; thread 0 reads its
+    /// own counts for the node-fraction time-management factor.
+    pub root_move_nodes: Vec<(Move, u64)>,
     pub time_management_active: bool,
     pub pondering: Arc<AtomicBool>,
     pub ponder_soft_ms: Arc<AtomicU64>,
@@ -801,6 +807,7 @@ impl Clone for SearchState {
             max_soft_time_limit: self.max_soft_time_limit,
             best_move_stability: self.best_move_stability,
             prev_best_move: self.prev_best_move,
+            root_move_nodes: Vec::new(),
             prev_score: self.prev_score,
             time_management_active: self.time_management_active,
             pondering: Arc::clone(&self.pondering),
@@ -976,6 +983,7 @@ pub fn default_search_state() -> SearchState {
         best_move_stability: 0,
         prev_best_move: 0,
         prev_score: 0,
+        root_move_nodes: Vec::new(),
         time_management_active: false,
         pondering: Arc::new(AtomicBool::new(false)),
         ponder_soft_ms: Arc::new(AtomicU64::new(0)),
