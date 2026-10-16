@@ -281,6 +281,9 @@ macro_rules! check_time {
                         $search_state.end_time = now + std::time::Duration::from_millis(hard_ms);
                         $search_state.soft_time_limit = now + std::time::Duration::from_millis(soft_ms);
                         $search_state.original_soft_time_limit = $search_state.soft_time_limit;
+                        // NET-1759: node-fraction scaling measures the budget from the
+                        // ponderhit instant, like the rebased soft and ceiling limits below.
+                        $search_state.budget_origin = now;
                         // Rebase the extension ceiling on the REAL soft budget
                         // (NET-362): the value computed at search start came from
                         // the 24h ponder placeholder, which would disable the
@@ -301,6 +304,7 @@ macro_rules! check_time {
                         $search_state.soft_time_limit = now;
                         $search_state.original_soft_time_limit = now;
                         $search_state.max_soft_time_limit = now;
+                        $search_state.budget_origin = now;
                         $search_state.time_management_active = true;
                     }
                     $search_state.ponder_applied = true;
@@ -397,7 +401,7 @@ pub fn node_scaled_soft_limit(start: Instant, soft: Instant, max_soft: Instant, 
 /// Node-fraction scaling applies only to clock-derived budgets. Exact budgets
 /// (movetime, emergency) have soft == hard and must run to the deadline.
 #[inline(always)]
-fn node_factor_for(search_state: &SearchState, best: Move) -> f64 {
+pub fn node_factor_for(search_state: &SearchState, best: Move) -> f64 {
     if TM_NODE_FRACTION && search_state.soft_time_limit < search_state.end_time {
         node_time_factor(best_move_node_fraction(search_state, best))
     } else {
@@ -405,10 +409,13 @@ fn node_factor_for(search_state: &SearchState, best: Move) -> f64 {
     }
 }
 
+/// The soft limit the time-management decisions compare against. The budget
+/// is measured from `budget_origin` (the search start, or the ponderhit
+/// instant once the real budget is installed), never from `start_time`.
 #[inline(always)]
-fn current_soft_limit(search_state: &SearchState, factor: f64) -> Instant {
+pub fn current_soft_limit(search_state: &SearchState, factor: f64) -> Instant {
     node_scaled_soft_limit(
-        search_state.start_time,
+        search_state.budget_origin,
         search_state.soft_time_limit,
         search_state.max_soft_time_limit,
         search_state.end_time,
@@ -431,6 +438,7 @@ pub fn sync_nodes(search_state: &mut SearchState) {
 
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
     search_state.start_time = Instant::now();
+    search_state.budget_origin = search_state.start_time;
     search_state.last_completed_depth = 0;
     search_state.interrupted_best = None;
     // NOTE: the stop flag is NOT reset here. Each real `go` creates a fresh stop
