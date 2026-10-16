@@ -1,5 +1,17 @@
 # Agent instructions
 
+## Paid compute approval (NET-1384, Chris, 2026-10-16)
+
+Before every launch of an AWS/EC2/GPU instance or any other paid compute for
+Rival Chess, obtain Chris's explicit approval for that launch, stating its
+expected cost and duration. Previous approvals and standing authorizations do
+not authorize a new launch. This supersedes earlier spending allowances,
+including the NET-1445 $50 allowance.
+
+The hard monthly cloud-spend cap is USD 150, tracked with an AWS budget alert.
+Do not launch paid compute that would exceed that cap. Tag every instance
+`Project=rivalchess`.
+
 ## Optional rival-loop workflow
 
 This repository can be worked on through the shared rival-loop multi-agent
