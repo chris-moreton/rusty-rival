@@ -2,7 +2,7 @@
 // scaled by the share of root-attributed nodes that went to the current best
 // move; the hard limit, the NET-339 ceiling and exact (movetime) budgets are
 // untouched. These tests pin the factor, the accounting and the clamping.
-use rusty_rival::engine_constants::{TM_NODE_BASE, TM_NODE_FACTOR_MAX, TM_NODE_FACTOR_MIN, TM_NODE_SCALE};
+use rusty_rival::engine_constants::{TM_MAX_EXTENSION_FACTOR, TM_NODE_BASE, TM_NODE_FACTOR_MAX, TM_NODE_FACTOR_MIN, TM_NODE_SCALE};
 use rusty_rival::fen::get_position;
 use rusty_rival::search::{
     best_move_node_fraction, current_soft_limit, iterative_deepening, node_factor_for, node_scaled_soft_limit, node_time_factor,
@@ -177,9 +177,11 @@ fn exact_budgets_bypass_node_scaling_and_clock_budgets_do_not() {
     let mut state = ponderhit_state(origin, origin);
     record_root_move_nodes(&mut state, 0x1234, 1000); // everything on the best move: factor 0.675
     assert!(close(node_factor_for(&state, 0x1234), 0.675));
-    // Exact budget (movetime / emergency): soft == hard, factor stays 1.0
+    // Exact budget (movetime / emergency): soft == hard, factor stays 1.0. The
+    // ceiling is initialised as TM_MAX_EXTENSION_FACTOR * soft, as the engine does.
     state.soft_time_limit = state.end_time;
     state.original_soft_time_limit = state.end_time;
+    state.max_soft_time_limit = origin + Duration::from_millis(5000).mul_f64(TM_MAX_EXTENSION_FACTOR);
     assert!(close(node_factor_for(&state, 0x1234), 1.0));
     assert_eq!(current_soft_limit(&state, node_factor_for(&state, 0x1234)), state.end_time);
     // No information: factor 1.0 even on a clock budget
