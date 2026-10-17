@@ -20,9 +20,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import queue
 import random
 import subprocess
 import sys
+import threading
 import time
 
 import chess
@@ -33,12 +35,25 @@ START_NUMBERS = [0, 1, 100, 255, 356, 518, 700, 833, 959]
 
 
 class Raw:
-    """Minimal UCI client, for the checks that need the text of the protocol."""
+    """Minimal UCI client, for the checks that need the text of the protocol.
+
+    Output is read by a thread into a queue so that every wait has a deadline,
+    including a wait on an engine that prints nothing at all."""
 
     def __init__(self, path: str):
         self.p = subprocess.Popen([path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+        self.q: queue.Queue[str | None] = queue.Queue()
+        threading.Thread(target=self._pump, daemon=True).start()
         self.send("uci")
         self.lines = self.read_until("uciok")
+
+    def _pump(self) -> None:
+        assert self.p.stdout is not None
+        try:
+            for line in self.p.stdout:
+                self.q.put(line.rstrip("\n"))
+        finally:
+            self.q.put(None)
 
     def send(self, line: str) -> None:
         assert self.p.stdin is not None
@@ -46,17 +61,19 @@ class Raw:
         self.p.stdin.flush()
 
     def read_until(self, token: str, timeout: float = 30.0) -> list[str]:
-        assert self.p.stdout is not None
         deadline = time.monotonic() + timeout
         out: list[str] = []
-        while time.monotonic() < deadline:
-            line = self.p.stdout.readline()
-            if not line:
-                break
-            out.append(line.rstrip("\n"))
+        while True:
+            remaining = deadline - time.monotonic()
+            try:
+                line = self.q.get(timeout=max(0.0, remaining))
+            except queue.Empty:
+                raise TimeoutError(f"no {token!r} within {timeout}s; got {out[-5:]}") from None
+            if line is None:
+                raise RuntimeError(f"engine closed its output before {token!r}; got {out[-5:]}")
+            out.append(line)
             if line.startswith(token):
                 return out
-        raise TimeoutError(f"no {token!r} within {timeout}s; got {out[-5:]}")
 
     def bestmove(self, go: str, timeout: float = 30.0) -> tuple[str, float]:
         start = time.monotonic()
@@ -69,8 +86,28 @@ class Raw:
         self.read_until("readyok")
 
     def close(self) -> None:
-        self.send("quit")
-        self.p.wait(timeout=10)
+        try:
+            self.send("quit")
+            self.p.wait(timeout=10)
+        except (subprocess.TimeoutExpired, OSError):
+            self.p.kill()
+            self.p.wait()
+
+
+def legal_after(fen: str, moves: list[str], bestmove: str, moves_960: bool, bestmove_960: bool) -> bool:
+    """True if `bestmove` is legal in the position reached from `fen` by `moves`.
+
+    The moves and the bestmove may use different castling spellings (the
+    option can change between them), so each is parsed on a board of the
+    matching kind; python-chess rejects an unparsable or illegal move."""
+    board = chess.Board(fen, chess960=moves_960)
+    for move in moves:
+        board.push_uci(move)
+    reached = chess.Board(board.fen(shredder=True), chess960=bestmove_960)
+    try:
+        return reached.parse_uci(bestmove) in reached.legal_moves
+    except ValueError:
+        return False
 
 
 def main() -> int:
@@ -90,55 +127,62 @@ def main() -> int:
 
     # ---- raw protocol -----------------------------------------------------
     raw = Raw(args.engine)
-    check("uci advertises UCI_Chess960", any(l.startswith("option name UCI_Chess960 type check") for l in raw.lines))
-    name = next((l for l in raw.lines if l.startswith("id name")), "")
-    check("uci id name", bool(name), name)
+    try:
+        check("uci advertises UCI_Chess960", any(l.startswith("option name UCI_Chess960 type check") for l in raw.lines))
+        name = next((l for l in raw.lines if l.startswith("id name")), "")
+        check("uci id name", bool(name), name)
 
-    raw.send("setoption name UCI_Chess960 value true")
-    raw.send("ucinewgame")
-    raw.isready()
-    # Shredder-FEN start, king-takes-rook castles both sides, as lichess-bot sends them
-    raw.send("position fen 1rk3r1/pppppppp/8/8/8/8/PPPPPPPP/1RK3R1 w GBgb - 0 1 moves c1g1 c8b8")
-    raw.isready()
-    mv, _ = raw.bestmove("go depth 1")
-    check("position accepts king-takes-rook castles (960 on)", len(mv) >= 4, mv)
-    # Standard spelling is accepted as well
-    raw.send("position fen r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1 moves e1g1 e8c8")
-    raw.isready()
-    mv, _ = raw.bestmove("go depth 1")
-    check("position accepts e1g1-style castles (960 on)", len(mv) >= 4, mv)
-    # bestmove spelling: option on -> king takes rook
-    raw.send("position fen 6kr/8/8/8/8/8/8/6KR w Hh - 0 1")
-    mv, _ = raw.bestmove("go depth 1 searchmoves g1h1")
-    check("bestmove spells an in-place castle as g1h1 (960 on)", mv == "g1h1", mv)
-    raw.send("position fen r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
-    mv, _ = raw.bestmove("go depth 1 searchmoves e1g1")
-    check("bestmove spells a standard castle as e1h1 (960 on)", mv == "e1h1", mv)
-    raw.send("setoption name UCI_Chess960 value false")
-    mv, _ = raw.bestmove("go depth 1 searchmoves e1g1")
-    check("bestmove spells a standard castle as e1g1 (960 off)", mv == "e1g1", mv)
-    raw.send("position fen r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1 moves e1h1")
-    raw.isready()
-    mv, _ = raw.bestmove("go depth 1")
-    check("position accepts e1h1 even with 960 off", len(mv) >= 4, mv)
+        raw.send("setoption name UCI_Chess960 value true")
+        raw.send("ucinewgame")
+        raw.isready()
+        # Shredder-FEN start, king-takes-rook castles both sides, as lichess-bot sends them
+        fen = "1rk3r1/pppppppp/8/8/8/8/PPPPPPPP/1RK3R1 w GBgb - 0 1"
+        raw.send(f"position fen {fen} moves c1g1 c8b8")
+        raw.isready()
+        mv, _ = raw.bestmove("go depth 1")
+        check("position accepts king-takes-rook castles (960 on)", legal_after(fen, ["c1g1", "c8b8"], mv, True, True), mv)
+        # Standard spelling is accepted as well
+        fen = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"
+        raw.send(f"position fen {fen} moves e1g1 e8c8")
+        raw.isready()
+        mv, _ = raw.bestmove("go depth 1")
+        check("position accepts e1g1-style castles (960 on)", legal_after(fen, ["e1g1", "e8c8"], mv, False, True), mv)
+        # bestmove spelling: option on -> king takes rook
+        raw.send("position fen 6kr/8/8/8/8/8/8/6KR w Hh - 0 1")
+        mv, _ = raw.bestmove("go depth 1 searchmoves g1h1")
+        check("bestmove spells an in-place castle as g1h1 (960 on)", mv == "g1h1", mv)
+        raw.send(f"position fen {fen}")
+        mv, _ = raw.bestmove("go depth 1 searchmoves e1g1")
+        check("bestmove spells a standard castle as e1h1 (960 on)", mv == "e1h1", mv)
+        raw.send("setoption name UCI_Chess960 value false")
+        mv, _ = raw.bestmove("go depth 1 searchmoves e1g1")
+        check("bestmove spells a standard castle as e1g1 (960 off)", mv == "e1g1", mv)
+        raw.send(f"position fen {fen} moves e1h1")
+        raw.isready()
+        mv, _ = raw.bestmove("go depth 1")
+        check("position accepts e1h1 even with 960 off", legal_after(fen, ["e1h1"], mv, True, False), mv)
 
-    # Clocked budgets (the lichess-bot path): hard cap is the engine's, +250 ms grace
-    raw.send("setoption name UCI_Chess960 value true")
-    raw.send("position fen bqnb1rkr/pp3ppp/3ppn2/2p5/5P2/P2P4/NPP1P1PP/BQ1BNRKR w HFhf - 2 9")
-    mv, ms = raw.bestmove("go wtime 1000 btime 1000 movestogo 1")
-    check("clocked go 1000ms movestogo 1 returns in time", ms < 1000 + 250, f"{mv} in {ms:.0f} ms")
-    mv, ms = raw.bestmove("go wtime 10000 btime 10000 winc 100 binc 100", timeout=20)
-    check("clocked go 10000ms returns in time", ms < 10000 + 250, f"{mv} in {ms:.0f} ms")
-    # Ponder then ponderhit still produces a bestmove
-    raw.send("position fen bqnb1rkr/pp3ppp/3ppn2/2p5/5P2/P2P4/NPP1P1PP/BQ1BNRKR b HFhf - 2 9")
-    raw.send("go ponder wtime 3000 btime 3000")
-    time.sleep(0.3)
-    start = time.monotonic()
-    raw.send("ponderhit")
-    lines = raw.read_until("bestmove", 10)
-    ms = (time.monotonic() - start) * 1000
-    check("ponderhit yields bestmove", lines[-1].startswith("bestmove"), f"{lines[-1]} after {ms:.0f} ms")
-    raw.close()
+        # Clocked budgets (the lichess-bot path): hard cap is the engine's, +250 ms grace
+        raw.send("setoption name UCI_Chess960 value true")
+        fen = "bqnb1rkr/pp3ppp/3ppn2/2p5/5P2/P2P4/NPP1P1PP/BQ1BNRKR w HFhf - 2 9"
+        raw.send(f"position fen {fen}")
+        mv, ms = raw.bestmove("go wtime 1000 btime 1000 movestogo 1")
+        check("clocked go 1000ms movestogo 1 returns in time", ms < 1000 + 250 and legal_after(fen, [], mv, True, True), f"{mv} in {ms:.0f} ms")
+        mv, ms = raw.bestmove("go wtime 10000 btime 10000 winc 100 binc 100", timeout=20)
+        check("clocked go 10000ms returns in time", ms < 10000 + 250 and legal_after(fen, [], mv, True, True), f"{mv} in {ms:.0f} ms")
+        # Ponder then ponderhit still produces a bestmove
+        fen = "bqnb1rkr/pp3ppp/3ppn2/2p5/5P2/P2P4/NPP1P1PP/BQ1BNRKR b HFhf - 2 9"
+        raw.send(f"position fen {fen}")
+        raw.send("go ponder wtime 3000 btime 3000")
+        time.sleep(0.3)
+        start = time.monotonic()
+        raw.send("ponderhit")
+        lines = raw.read_until("bestmove", 10)
+        ms = (time.monotonic() - start) * 1000
+        mv = lines[-1].split()[1] if len(lines[-1].split()) > 1 else ""
+        check("ponderhit yields bestmove", legal_after(fen, [], mv, True, True), f"{lines[-1]} after {ms:.0f} ms")
+    finally:
+        raw.close()
 
     # ---- python-chess, as lichess-bot drives it ---------------------------
     rng = random.Random(args.seed)
