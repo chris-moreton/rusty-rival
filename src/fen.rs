@@ -1,8 +1,9 @@
-use crate::bitboards::{bit, PAWN_MOVES_CAPTURE};
+use crate::bitboards::{bit, PAWN_MOVES_CAPTURE, RANK_1_BITS, RANK_8_BITS};
 use crate::hash::zobrist_lock;
 use crate::move_constants::{
-    BK_CASTLE, BQ_CASTLE, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK,
-    PROMOTION_ROOK_MOVE_MASK, WK_CASTLE, WQ_CASTLE,
+    castle_index_of_move, ALL_CASTLE_MOVE_MASKS, CASTLE_FLAG, CASTLE_INDEX, CASTLE_RIGHT_MASKS, CASTLE_ROOK_START_DEFAULT, KING_INDEX,
+    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
+    QUEEN_INDEX,
 };
 use crate::types::{Bitboard, Move, Mover, Pieces, Position, Square, BLACK, WHITE};
 use crate::utils::from_square_mask;
@@ -79,6 +80,29 @@ pub fn algebraic_path_from_path(p: &[Move]) -> String {
     p.iter()
         .filter(|m| **m != 0)
         .map(|m| algebraic_move_from_move(*m))
+        .collect::<Vec<String>>()
+        .join(" ")
+}
+
+/// The UCI spelling of a move (NET-1762). With `chess960` set, a castle is
+/// written as the king taking its own rook (`e1h1`), which is what
+/// `UCI_Chess960` prescribes and the only unambiguous spelling when the king
+/// moves one square or none; otherwise it is the king's from and to squares
+/// (`e1g1`), as in standard chess. `castle_rook_squares` are the game's
+/// (`Position::castle_rook_squares`); any position of the game will do.
+pub fn uci_move_from_move(m: Move, castle_rook_squares: &[Square; 4], chess960: bool) -> String {
+    if chess960 && m & ALL_CASTLE_MOVE_MASKS != 0 {
+        let from_square = ((m >> 16) as u8 & 63) as Square;
+        algebraic_squareref_from_bitref(from_square) + &*algebraic_squareref_from_bitref(castle_rook_squares[castle_index_of_move(m)])
+    } else {
+        algebraic_move_from_move(m)
+    }
+}
+
+pub fn uci_path_from_path(p: &[Move], castle_rook_squares: &[Square; 4], chess960: bool) -> String {
+    p.iter()
+        .filter(|m| **m != 0)
+        .map(|m| uci_move_from_move(*m, castle_rook_squares, chess960))
         .collect::<Vec<String>>()
         .join(" ")
 }
@@ -177,6 +201,75 @@ fn en_passant_bit_ref(en_passant_fen_part: String) -> i8 {
     }
 }
 
+/// Castle rights and castling rook squares from a FEN castling field.
+///
+/// Three spellings are accepted (NET-1762): standard `KQkq`; Shredder-FEN,
+/// which names the rook's file (`HAha`, what lichess-bot and python-chess
+/// send for Chess960); and X-FEN, where `K`/`Q` name the outermost rook on
+/// that side of the king. In the standard start position all three agree.
+///
+/// `K`/`Q` rights are recorded as written, as before: one with no rook to
+/// back it still sets the flag (and is never exercised, NET-369), so the FEN
+/// round trip and the Zobrist key of such a position are unchanged, and the
+/// rook square stays at the standard corner. A file letter is explicit, so
+/// one that names no rook of that colour on that square, on the back rank,
+/// on that side of a king that is also on the back rank, grants nothing:
+/// keeping the flag would let `get_fen` write it as `k`, which reads back as
+/// the outermost rook and could turn an empty right into a castle.
+pub fn parse_castling_field(castle_part: &str, king_bitboards: [Bitboard; 2], rook_bitboards: [Bitboard; 2]) -> (u8, [Square; 4]) {
+    let mut castle_flags = 0;
+    let mut castle_rook_squares = CASTLE_ROOK_START_DEFAULT;
+    for c in castle_part.chars() {
+        let colour = if c.is_ascii_uppercase() { WHITE } else { BLACK } as usize;
+        let (back_rank, rank_base) = if colour == WHITE as usize {
+            (RANK_1_BITS, 0)
+        } else {
+            (RANK_8_BITS, 56)
+        };
+        let king_bitboard = king_bitboards[colour] & back_rank;
+        let king = if king_bitboard != 0 {
+            Some(king_bitboard.trailing_zeros() as Square)
+        } else {
+            None
+        };
+        let rooks = rook_bitboards[colour] & back_rank;
+        // The king side is towards the h file, which is the LOW bit of a rank
+        // in this layout (h1 = 0), so "right of the king" is a lower square.
+        let (side, rook) = match c.to_ascii_lowercase() {
+            'k' => (
+                Some(KING_INDEX),
+                king.map(|k| rooks & (bit(k) - 1))
+                    .filter(|bb| *bb != 0)
+                    .map(|bb| bb.trailing_zeros() as Square),
+            ),
+            'q' => (
+                Some(QUEEN_INDEX),
+                king.map(|k| rooks & !(bit(k) | (bit(k) - 1)))
+                    .filter(|bb| *bb != 0)
+                    .map(|bb| 63 - bb.leading_zeros() as Square),
+            ),
+            file @ 'a'..='h' => {
+                let square = rank_base + 7 - (file as u8 - b'a') as Square;
+                match king {
+                    Some(k) if square < k && rooks & bit(square) != 0 => (Some(KING_INDEX), Some(square)),
+                    Some(k) if square > k && rooks & bit(square) != 0 => (Some(QUEEN_INDEX), Some(square)),
+                    _ => (None, None),
+                }
+            }
+            _ => (None, None),
+        };
+        if let Some(side) = side {
+            castle_flags |= CASTLE_FLAG[side][colour];
+            if let Some(square) = rook {
+                if rooks & bit(square) != 0 {
+                    castle_rook_squares[CASTLE_INDEX[side][colour]] = square;
+                }
+            }
+        }
+    }
+    (castle_flags, castle_rook_squares)
+}
+
 pub fn get_position(fen: &str) -> Position {
     let fen_ranks = get_fen_ranks(fen_board_part(fen));
     let wp = piece_bitboard(&fen_ranks, 'P');
@@ -191,20 +284,7 @@ pub fn get_position(fen: &str) -> Position {
     let br = piece_bitboard(&fen_ranks, 'r');
     let wq = piece_bitboard(&fen_ranks, 'Q');
     let bq = piece_bitboard(&fen_ranks, 'q');
-    let castle_part = fen_part(fen, 2);
-    let mut castle_flags = 0;
-    if castle_part.contains('K') {
-        castle_flags |= WK_CASTLE
-    };
-    if castle_part.contains('Q') {
-        castle_flags |= WQ_CASTLE
-    };
-    if castle_part.contains('k') {
-        castle_flags |= BK_CASTLE
-    };
-    if castle_part.contains('q') {
-        castle_flags |= BQ_CASTLE
-    };
+    let (castle_flags, castle_rook_squares) = parse_castling_field(&fen_part(fen, 2), [wk, bk], [wr, br]);
 
     let all_occupied = wp | wn | wb | wr | wq | wk | bp | bn | bb | br | bq | bk;
 
@@ -275,6 +355,7 @@ pub fn get_position(fen: &str) -> Position {
         move_number: fen_part(fen, 5).parse::<u32>().unwrap_or(1).min(u16::MAX as u32) as u16,
         zobrist_lock: 0,
         pawn_key: 0,
+        castle_rook_squares,
     };
 
     let lock = zobrist_lock(&position);
@@ -348,17 +429,24 @@ pub fn get_fen(position: &Position) -> String {
     if position.castle_flags == 0 {
         fen += "-";
     } else {
-        if position.castle_flags & WK_CASTLE != 0 {
-            fen += "K"
-        }
-        if position.castle_flags & WQ_CASTLE != 0 {
-            fen += "Q"
-        }
-        if position.castle_flags & BK_CASTLE != 0 {
-            fen += "k"
-        }
-        if position.castle_flags & BQ_CASTLE != 0 {
-            fen += "q"
+        // `KQkq` for a rook on its standard corner, which is always the
+        // outermost rook and so reads back identically; otherwise the rook's
+        // file, Shredder-FEN style, so a Chess960 position round-trips through
+        // `get_position` with the same castling rook (NET-1762).
+        for (index, standard_letter) in ['K', 'Q', 'k', 'q'].into_iter().enumerate() {
+            if position.castle_flags & CASTLE_RIGHT_MASKS[index] != 0 {
+                let rook = position.castle_rook_squares[index];
+                fen.push(if rook == CASTLE_ROOK_START_DEFAULT[index] {
+                    standard_letter
+                } else {
+                    let file = (b'a' + (7 - rook % 8) as u8) as char;
+                    if index < 2 {
+                        file.to_ascii_uppercase()
+                    } else {
+                        file
+                    }
+                });
+            }
         }
     }
     fen += " ";

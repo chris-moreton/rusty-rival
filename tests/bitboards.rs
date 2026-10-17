@@ -5,6 +5,7 @@ use rusty_rival::bitboards::{
 };
 use rusty_rival::fen::rank_bits;
 use rusty_rival::move_constants::ALL_CASTLE_FLAGS;
+use rusty_rival::move_constants::CASTLE_ROOK_START_DEFAULT;
 use rusty_rival::types::{Piece, Pieces, Position, BLACK, WHITE};
 
 #[test]
@@ -133,6 +134,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         move_number: 1,
         zobrist_lock: 0,
         pawn_key: 0,
+        castle_rook_squares: CASTLE_ROOK_START_DEFAULT,
     };
 
     assert_eq!(1, bitboard_for_mover(&p1, Piece::Pawn));
@@ -170,6 +172,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         move_number: 1,
         zobrist_lock: 0,
         pawn_key: 0,
+        castle_rook_squares: CASTLE_ROOK_START_DEFAULT,
     };
 
     assert_eq!(7, bitboard_for_mover(&p2, Piece::Pawn));

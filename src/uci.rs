@@ -13,7 +13,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::evaluate::evaluate_position;
-use crate::fen::{algebraic_move_from_move, get_fen, get_position};
+use crate::fen::{get_fen, get_position, uci_move_from_move};
 use crate::make_move::make_move;
 use crate::move_constants::START_POS;
 use crate::moves::{generate_moves, is_check};
@@ -363,18 +363,17 @@ fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<String>) {
 }
 
 pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
-    let moves = generate_moves(position);
-    for m in moves {
-        let am = algebraic_move_from_move(m);
-        if am == algebraic_move {
-            let mut new_position = *position;
-            make_move(position, m, &mut new_position);
-            if !is_check(&new_position, position.mover) {
-                return true;
-            }
-        }
+    // Compared as a move rather than as text, so a castle is accepted in
+    // either spelling: `e1g1`, or the `UCI_Chess960` king-takes-rook `e1h1`
+    // that lichess-bot sends (NET-1762). Malformed text hydrates to a move
+    // the generator never produces.
+    let mv = hydrate_move_from_algebraic_move(position, algebraic_move.to_string());
+    if !generate_moves(position).contains(&mv) {
+        return false;
     }
-    false
+    let mut new_position = *position;
+    make_move(position, mv, &mut new_position);
+    !is_check(&new_position, position.mover)
 }
 
 fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts: Vec<&str>) -> Either<String, Option<String>> {
@@ -387,8 +386,10 @@ fn cmd_position(uci_state: &mut UciState, search_state: &mut SearchState, parts:
         "fen" => {
             search_state.history = vec![];
 
+            // The castling field also takes Shredder-FEN / X-FEN rook files
+            // (`HAha`), which is how a Chess960 start arrives (NET-1762)
             let re = Regex::new(
-                r"\s*^(((?:[rnbqkpRNBQKP1-8]+/){7})[rnbqkpRNBQKP1-8]+)\s([b|w])\s([K|Q|k|q]{1,4}|-)\s(-|[a-h][1-8])\s(\d+\s\d+)$",
+                r"\s*^(((?:[rnbqkpRNBQKP1-8]+/){7})[rnbqkpRNBQKP1-8]+)\s([b|w])\s([KQkqA-Ha-h]{1,4}|-)\s(-|[a-h][1-8])\s(\d+\s\d+)$",
             )
             .unwrap();
             let (raw_fen, moves) = fen_and_moves(parts);
@@ -704,7 +705,7 @@ fn cmd_go(
             let mut np = position;
             make_move(&position, m, &mut np);
             if !is_check(&np, position.mover) {
-                fb = algebraic_move_from_move(m);
+                fb = uci_move_from_move(m, &position.castle_rook_squares, uci_state.chess960);
                 break;
             }
         }
@@ -915,7 +916,8 @@ fn cmd_ponderhit(search_handle: &mut Option<SearchHandle>) -> Either<String, Opt
 }
 
 fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
-    let bestmove = algebraic_move_from_move(mv);
+    let spell = |m: Move| uci_move_from_move(m, &search_state.castle_rook_squares, search_state.chess960);
+    let bestmove = spell(mv);
     // Use the PV belonging to the returned move, including a completed
     // fail-high selected when an aspiration retry was interrupted.
     let result = search_state.selected_result();
@@ -924,7 +926,7 @@ fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
     }
     if let Some(&ponder_mv) = result.0.get(1) {
         if ponder_mv != 0 {
-            return format!("bestmove {} ponder {}", bestmove, algebraic_move_from_move(ponder_mv));
+            return format!("bestmove {} ponder {}", bestmove, spell(ponder_mv));
         }
     }
     format!("bestmove {}", bestmove)
@@ -955,6 +957,7 @@ option name UseNNUE type check default true
 option name Ponder type check default false
 option name Move Overhead type spin default 10 min 0 max 5000
 option name UCI_ShowWDL type check default false
+option name UCI_Chess960 type check default false
 uciok",
         env!("CARGO_PKG_VERSION"),
         HASH_SIZE_MB
@@ -1095,6 +1098,18 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &m
                 Right(None)
             }
             "uci_showwdl" => Right(None),
+            // Notation only: castling is printed and read as king-takes-rook.
+            // Legality never depends on it - a Chess960 FEN castles correctly
+            // either way - so the option is safe to leave off for standard
+            // chess and python-chess turns it on per game (NET-1762).
+            "uci_chess960" => {
+                if parts.len() == 5 && parts[3] == "value" {
+                    let on = parts[4].eq_ignore_ascii_case("true");
+                    uci_state.chess960 = on;
+                    search_state.chess960 = on;
+                }
+                Right(None)
+            }
             _ => Left("Unknown option".parse().unwrap()),
         }
     }

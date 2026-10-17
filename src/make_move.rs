@@ -1,4 +1,4 @@
-use crate::bitboards::{bit, test_bit, A1_BIT, A8_BIT, H1_BIT, H8_BIT, PAWN_MOVES_CAPTURE};
+use crate::bitboards::{bit, test_bit, PAWN_MOVES_CAPTURE};
 use crate::hash::{
     en_passant_zobrist_key_index, ZOBRIST_KEYS_CASTLE, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEYS_PIECES, ZOBRIST_KEY_MOVER_SWITCH,
     ZOBRIST_PIECE_INDEX_BISHOP, ZOBRIST_PIECE_INDEX_KING, ZOBRIST_PIECE_INDEX_KNIGHT, ZOBRIST_PIECE_INDEX_PAWN, ZOBRIST_PIECE_INDEX_QUEEN,
@@ -70,33 +70,33 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
 #[inline(always)]
 fn make_castle_move(position: &mut Position, mv: Move) {
-    match mv {
-        WHITE_KING_CASTLE_MOVE => {
-            perform_castle(position, CASTLE_INDEX_WHITE_KING);
-        }
-        WHITE_QUEEN_CASTLE_MOVE => {
-            perform_castle(position, CASTLE_INDEX_WHITE_QUEEN);
-        }
-        BLACK_KING_CASTLE_MOVE => {
-            perform_castle(position, CASTLE_INDEX_BLACK_KING);
-        }
-        BLACK_QUEEN_CASTLE_MOVE => {
-            perform_castle(position, CASTLE_INDEX_BLACK_QUEEN);
-        }
-        _ => {
-            panic!("Was expecting a castle move");
-        }
-    };
+    perform_castle(position, from_square_part(mv), castle_index_of_move(mv));
 }
 
+/// Castle `index` with the king on `king_from`; the rook comes from the
+/// position's `castle_rook_squares` (Chess960, NET-1762). The piece deltas are
+/// XORs of from and to rather than fixed masks because in Chess960 the king
+/// (already on g1) or the rook (already on f1) may not move at all, and a bit
+/// that is both cleared and set must stay put; the Zobrist terms cancel the
+/// same way. In the standard start position the result is bit-identical to
+/// the fixed masks this replaces.
 #[inline(always)]
-pub fn perform_castle(position: &mut Position, index: usize) {
-    position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE_PIECE_MOVES[index];
+pub fn perform_castle(position: &mut Position, king_from: Square, index: usize) {
+    let mover = position.mover as usize;
+    let king_to = CASTLE_VARS_KING_TO[index];
+    let rook_from = position.castle_rook_squares[index];
+    let rook_to = CASTLE_VARS_ROOK_TO[index];
+    position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[mover][ZOBRIST_PIECE_INDEX_KING][king_from as usize]
+        ^ ZOBRIST_KEYS_PIECES[mover][ZOBRIST_PIECE_INDEX_KING][king_to as usize]
+        ^ ZOBRIST_KEYS_PIECES[mover][ZOBRIST_PIECE_INDEX_ROOK][rook_from as usize]
+        ^ ZOBRIST_KEYS_PIECES[mover][ZOBRIST_PIECE_INDEX_ROOK][rook_to as usize];
 
+    let rook_delta = bit(rook_from) ^ bit(rook_to);
     position.castle_flags &= CASTLE_VARS_CLEAR_FLAGS_MASK[index];
-    position.pieces[position.mover as usize].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[index];
-    position.pieces[position.mover as usize].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[index];
-    position.pieces[position.mover as usize].king_square = CASTLE_VARS_KING_TO[index];
+    let friendly = &mut position.pieces[mover];
+    friendly.rook_bitboard ^= rook_delta;
+    friendly.all_pieces_bitboard ^= bit(king_from) ^ bit(king_to) ^ rook_delta;
+    friendly.king_square = king_to;
     position.half_moves += 1;
     position.move_number += CASTLE_VARS_FULL_MOVE_INC[index];
 }
@@ -244,15 +244,21 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     captured
 }
 
+/// A rook leaving, or any piece landing on, a castling rook's start square
+/// ends that right. The squares are the position's own, which are the four
+/// corners in standard chess and wherever the FEN put the rooks in Chess960.
 #[inline(always)]
 fn update_castle_flags_if_square(position: &mut Position, sq: Square) {
     if position.castle_flags != 0 {
-        match sq {
-            H8_BIT => position.castle_flags &= !BK_CASTLE,
-            A8_BIT => position.castle_flags &= !BQ_CASTLE,
-            H1_BIT => position.castle_flags &= !WK_CASTLE,
-            A1_BIT => position.castle_flags &= !WQ_CASTLE,
-            _ => {}
+        let rooks = position.castle_rook_squares;
+        if sq == rooks[CASTLE_INDEX_BLACK_KING] {
+            position.castle_flags &= !BK_CASTLE
+        } else if sq == rooks[CASTLE_INDEX_BLACK_QUEEN] {
+            position.castle_flags &= !BQ_CASTLE
+        } else if sq == rooks[CASTLE_INDEX_WHITE_KING] {
+            position.castle_flags &= !WK_CASTLE
+        } else if sq == rooks[CASTLE_INDEX_WHITE_QUEEN] {
+            position.castle_flags &= !WQ_CASTLE
         }
     }
 }
@@ -599,30 +605,15 @@ fn unmake_promotion(position: &mut Position, from: Square, to: Square, promotion
 
 #[inline(always)]
 fn unmake_castle(position: &mut Position, mv: Move, mover: usize) {
-    // Use the same constants as perform_castle to reverse the operation
-    match mv {
-        WHITE_KING_CASTLE_MOVE => {
-            position.pieces[mover].king_square = KING_START[WHITE as usize];
-            position.pieces[mover].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[CASTLE_INDEX_WHITE_KING];
-            position.pieces[mover].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[CASTLE_INDEX_WHITE_KING];
-        }
-        WHITE_QUEEN_CASTLE_MOVE => {
-            position.pieces[mover].king_square = KING_START[WHITE as usize];
-            position.pieces[mover].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[CASTLE_INDEX_WHITE_QUEEN];
-            position.pieces[mover].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[CASTLE_INDEX_WHITE_QUEEN];
-        }
-        BLACK_KING_CASTLE_MOVE => {
-            position.pieces[mover].king_square = KING_START[BLACK as usize];
-            position.pieces[mover].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[CASTLE_INDEX_BLACK_KING];
-            position.pieces[mover].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[CASTLE_INDEX_BLACK_KING];
-        }
-        BLACK_QUEEN_CASTLE_MOVE => {
-            position.pieces[mover].king_square = KING_START[BLACK as usize];
-            position.pieces[mover].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[CASTLE_INDEX_BLACK_QUEEN];
-            position.pieces[mover].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[CASTLE_INDEX_BLACK_QUEEN];
-        }
-        _ => {}
-    }
+    // The same deltas as perform_castle, reversed; the king's start square is
+    // the move's from square and the rook's is the position's (Chess960)
+    let index = castle_index_of_move(mv);
+    let king_from = from_square_part(mv);
+    let rook_delta = bit(position.castle_rook_squares[index]) ^ bit(CASTLE_VARS_ROOK_TO[index]);
+    let friendly = &mut position.pieces[mover];
+    friendly.king_square = king_from;
+    friendly.rook_bitboard ^= rook_delta;
+    friendly.all_pieces_bitboard ^= bit(king_from) ^ bit(CASTLE_VARS_KING_TO[index]) ^ rook_delta;
 }
 
 #[inline(always)]

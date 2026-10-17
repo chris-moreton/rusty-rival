@@ -27,6 +27,7 @@ Rusty Rival plays on Lichess as [RustyRival](https://lichess.org/@/RustyRival/pe
 - Quiescence search with static exchange evaluation
 - Syzygy endgame tablebase support
 - SPSA-tuned evaluation and search parameters
+- Chess960 (Fischer Random): castling from any start position, Shredder-FEN and X-FEN castling fields, `UCI_Chess960` move notation
 
 ## Building
 
@@ -73,6 +74,7 @@ git tag v020-my-feature
 | `Ponder` | check | false | — | Enable pondering (thinking on the opponent's time). |
 | `Move Overhead` | spin | 10 | 0–5000 | Time in ms reserved per move for communication overhead. |
 | `UCI_ShowWDL` | check | false | — | Show win/draw/loss probabilities in search output. |
+| `UCI_Chess960` | check | false | — | Write and read castling as the king taking its own rook (`e1h1`), as the Chess960 UCI convention requires. Castling legality does not depend on it: a Chess960 FEN (`HAha` or `KQkq` castling field) castles correctly either way, and the standard `e1g1` spelling is always accepted. |
 
 ## License
 

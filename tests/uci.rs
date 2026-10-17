@@ -856,12 +856,28 @@ pub fn castling_is_not_generated_without_the_pieces() {
     assert!(castles("4k3/8/8/8/8/8/8/4K3 w KQkq - 0 1").is_empty());
     // Right claimed for a side whose rook is missing; the backed side still works
     assert_eq!(castles("4k3/8/8/8/8/8/8/4K2R w KQ - 0 1"), vec!["e1g1"]);
-    // King not on its home square
-    assert!(castles("4k3/8/8/8/8/8/8/R2K3R w KQ - 0 1").is_empty());
     // Fully legal position still generates both
     let mut both = castles("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
     both.sort();
     assert_eq!(both, vec!["e1c1", "e1g1"]);
+
+    // A king away from e1 with rights is a Chess960 start (NET-1762): `K`/`Q`
+    // name the outermost rooks on either side of it, and it castles to g1/c1
+    // from where it stands. Nothing is conjured: both pieces are verified home.
+    let any_castle = |fen: &str| -> Vec<String> {
+        let p = get_position(fen);
+        let mut castles: Vec<String> = generate_moves(&p)
+            .iter()
+            .filter(|m| *m & rusty_rival::move_constants::ALL_CASTLE_MOVE_MASKS != 0)
+            .map(|m| algebraic_move_from_move(*m))
+            .collect();
+        castles.sort();
+        castles
+    };
+    assert_eq!(any_castle("4k3/8/8/8/8/8/8/R2K3R w KQ - 0 1"), vec!["d1c1", "d1g1"]);
+    // ...but only from the back rank, and only with the rooks there
+    assert!(any_castle("4k3/8/8/8/8/8/3K4/R6R w KQ - 0 1").is_empty());
+    assert!(any_castle("4k3/8/8/8/8/8/8/3K4 w KQ - 0 1").is_empty());
 }
 
 /// Move counters beyond u16 used to hit parse::<u16>().unwrap().

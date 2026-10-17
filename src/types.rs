@@ -1,7 +1,7 @@
 use crate::engine_constants::{
     CORRECTION_HISTORY_SIZE, HASH_ENTRY_BYTES, MAX_DEPTH, MAX_QUIESCE_DEPTH, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES,
 };
-use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
+use crate::move_constants::{BK_CASTLE, BQ_CASTLE, CASTLE_RIGHT_MASKS, CASTLE_ROOK_START_DEFAULT, START_POS, WK_CASTLE, WQ_CASTLE};
 use crate::nnue;
 use arrayvec::ArrayVec;
 use std::collections::HashMap;
@@ -439,6 +439,10 @@ pub struct UciState {
     pub threads: usize,
     pub ponder_enabled: bool,
     pub move_overhead: u64,
+    /// `UCI_Chess960`: castling is written and read as king-takes-rook. Move
+    /// generation does not depend on it; Chess960 castling is always legal
+    /// from a FEN that asks for it.
+    pub chess960: bool,
 }
 
 pub fn default_uci_state() -> UciState {
@@ -460,6 +464,7 @@ pub fn default_uci_state() -> UciState {
         threads: 1,
         ponder_enabled: false,
         move_overhead: 10,
+        chess960: false,
     }
 }
 
@@ -643,6 +648,12 @@ pub struct SearchState {
     /// Reusable per-ply buffers for search()'s node-local lists; see `NodeScratch`.
     pub node_scratch: NodeScratch,
     pub nnue_ply: usize,
+    /// `UCI_Chess960` notation for printed moves (bestmove, ponder, PV).
+    pub chess960: bool,
+    /// The root position's castling rook squares, copied at the start of each
+    /// search so PV and bestmove output can spell a castle as king-takes-rook.
+    /// They are a property of the game, not of the ply, so the root's suffice.
+    pub castle_rook_squares: [Square; 4],
     // Search-width diagnostics (NET-1155) live at the end deliberately: normal
     // builds compile out every write, and appending them preserves the layout
     // and cache offsets of all production SearchState fields above.
@@ -830,6 +841,8 @@ impl Clone for SearchState {
             // Scratch buffers hold no state between nodes; each clone owns fresh ones
             node_scratch: NodeScratch::new(),
             nnue_ply: self.nnue_ply,
+            chess960: self.chess960,
+            castle_rook_squares: self.castle_rook_squares,
         }
     }
 }
@@ -1008,6 +1021,8 @@ pub fn default_search_state() -> SearchState {
         nnue_computed: vec![false; MAX_DEPTH as usize + MAX_QUIESCE_DEPTH as usize + 2],
         nnue_ply: 0,
         node_scratch: NodeScratch::new(),
+        chess960: false,
+        castle_rook_squares: CASTLE_ROOK_START_DEFAULT,
     }
 }
 
@@ -1189,6 +1204,13 @@ pub struct Position {
     /// built from the low halves of the same tables so correction-history
     /// indices are bit-identical to the old per-node recomputation.
     pub pawn_key: u64,
+    /// Start square of each castling rook, indexed like `CASTLE_INDEX_*`
+    /// (white king side, white queen side, black king side, black queen
+    /// side). The standard corners unless the FEN says otherwise (Chess960).
+    /// Fixed for the whole game, so a move never changes it and it is not
+    /// part of the Zobrist key; a right whose square no longer holds the rook
+    /// is simply never exercised.
+    pub castle_rook_squares: [Square; 4],
 }
 
 impl PartialEq for Position {
@@ -1200,6 +1222,8 @@ impl PartialEq for Position {
             && self.castle_flags == other.castle_flags
             && self.half_moves == other.half_moves
             && self.move_number == other.move_number
+            // A castling rook's identity only matters while its right exists
+            && (0..4).all(|i| self.castle_flags & CASTLE_RIGHT_MASKS[i] == 0 || self.castle_rook_squares[i] == other.castle_rook_squares[i])
     }
 }
 
