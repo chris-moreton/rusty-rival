@@ -724,7 +724,10 @@ fn castling_rook_identity_is_part_of_the_lock() {
         run_command_test(
             &mut uci_state,
             &mut search_state,
-            "position fen k7/8/8/8/8/8/8/RR2K1RR w GB - 0 1 moves g1g8 a8a7 b1b8"
+            // Inner rooks leave one at a time: g1g2 drops G (B left), b1b2 drops B,
+            // so the salt changes twice on the copy-make path. (An earlier draft,
+            // k7/... moves g1g8 a8a7 b1b8, was checkmate after g1g8.)
+            "position fen 8/8/8/3k4/8/8/8/RR2K1RR w GB - 0 1 moves g1g2 d5d4 b1b2"
         ),
         Right(None)
     );
