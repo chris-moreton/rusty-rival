@@ -474,6 +474,33 @@ fn both_castle_spellings_hydrate_to_the_generated_move() {
     let no_rights = get_position("r3k2r/8/8/8/8/8/8/R3K2R w kq - 0 1");
     assert!(!is_legal_move(&no_rights, "e1h1"));
     assert!(!is_legal_move(&no_rights, "e1g1"));
+    // A `K` right kept with no rook behind it (NET-369) leaves the rook square
+    // at h1; the king capturing an enemy piece there is a capture, not a castle
+    // (CodeRabbit on PR #116)
+    let phantom_right = get_position("6k1/8/8/8/8/8/8/6Kn w K - 0 1");
+    assert_eq!(
+        hydrate_move_from_algebraic_move(&phantom_right, "g1h1".to_string()) & ALL_CASTLE_MOVE_MASKS,
+        0
+    );
+    assert!(is_legal_move(&phantom_right, "g1h1"));
+    let mut after = phantom_right;
+    make_move(
+        &phantom_right,
+        hydrate_move_from_algebraic_move(&phantom_right, "g1h1".to_string()),
+        &mut after,
+    );
+    assert_eq!(get_fen(&after), "6k1/8/8/8/8/8/8/7K b - - 0 1");
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    assert_eq!(
+        run_command_test(
+            &mut uci_state,
+            &mut search_state,
+            "position fen 6k1/8/8/8/8/8/8/6Kn w K - 0 1 moves g1h1"
+        ),
+        Right(None)
+    );
+    assert_eq!(uci_state.fen, "6k1/8/8/8/8/8/8/7K b - - 0 1");
 }
 
 #[test]

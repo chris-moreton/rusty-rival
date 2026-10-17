@@ -97,7 +97,10 @@ pub fn moving_piece_mask(position: &Position, mv: Move) -> Move {
 /// stepping one square is never read as a castle, so a GUI that does not
 /// speak `UCI_Chess960` can only castle unambiguously - which is why the
 /// option exists. The side must still hold the right, as a castle that is
-/// not available is not a castle (the move is then rejected as illegal).
+/// not available is not a castle (the move is then rejected as illegal), and
+/// the king-takes-rook reading needs the side's own rook on that square: a
+/// `K` right kept without a rook behind it (NET-369) must not turn the king's
+/// capture of an enemy piece on the empty corner into a castle.
 #[inline(always)]
 pub fn castle_mask(position: &Position, mv: Move) -> Move {
     let from = from_square_part(mv);
@@ -115,8 +118,10 @@ pub fn castle_mask(position: &Position, mv: Move) -> Move {
             continue;
         }
         let index = CASTLE_INDEX[side][colour];
+        let rook_square = position.castle_rook_squares[index];
+        let takes_own_rook = to == rook_square && position.pieces[colour].rook_bitboard & bit(rook_square) != 0;
         let double_step = to == CASTLE_VARS_KING_TO[index] && from / 8 == to / 8 && (from - to).abs() >= 2;
-        if to == position.castle_rook_squares[index] || double_step {
+        if takes_own_rook || double_step {
             return CASTLE_MOVE_MASKS[index];
         }
     }
