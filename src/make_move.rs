@@ -1,8 +1,8 @@
 use crate::bitboards::{bit, test_bit, PAWN_MOVES_CAPTURE};
 use crate::hash::{
-    en_passant_zobrist_key_index, ZOBRIST_KEYS_CASTLE, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEYS_PIECES, ZOBRIST_KEY_MOVER_SWITCH,
-    ZOBRIST_PIECE_INDEX_BISHOP, ZOBRIST_PIECE_INDEX_KING, ZOBRIST_PIECE_INDEX_KNIGHT, ZOBRIST_PIECE_INDEX_PAWN, ZOBRIST_PIECE_INDEX_QUEEN,
-    ZOBRIST_PIECE_INDEX_ROOK,
+    castle_rook_key, en_passant_zobrist_key_index, ZOBRIST_KEYS_CASTLE, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEYS_PIECES,
+    ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_PIECE_INDEX_BISHOP, ZOBRIST_PIECE_INDEX_KING, ZOBRIST_PIECE_INDEX_KNIGHT, ZOBRIST_PIECE_INDEX_PAWN,
+    ZOBRIST_PIECE_INDEX_QUEEN, ZOBRIST_PIECE_INDEX_ROOK,
 };
 use crate::move_constants::*;
 use crate::opponent;
@@ -25,7 +25,8 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
     let piece_mask = mv & PIECE_MASK_FULL;
 
-    new_position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[new_position.castle_flags as usize];
+    new_position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[new_position.castle_flags as usize]
+        ^ castle_rook_key(&new_position.castle_rook_squares, new_position.castle_flags);
     if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];
     }
@@ -61,7 +62,8 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     }
 
     new_position.mover ^= 1;
-    new_position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[new_position.castle_flags as usize];
+    new_position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[new_position.castle_flags as usize]
+        ^ castle_rook_key(&new_position.castle_rook_squares, new_position.castle_flags);
     if new_position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(new_position.en_passant_square)];
     }
@@ -493,7 +495,10 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
 
     position.mover ^= 1;
     if castle_flags != position.castle_flags {
-        position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[castle_flags as usize] ^ ZOBRIST_KEYS_CASTLE[position.castle_flags as usize];
+        position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[castle_flags as usize]
+            ^ ZOBRIST_KEYS_CASTLE[position.castle_flags as usize]
+            ^ castle_rook_key(&position.castle_rook_squares, castle_flags)
+            ^ castle_rook_key(&position.castle_rook_squares, position.castle_flags);
     }
     if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];

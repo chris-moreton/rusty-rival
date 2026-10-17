@@ -1100,8 +1100,10 @@ fn cmd_setoption(parts: Vec<&str>, search_state: &mut SearchState, uci_state: &m
             "uci_showwdl" => Right(None),
             // Notation only: castling is printed and read as king-takes-rook.
             // Legality never depends on it - a Chess960 FEN castles correctly
-            // either way - so the option is safe to leave off for standard
-            // chess and python-chess turns it on per game (NET-1762).
+            // either way - and a castle whose king moves under two squares is
+            // printed king-takes-rook even with the option off, as its from/to
+            // spelling would not read back. So the option is safe to leave off
+            // for standard chess; python-chess turns it on per game (NET-1762).
             "uci_chess960" => {
                 if parts.len() == 5 && parts[3] == "value" {
                     let on = parts[4].eq_ignore_ascii_case("true");

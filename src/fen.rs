@@ -88,15 +88,23 @@ pub fn algebraic_path_from_path(p: &[Move]) -> String {
 /// written as the king taking its own rook (`e1h1`), which is what
 /// `UCI_Chess960` prescribes and the only unambiguous spelling when the king
 /// moves one square or none; otherwise it is the king's from and to squares
-/// (`e1g1`), as in standard chess. `castle_rook_squares` are the game's
-/// (`Position::castle_rook_squares`); any position of the game will do.
+/// (`e1g1`), as in standard chess. A castle whose king moves fewer than two
+/// squares is written king-takes-rook in either mode: its from/to spelling
+/// (`b1c1`, `g1g1`) would read back as a king step or as nothing, whereas
+/// king-takes-rook is always read as the castle. Every standard castle moves
+/// the king two squares, so standard output is unchanged. `castle_rook_squares`
+/// are the game's (`Position::castle_rook_squares`); any position of the game
+/// will do.
 pub fn uci_move_from_move(m: Move, castle_rook_squares: &[Square; 4], chess960: bool) -> String {
-    if chess960 && m & ALL_CASTLE_MOVE_MASKS != 0 {
+    if m & ALL_CASTLE_MOVE_MASKS != 0 {
         let from_square = ((m >> 16) as u8 & 63) as Square;
-        algebraic_squareref_from_bitref(from_square) + &*algebraic_squareref_from_bitref(castle_rook_squares[castle_index_of_move(m)])
-    } else {
-        algebraic_move_from_move(m)
+        let to_square = (m & 63) as Square;
+        if chess960 || (from_square - to_square).abs() < 2 {
+            return algebraic_squareref_from_bitref(from_square)
+                + &*algebraic_squareref_from_bitref(castle_rook_squares[castle_index_of_move(m)]);
+        }
     }
+    algebraic_move_from_move(m)
 }
 
 pub fn uci_path_from_path(p: &[Move], castle_rook_squares: &[Square; 4], chess960: bool) -> String {

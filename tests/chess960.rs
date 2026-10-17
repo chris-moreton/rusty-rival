@@ -10,7 +10,7 @@ use either::Right;
 use rusty_rival::bitboards::{A1_BIT, A8_BIT, B1_BIT, B8_BIT, F1_BIT, F8_BIT, G1_BIT, G8_BIT, H1_BIT, H8_BIT};
 use rusty_rival::evaluate::evaluate_position;
 use rusty_rival::fen::{algebraic_move_from_move, get_fen, get_position, uci_move_from_move};
-use rusty_rival::hash::{pawn_key_from_scratch, zobrist_lock};
+use rusty_rival::hash::{castle_rook_key, pawn_key_from_scratch, zobrist_lock, ZOBRIST_KEYS_CASTLE_ROOK};
 use rusty_rival::make_move::{make_move, make_move_in_place, unmake_move};
 use rusty_rival::move_constants::{
     ALL_CASTLE_MOVE_MASKS, BK_CASTLE, BQ_CASTLE, CASTLE_INDEX_BLACK_KING, CASTLE_INDEX_BLACK_QUEEN, CASTLE_INDEX_WHITE_KING,
@@ -250,7 +250,11 @@ fn castling_geometry_cases() {
     let moves = spelled(&position, true);
     assert!(moves.contains(&"b1a1".to_string()), "{moves:?}");
     assert!(moves.contains(&"b1c1".to_string()), "{moves:?}");
-    assert_eq!(spelled(&position, false).iter().filter(|m| m.as_str() == "b1c1").count(), 2);
+    // With UCI_Chess960 off the one-square castle still prints king-takes-rook,
+    // so it cannot be confused with the step to the same square
+    let standard_spelling = spelled(&position, false);
+    assert_eq!(standard_spelling.iter().filter(|m| m.as_str() == "b1c1").count(), 1);
+    assert!(standard_spelling.contains(&"b1a1".to_string()), "{standard_spelling:?}");
     let mut after = position;
     make_move(&position, castle[0], &mut after);
     assert_eq!(get_fen(&after), "1k6/8/8/8/8/8/8/2KR4 b - - 1 1");
@@ -629,4 +633,152 @@ fn castle_indices_line_up_with_the_right_masks() {
         [H1_BIT, A1_BIT, H8_BIT, A8_BIT]
     );
     assert_eq!(rusty_rival::move_constants::CASTLE_VARS_ROOK_TO, [F1_BIT, 4, F8_BIT, 60]);
+}
+
+/// CodeRabbit on PR #116: `KQ` (outer rooks) and `GB` (inner rooks) give the
+/// same board, mover and rights bits but different castles, so they must not
+/// share a transposition-table lock. Standard-corner rooks contribute nothing,
+/// so every orthodox key is the pre-Chess960 key.
+#[test]
+fn castling_rook_identity_is_part_of_the_lock() {
+    let outer = get_position("k7/8/8/8/8/8/8/RR2K1RR w KQ - 0 1");
+    let inner = get_position("k7/8/8/8/8/8/8/RR2K1RR w GB - 0 1");
+    assert_eq!(outer.pieces, inner.pieces);
+    assert_eq!(outer.castle_flags, inner.castle_flags);
+    assert_ne!(outer.castle_rook_squares, inner.castle_rook_squares);
+    assert_ne!(outer.zobrist_lock, inner.zobrist_lock);
+    assert_eq!(inner.zobrist_lock, zobrist_lock(&inner));
+
+    // Orthodox corners: zero salt, so standard keys are unchanged
+    for index in 0..4 {
+        assert_eq!(
+            ZOBRIST_KEYS_CASTLE_ROOK[index][rusty_rival::move_constants::CASTLE_ROOK_START_DEFAULT[index] as usize],
+            0
+        );
+    }
+    assert_eq!(castle_rook_key(&outer.castle_rook_squares, outer.castle_flags), 0);
+    let start = get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    // Orthodox locks pinned to the pre-salt definition: values computed
+    // independently (Python, from the unchanged hash.rs tables) as the XOR of
+    // piece, castle-rights, en-passant and mover keys, as in v1.0.78
+    for (fen, lock) in [
+        (
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            298807166715181971774724577633070736683u128,
+        ),
+        (
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            287878515169241678237901907072231950823u128,
+        ),
+        ("r3k2r/8/8/8/8/8/8/R3K2R b Kq - 0 1", 245163171819780492984834757368791268100u128),
+    ] {
+        assert_eq!(get_position(fen).zobrist_lock, lock, "{fen}");
+        assert_eq!(zobrist_lock(&get_position(fen)), lock, "{fen}");
+    }
+    assert_eq!(castle_rook_key(&start.castle_rook_squares, start.castle_flags), 0);
+    assert_eq!(
+        get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1").zobrist_lock,
+        start.zobrist_lock
+    );
+
+    // Inactive metadata is ignored: with no rights, the rook squares do not matter
+    let no_rights_inner = get_position("k7/8/8/8/8/8/8/RR2K1RR w GB - 0 1");
+    let mut stripped = no_rights_inner;
+    stripped.castle_flags = 0;
+    let mut stripped_outer = outer;
+    stripped_outer.castle_flags = 0;
+    assert_eq!(zobrist_lock(&stripped), zobrist_lock(&stripped_outer));
+    assert_eq!(castle_rook_key(&inner.castle_rook_squares, 0), 0);
+
+    // Incremental keys track the salt through rook moves, rook captures,
+    // castles and king moves, on both make paths, and unmake restores them
+    for fen in [
+        "k7/8/8/8/8/8/8/RR2K1RR w GB - 0 1",
+        "k6r/6r1/8/8/8/8/8/RR2K1RR w GB - 0 1",
+        "1rk3r1/8/8/8/8/8/8/1RK3R1 w GBgb - 0 1",
+        "1rk3r1/8/8/8/8/8/8/1RK3R1 b GBgb - 0 1",
+        "rk2r3/8/8/8/8/8/8/RK2R3 w EAea - 0 1",
+    ] {
+        let mut position = get_position(fen);
+        let before = position;
+        let mut salted_moves = 0;
+        for m in generate_moves(&before) {
+            let mut copied = before;
+            make_move(&before, m, &mut copied);
+            let unmake = make_move_in_place(&mut position, m);
+            assert_eq!(position.zobrist_lock, zobrist_lock(&position), "{fen} after {m:#x}");
+            assert_eq!(copied.zobrist_lock, position.zobrist_lock, "{fen} copy vs in-place after {m:#x}");
+            if position.castle_flags != before.castle_flags {
+                salted_moves += 1;
+            }
+            unmake_move(&mut position, m, &unmake);
+            assert_eq!(position.zobrist_lock, before.zobrist_lock);
+        }
+        assert!(salted_moves > 0, "{fen} exercised no rights change");
+    }
+
+    // The same through `position ... moves`, which builds keys by copy-make
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    assert_eq!(
+        run_command_test(
+            &mut uci_state,
+            &mut search_state,
+            "position fen k7/8/8/8/8/8/8/RR2K1RR w GB - 0 1 moves g1g8 a8a7 b1b8"
+        ),
+        Right(None)
+    );
+    assert_eq!(*search_state.history.last().unwrap(), zobrist_lock(&get_position(&uci_state.fen)));
+}
+
+/// Short-distance castles round-trip in both notation modes: they are written
+/// king-takes-rook either way and read back as the same castle (CodeRabbit on
+/// PR #116); orthodox castles keep their `e1g1` spelling with the option off.
+#[test]
+fn short_castles_round_trip_in_both_modes() {
+    for (fen, castle_text) in [
+        ("1k6/8/8/8/8/8/8/RK6 w A - 0 1", "b1a1"),
+        ("6kr/8/8/8/8/8/8/6KR w Hh - 0 1", "g1h1"),
+        ("4k3/8/8/8/8/8/8/4KR2 w F - 0 1", "e1f1"),
+    ] {
+        let position = get_position(fen);
+        let castle = castles(&position);
+        assert_eq!(castle.len(), 1, "{fen}");
+        for chess960 in [false, true] {
+            let text = uci_move_from_move(castle[0], &position.castle_rook_squares, chess960);
+            let expected = if fen.starts_with("4k3") && !chess960 { "e1g1" } else { castle_text };
+            assert_eq!(text, expected, "{fen} chess960={chess960}");
+            assert_eq!(hydrate_move_from_algebraic_move(&position, text.clone()), castle[0], "{fen} {text}");
+        }
+        for chess960 in [false, true] {
+            let mut uci_state = default_uci_state();
+            let mut search_state = default_search_state();
+            let option = format!("setoption name UCI_Chess960 value {chess960}");
+            assert_eq!(run_command_test(&mut uci_state, &mut search_state, &option), Right(None));
+            assert_eq!(
+                run_command_test(&mut uci_state, &mut search_state, &format!("position fen {fen}")),
+                Right(None)
+            );
+            let text = uci_move_from_move(castle[0], &position.castle_rook_squares, chess960);
+            assert_eq!(
+                run_command_test(&mut uci_state, &mut search_state, &format!("go depth 1 searchmoves {text}")),
+                Right(Some(format!("bestmove {text}")))
+            );
+            let mut after = position;
+            make_move(&position, castle[0], &mut after);
+            assert_eq!(
+                run_command_test(&mut uci_state, &mut search_state, &format!("position fen {fen} moves {text}")),
+                Right(None)
+            );
+            assert_eq!(uci_state.fen, get_fen(&after), "{fen} {text} chess960={chess960}");
+        }
+    }
+    // Orthodox output unchanged with the option off
+    let standard = get_position("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
+    let mut spelled_castles: Vec<String> = castles(&standard)
+        .iter()
+        .map(|&m| uci_move_from_move(m, &standard.castle_rook_squares, false))
+        .collect();
+    spelled_castles.sort();
+    assert_eq!(spelled_castles, vec!["e1c1", "e1g1"]);
 }

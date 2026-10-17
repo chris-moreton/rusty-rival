@@ -40,12 +40,19 @@ class Raw:
     Output is read by a thread into a queue so that every wait has a deadline,
     including a wait on an engine that prints nothing at all."""
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, handshake_timeout: float = 30.0):
         self.p = subprocess.Popen([path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
         self.q: queue.Queue[str | None] = queue.Queue()
         threading.Thread(target=self._pump, daemon=True).start()
-        self.send("uci")
-        self.lines = self.read_until("uciok")
+        try:
+            self.send("uci")
+            self.lines = self.read_until("uciok", handshake_timeout)
+        except BaseException:
+            # A failed handshake must not leave the engine running: the caller
+            # never gets an object to close
+            self.p.kill()
+            self.p.wait()
+            raise
 
     def _pump(self) -> None:
         assert self.p.stdout is not None
