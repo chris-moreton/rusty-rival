@@ -1,12 +1,13 @@
 use crate::bitboards::{
-    bit, epsbit, BISHOP_RAYS, DOUBLE_MOVE_RANK_BITS, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD,
-    RANK_1_BITS, RANK_8_BITS, ROOK_RAYS,
+    bit, epsbit, BISHOP_RAYS, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
+    NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, RANK_1_BITS, RANK_8_BITS, ROOK_RAYS,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::move_constants::{
-    ALL_CASTLE_MOVE_MASKS, CASTLE_FLAG, CASTLE_INDEX, CASTLE_MOVE_MASKS, CASTLE_VARS_KING_TO, CASTLE_VARS_ROOK_TO, KING_INDEX,
-    PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK,
-    PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX,
+    ALL_CASTLE_MOVE_MASKS, CASTLE_FLAG, CASTLE_INDEX, CASTLE_MOVE, CASTLE_MOVE_MASKS, CASTLE_VARS_KING_TO, CASTLE_VARS_ROOK_TO, KING_INDEX,
+    KING_ROOK_START, KING_START, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
+    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES,
+    QUEEN_INDEX, QUEEN_ROOK_START,
 };
 use crate::types::{Bitboard, Move, MoveList, Mover, Position, Square, BLACK, WHITE};
 use crate::utils::{from_square_mask, from_square_part, to_square_part};
@@ -390,6 +391,43 @@ pub const fn rank_squares_between(a: Square, b: Square) -> Bitboard {
 
 #[inline(always)]
 fn generate_castle_moves(position: &Position, move_list: &mut MoveList, all_pieces: Bitboard, colour_index: usize) {
+    // The v1.0.78 generator, constant squares and masks, whenever every right
+    // has its king on e1/e8 and its rook on a corner (`Position::castling_960`
+    // false, see `castling_needs_960`); otherwise the general form below.
+    if position.castling_960 {
+        generate_castle_moves_960(position, move_list, all_pieces, colour_index);
+        return;
+    }
+    // A FEN can assert castle rights that the board cannot support (the rook
+    // captured or never there, the king already moved). Nothing else here
+    // checks: perform_castle XORs a rook onto f1/d1 and teleports the king to
+    // its castled square from wherever it stands, so an unbacked right let the
+    // engine conjure a rook out of nothing (NET-369). Verify the pieces are
+    // actually home. Costs two bitboard tests on a path already gated on the
+    // flag being set and the squares being empty.
+    let friendly = &position.pieces[colour_index];
+    if friendly.king_square != KING_START[colour_index] {
+        return;
+    }
+    for side in [KING_INDEX, QUEEN_INDEX] {
+        let rook_home = if side == KING_INDEX {
+            KING_ROOK_START[colour_index]
+        } else {
+            QUEEN_ROOK_START[colour_index]
+        };
+        if position.castle_flags & CASTLE_FLAG[side][colour_index] != 0
+            && friendly.rook_bitboard & bit(rook_home) != 0
+            && all_pieces & EMPTY_CASTLE_SQUARES[side][colour_index] == 0
+            && !any_squares_in_bitboard_attacked(position, position.mover, NO_CHECK_CASTLE_SQUARES[side][colour_index])
+        {
+            move_list.push(CASTLE_MOVE[side][colour_index]);
+        }
+    }
+}
+
+#[cold]
+#[inline(never)]
+fn generate_castle_moves_960(position: &Position, move_list: &mut MoveList, all_pieces: Bitboard, colour_index: usize) {
     // Castling in general form, so a Chess960 start position works
     // (NET-1762): the king stands anywhere on its back rank, the castling rook
     // anywhere on the same rank on that side of it, and the two land on g/f
@@ -417,7 +455,7 @@ fn generate_castle_moves(position: &Position, move_list: &mut MoveList, all_piec
             continue;
         }
         let index = CASTLE_INDEX[side][colour_index];
-        let rook = position.castle_rook_squares[index];
+        let rook = position.castle_rook_square(index);
         // The king side is towards the h file: the lower square in this layout
         if friendly.rook_bitboard & bit(rook) == 0 || (side == KING_INDEX) != (rook < king) {
             continue;

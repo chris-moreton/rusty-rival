@@ -2,8 +2,8 @@ use crate::bitboards::{bit, PAWN_MOVES_CAPTURE, RANK_1_BITS, RANK_8_BITS};
 use crate::hash::zobrist_lock;
 use crate::move_constants::{
     castle_index_of_move, ALL_CASTLE_MOVE_MASKS, CASTLE_FLAG, CASTLE_INDEX, CASTLE_RIGHT_MASKS, CASTLE_ROOK_START_DEFAULT, KING_INDEX,
-    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK,
-    QUEEN_INDEX,
+    KING_START, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK,
+    PROMOTION_ROOK_MOVE_MASK, QUEEN_INDEX,
 };
 use crate::types::{Bitboard, Move, Mover, Pieces, Position, Square, BLACK, WHITE};
 use crate::utils::from_square_mask;
@@ -93,7 +93,7 @@ pub fn algebraic_path_from_path(p: &[Move]) -> String {
 /// (`b1c1`, `g1g1`) would read back as a king step or as nothing, whereas
 /// king-takes-rook is always read as the castle. Every standard castle moves
 /// the king two squares, so standard output is unchanged. `castle_rook_squares`
-/// are the game's (`Position::castle_rook_squares`); any position of the game
+/// are the game's (`Position::castle_rook_squares()`); any position of the game
 /// will do.
 pub fn uci_move_from_move(m: Move, castle_rook_squares: &[Square; 4], chess960: bool) -> String {
     if m & ALL_CASTLE_MOVE_MASKS != 0 {
@@ -113,6 +113,41 @@ pub fn uci_path_from_path(p: &[Move], castle_rook_squares: &[Square; 4], chess96
         .map(|m| uci_move_from_move(*m, castle_rook_squares, chess960))
         .collect::<Vec<String>>()
         .join(" ")
+}
+
+thread_local! {
+    /// `UCI_Chess960` and the game's castling rook squares, for writing moves
+    /// in `bestmove`, `ponder` and PV output (NET-1762). Set from the UCI
+    /// thread before each search and in each search thread when it starts, so
+    /// `SearchState` keeps exactly its v1.0.78 fields (and layout). Per thread
+    /// rather than global, so concurrent tests and searches cannot see each
+    /// other's setting. The default writes standard castles as `e1g1`.
+    static UCI_NOTATION: std::cell::Cell<(bool, [Square; 4])> = const { std::cell::Cell::new((false, CASTLE_ROOK_START_DEFAULT)) };
+}
+
+/// Sets this thread's move notation: the `UCI_Chess960` option and the
+/// castling rook squares of the position about to be searched.
+pub fn set_uci_notation(chess960: bool, castle_rook_squares: [Square; 4]) {
+    UCI_NOTATION.with(|notation| notation.set((chess960, castle_rook_squares)));
+}
+
+/// Keeps this thread's `UCI_Chess960` setting and takes the castling rook
+/// squares of a new root position (`iterative_deepening` calls this, so the
+/// rooks always belong to the position being searched).
+pub fn set_uci_notation_rooks(castle_rook_squares: [Square; 4]) {
+    UCI_NOTATION.with(|notation| notation.set((notation.get().0, castle_rook_squares)));
+}
+
+/// A move in this thread's notation (see `set_uci_notation`).
+pub fn uci_notation_move(m: Move) -> String {
+    let (chess960, castle_rook_squares) = UCI_NOTATION.with(|notation| notation.get());
+    uci_move_from_move(m, &castle_rook_squares, chess960)
+}
+
+/// A path in this thread's notation (see `set_uci_notation`).
+pub fn uci_notation_path(p: &[Move]) -> String {
+    let (chess960, castle_rook_squares) = UCI_NOTATION.with(|notation| notation.get());
+    uci_path_from_path(p, &castle_rook_squares, chess960)
 }
 
 pub fn promotion_mask(piece_char: String) -> Move {
@@ -207,6 +242,25 @@ fn en_passant_bit_ref(en_passant_fen_part: String) -> i8 {
     } else {
         bitref_from_algebraic_squareref(en_passant_fen_part)
     }
+}
+
+/// Whether castling must take the general Chess960 paths (NET-1762).
+///
+/// Invariant behind `Position::castling_960`: it is false exactly when every
+/// castling right present has its king on that colour's e-file start square
+/// (e1/e8) and its rook on that side's corner (h1/a1/h8/a8). Only then are
+/// the v1.0.78 constant squares, masks and Zobrist deltas correct, so only
+/// then may the orthodox fast paths run. A Chess960 king off the e-file
+/// needs the general path even when its rooks stand on the corners (start
+/// positions such as `RK4R` with `HA`). A right with no rook behind it
+/// (NET-369) keeps the default corner and is decided by its king alone, as
+/// v1.0.78 did. The flag is fixed for a game: rook start squares never change,
+/// and a king that leaves its start square loses its rights.
+pub fn castling_needs_960(castle_flags: u8, king_squares: [Square; 2], castle_rook_squares: &[Square; 4]) -> bool {
+    (0..4).any(|index| {
+        castle_flags & CASTLE_RIGHT_MASKS[index] != 0
+            && (castle_rook_squares[index] != CASTLE_ROOK_START_DEFAULT[index] || king_squares[index >> 1] != KING_START[index >> 1])
+    })
 }
 
 /// Castle rights and castling rook squares from a FEN castling field.
@@ -341,6 +395,7 @@ pub fn get_position(fen: &str) -> Position {
                 queen_bitboard: wq,
                 king_square: wk.trailing_zeros() as Square,
                 all_pieces_bitboard: wp | wn | wb | wr | wq | wk,
+                castle_rook_squares: [castle_rook_squares[0], castle_rook_squares[1]],
             },
             Pieces {
                 pawn_bitboard: bp,
@@ -350,6 +405,7 @@ pub fn get_position(fen: &str) -> Position {
                 queen_bitboard: bq,
                 king_square: bk.trailing_zeros() as Square,
                 all_pieces_bitboard: bp | bn | bb | br | bq | bk,
+                castle_rook_squares: [castle_rook_squares[2], castle_rook_squares[3]],
             },
         ],
         mover,
@@ -363,7 +419,11 @@ pub fn get_position(fen: &str) -> Position {
         move_number: fen_part(fen, 5).parse::<u32>().unwrap_or(1).min(u16::MAX as u32) as u16,
         zobrist_lock: 0,
         pawn_key: 0,
-        castle_rook_squares,
+        castling_960: castling_needs_960(
+            castle_flags,
+            [wk.trailing_zeros() as Square, bk.trailing_zeros() as Square],
+            &castle_rook_squares,
+        ),
     };
 
     let lock = zobrist_lock(&position);
@@ -443,7 +503,7 @@ pub fn get_fen(position: &Position) -> String {
         // `get_position` with the same castling rook (NET-1762).
         for (index, standard_letter) in ['K', 'Q', 'k', 'q'].into_iter().enumerate() {
             if position.castle_flags & CASTLE_RIGHT_MASKS[index] != 0 {
-                let rook = position.castle_rook_squares[index];
+                let rook = position.castle_rook_square(index);
                 fen.push(if rook == CASTLE_ROOK_START_DEFAULT[index] {
                     standard_letter
                 } else {

@@ -916,7 +916,9 @@ pub fn zobrist_lock(position: &Position) -> HashLock {
         ^ ZOBRIST_KEYS_PIECES[BLACK as usize][ZOBRIST_PIECE_INDEX_KING][position.pieces[BLACK as usize].king_square as usize];
 
     index ^= ZOBRIST_KEYS_CASTLE[position.castle_flags as usize];
-    index ^= castle_rook_key(&position.castle_rook_squares, position.castle_flags);
+    if position.castling_960 {
+        index ^= castle_rook_key(&position.castle_rook_squares(), position.castle_flags);
+    }
 
     if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         index ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];

@@ -115,7 +115,7 @@ fn legal_moves(position: &Position) -> Vec<Move> {
 fn spelled(position: &Position, chess960: bool) -> Vec<String> {
     let mut moves: Vec<String> = legal_moves(position)
         .iter()
-        .map(|&m| uci_move_from_move(m, &position.castle_rook_squares, chess960))
+        .map(|&m| uci_move_from_move(m, &position.castle_rook_squares(), chess960))
         .collect();
     moves.sort();
     moves
@@ -148,8 +148,8 @@ fn shredder_and_x_fen_castling_fields_parse_to_the_same_rooks() {
     let shredder = get_position("1rk3r1/8/8/8/8/8/8/1RK3R1 w GBgb - 0 1");
     let x_fen = get_position("1rk3r1/8/8/8/8/8/8/1RK3R1 w KQkq - 0 1");
     assert_eq!(shredder.castle_flags, WK_CASTLE | WQ_CASTLE | BK_CASTLE | BQ_CASTLE);
-    assert_eq!(shredder.castle_rook_squares, [G1_BIT, B1_BIT, G8_BIT, B8_BIT]);
-    assert_eq!(x_fen.castle_rook_squares, shredder.castle_rook_squares);
+    assert_eq!(shredder.castle_rook_squares(), [G1_BIT, B1_BIT, G8_BIT, B8_BIT]);
+    assert_eq!(x_fen.castle_rook_squares(), shredder.castle_rook_squares());
     assert_eq!(x_fen, shredder);
     assert_eq!(x_fen.zobrist_lock, shredder.zobrist_lock);
     // Written back in a form that reads identically
@@ -158,19 +158,19 @@ fn shredder_and_x_fen_castling_fields_parse_to_the_same_rooks() {
 
     // X-FEN picks the OUTERMOST rook on each side of the king
     let two_rooks_a_side = get_position("k7/8/8/8/8/8/8/RR2K1RR w KQ - 0 1");
-    assert_eq!(two_rooks_a_side.castle_rook_squares[CASTLE_INDEX_WHITE_KING], H1_BIT);
-    assert_eq!(two_rooks_a_side.castle_rook_squares[CASTLE_INDEX_WHITE_QUEEN], A1_BIT);
+    assert_eq!(two_rooks_a_side.castle_rook_squares()[CASTLE_INDEX_WHITE_KING], H1_BIT);
+    assert_eq!(two_rooks_a_side.castle_rook_squares()[CASTLE_INDEX_WHITE_QUEEN], A1_BIT);
     assert_eq!(get_fen(&two_rooks_a_side), "k7/8/8/8/8/8/8/RR2K1RR w KQ - 0 1");
     let inner_rooks = get_position("k7/8/8/8/8/8/8/RR2K1RR w GB - 0 1");
-    assert_eq!(inner_rooks.castle_rook_squares[CASTLE_INDEX_WHITE_KING], G1_BIT);
-    assert_eq!(inner_rooks.castle_rook_squares[CASTLE_INDEX_WHITE_QUEEN], B1_BIT);
+    assert_eq!(inner_rooks.castle_rook_squares()[CASTLE_INDEX_WHITE_KING], G1_BIT);
+    assert_eq!(inner_rooks.castle_rook_squares()[CASTLE_INDEX_WHITE_QUEEN], B1_BIT);
     assert_eq!(get_fen(&inner_rooks), "k7/8/8/8/8/8/8/RR2K1RR w GB - 0 1");
 
     // The standard start spelled either way is the standard start
     let standard = get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     let shredder_standard = get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
     assert_eq!(standard, shredder_standard);
-    assert_eq!(standard.castle_rook_squares, [H1_BIT, A1_BIT, H8_BIT, A8_BIT]);
+    assert_eq!(standard.castle_rook_squares(), [H1_BIT, A1_BIT, H8_BIT, A8_BIT]);
     assert_eq!(
         get_fen(&shredder_standard),
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -182,15 +182,15 @@ fn a_rook_file_that_names_no_rook_grants_no_right_and_round_trips() {
     let fen = "rbbqk1rn/pp2pppp/2pp4/8/3PP3/5N2/PPP2PPP/RBBQKR1N w FAfa - 0 9";
     let position = get_position(fen);
     assert_eq!(position.castle_flags, WK_CASTLE | WQ_CASTLE | BQ_CASTLE);
-    assert_eq!(position.castle_rook_squares[CASTLE_INDEX_WHITE_KING], F1_BIT);
-    assert_eq!(position.castle_rook_squares[CASTLE_INDEX_WHITE_QUEEN], A1_BIT);
-    assert_eq!(position.castle_rook_squares[CASTLE_INDEX_BLACK_QUEEN], A8_BIT);
+    assert_eq!(position.castle_rook_squares()[CASTLE_INDEX_WHITE_KING], F1_BIT);
+    assert_eq!(position.castle_rook_squares()[CASTLE_INDEX_WHITE_QUEEN], A1_BIT);
+    assert_eq!(position.castle_rook_squares()[CASTLE_INDEX_BLACK_QUEEN], A8_BIT);
     // The corner rooks print as Q/q, the f1 rook as its file
     let written = get_fen(&position);
     assert_eq!(written, "rbbqk1rn/pp2pppp/2pp4/8/3PP3/5N2/PPP2PPP/RBBQKR1N w FQq - 0 9");
     let reread = get_position(&written);
     assert_eq!(reread, position);
-    assert_eq!(reread.castle_rook_squares, position.castle_rook_squares);
+    assert_eq!(reread.castle_rook_squares(), position.castle_rook_squares());
     assert_eq!(reread.zobrist_lock, position.zobrist_lock);
     // Black has no castle in either reading
     assert!(castles(&get_position("rbbqk1rn/pp2pppp/2pp4/8/3PP3/5N2/PPP2PPP/RBBQKR1N b FAfa - 0 9")).is_empty());
@@ -222,7 +222,7 @@ fn castling_geometry_cases() {
         castle[0],
         from_square_mask(G1_BIT) | G1_BIT as Move | PIECE_MASK_KING | WHITE_KING_CASTLE_MOVE_MASK
     );
-    assert_eq!(uci_move_from_move(castle[0], &position.castle_rook_squares, true), "g1h1");
+    assert_eq!(uci_move_from_move(castle[0], &position.castle_rook_squares(), true), "g1h1");
     assert_eq!(algebraic_move_from_move(castle[0]), "g1g1");
     let mut after = position;
     make_move(&position, castle[0], &mut after);
@@ -233,7 +233,7 @@ fn castling_geometry_cases() {
     let position = get_position("4k3/8/8/8/8/8/8/4KR2 w F - 0 1");
     let castle = castles(&position);
     assert_eq!(castle.len(), 1);
-    assert_eq!(uci_move_from_move(castle[0], &position.castle_rook_squares, true), "e1f1");
+    assert_eq!(uci_move_from_move(castle[0], &position.castle_rook_squares(), true), "e1f1");
     assert_eq!(algebraic_move_from_move(castle[0]), "e1g1");
     let mut after = position;
     make_move(&position, castle[0], &mut after);
@@ -279,7 +279,7 @@ fn castling_geometry_cases() {
     let position = get_position("rk2r3/8/8/8/8/8/8/RK2R3 w EAea - 0 1");
     let mut spelled_castles: Vec<String> = castles(&position)
         .iter()
-        .map(|&m| uci_move_from_move(m, &position.castle_rook_squares, true))
+        .map(|&m| uci_move_from_move(m, &position.castle_rook_squares(), true))
         .collect();
     spelled_castles.sort();
     // The e8 rook attacks e1, which the king would cross: only queen side
@@ -338,7 +338,7 @@ fn make_unmake_and_keys_hold_through_chess960_castles() {
                 "incremental key drifted after {m:#x}"
             );
             assert_eq!(position.pawn_key, pawn_key_from_scratch(position));
-            assert_eq!(position.castle_rook_squares, before.castle_rook_squares);
+            assert_eq!(position.castle_rook_squares(), before.castle_rook_squares());
             // The written position reads back as itself
             let reread = get_position(&get_fen(position));
             assert_eq!(reread, *position, "FEN round trip after {m:#x}: {}", get_fen(position));
@@ -645,7 +645,7 @@ fn castling_rook_identity_is_part_of_the_lock() {
     let inner = get_position("k7/8/8/8/8/8/8/RR2K1RR w GB - 0 1");
     assert_eq!(outer.pieces, inner.pieces);
     assert_eq!(outer.castle_flags, inner.castle_flags);
-    assert_ne!(outer.castle_rook_squares, inner.castle_rook_squares);
+    assert_ne!(outer.castle_rook_squares(), inner.castle_rook_squares());
     assert_ne!(outer.zobrist_lock, inner.zobrist_lock);
     assert_eq!(inner.zobrist_lock, zobrist_lock(&inner));
 
@@ -656,7 +656,7 @@ fn castling_rook_identity_is_part_of_the_lock() {
             0
         );
     }
-    assert_eq!(castle_rook_key(&outer.castle_rook_squares, outer.castle_flags), 0);
+    assert_eq!(castle_rook_key(&outer.castle_rook_squares(), outer.castle_flags), 0);
     let start = get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     // Orthodox locks pinned to the pre-salt definition: values computed
     // independently (Python, from the unchanged hash.rs tables) as the XOR of
@@ -675,7 +675,7 @@ fn castling_rook_identity_is_part_of_the_lock() {
         assert_eq!(get_position(fen).zobrist_lock, lock, "{fen}");
         assert_eq!(zobrist_lock(&get_position(fen)), lock, "{fen}");
     }
-    assert_eq!(castle_rook_key(&start.castle_rook_squares, start.castle_flags), 0);
+    assert_eq!(castle_rook_key(&start.castle_rook_squares(), start.castle_flags), 0);
     assert_eq!(
         get_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1").zobrist_lock,
         start.zobrist_lock
@@ -688,7 +688,7 @@ fn castling_rook_identity_is_part_of_the_lock() {
     let mut stripped_outer = outer;
     stripped_outer.castle_flags = 0;
     assert_eq!(zobrist_lock(&stripped), zobrist_lock(&stripped_outer));
-    assert_eq!(castle_rook_key(&inner.castle_rook_squares, 0), 0);
+    assert_eq!(castle_rook_key(&inner.castle_rook_squares(), 0), 0);
 
     // Incremental keys track the salt through rook moves, rook captures,
     // castles and king moves, on both make paths, and unmake restores them
@@ -748,7 +748,7 @@ fn short_castles_round_trip_in_both_modes() {
         let castle = castles(&position);
         assert_eq!(castle.len(), 1, "{fen}");
         for chess960 in [false, true] {
-            let text = uci_move_from_move(castle[0], &position.castle_rook_squares, chess960);
+            let text = uci_move_from_move(castle[0], &position.castle_rook_squares(), chess960);
             let expected = if fen.starts_with("4k3") && !chess960 { "e1g1" } else { castle_text };
             assert_eq!(text, expected, "{fen} chess960={chess960}");
             assert_eq!(hydrate_move_from_algebraic_move(&position, text.clone()), castle[0], "{fen} {text}");
@@ -762,7 +762,7 @@ fn short_castles_round_trip_in_both_modes() {
                 run_command_test(&mut uci_state, &mut search_state, &format!("position fen {fen}")),
                 Right(None)
             );
-            let text = uci_move_from_move(castle[0], &position.castle_rook_squares, chess960);
+            let text = uci_move_from_move(castle[0], &position.castle_rook_squares(), chess960);
             assert_eq!(
                 run_command_test(&mut uci_state, &mut search_state, &format!("go depth 1 searchmoves {text}")),
                 Right(Some(format!("bestmove {text}")))
@@ -780,8 +780,173 @@ fn short_castles_round_trip_in_both_modes() {
     let standard = get_position("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
     let mut spelled_castles: Vec<String> = castles(&standard)
         .iter()
-        .map(|&m| uci_move_from_move(m, &standard.castle_rook_squares, false))
+        .map(|&m| uci_move_from_move(m, &standard.castle_rook_squares(), false))
         .collect();
     spelled_castles.sort();
     assert_eq!(spelled_castles, vec!["e1c1", "e1g1"]);
+}
+
+/// `Position::castling_960` selects the castling code (NET-1762): false runs
+/// the v1.0.78 constant fast paths, true the general Chess960 form. It must be
+/// false exactly when every right present has its king on e1/e8 and its rook
+/// on that side's corner (`castling_needs_960`).
+#[test]
+fn orthodox_fast_path_eligibility() {
+    for (fen, needs_960) in [
+        // Orthodox: standard start in either spelling, partial and absent rights,
+        // and a K/Q right with no rook behind it (decided by its king, NET-369)
+        ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", false),
+        ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1", false),
+        ("r3k2r/8/8/8/8/8/8/R3K2R b Kq - 0 1", false),
+        ("4k3/8/8/8/8/8/8/4K2R w KQ - 0 1", false),
+        ("1k6/8/8/8/8/8/8/RK6 w - - 0 1", false),
+        ("4k3/8/8/8/8/8/8/RR2K1RR w KQ - 0 1", false),
+        // Chess960: a king off the e-file even with both rooks on the corners
+        ("rk5r/8/8/8/8/8/8/RK5R w HAha - 0 1", true),
+        ("4k3/8/8/8/8/8/8/R2K3R w KQ - 0 1", true),
+        // ...an inner rook with the king on e1
+        ("4k3/8/8/8/8/8/8/RR2K1RR w GB - 0 1", true),
+        ("4k3/8/8/8/8/8/8/RR2K1RR w G - 0 1", true),
+        // ...either colour suffices
+        ("rk5r/8/8/8/8/8/8/R3K2R w KQha - 0 1", true),
+        ("bqnb1rkr/pp3ppp/3ppn2/2p5/5P2/P2P4/NPP1P1PP/BQ1BNRKR w HFhf - 2 9", true),
+    ] {
+        let position = get_position(fen);
+        assert_eq!(position.castling_960, needs_960, "{fen}");
+        assert_eq!(
+            rusty_rival::fen::castling_needs_960(
+                position.castle_flags,
+                [position.pieces[0].king_square, position.pieces[1].king_square],
+                &position.castle_rook_squares()
+            ),
+            needs_960,
+            "{fen}"
+        );
+    }
+    // Fixed for a game: moves never change it, including castles and the loss
+    // of every right, and a FEN written mid-game reads back the same way while
+    // a right remains
+    for fen in ["r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "rk2r3/8/8/8/8/8/8/RK2R3 w EAea - 0 1"] {
+        let start = get_position(fen);
+        for m in generate_moves(&start) {
+            let mut after = start;
+            make_move(&start, m, &mut after);
+            assert_eq!(after.castling_960, start.castling_960, "{fen} {m:#x}");
+            let mut in_place = start;
+            make_move_in_place(&mut in_place, m);
+            assert_eq!(in_place.castling_960, start.castling_960, "{fen} {m:#x}");
+            if after.castle_flags != 0 {
+                assert_eq!(
+                    get_position(&get_fen(&after)).castling_960,
+                    start.castling_960,
+                    "{}",
+                    get_fen(&after)
+                );
+            }
+        }
+    }
+}
+
+/// On every orthodox-eligible position the v1.0.78 fast paths and the general
+/// Chess960 form agree exactly: the same move list in the same order, the same
+/// position, keys and castling rights after every move, the same position after
+/// unmake. Forcing `castling_960` on an orthodox position runs the general form.
+#[test]
+fn orthodox_fast_paths_match_the_general_form() {
+    fn check(position: &mut Position, depth: u8, compared: &mut u32) {
+        assert!(!position.castling_960);
+        let mut general = *position;
+        general.castling_960 = true;
+        let fast_moves = generate_moves(position);
+        assert_eq!(fast_moves, generate_moves(&general), "{}", get_fen(position));
+        for m in fast_moves {
+            assert_eq!(verify_move(position, m), verify_move(&general, m));
+            let mut fast_copy = *position;
+            make_move(position, m, &mut fast_copy);
+            let mut general_copy = general;
+            make_move(&general, m, &mut general_copy);
+            assert_eq!(fast_copy.pieces, general_copy.pieces, "{} {m:#x}", get_fen(position));
+            assert_eq!(fast_copy.castle_flags, general_copy.castle_flags, "{} {m:#x}", get_fen(position));
+            assert_eq!(fast_copy.zobrist_lock, general_copy.zobrist_lock, "{} {m:#x}", get_fen(position));
+            let before = *position;
+            let unmake = make_move_in_place(position, m);
+            let mut general_in_place = general;
+            let general_unmake = make_move_in_place(&mut general_in_place, m);
+            assert_eq!(position.pieces, general_in_place.pieces);
+            assert_eq!(position.zobrist_lock, general_in_place.zobrist_lock);
+            assert_eq!(position.castle_flags, general_in_place.castle_flags);
+            *compared += 1;
+            if depth > 0 && !is_check(position, before.mover) {
+                check(position, depth - 1, compared);
+            }
+            unmake_move(position, m, &unmake);
+            unmake_move(&mut general_in_place, m, &general_unmake);
+            assert_eq!(*position, before);
+            assert_eq!(general_in_place.pieces, before.pieces);
+            assert_eq!(general_in_place.zobrist_lock, before.zobrist_lock);
+        }
+    }
+    let mut compared = 0;
+    for fen in [
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1",
+        "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+        "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1",
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    ] {
+        check(&mut get_position(fen), 2, &mut compared);
+    }
+    assert!(compared > 10_000, "compared {compared}");
+}
+
+/// The `UCI_Chess960` notation is per thread (NET-1762): a new thread starts
+/// with the default, which is why `cmd_go` installs the option in every search
+/// thread it spawns, and `iterative_deepening` refreshes only the rook squares.
+/// Legality never reads it.
+#[test]
+fn notation_is_per_thread_and_reset_by_each_installation() {
+    use rusty_rival::fen::{set_uci_notation, set_uci_notation_rooks, uci_notation_move};
+    let standard = get_position("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
+    let king_side = hydrate_move_from_algebraic_move(&standard, "e1g1".to_string());
+    let in_place = get_position("6kr/8/8/8/8/8/8/6KR w Hh - 0 1");
+    let short = hydrate_move_from_algebraic_move(&in_place, "g1h1".to_string());
+    assert_ne!(short & ALL_CASTLE_MOVE_MASKS, 0);
+
+    set_uci_notation(true, standard.castle_rook_squares());
+    assert_eq!(uci_notation_move(king_side), "e1h1");
+    let (child_default, child_installed, child_rooks_refreshed, child_reset, child_short_off) = std::thread::spawn(move || {
+        // Not inherited from the parent thread
+        let default = uci_notation_move(king_side);
+        // What cmd_go does at the start of each search thread
+        set_uci_notation(true, standard.castle_rook_squares());
+        let installed = uci_notation_move(king_side);
+        // What iterative_deepening does with its root position
+        set_uci_notation_rooks(in_place.castle_rook_squares());
+        let refreshed = uci_notation_move(short);
+        // The next go after `setoption name UCI_Chess960 value false`
+        set_uci_notation(false, standard.castle_rook_squares());
+        let reset = uci_notation_move(king_side);
+        set_uci_notation_rooks(in_place.castle_rook_squares());
+        let short_off = uci_notation_move(short);
+        (default, installed, refreshed, reset, short_off)
+    })
+    .join()
+    .unwrap();
+    assert_eq!(child_default, "e1g1");
+    assert_eq!(child_installed, "e1h1");
+    assert_eq!(child_rooks_refreshed, "g1h1");
+    assert_eq!(child_reset, "e1g1");
+    // A short castle is king-takes-rook even with the option off
+    assert_eq!(child_short_off, "g1h1");
+    // The parent's setting was untouched by the child
+    assert_eq!(uci_notation_move(king_side), "e1h1");
+    set_uci_notation(false, standard.castle_rook_squares());
+
+    // Legality does not depend on notation: the same FEN castles either way
+    for chess960 in [false, true] {
+        set_uci_notation(chess960, in_place.castle_rook_squares());
+        assert_eq!(castles(&in_place).len(), 1);
+        assert!(is_legal_move(&in_place, "g1h1"));
+    }
+    set_uci_notation(false, standard.castle_rook_squares());
 }

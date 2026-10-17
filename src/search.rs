@@ -48,7 +48,7 @@ fn apply_eval_noise(score: Score, hash: u64, noise_max: Score) -> Score {
     score + noise
 }
 
-use crate::fen::uci_move_from_move;
+use crate::fen::{set_uci_notation_rooks, uci_notation_move};
 use crate::tablebase::{can_probe, probe_root_move, tablebase_available};
 
 use crate::bitboards::{
@@ -456,7 +456,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     search_state.prev_score = 0;
     search_state.root_move_nodes.clear();
     // The game's castling rooks, for spelling castles in PV and bestmove output
-    search_state.castle_rook_squares = position.castle_rook_squares;
+    set_uci_notation_rooks(position.castle_rook_squares());
 
     // Initialize NNUE accumulator from root position
     if search_state.use_nnue {
@@ -521,11 +521,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 // Fall through to normal search.
             } else {
                 if search_state.thread_id == 0 {
-                    println!(
-                        "info depth 1 score cp {} pv {}",
-                        best_score,
-                        uci_move_from_move(best_move, &search_state.castle_rook_squares, search_state.chess960)
-                    );
+                    println!("info depth 1 score cp {} pv {}", best_score, uci_notation_move(best_move));
                 }
                 return best_move;
             }

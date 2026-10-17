@@ -1,6 +1,6 @@
 use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
 use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
-use crate::fen::{get_fen, get_position, move_from_algebraic_move, uci_path_from_path};
+use crate::fen::{get_fen, get_position, move_from_algebraic_move, uci_notation_path};
 use crate::move_constants::{
     castle_index_of_move, CASTLE_FLAG, CASTLE_INDEX, CASTLE_MOVE_MASKS, CASTLE_VARS_KING_TO, KING_INDEX, PIECE_MASK_BISHOP,
     PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK,
@@ -118,7 +118,7 @@ pub fn castle_mask(position: &Position, mv: Move) -> Move {
             continue;
         }
         let index = CASTLE_INDEX[side][colour];
-        let rook_square = position.castle_rook_squares[index];
+        let rook_square = position.castle_rook_square(index);
         let takes_own_rook = to == rook_square && position.pieces[colour].rook_bitboard & bit(rook_square) != 0;
         let double_step = to == CASTLE_VARS_KING_TO[index] && from / 8 == to / 8 && (from - to).abs() >= 2;
         if takes_own_rook || double_step {
@@ -339,7 +339,7 @@ pub fn send_info(search_state: &mut SearchState, depth: u8, score: Score, pv: &[
         nps,
         hashfull,
         elapsed_ms,
-        uci_path_from_path(pv, &search_state.castle_rook_squares, search_state.chess960)
+        uci_notation_path(pv)
     );
     if !multi_pv_lines || bound != InfoBound::Exact || search_state.multi_pv <= 1 {
         return;
@@ -369,7 +369,7 @@ pub fn send_info(search_state: &mut SearchState, depth: u8, score: Score, pv: &[
                 nps,
                 hashfull,
                 elapsed_ms,
-                uci_path_from_path(line, &search_state.castle_rook_squares, search_state.chess960)
+                uci_notation_path(line)
             );
             index += 1;
         }
