@@ -7,7 +7,8 @@ use crate::engine_constants::{
     PROBCUT_DEPTH_REDUCTION, PROBCUT_MARGIN, PROBCUT_MIN_DEPTH, RAZOR_MARGINS, RAZOR_MAX_DEPTH, ROOK_VALUE_AVERAGE, SEE_PRUNE_MARGIN,
     SEE_PRUNE_MAX_DEPTH, SINGULAR_EXTENSION_DEPTH_MARGIN, SINGULAR_EXTENSION_MARGIN_MULTIPLIER, SINGULAR_EXTENSION_MIN_DEPTH,
     SINGULAR_MULTICUT, SINGULAR_NEGATIVE_EXTENSION, THREAT_EXTENSION_MARGIN, TM_INSTABILITY_EXTEND, TM_ITERATION_GROWTH,
-    TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
+    TM_MAX_EXTENSION_FACTOR, TM_MIN_DEPTH_FOR_TM, TM_NODE_BASE, TM_NODE_FACTOR_MAX, TM_NODE_FACTOR_MIN, TM_NODE_FRACTION, TM_NODE_SCALE,
+    TM_SCORE_DROP_EXTEND, TM_SCORE_DROP_THRESHOLD, TM_STABILITY_THRESHOLD,
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 
@@ -280,6 +281,9 @@ macro_rules! check_time {
                         $search_state.end_time = now + std::time::Duration::from_millis(hard_ms);
                         $search_state.soft_time_limit = now + std::time::Duration::from_millis(soft_ms);
                         $search_state.original_soft_time_limit = $search_state.soft_time_limit;
+                        // NET-1759: node-fraction scaling measures the budget from the
+                        // ponderhit instant, like the rebased soft and ceiling limits below.
+                        $search_state.budget_origin = now;
                         // Rebase the extension ceiling on the REAL soft budget
                         // (NET-362): the value computed at search start came from
                         // the 24h ponder placeholder, which would disable the
@@ -300,6 +304,7 @@ macro_rules! check_time {
                         $search_state.soft_time_limit = now;
                         $search_state.original_soft_time_limit = now;
                         $search_state.max_soft_time_limit = now;
+                        $search_state.budget_origin = now;
                         $search_state.time_management_active = true;
                     }
                     $search_state.ponder_applied = true;
@@ -350,6 +355,74 @@ pub fn next_iteration_fits(last_iteration: Duration, remaining_to_soft: Duration
     last_iteration.mul_f64(growth) <= remaining_to_soft
 }
 
+/// NET-1759 TMNODE: attribute `nodes` to root move `m` for this thread's search.
+pub fn record_root_move_nodes(search_state: &mut SearchState, m: Move, nodes: u64) {
+    if let Some(entry) = search_state.root_move_nodes.iter_mut().find(|entry| entry.0 == m) {
+        entry.1 += nodes;
+    } else {
+        search_state.root_move_nodes.push((m, nodes));
+    }
+}
+
+/// Share of this thread's root-attributed nodes that went to `best`, or None
+/// when nothing has been attributed yet (zero total): the caller then applies
+/// no node-fraction scaling. A best move with no entry counts as 0.
+pub fn best_move_node_fraction(search_state: &SearchState, best: Move) -> Option<f64> {
+    let total: u64 = search_state.root_move_nodes.iter().map(|entry| entry.1).sum();
+    if total == 0 {
+        return None;
+    }
+    let best_nodes = search_state
+        .root_move_nodes
+        .iter()
+        .find(|entry| entry.0 == best)
+        .map_or(0, |entry| entry.1);
+    Some(best_nodes as f64 / total as f64)
+}
+
+/// Soft-budget multiplier from the best move's node fraction (see
+/// TM_NODE_BASE in engine_constants). None (no information) gives 1.0.
+pub fn node_time_factor(fraction: Option<f64>) -> f64 {
+    match fraction {
+        None => 1.0,
+        Some(f) => ((TM_NODE_BASE - f) * TM_NODE_SCALE).clamp(TM_NODE_FACTOR_MIN, TM_NODE_FACTOR_MAX),
+    }
+}
+
+/// The soft limit after node-fraction scaling: the budget from `start` to
+/// `soft` is multiplied by `factor`, then clamped to the NET-339 extension
+/// ceiling and the hard limit. The stored `soft_time_limit` is not changed, so
+/// the instability and score-drop extensions keep their existing semantics.
+pub fn node_scaled_soft_limit(start: Instant, soft: Instant, max_soft: Instant, end: Instant, factor: f64) -> Instant {
+    let scaled = start + soft.saturating_duration_since(start).mul_f64(factor);
+    min(min(scaled, max_soft), end)
+}
+
+/// Node-fraction scaling applies only to clock-derived budgets. Exact budgets
+/// (movetime, emergency) have soft == hard and must run to the deadline.
+#[inline(always)]
+pub fn node_factor_for(search_state: &SearchState, best: Move) -> f64 {
+    if TM_NODE_FRACTION && search_state.soft_time_limit < search_state.end_time {
+        node_time_factor(best_move_node_fraction(search_state, best))
+    } else {
+        1.0
+    }
+}
+
+/// The soft limit the time-management decisions compare against. The budget
+/// is measured from `budget_origin` (the search start, or the ponderhit
+/// instant once the real budget is installed), never from `start_time`.
+#[inline(always)]
+pub fn current_soft_limit(search_state: &SearchState, factor: f64) -> Instant {
+    node_scaled_soft_limit(
+        search_state.budget_origin,
+        search_state.soft_time_limit,
+        search_state.max_soft_time_limit,
+        search_state.end_time,
+        factor,
+    )
+}
+
 /// Add this thread's nodes since the last sync to the shared counter. Called
 /// every 1,000 nodes from `check_time!`, at the end of each iteration and
 /// before every `info` line (NET-1244), so the printed total covers every
@@ -365,6 +438,7 @@ pub fn sync_nodes(search_state: &mut SearchState) {
 
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
     search_state.start_time = Instant::now();
+    search_state.budget_origin = search_state.start_time;
     search_state.last_completed_depth = 0;
     search_state.interrupted_best = None;
     // NOTE: the stop flag is NOT reset here. Each real `go` creates a fresh stop
@@ -380,6 +454,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     search_state.best_move_stability = 0;
     search_state.prev_best_move = 0;
     search_state.prev_score = 0;
+    search_state.root_move_nodes.clear();
 
     // Initialize NNUE accumulator from root position
     if search_state.use_nnue {
@@ -616,9 +691,11 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
             search_state.prev_score = current_score;
 
             let now = Instant::now();
+            // NET-1759 TMNODE: scale the soft budget by the best move's node share.
+            let node_factor = node_factor_for(search_state, current_move);
 
             // Early stop: stable best move and past soft limit
-            if search_state.best_move_stability >= TM_STABILITY_THRESHOLD && now >= search_state.soft_time_limit {
+            if search_state.best_move_stability >= TM_STABILITY_THRESHOLD && now >= current_soft_limit(search_state, node_factor) {
                 crate::types::set_stop_reason(&search_state.stop_reason, crate::types::StopReason::SoftDeadline);
                 set_stop(&search_state.stop, true);
                 break;
@@ -640,8 +717,8 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 search_state.soft_time_limit = min(min(extended, search_state.max_soft_time_limit), search_state.end_time);
             }
 
-            // Past soft limit (possibly extended) — stop
-            if now >= search_state.soft_time_limit {
+            // Past soft limit (possibly extended, then node-scaled) — stop
+            if now >= current_soft_limit(search_state, node_factor) {
                 crate::types::set_stop_reason(&search_state.stop_reason, crate::types::StopReason::SoftDeadline);
                 set_stop(&search_state.stop, true);
                 break;
@@ -663,7 +740,8 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
         if search_state.time_management_active && search_state.thread_id == 0 {
             let now = Instant::now();
             let last_iteration = now.saturating_duration_since(iteration_start);
-            let remaining_to_soft = search_state.soft_time_limit.saturating_duration_since(now);
+            let node_factor = node_factor_for(search_state, search_state.current_best.0[0]);
+            let remaining_to_soft = current_soft_limit(search_state, node_factor).saturating_duration_since(now);
             if !next_iteration_fits(last_iteration, remaining_to_soft, TM_ITERATION_GROWTH) {
                 crate::types::set_stop_reason(&search_state.stop_reason, crate::types::StopReason::Predictor);
                 set_stop(&search_state.stop, true);
@@ -704,6 +782,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
     let mut first_root_move = true;
 
     for mv in legal_moves {
+        let nodes_before = search_state.nodes;
         let unmake = make_move_nnue(position, mv.0, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
         search_state.history.push(position.zobrist_lock);
@@ -764,6 +843,8 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
 
         search_state.history.pop();
         unmake_move_nnue(position, mv.0, &unmake, search_state);
+        let spent = search_state.nodes.saturating_sub(nodes_before);
+        record_root_move_nodes(search_state, mv.0, spent);
         mv.1 = path_score.1;
 
         search_state.pv.insert(mv.0, (pv_prepend(mv.0, &path_score.0), mv.1));

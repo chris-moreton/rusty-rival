@@ -462,3 +462,28 @@ pub const TM_ITERATION_GROWTH: f64 = 1.8;
 // but bounded in total, relative to the ORIGINAL soft budget rather than
 // creeping up to the emergency ceiling.
 pub const TM_MAX_EXTENSION_FACTOR: f64 = 2.0;
+
+// Node-fraction time management (NET-1759, TMNODE arm).
+//
+// After each completed iteration the soft budget is scaled by the share of the
+// search that went into the current best root move. A move that absorbed most
+// of the nodes is settled and can be played sooner; a move holding a small
+// share means the search is still undecided and deserves more of the budget.
+//
+//   factor = clamp((TM_NODE_BASE - fraction) * TM_NODE_SCALE,
+//                  TM_NODE_FACTOR_MIN, TM_NODE_FACTOR_MAX)
+//
+// This is the (1.5 - f) * 1.35 form used by Berserk, Obsidian and Clover; it is
+// 1.0 at f = 0.7593 (1.5 - 1/1.35), 2.0 (capped) with no concentration and
+// 0.675 when every node went to the best move. The distribution of f in Rival
+// games is unmeasured, so the effect on average time use is unknown; the arm
+// is tested by games, not by a time-use target. With no node information
+// (total 0) the factor is 1.0.
+// The scaled limit is still clamped to the NET-339 extension ceiling and the
+// hard limit, and only applies to clock-derived budgets (soft < hard), never to
+// movetime/exact budgets. Frozen for NET-1759; not tuned.
+pub const TM_NODE_FRACTION: bool = true;
+pub const TM_NODE_BASE: f64 = 1.5;
+pub const TM_NODE_SCALE: f64 = 1.35;
+pub const TM_NODE_FACTOR_MIN: f64 = 0.5;
+pub const TM_NODE_FACTOR_MAX: f64 = 2.0;
