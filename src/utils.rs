@@ -1,10 +1,10 @@
-use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, C1_BIT, C8_BIT, E1_BIT, E8_BIT, G1_BIT, G8_BIT, WHITE_PASSED_PAWN_MASK};
+use crate::bitboards::{bit, BLACK_PASSED_PAWN_MASK, WHITE_PASSED_PAWN_MASK};
 use crate::engine_constants::{BISHOP_VALUE_AVERAGE, KNIGHT_VALUE_AVERAGE, PAWN_VALUE_AVERAGE, QUEEN_VALUE_AVERAGE, ROOK_VALUE_AVERAGE};
-use crate::fen::{algebraic_path_from_path, get_fen, get_position, move_from_algebraic_move};
+use crate::fen::{get_fen, get_position, move_from_algebraic_move, uci_notation_path};
 use crate::move_constants::{
-    BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT,
-    PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK,
-    PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK,
+    castle_index_of_move, CASTLE_FLAG, CASTLE_INDEX, CASTLE_MOVE_MASKS, CASTLE_VARS_KING_TO, KING_INDEX, PIECE_MASK_BISHOP,
+    PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK,
+    PROMOTION_FULL_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, QUEEN_INDEX,
 };
 use crate::opponent;
 use crate::search::{sync_nodes, MATE_SCORE, MATE_START};
@@ -89,26 +89,43 @@ pub fn moving_piece_mask(position: &Position, mv: Move) -> Move {
     }
 }
 
+/// The castle flag a UCI move string's from/to squares denote, or 0.
+///
+/// Both spellings are read (NET-1762): the king taking its own castling rook
+/// (`e1h1`), which `UCI_Chess960` prescribes and lichess-bot sends, and the
+/// standard king double-step to the g or c file (`e1g1`, `e1c1`). A king
+/// stepping one square is never read as a castle, so a GUI that does not
+/// speak `UCI_Chess960` can only castle unambiguously - which is why the
+/// option exists. The side must still hold the right, as a castle that is
+/// not available is not a castle (the move is then rejected as illegal), and
+/// the king-takes-rook reading needs the side's own rook on that square: a
+/// `K` right kept without a rook behind it (NET-369) must not turn the king's
+/// capture of an enemy piece on the empty corner into a castle.
 #[inline(always)]
 pub fn castle_mask(position: &Position, mv: Move) -> Move {
     let from = from_square_part(mv);
     let to = to_square_part(mv);
 
-    if from == position.pieces[WHITE as usize].king_square && from == E1_BIT {
-        match to {
-            G1_BIT => WHITE_KING_CASTLE_MOVE_MASK,
-            C1_BIT => WHITE_QUEEN_CASTLE_MOVE_MASK,
-            _ => 0,
-        }
-    } else if from == position.pieces[BLACK as usize].king_square && from == E8_BIT {
-        match to {
-            G8_BIT => BLACK_KING_CASTLE_MOVE_MASK,
-            C8_BIT => BLACK_QUEEN_CASTLE_MOVE_MASK,
-            _ => 0,
-        }
+    let colour = if from == position.pieces[WHITE as usize].king_square {
+        WHITE
+    } else if from == position.pieces[BLACK as usize].king_square {
+        BLACK
     } else {
-        0
+        return 0;
+    } as usize;
+    for side in [KING_INDEX, QUEEN_INDEX] {
+        if position.castle_flags & CASTLE_FLAG[side][colour] == 0 {
+            continue;
+        }
+        let index = CASTLE_INDEX[side][colour];
+        let rook_square = position.castle_rook_square(index);
+        let takes_own_rook = to == rook_square && position.pieces[colour].rook_bitboard & bit(rook_square) != 0;
+        let double_step = to == CASTLE_VARS_KING_TO[index] && from / 8 == to / 8 && (from - to).abs() >= 2;
+        if takes_own_rook || double_step {
+            return CASTLE_MOVE_MASKS[index];
+        }
     }
+    0
 }
 
 pub fn show_bitboard(title: &str, bitboard: Bitboard) {
@@ -126,7 +143,16 @@ pub fn show_bitboard(title: &str, bitboard: Bitboard) {
 #[inline(always)]
 pub fn hydrate_move_from_algebraic_move(position: &Position, algebraic_move: String) -> Move {
     let mv = move_from_algebraic_move(algebraic_move, 0);
-    mv | castle_mask(position, mv) | moving_piece_mask(position, mv)
+    let castle = castle_mask(position, mv);
+    if castle != 0 {
+        // The one encoding the generator produces, whichever spelling arrived:
+        // king from, king destination, castle flag (so `e1h1` becomes e1->g1)
+        return from_square_mask(from_square_part(mv))
+            | CASTLE_VARS_KING_TO[castle_index_of_move(castle)] as Move
+            | PIECE_MASK_KING
+            | castle;
+    }
+    mv | moving_piece_mask(position, mv)
 }
 
 #[inline(always)]
@@ -175,6 +201,22 @@ pub fn invert_fen(fen: &str) -> String {
     let board_parts: Vec<&str> = fen_parts[0].split('/').collect();
 
     let en_passant_part = fen_parts[3].replace('6', ".").replace('3', "6").replace('.', "3");
+    // The castling field swaps case as a whole: Chess960 rook files (`HAha`)
+    // as well as `KQkq` (NET-1762)
+    let castle_part: String = fen
+        .trim()
+        .split(' ')
+        .nth(2)
+        .unwrap_or("-")
+        .chars()
+        .map(|c| {
+            if c.is_ascii_uppercase() {
+                c.to_ascii_lowercase()
+            } else {
+                c.to_ascii_uppercase()
+            }
+        })
+        .collect();
 
     format!(
         "{}/{}/{}/{}/{}/{}/{}/{} {} {} {} {} {}",
@@ -187,7 +229,7 @@ pub fn invert_fen(fen: &str) -> String {
         board_parts[1],
         board_parts[0],
         fen_parts[1],
-        fen_parts[2],
+        castle_part,
         en_passant_part,
         fen_parts[4],
         fen_parts[5]
@@ -297,7 +339,7 @@ pub fn send_info(search_state: &mut SearchState, depth: u8, score: Score, pv: &[
         nps,
         hashfull,
         elapsed_ms,
-        algebraic_path_from_path(pv)
+        uci_notation_path(pv)
     );
     if !multi_pv_lines || bound != InfoBound::Exact || search_state.multi_pv <= 1 {
         return;
@@ -327,7 +369,7 @@ pub fn send_info(search_state: &mut SearchState, depth: u8, score: Score, pv: &[
                 nps,
                 hashfull,
                 elapsed_ms,
-                algebraic_path_from_path(line)
+                uci_notation_path(line)
             );
             index += 1;
         }

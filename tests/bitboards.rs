@@ -115,6 +115,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
                 king_square: 5,
                 rook_bitboard: 6,
                 all_pieces_bitboard: 14,
+                castle_rook_squares: [0, 7],
             },
             Pieces {
                 pawn_bitboard: 7,
@@ -124,6 +125,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
                 king_square: 11,
                 rook_bitboard: 12,
                 all_pieces_bitboard: 15,
+                castle_rook_squares: [56, 63],
             },
         ],
         mover: WHITE,
@@ -133,6 +135,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         move_number: 1,
         zobrist_lock: 0,
         pawn_key: 0,
+        castling_960: false,
     };
 
     assert_eq!(1, bitboard_for_mover(&p1, Piece::Pawn));
@@ -152,6 +155,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
                 king_square: 5,
                 rook_bitboard: 6,
                 all_pieces_bitboard: 14,
+                castle_rook_squares: [0, 7],
             },
             Pieces {
                 pawn_bitboard: 7,
@@ -161,6 +165,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
                 king_square: 11,
                 rook_bitboard: 12,
                 all_pieces_bitboard: 15,
+                castle_rook_squares: [56, 63],
             },
         ],
         mover: BLACK,
@@ -170,6 +175,7 @@ fn it_returns_the_correct_bitboard_for_mover() {
         move_number: 1,
         zobrist_lock: 0,
         pawn_key: 0,
+        castling_960: false,
     };
 
     assert_eq!(7, bitboard_for_mover(&p2, Piece::Pawn));

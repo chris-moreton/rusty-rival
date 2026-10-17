@@ -1,8 +1,8 @@
 use crate::bitboards::{bit, test_bit, A1_BIT, A8_BIT, H1_BIT, H8_BIT, PAWN_MOVES_CAPTURE};
 use crate::hash::{
-    en_passant_zobrist_key_index, ZOBRIST_KEYS_CASTLE, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEYS_PIECES, ZOBRIST_KEY_MOVER_SWITCH,
-    ZOBRIST_PIECE_INDEX_BISHOP, ZOBRIST_PIECE_INDEX_KING, ZOBRIST_PIECE_INDEX_KNIGHT, ZOBRIST_PIECE_INDEX_PAWN, ZOBRIST_PIECE_INDEX_QUEEN,
-    ZOBRIST_PIECE_INDEX_ROOK,
+    castle_rook_key, en_passant_zobrist_key_index, ZOBRIST_KEYS_CASTLE, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEYS_PIECES,
+    ZOBRIST_KEY_MOVER_SWITCH, ZOBRIST_PIECE_INDEX_BISHOP, ZOBRIST_PIECE_INDEX_KING, ZOBRIST_PIECE_INDEX_KNIGHT, ZOBRIST_PIECE_INDEX_PAWN,
+    ZOBRIST_PIECE_INDEX_QUEEN, ZOBRIST_PIECE_INDEX_ROOK,
 };
 use crate::move_constants::*;
 use crate::opponent;
@@ -26,6 +26,9 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     let piece_mask = mv & PIECE_MASK_FULL;
 
     new_position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[new_position.castle_flags as usize];
+    if new_position.castling_960 {
+        new_position.zobrist_lock ^= castle_rook_key(&new_position.castle_rook_squares(), new_position.castle_flags);
+    }
     if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];
     }
@@ -62,6 +65,9 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
     new_position.mover ^= 1;
     new_position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[new_position.castle_flags as usize];
+    if new_position.castling_960 {
+        new_position.zobrist_lock ^= castle_rook_key(&new_position.castle_rook_squares(), new_position.castle_flags);
+    }
     if new_position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         new_position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(new_position.en_passant_square)];
     }
@@ -70,6 +76,12 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
 #[inline(always)]
 fn make_castle_move(position: &mut Position, mv: Move) {
+    // Orthodox castles are the four constant moves and take the v1.0.78
+    // fixed-mask path; anything else is Chess960 (NET-1762)
+    if position.castling_960 {
+        perform_castle_960(position, from_square_part(mv), castle_index_of_move(mv));
+        return;
+    }
     match mv {
         WHITE_KING_CASTLE_MOVE => {
             perform_castle(position, CASTLE_INDEX_WHITE_KING);
@@ -97,6 +109,36 @@ pub fn perform_castle(position: &mut Position, index: usize) {
     position.pieces[position.mover as usize].rook_bitboard ^= CASTLE_VARS_ROOK_MASK[index];
     position.pieces[position.mover as usize].all_pieces_bitboard ^= CASTLE_VARS_ALL_PIECES_MASK[index];
     position.pieces[position.mover as usize].king_square = CASTLE_VARS_KING_TO[index];
+    position.half_moves += 1;
+    position.move_number += CASTLE_VARS_FULL_MOVE_INC[index];
+}
+
+/// Castle `index` with the king on `king_from`; the rook comes from the
+/// position's castling rook squares (Chess960, NET-1762); only when
+/// `Position::castling_960` is set. The piece deltas are
+/// XORs of from and to rather than fixed masks because in Chess960 the king
+/// (already on g1) or the rook (already on f1) may not move at all, and a bit
+/// that is both cleared and set must stay put; the Zobrist terms cancel the
+/// same way. In the standard start position the result is bit-identical to
+/// the fixed masks this replaces.
+#[cold]
+#[inline(never)]
+pub fn perform_castle_960(position: &mut Position, king_from: Square, index: usize) {
+    let mover = position.mover as usize;
+    let king_to = CASTLE_VARS_KING_TO[index];
+    let rook_from = position.castle_rook_square(index);
+    let rook_to = CASTLE_VARS_ROOK_TO[index];
+    position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[mover][ZOBRIST_PIECE_INDEX_KING][king_from as usize]
+        ^ ZOBRIST_KEYS_PIECES[mover][ZOBRIST_PIECE_INDEX_KING][king_to as usize]
+        ^ ZOBRIST_KEYS_PIECES[mover][ZOBRIST_PIECE_INDEX_ROOK][rook_from as usize]
+        ^ ZOBRIST_KEYS_PIECES[mover][ZOBRIST_PIECE_INDEX_ROOK][rook_to as usize];
+
+    let rook_delta = bit(rook_from) ^ bit(rook_to);
+    position.castle_flags &= CASTLE_VARS_CLEAR_FLAGS_MASK[index];
+    let friendly = &mut position.pieces[mover];
+    friendly.rook_bitboard ^= rook_delta;
+    friendly.all_pieces_bitboard ^= bit(king_from) ^ bit(king_to) ^ rook_delta;
+    friendly.king_square = king_to;
     position.half_moves += 1;
     position.move_number += CASTLE_VARS_FULL_MOVE_INC[index];
 }
@@ -244,9 +286,16 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
     captured
 }
 
+/// A rook leaving, or any piece landing on, a castling rook's start square
+/// ends that right: the corners, as in v1.0.78, unless the position is
+/// Chess960 (`castling_960`), whose rook squares come from the FEN.
 #[inline(always)]
 fn update_castle_flags_if_square(position: &mut Position, sq: Square) {
     if position.castle_flags != 0 {
+        if position.castling_960 {
+            update_castle_flags_960(position, sq);
+            return;
+        }
         match sq {
             H8_BIT => position.castle_flags &= !BK_CASTLE,
             A8_BIT => position.castle_flags &= !BQ_CASTLE,
@@ -254,6 +303,20 @@ fn update_castle_flags_if_square(position: &mut Position, sq: Square) {
             A1_BIT => position.castle_flags &= !WQ_CASTLE,
             _ => {}
         }
+    }
+}
+
+#[cold]
+#[inline(never)]
+fn update_castle_flags_960(position: &mut Position, sq: Square) {
+    if sq == position.castle_rook_square(CASTLE_INDEX_BLACK_KING) {
+        position.castle_flags &= !BK_CASTLE
+    } else if sq == position.castle_rook_square(CASTLE_INDEX_BLACK_QUEEN) {
+        position.castle_flags &= !BQ_CASTLE
+    } else if sq == position.castle_rook_square(CASTLE_INDEX_WHITE_KING) {
+        position.castle_flags &= !WK_CASTLE
+    } else if sq == position.castle_rook_square(CASTLE_INDEX_WHITE_QUEEN) {
+        position.castle_flags &= !WQ_CASTLE
     }
 }
 
@@ -488,6 +551,10 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
     position.mover ^= 1;
     if castle_flags != position.castle_flags {
         position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[castle_flags as usize] ^ ZOBRIST_KEYS_CASTLE[position.castle_flags as usize];
+        if position.castling_960 {
+            let rooks = position.castle_rook_squares();
+            position.zobrist_lock ^= castle_rook_key(&rooks, castle_flags) ^ castle_rook_key(&rooks, position.castle_flags);
+        }
     }
     if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
         position.zobrist_lock ^= ZOBRIST_KEYS_EN_PASSANT[en_passant_zobrist_key_index(position.en_passant_square)];
@@ -599,6 +666,10 @@ fn unmake_promotion(position: &mut Position, from: Square, to: Square, promotion
 
 #[inline(always)]
 fn unmake_castle(position: &mut Position, mv: Move, mover: usize) {
+    if position.castling_960 {
+        unmake_castle_960(position, mv, mover);
+        return;
+    }
     // Use the same constants as perform_castle to reverse the operation
     match mv {
         WHITE_KING_CASTLE_MOVE => {
@@ -623,6 +694,20 @@ fn unmake_castle(position: &mut Position, mv: Move, mover: usize) {
         }
         _ => {}
     }
+}
+
+#[cold]
+#[inline(never)]
+fn unmake_castle_960(position: &mut Position, mv: Move, mover: usize) {
+    // The same deltas as perform_castle_960, reversed; the king's start
+    // square is the move's from square and the rook's is the position's
+    let index = castle_index_of_move(mv);
+    let king_from = from_square_part(mv);
+    let rook_delta = bit(position.castle_rook_square(index)) ^ bit(CASTLE_VARS_ROOK_TO[index]);
+    let friendly = &mut position.pieces[mover];
+    friendly.king_square = king_from;
+    friendly.rook_bitboard ^= rook_delta;
+    friendly.all_pieces_bitboard ^= bit(king_from) ^ bit(CASTLE_VARS_KING_TO[index]) ^ rook_delta;
 }
 
 #[inline(always)]
