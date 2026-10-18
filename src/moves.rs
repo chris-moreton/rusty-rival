@@ -48,38 +48,24 @@ pub fn verify_move_c960<const C960: bool>(position: &Position, m: Move) -> bool 
         PIECE_MASK_KING => {
             let from_square = from_square_part(m);
             if from_square == friendly.king_square {
-                if C960 {
-                    // A castle is identified by its flag, never by its distance:
-                    // in Chess960 the king may castle one square or none
-                    // (NET-1762), so a flagged move that happens to land a
-                    // king-step away must not pass as a plain king move -
-                    // make_move would then castle in a position where castling
-                    // may be illegal.
-                    if m & ALL_CASTLE_MOVE_MASKS == 0 {
-                        bit(to_square_part(m)) & KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations != 0
-                    } else {
-                        let mut move_list = MoveList::new();
-                        if position.castle_flags != 0 {
-                            generate_castle_moves::<C960>(position, &mut move_list, all_pieces, position.mover as usize)
-                        }
-                        move_list.contains(&m)
-                    }
+                // A castle is identified by its flag, never by its distance, in
+                // both forms (NET-1762): a Chess960 castle may move the king
+                // one square or none, and a caller can present such a move to
+                // a position compiled in the orthodox form (the same board
+                // with its rights gone, or a colliding table entry). A flagged
+                // move landing a king-step away must not pass as a plain king
+                // move: make_move would then castle where castling is illegal.
+                if m & ALL_CASTLE_MOVE_MASKS == 0 {
+                    bit(to_square_part(m)) & KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations != 0
                 } else {
-                    // An orthodox castle moves the king two squares, so no
-                    // castle is a king step and the v1.0.78 test is exact
-                    let landing_squares = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
-                    if bit(to_square_part(m)) & landing_squares != 0 {
-                        true
-                    } else {
-                        // Move lists are created only where needed (castling and
-                        // pawn moves): constructing a MoveList zero-fills all
-                        // 1,028 bytes, and most verified moves are piece moves.
-                        let mut move_list = MoveList::new();
-                        if position.castle_flags != 0 {
-                            generate_castle_moves::<C960>(position, &mut move_list, all_pieces, position.mover as usize)
-                        }
-                        move_list.contains(&m)
+                    // Move lists are created only where needed (castling and
+                    // pawn moves): constructing a MoveList zero-fills all
+                    // 1,028 bytes, and most verified moves are piece moves.
+                    let mut move_list = MoveList::new();
+                    if position.castle_flags != 0 {
+                        generate_castle_moves::<C960>(position, &mut move_list, all_pieces, position.mover as usize)
                     }
+                    move_list.contains(&m)
                 }
             } else {
                 false
@@ -864,15 +850,12 @@ mod verify_move_reference_tests {
                 let from_square = from_square_part(m);
                 return if from_square == friendly.king_square {
                     // The former body tested the king-step first and only then
-                    // the castle list, as the orthodox form still does. In a
-                    // Chess960 position a castle flag decides (NET-1762): a
-                    // flagged move is a castle or nothing, so the reference
-                    // carries the same split.
+                    // the castle list. With Chess960 a castle flag decides
+                    // (NET-1762): a flagged move is a castle or nothing, so the
+                    // reference carries the same split.
                     let landing_squares = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
-                    if position.castling_960 && m & ALL_CASTLE_MOVE_MASKS == 0 {
+                    if m & ALL_CASTLE_MOVE_MASKS == 0 {
                         bit(to_square_part(m)) & landing_squares != 0
-                    } else if !position.castling_960 && bit(to_square_part(m)) & landing_squares != 0 {
-                        true
                     } else {
                         if position.castle_flags != 0 {
                             castle_moves_for(position, &mut move_list, all_pieces)
