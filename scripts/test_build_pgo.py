@@ -61,6 +61,26 @@ class BuilderTests(unittest.TestCase):
   # Present but never executed is still a failure
   with self.assertRaisesRegex(RuntimeError,'11search_c960Kb0_E'):
    build.audit_hot_counts(self.counts([(self.SEARCH_FALSE,[0,0]),(self.QUIESCE_FALSE,[9]),(self.NNUE,[9])]))
+ def test_hot_profile_rejects_chess960_only_profiles(self):
+  # Only the `Kb1_` forms trained (both functions): rejected, naming search
+  only960=[('_RINvNtCsTest_11rusty_rival6search11search_c960Kb1_EB4_',[9]),('_RINvNtCsTest_11rusty_rival7quiesce12quiesce_c960Kb1_EB4_',[9]),(self.NNUE,[9])]
+  with self.assertRaisesRegex(RuntimeError,'11search_c960Kb0_E'):build.audit_hot_counts(self.counts(only960))
+ def test_profile_warnings_cover_the_orthodox_instantiations(self):
+  # The release build's warning check is name-agnostic for engine symbols:
+  # missing data or a hash mismatch on the ::<false> forms must still stop it
+  for line in ['warning: rusty_rival.0123-cgu.0: no profile data available for function '+self.SEARCH_FALSE+' Hash = 1 up to 0 count discarded',
+               'warning: rusty_rival.0123-cgu.0: function control flow change detected (hash mismatch) '+self.QUIESCE_FALSE+' Hash = 2 up to 9 count discarded']:
+   with self.subTest(line=line),self.assertRaises(RuntimeError):build.validate_profile_warnings(build.profile_warnings(line))
+ def test_frozen_canary_still_validates_with_its_recorded_symbols(self):
+  # The canary log is hashed evidence from an earlier source: its positive
+  # controls keep the pre-NET-1762 symbol names, and renaming them in the
+  # log is a tamper the validator must refuse (the metadata no longer agrees)
+  root=Path(__file__).parent/'pgo'
+  canary=json.loads((root/'diagnostic-canary.json').read_text())
+  log=(root/'diagnostic-canary.log').read_text()
+  self.assertTrue(build.validate_canary_log(canary,log)['passed'])
+  renamed=log.replace('6search6search','6search11search_c960Kb0_E').replace('7quiesce7quiesce','7quiesce12quiesce_c960Kb0_E')
+  with self.assertRaises(RuntimeError):build.validate_canary_log(canary,renamed)
  def test_hot_profile_ignores_closures_and_sorts_inside_the_orthodox_form(self):
   # A hot closure or std sort instantiated inside search_c960::<false> must
   # not stand in for the function itself; the `<cgu>;` prefix is accepted
