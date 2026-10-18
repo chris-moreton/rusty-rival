@@ -34,12 +34,44 @@ class BuilderTests(unittest.TestCase):
   self.assertEqual(build.profile_warnings('warning: no profile data available for function _RNvCxyz5regex6search')['engine_missing_function_lines'],[])
   self.assertEqual(build.profile_warnings('Finished release profile')['missing_function_count'],0)
 
+ def counts(self,rows):
+  return ''.join('  '+name+':\n    Hash: 0x123\n    Counters: '+str(len(values))+'\n    Block counts: ['+', '.join(map(str,values))+']\n' for name,values in rows)
+ # v0 names as the NET-1762 release binary profiles them: the orthodox
+ # (`Kb0_`) instantiations are hot, the wrappers and `Kb1_` forms are not
+ SEARCH_FALSE='_RINvNtCsTest_11rusty_rival6search11search_c960Kb0_EB4_'
+ QUIESCE_FALSE='_RINvNtCsTest_11rusty_rival7quiesce12quiesce_c960Kb0_EB4_'
+ NNUE='_RNvMs_NtCsTest_11rusty_rival4nnueNtB4_11Accumulator23update_accumulator_from'
  def test_hot_profile_requires_each_direct_function_with_positive_counts(self):
-  text=''.join('  _RNvNtCtest11rusty_rival'+name+':\n    Hash: 0x123\n    Counters: 2\n    Block counts: [0, 10]\n' for name in ['6search6search','7quiesce7quiesce','4nnue23update_accumulator_from'])
-  self.assertEqual(len(build.audit_hot_counts(text)),3)
+  rows=[(self.SEARCH_FALSE,[0,10]),(self.QUIESCE_FALSE,[0,10]),(self.NNUE,[0,10]),
+        ('_RNvNtCsTest_11rusty_rival6search6search',[0,0]),('_RNvNtCsTest_11rusty_rival7quiesce7quiesce',[0,0])]
+  records=build.audit_hot_counts(self.counts(rows))
+  self.assertEqual(sorted(records),['11search_c960Kb0_E','12quiesce_c960Kb0_E','23update_accumulator_from'])
+  self.assertEqual(records['11search_c960Kb0_E'][0]['symbol'],self.SEARCH_FALSE)
   with self.assertRaisesRegex(RuntimeError,'No positive'):build.audit_hot_counts('')
-  text=text.replace('23update_accumulator_from:', '23update_accumulator_from_missing:')
-  with self.assertRaisesRegex(RuntimeError,'23update_accumulator_from'):build.audit_hot_counts(text)
+  with self.assertRaisesRegex(RuntimeError,'23update_accumulator_from'):
+   build.audit_hot_counts(self.counts([(self.SEARCH_FALSE,[5]),(self.QUIESCE_FALSE,[5]),(self.NNUE+'_missing',[5])]))
+ def test_hot_profile_rejects_wrappers_and_chess960_forms_in_place_of_the_orthodox_form(self):
+  # The pre-NET-1762 names, or the Chess960 (`Kb1_`) instantiation, must not
+  # satisfy the check: only the form the release binary runs counts
+  for search in ['_RNvNtCsTest_11rusty_rival6search6search','_RINvNtCsTest_11rusty_rival6search11search_c960Kb1_EB4_']:
+   with self.subTest(search=search),self.assertRaisesRegex(RuntimeError,'11search_c960Kb0_E'):
+    build.audit_hot_counts(self.counts([(search,[9]),(self.QUIESCE_FALSE,[9]),(self.NNUE,[9])]))
+  with self.assertRaisesRegex(RuntimeError,'12quiesce_c960Kb0_E'):
+   build.audit_hot_counts(self.counts([(self.SEARCH_FALSE,[9]),('_RNvNtCsTest_11rusty_rival7quiesce7quiesce',[9]),(self.NNUE,[9])]))
+  # Present but never executed is still a failure
+  with self.assertRaisesRegex(RuntimeError,'11search_c960Kb0_E'):
+   build.audit_hot_counts(self.counts([(self.SEARCH_FALSE,[0,0]),(self.QUIESCE_FALSE,[9]),(self.NNUE,[9])]))
+ def test_hot_profile_ignores_closures_and_sorts_inside_the_orthodox_form(self):
+  # A hot closure or std sort instantiated inside search_c960::<false> must
+  # not stand in for the function itself; the `<cgu>;` prefix is accepted
+  closure='rusty_rival.0123-cgu.0;_RINvMs_NtCsTest_8arrayvec8arrayvecINtB5_8ArrayVecmKj100_E6retainNCINvNtCsTest_11rusty_rival6search11search_c960Kb0_Es5_0EB1e_'
+  sort='_RINvNtNtCsTest_4core5slice4sortTmlENCINvNtCsTest_11rusty_rival7quiesce12quiesce_c960Kb0_Es_0E0EB2c_'
+  with self.assertRaisesRegex(RuntimeError,'11search_c960Kb0_E'):
+   build.audit_hot_counts(self.counts([(self.SEARCH_FALSE,[0]),(closure,[9]),(self.QUIESCE_FALSE,[9]),(self.NNUE,[9])]))
+  with self.assertRaisesRegex(RuntimeError,'12quiesce_c960Kb0_E'):
+   build.audit_hot_counts(self.counts([(self.SEARCH_FALSE,[9]),(self.QUIESCE_FALSE,[0]),(sort,[9]),(self.NNUE,[9])]))
+  records=build.audit_hot_counts(self.counts([('rusty_rival.0123-cgu.0;'+self.SEARCH_FALSE,[9]),(closure,[9]),(self.QUIESCE_FALSE,[9]),(self.NNUE,[9])]))
+  self.assertEqual([r['symbol'] for r in records['11search_c960Kb0_E']],['rusty_rival.0123-cgu.0;'+self.SEARCH_FALSE])
 
  def test_current_source_bench_overlap_is_rejected(self):
   data=json.loads((Path(__file__).parent/'pgo/positions.json').read_text())
