@@ -19,7 +19,7 @@ use rusty_rival::move_constants::{
 use rusty_rival::moves::{generate_moves, is_check, verify_move};
 use rusty_rival::nnue::Accumulator;
 use rusty_rival::perft::perft;
-use rusty_rival::search::{make_move_nnue, unmake_move_nnue};
+use rusty_rival::search::{iterative_deepening, make_move_nnue, unmake_move_nnue};
 use rusty_rival::types::{default_search_state, default_uci_state, Move, Position, SearchState};
 use rusty_rival::uci::{is_legal_move, run_command_test};
 use rusty_rival::utils::{castle_mask, from_square_mask, hydrate_move_from_algebraic_move, invert_fen};
@@ -847,10 +847,11 @@ fn orthodox_fast_path_eligibility() {
     }
 }
 
-/// On every orthodox-eligible position the v1.0.78 fast paths and the general
-/// Chess960 form agree exactly: the same move list in the same order, the same
-/// position, keys and castling rights after every move, the same position after
-/// unmake. Forcing `castling_960` on an orthodox position runs the general form.
+/// On every orthodox-eligible position the orthodox (`C960 = false`, v1.0.78)
+/// and Chess960 forms agree exactly: the same move list in the same order, the
+/// same position, keys and castling rights after every move, the same position
+/// after unmake. Forcing `castling_960` on an orthodox position makes the
+/// dispatching wrappers run the Chess960 form.
 #[test]
 fn orthodox_fast_paths_match_the_general_form() {
     fn check(position: &mut Position, depth: u8, compared: &mut u32) {
@@ -949,4 +950,37 @@ fn notation_is_per_thread_and_reset_by_each_installation() {
         assert!(is_legal_move(&in_place, "g1h1"));
     }
     set_uci_notation(false, standard.castle_rook_squares());
+}
+
+/// The two compiled forms of the search agree on orthodox positions: forcing
+/// `castling_960` makes `iterative_deepening` pick the Chess960 form, which
+/// must find the same move after exactly the same nodes as the orthodox form
+/// the engine uses for every standard game (NET-1762). Each search starts
+/// from a fresh state so no table carries over.
+#[test]
+fn both_search_forms_agree_on_orthodox_positions() {
+    use std::time::{Duration, Instant};
+    fn fixed_depth(position: &Position, depth: u8) -> (Move, u64) {
+        let mut position = *position;
+        let mut state = default_search_state();
+        state.show_info = false;
+        state.end_time = Instant::now() + Duration::from_secs(300);
+        let mv = iterative_deepening(&mut position, depth, &mut state, 1);
+        (mv, state.nodes)
+    }
+    for fen in [
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1",
+        "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+    ] {
+        let orthodox = get_position(fen);
+        assert!(!orthodox.castling_960, "{fen}");
+        let mut forced = orthodox;
+        forced.castling_960 = true;
+        let (orthodox_move, orthodox_nodes) = fixed_depth(&orthodox, 7);
+        let (forced_move, forced_nodes) = fixed_depth(&forced, 7);
+        assert!(orthodox_move != 0 && orthodox_nodes > 1_000, "{fen}");
+        assert_eq!((forced_move, forced_nodes), (orthodox_move, orthodox_nodes), "{fen}");
+    }
 }

@@ -18,15 +18,49 @@ pub const CAPTURED_ROOK: u8 = 4;
 pub const CAPTURED_QUEEN: u8 = 5;
 pub const CAPTURED_EP_PAWN: u8 = 6; // En passant capture (pawn on different square)
 
-#[inline(always)]
+// Castling is compiled in two forms (NET-1762): `C960 = false` is the
+// v1.0.78 code, corner rooks and fixed masks, with no Chess960 branch left in
+// it, and `C960 = true` takes the rook squares from the position. The search
+// picks one at its root from `Position::castling_960`, which every position
+// in a game shares, so an orthodox search never carries a Chess960 call site.
+// Everything else calls the wrappers below, which dispatch on that flag.
+
+#[inline]
 pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
+    if position.castling_960 {
+        make_move_c960::<true>(position, mv, new_position)
+    } else {
+        make_move_c960::<false>(position, mv, new_position)
+    }
+}
+
+#[inline]
+pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
+    if position.castling_960 {
+        make_move_in_place_c960::<true>(position, mv)
+    } else {
+        make_move_in_place_c960::<false>(position, mv)
+    }
+}
+
+#[inline]
+pub fn unmake_move(position: &mut Position, mv: Move, unmake: &UnmakeInfo) {
+    if position.castling_960 {
+        unmake_move_c960::<true>(position, mv, unmake)
+    } else {
+        unmake_move_c960::<false>(position, mv, unmake)
+    }
+}
+
+#[inline(always)]
+pub fn make_move_c960<const C960: bool>(position: &Position, mv: Move, new_position: &mut Position) {
     let from = from_square_part(mv);
     let to = to_square_part(mv);
 
     let piece_mask = mv & PIECE_MASK_FULL;
 
     new_position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[new_position.castle_flags as usize];
-    if new_position.castling_960 {
+    if C960 {
         new_position.zobrist_lock ^= castle_rook_key(&new_position.castle_rook_squares(), new_position.castle_flags);
     }
     if position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
@@ -35,9 +69,9 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     match piece_mask {
         PIECE_MASK_PAWN => {
             if mv & PROMOTION_FULL_MOVE_MASK != 0 {
-                make_move_with_promotion(new_position, from, to, mv & PROMOTION_FULL_MOVE_MASK);
+                make_move_with_promotion::<C960>(new_position, from, to, mv & PROMOTION_FULL_MOVE_MASK);
             } else if (from - to) % 8 != 0 {
-                make_pawn_capture_move(new_position, from, to);
+                make_pawn_capture_move::<C960>(new_position, from, to);
             } else {
                 make_simple_pawn_move(new_position, from, to)
             }
@@ -45,18 +79,18 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
         }
         PIECE_MASK_KING => {
             if mv >= BLACK_QUEEN_CASTLE_MOVE_MASK {
-                make_castle_move(new_position, mv)
+                make_castle_move::<C960>(new_position, mv)
             } else {
-                make_king_move(new_position, from, to);
+                make_king_move::<C960>(new_position, from, to);
             }
 
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
         }
         _ => {
             if test_bit(all_pieces(position), to) {
-                make_non_pawn_non_king_capture_move(new_position, from, to, piece_mask);
+                make_non_pawn_non_king_capture_move::<C960>(new_position, from, to, piece_mask);
             } else {
-                make_non_pawn_non_king_non_capture_move(new_position, from, to, piece_mask);
+                make_non_pawn_non_king_non_capture_move::<C960>(new_position, from, to, piece_mask);
             };
             new_position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
             new_position.move_number += position.mover as u16;
@@ -65,7 +99,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 
     new_position.mover ^= 1;
     new_position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[new_position.castle_flags as usize];
-    if new_position.castling_960 {
+    if C960 {
         new_position.zobrist_lock ^= castle_rook_key(&new_position.castle_rook_squares(), new_position.castle_flags);
     }
     if new_position.en_passant_square != EN_PASSANT_NOT_AVAILABLE {
@@ -75,10 +109,10 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
 }
 
 #[inline(always)]
-fn make_castle_move(position: &mut Position, mv: Move) {
+fn make_castle_move<const C960: bool>(position: &mut Position, mv: Move) {
     // Orthodox castles are the four constant moves and take the v1.0.78
-    // fixed-mask path; anything else is Chess960 (NET-1762)
-    if position.castling_960 {
+    // fixed-mask path; Chess960 castles take the rook from the position
+    if C960 {
         perform_castle_960(position, from_square_part(mv), castle_index_of_move(mv));
         return;
     }
@@ -114,14 +148,13 @@ pub fn perform_castle(position: &mut Position, index: usize) {
 }
 
 /// Castle `index` with the king on `king_from`; the rook comes from the
-/// position's castling rook squares (Chess960, NET-1762); only when
-/// `Position::castling_960` is set. The piece deltas are
+/// position's castling rook squares (Chess960, NET-1762); only in the
+/// `C960 = true` form. The piece deltas are
 /// XORs of from and to rather than fixed masks because in Chess960 the king
 /// (already on g1) or the rook (already on f1) may not move at all, and a bit
 /// that is both cleared and set must stay put; the Zobrist terms cancel the
 /// same way. In the standard start position the result is bit-identical to
 /// the fixed masks this replaces.
-#[cold]
 #[inline(never)]
 pub fn perform_castle_960(position: &mut Position, king_from: Square, index: usize) {
     let mover = position.mover as usize;
@@ -182,7 +215,7 @@ fn make_simple_pawn_move(position: &mut Position, from: Square, to: Square) {
 }
 
 #[inline(always)]
-fn make_non_pawn_non_king_non_capture_move(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
+fn make_non_pawn_non_king_non_capture_move<const C960: bool>(position: &mut Position, from: Square, to: Square, piece_mask: Move) {
     let switch = bit(from) | bit(to);
     position.pieces[position.mover as usize].all_pieces_bitboard ^= switch;
 
@@ -205,7 +238,7 @@ fn make_non_pawn_non_king_non_capture_move(position: &mut Position, from: Square
             position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[m][ZOBRIST_PIECE_INDEX_ROOK][from as usize]
                 ^ ZOBRIST_KEYS_PIECES[m][ZOBRIST_PIECE_INDEX_ROOK][to as usize];
             position.pieces[position.mover as usize].rook_bitboard ^= switch;
-            update_castle_flags_if_square(position, from);
+            update_castle_flags_if_square::<C960>(position, from);
         }
         PIECE_MASK_QUEEN => {
             position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[m][ZOBRIST_PIECE_INDEX_QUEEN][from as usize]
@@ -217,7 +250,7 @@ fn make_non_pawn_non_king_non_capture_move(position: &mut Position, from: Square
 }
 
 #[inline(always)]
-pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Square, promotion_mask: Move) -> u8 {
+pub fn make_move_with_promotion<const C960: bool>(position: &mut Position, from: Square, to: Square, promotion_mask: Move) -> u8 {
     let bit_to = bit(to);
     let bit_from = bit(from);
 
@@ -278,7 +311,7 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
         CAPTURED_NONE
     };
 
-    update_castle_flags_if_square(position, to);
+    update_castle_flags_if_square::<C960>(position, to);
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
@@ -287,12 +320,12 @@ pub fn make_move_with_promotion(position: &mut Position, from: Square, to: Squar
 }
 
 /// A rook leaving, or any piece landing on, a castling rook's start square
-/// ends that right: the corners, as in v1.0.78, unless the position is
-/// Chess960 (`castling_960`), whose rook squares come from the FEN.
+/// ends that right: the corners, as in v1.0.78, unless in the `C960 = true`
+/// form, whose rook squares come from the FEN.
 #[inline(always)]
-fn update_castle_flags_if_square(position: &mut Position, sq: Square) {
+fn update_castle_flags_if_square<const C960: bool>(position: &mut Position, sq: Square) {
     if position.castle_flags != 0 {
-        if position.castling_960 {
+        if C960 {
             update_castle_flags_960(position, sq);
             return;
         }
@@ -306,7 +339,6 @@ fn update_castle_flags_if_square(position: &mut Position, sq: Square) {
     }
 }
 
-#[cold]
 #[inline(never)]
 fn update_castle_flags_960(position: &mut Position, sq: Square) {
     if sq == position.castle_rook_square(CASTLE_INDEX_BLACK_KING) {
@@ -321,7 +353,7 @@ fn update_castle_flags_960(position: &mut Position, sq: Square) {
 }
 
 #[inline(always)]
-pub fn make_non_pawn_non_king_capture_move(position: &mut Position, from: Square, to: Square, piece: Move) -> u8 {
+pub fn make_non_pawn_non_king_capture_move<const C960: bool>(position: &mut Position, from: Square, to: Square, piece: Move) -> u8 {
     let to_mask = bit(to);
 
     let captured = remove_captured_piece(position, to);
@@ -344,7 +376,7 @@ pub fn make_non_pawn_non_king_capture_move(position: &mut Position, from: Square
         PIECE_MASK_ROOK => {
             position.zobrist_lock ^= ZOBRIST_KEYS_PIECES[m][ZOBRIST_PIECE_INDEX_ROOK][from as usize]
                 ^ ZOBRIST_KEYS_PIECES[m][ZOBRIST_PIECE_INDEX_ROOK][to as usize];
-            update_castle_flags_if_square(position, from);
+            update_castle_flags_if_square::<C960>(position, from);
             position.pieces[position.mover as usize].rook_bitboard ^= switch
         }
         PIECE_MASK_QUEEN => {
@@ -355,12 +387,12 @@ pub fn make_non_pawn_non_king_capture_move(position: &mut Position, from: Square
         _ => panic!("Unexpected piece"),
     }
 
-    update_castle_flags_if_square(position, to);
+    update_castle_flags_if_square::<C960>(position, to);
     captured
 }
 
 #[inline(always)]
-pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square) -> u8 {
+pub fn make_pawn_capture_move<const C960: bool>(position: &mut Position, from: Square, to: Square) -> u8 {
     let opponent = opponent!(position.mover) as usize;
     let enemy = &mut position.pieces[opponent];
 
@@ -415,16 +447,16 @@ pub fn make_pawn_capture_move(position: &mut Position, from: Square, to: Square)
 
     position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
 
-    update_castle_flags_if_square(position, to);
+    update_castle_flags_if_square::<C960>(position, to);
     captured
 }
 
 #[inline(always)]
-pub fn make_king_move(position: &mut Position, from: Square, to: Square) -> u8 {
+pub fn make_king_move<const C960: bool>(position: &mut Position, from: Square, to: Square) -> u8 {
     let to_mask = bit(to);
 
     let captured = remove_captured_piece(position, to);
-    update_castle_flags_if_square(position, to);
+    update_castle_flags_if_square::<C960>(position, to);
 
     let friendly = &mut position.pieces[position.mover as usize];
 
@@ -496,7 +528,7 @@ pub fn all_pieces(position: &Position) -> Bitboard {
 
 /// Make a move in-place and return info needed to unmake it
 #[inline(always)]
-pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
+pub fn make_move_in_place_c960<const C960: bool>(position: &mut Position, mv: Move) -> UnmakeInfo {
     // Save state for unmake (captured_piece will be set by the make functions)
     let castle_flags = position.castle_flags;
     let en_passant_square = position.en_passant_square;
@@ -515,9 +547,9 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
     let captured_piece = match piece_mask {
         PIECE_MASK_PAWN => {
             let cap = if mv & PROMOTION_FULL_MOVE_MASK != 0 {
-                make_move_with_promotion(position, from, to, mv & PROMOTION_FULL_MOVE_MASK)
+                make_move_with_promotion::<C960>(position, from, to, mv & PROMOTION_FULL_MOVE_MASK)
             } else if (from - to) % 8 != 0 {
-                make_pawn_capture_move(position, from, to)
+                make_pawn_capture_move::<C960>(position, from, to)
             } else {
                 make_simple_pawn_move(position, from, to);
                 CAPTURED_NONE
@@ -527,19 +559,19 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
         }
         PIECE_MASK_KING => {
             let cap = if mv >= BLACK_QUEEN_CASTLE_MOVE_MASK {
-                make_castle_move(position, mv);
+                make_castle_move::<C960>(position, mv);
                 CAPTURED_NONE
             } else {
-                make_king_move(position, from, to)
+                make_king_move::<C960>(position, from, to)
             };
             position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
             cap
         }
         _ => {
             let cap = if test_bit(all_pieces(position), to) {
-                make_non_pawn_non_king_capture_move(position, from, to, piece_mask)
+                make_non_pawn_non_king_capture_move::<C960>(position, from, to, piece_mask)
             } else {
-                make_non_pawn_non_king_non_capture_move(position, from, to, piece_mask);
+                make_non_pawn_non_king_non_capture_move::<C960>(position, from, to, piece_mask);
                 CAPTURED_NONE
             };
             position.en_passant_square = EN_PASSANT_NOT_AVAILABLE;
@@ -551,7 +583,7 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
     position.mover ^= 1;
     if castle_flags != position.castle_flags {
         position.zobrist_lock ^= ZOBRIST_KEYS_CASTLE[castle_flags as usize] ^ ZOBRIST_KEYS_CASTLE[position.castle_flags as usize];
-        if position.castling_960 {
+        if C960 {
             let rooks = position.castle_rook_squares();
             position.zobrist_lock ^= castle_rook_key(&rooks, castle_flags) ^ castle_rook_key(&rooks, position.castle_flags);
         }
@@ -573,7 +605,7 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
 
 /// Unmake a move, restoring the position to its previous state
 #[inline(always)]
-pub fn unmake_move(position: &mut Position, mv: Move, unmake: &UnmakeInfo) {
+pub fn unmake_move_c960<const C960: bool>(position: &mut Position, mv: Move, unmake: &UnmakeInfo) {
     // Flip mover back (the move was made by the opponent of current mover)
     position.mover ^= 1;
 
@@ -598,7 +630,7 @@ pub fn unmake_move(position: &mut Position, mv: Move, unmake: &UnmakeInfo) {
         }
         PIECE_MASK_KING => {
             if mv >= BLACK_QUEEN_CASTLE_MOVE_MASK {
-                unmake_castle(position, mv, mover);
+                unmake_castle::<C960>(position, mv, mover);
             } else {
                 // Move king back
                 let switch = bit(from) | bit(to);
@@ -665,8 +697,8 @@ fn unmake_promotion(position: &mut Position, from: Square, to: Square, promotion
 }
 
 #[inline(always)]
-fn unmake_castle(position: &mut Position, mv: Move, mover: usize) {
-    if position.castling_960 {
+fn unmake_castle<const C960: bool>(position: &mut Position, mv: Move, mover: usize) {
+    if C960 {
         unmake_castle_960(position, mv, mover);
         return;
     }
@@ -696,7 +728,6 @@ fn unmake_castle(position: &mut Position, mv: Move, mover: usize) {
     }
 }
 
-#[cold]
 #[inline(never)]
 fn unmake_castle_960(position: &mut Position, mv: Move, mover: usize) {
     // The same deltas as perform_castle_960, reversed; the king's start
