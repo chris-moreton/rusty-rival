@@ -74,7 +74,7 @@ git tag v020-my-feature
 | `Ponder` | check | false | — | Enable pondering (thinking on the opponent's time). |
 | `Move Overhead` | spin | 10 | 0–5000 | Time in ms reserved per move for communication overhead. |
 | `UCI_ShowWDL` | check | false | — | Show win/draw/loss probabilities in search output. |
-| `UCI_Chess960` | check | false | — | Write and read castling as the king taking its own rook (`e1h1`), as the Chess960 UCI convention requires. Castling legality does not depend on it: a Chess960 FEN (`HAha` or `KQkq` castling field) castles correctly either way, and the standard `e1g1` spelling is always accepted. |
+| `UCI_Chess960` | check | false | — | Write castling as the king taking its own rook (`e1h1`), as the Chess960 UCI convention requires. Input always accepts king-takes-rook, and accepts the standard spelling (the king's own move to the g or c file, such as `e1g1`) when the king moves at least two squares; a castle in which the king moves one square or none must be sent as king-takes-rook, and the engine writes such castles that way in both modes. Castling legality does not depend on the option: a Chess960 FEN (`HAha` or `KQkq` castling field) castles correctly either way. |
 
 ## License
 
