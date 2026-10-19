@@ -474,6 +474,16 @@ fn both_castle_spellings_hydrate_to_the_generated_move() {
     assert!(is_legal_move(&standard, "e1c1"));
     assert!(is_legal_move(&standard, "e1a1"));
     assert!(!is_legal_move(&standard, "e1b1"));
+    // Text after the move is rejected, as v1.0.78's string comparison did
+    assert!(!is_legal_move(&standard, "e1g1 "));
+    assert!(!is_legal_move(&standard, "e1h1x"));
+    let promotion = get_position("8/1P6/8/8/8/8/8/K6k w - - 0 1");
+    assert!(is_legal_move(&promotion, "b7b8q"));
+    assert!(is_legal_move(&promotion, "b7b8n"));
+    assert!(!is_legal_move(&promotion, "b7b8qjunk"));
+    assert!(!is_legal_move(&promotion, "b7b8qq"));
+    assert!(!is_legal_move(&promotion, "b7b8Q"));
+    assert!(!is_legal_move(&promotion, "b7b8"));
     // Without the right, e1h1 is a king move onto its own rook: illegal
     let no_rights = get_position("r3k2r/8/8/8/8/8/8/R3K2R w kq - 0 1");
     assert!(!is_legal_move(&no_rights, "e1h1"));

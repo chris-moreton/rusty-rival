@@ -365,8 +365,14 @@ fn fen_and_moves(parts: Vec<&str>) -> (String, Vec<String>) {
 pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
     // Compared as a move rather than as text, so a castle is accepted in
     // either spelling: `e1g1`, or the `UCI_Chess960` king-takes-rook `e1h1`
-    // that lichess-bot sends (NET-1762). Malformed text hydrates to a move
-    // the generator never produces.
+    // that lichess-bot sends (NET-1762). The token must be exactly four
+    // characters or a lowercase promotion, because the parser ignores
+    // anything after the fifth (`b7b8qjunk` would read as `b7b8q`).
+    // Other malformed text hydrates to a move the generator never produces.
+    let bytes = algebraic_move.as_bytes();
+    if !(bytes.len() == 4 || (bytes.len() == 5 && matches!(bytes[4], b'q' | b'r' | b'b' | b'n'))) {
+        return false;
+    }
     let mv = hydrate_move_from_algebraic_move(position, algebraic_move.to_string());
     if !generate_moves(position).contains(&mv) {
         return false;

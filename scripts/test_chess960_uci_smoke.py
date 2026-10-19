@@ -6,7 +6,6 @@ python-chess, so run it with lichess-bot's virtualenv:
     ~/Work/rusty-rival/lichess-bot/.venv/bin/python -m unittest scripts/test_chess960_uci_smoke.py
 """
 import importlib.util
-import os
 import stat
 import sys
 import tempfile
@@ -25,16 +24,6 @@ def fake_engine(directory: Path, body: str) -> Path:
     path.write_text(f"#!{sys.executable}\nimport sys, time\n{body}\n")
     path.chmod(path.stat().st_mode | stat.S_IXUSR)
     return path
-
-
-def alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    # A zombie still answers kill(0); a reaped child does not
-    status = Path(f"/proc/{pid}/status")
-    return status.exists() and "State:\tZ" not in status.read_text()
 
 
 class RawClientTests(unittest.TestCase):
@@ -58,7 +47,7 @@ class RawClientTests(unittest.TestCase):
             smoke.Raw(str(engine), handshake_timeout=0.5)
         self.assertLess(time.monotonic() - start, 10)
         self.assertEqual(len(self.spawned), 1)
-        self.assertFalse(alive(self.spawned[0].pid))
+        # wait() has reaped the engine once returncode is set
         self.assertIsNotNone(self.spawned[0].returncode)
 
     def test_engine_that_exits_before_uciok_is_reported_and_reaped(self):
@@ -87,7 +76,7 @@ class RawClientTests(unittest.TestCase):
         raw.p.wait = short_wait
         raw.close()
         self.assertLess(time.monotonic() - start, 10)
-        self.assertFalse(alive(raw.p.pid))
+        self.assertIsNotNone(raw.p.returncode)
 
     def test_read_until_times_out_on_a_quiet_engine(self):
         body = (
@@ -104,6 +93,24 @@ class RawClientTests(unittest.TestCase):
             raw.p.kill()
             raw.p.wait()
 
+    def test_read_until_times_out_while_output_keeps_arriving(self):
+        # Output is always waiting, as from an engine that streams info lines
+        # faster than they are read: only the deadline can end the wait
+        class Streaming:
+            gets = 0
+
+            def get(self, timeout=None):
+                Streaming.gets += 1
+                if Streaming.gets > 200:
+                    raise AssertionError("read past the deadline")
+                time.sleep(0.01)
+                return "info string busy"
+
+        raw = smoke.Raw.__new__(smoke.Raw)
+        raw.q = Streaming()
+        with self.assertRaises(TimeoutError):
+            raw.read_until("readyok", timeout=0.1)
+        self.assertLess(Streaming.gets, 50)
 
 if __name__ == "__main__":
     unittest.main()

@@ -72,8 +72,12 @@ class Raw:
         out: list[str] = []
         while True:
             remaining = deadline - time.monotonic()
+            # Checked before reading, so an engine that keeps printing cannot
+            # hold the wait open past its deadline
+            if remaining <= 0:
+                raise TimeoutError(f"no {token!r} within {timeout}s; got {out[-5:]}")
             try:
-                line = self.q.get(timeout=max(0.0, remaining))
+                line = self.q.get(timeout=remaining)
             except queue.Empty:
                 raise TimeoutError(f"no {token!r} within {timeout}s; got {out[-5:]}") from None
             if line is None:
