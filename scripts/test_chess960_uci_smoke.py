@@ -5,7 +5,10 @@ python-chess, so run it with lichess-bot's virtualenv:
 
     ~/Work/rusty-rival/lichess-bot/.venv/bin/python -m unittest scripts/test_chess960_uci_smoke.py
 """
+import contextlib
 import importlib.util
+import io
+import json
 import stat
 import sys
 import tempfile
@@ -118,6 +121,92 @@ class RawClientTests(unittest.TestCase):
             smoke.time.monotonic = real_monotonic
         # Deadline at t=5; reads at t=1..4 succeed and t=5 stops before reading
         self.assertEqual(Streaming.gets, 4)
+
+
+class FakeRaw:
+    """Stands in for the raw-protocol prelude, so main() reaches python-chess."""
+
+    lines = ["id name fake", "option name UCI_Chess960 type check default false"]
+
+    def __init__(self, path):
+        pass
+
+    def send(self, line):
+        pass
+
+    def isready(self):
+        pass
+
+    def bestmove(self, go, timeout=30.0):
+        return "e1g1", 1.0
+
+    def read_until(self, token, timeout=30.0):
+        return ["bestmove e1g1"]
+
+    def close(self):
+        pass
+
+
+class FakeEngine:
+    def __init__(self, configure_error=None, options_error=None):
+        self.configure_error = configure_error
+        self.options_error = options_error
+        self.quits = 0
+        self.plays = 0
+
+    def configure(self, options):
+        if self.configure_error:
+            raise self.configure_error
+
+    @property
+    def options(self):
+        if self.options_error:
+            raise self.options_error
+        return {"UCI_Chess960": None}
+
+    def play(self, *args, **kwargs):
+        self.plays += 1
+        raise AssertionError("play after a failed setup")
+
+    def quit(self):
+        self.quits += 1
+
+
+class DriverSetupTests(unittest.TestCase):
+    """main() must quit the python-chess engine even when setting it up fails."""
+
+    def run_main(self, engine):
+        report = Path(tempfile.mkdtemp()) / "report.json"
+        patches = [
+            (smoke, "Raw", FakeRaw),
+            (smoke, "legal_after", lambda *args: True),
+            (smoke.time, "sleep", lambda seconds: None),
+            (smoke.chess.engine.SimpleEngine, "popen_uci", lambda path: engine),
+            (smoke.sys, "argv", ["chess960_uci_smoke.py", "--engine", "fake", "--json", str(report)]),
+        ]
+        for owner, name, value in patches:
+            self.addCleanup(setattr, owner, name, getattr(owner, name))
+            setattr(owner, name, value)
+        with contextlib.redirect_stdout(io.StringIO()):
+            status = smoke.main()
+        return status, json.loads(report.read_text())
+
+    def assert_failed_setup_cleaned_up(self, engine):
+        status, report = self.run_main(engine)
+        self.assertNotEqual(status, 0)
+        self.assertEqual(engine.quits, 1)
+        self.assertEqual(engine.plays, 0)
+        driver = [c for c in report["checks"] if c["name"] == "python-chess driver"]
+        self.assertEqual(len(driver), 1)
+        self.assertFalse(driver[0]["ok"])
+        self.assertGreater(report["failed"], 0)
+
+    def test_engine_is_quit_when_configure_fails(self):
+        self.assert_failed_setup_cleaned_up(FakeEngine(configure_error=RuntimeError("configure failed")))
+
+    def test_engine_is_quit_when_reading_its_options_fails(self):
+        self.assert_failed_setup_cleaned_up(FakeEngine(options_error=RuntimeError("options failed")))
+
 
 if __name__ == "__main__":
     unittest.main()
