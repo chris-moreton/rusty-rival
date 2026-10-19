@@ -198,11 +198,11 @@ def main() -> int:
     # ---- python-chess, as lichess-bot drives it ---------------------------
     rng = random.Random(args.seed)
     engine = chess.engine.SimpleEngine.popen_uci(args.engine)
-    engine.configure({"Threads": 1, "Hash": 64})
-    check("python-chess sees UCI_Chess960 as a managed option", "UCI_Chess960" in engine.options)
     castles = 0
     plies = 0
     try:
+        engine.configure({"Threads": 1, "Hash": 64})
+        check("python-chess sees UCI_Chess960 as a managed option", "UCI_Chess960" in engine.options)
         numbers = START_NUMBERS + [rng.randrange(960) for _ in range(6)]
         for number in numbers:
             board = chess.Board.from_chess960_pos(number)
