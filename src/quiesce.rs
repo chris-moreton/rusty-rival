@@ -27,6 +27,7 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
 
 /// Fills `move_list` in place. Returning the 1,028-byte `MoveList` by value
 /// cost a full-capacity copy at every quiescence node (NET-1189).
+#[inline(always)]
 pub fn quiesce_moves_into(position: &Position, move_list: &mut MoveList) {
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];

@@ -1027,6 +1027,7 @@ pub fn clear_countermoves(search_state: &mut SearchState) {
 
 /// Halve every history table at the start of a search: old signal decays but
 /// still seeds move ordering for the early iterations of the next search
+#[inline(always)]
 fn decay_history_tables(search_state: &mut SearchState) {
     for piece in search_state.history_moves.iter_mut() {
         for from_sq in piece.iter_mut() {
