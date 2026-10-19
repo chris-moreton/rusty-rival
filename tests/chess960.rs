@@ -477,9 +477,18 @@ fn both_castle_spellings_hydrate_to_the_generated_move() {
     // Text after the move is rejected, as v1.0.78's string comparison did
     assert!(!is_legal_move(&standard, "e1g1 "));
     assert!(!is_legal_move(&standard, "e1h1x"));
+    // A promotion suffix on a castle or a non-pawn move is not that move
+    assert!(!is_legal_move(&standard, "e1g1q"));
+    assert!(!is_legal_move(&standard, "e1h1q"));
+    assert!(!is_legal_move(&standard, "e1a1n"));
+    assert!(!is_legal_move(&standard, "a1b1r"));
+    assert!(!is_legal_move(&standard, "e1f1b"));
     let promotion = get_position("8/1P6/8/8/8/8/8/K6k w - - 0 1");
     assert!(is_legal_move(&promotion, "b7b8q"));
     assert!(is_legal_move(&promotion, "b7b8n"));
+    assert!(is_legal_move(&promotion, "b7b8r"));
+    assert!(is_legal_move(&promotion, "b7b8b"));
+    assert!(!is_legal_move(&promotion, "a1b1q"));
     assert!(!is_legal_move(&promotion, "b7b8qjunk"));
     assert!(!is_legal_move(&promotion, "b7b8qq"));
     assert!(!is_legal_move(&promotion, "b7b8Q"));

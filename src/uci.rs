@@ -13,9 +13,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::evaluate::evaluate_position;
-use crate::fen::{get_fen, get_position, set_uci_notation, uci_move_from_move, uci_notation_move};
+use crate::fen::{get_fen, get_position, promotion_mask, set_uci_notation, uci_move_from_move, uci_notation_move};
 use crate::make_move::make_move;
-use crate::move_constants::START_POS;
+use crate::move_constants::{PROMOTION_FULL_MOVE_MASK, START_POS};
 use crate::moves::{generate_moves, is_check};
 
 use crate::datagen::cmd_datagen;
@@ -366,15 +366,19 @@ pub fn is_legal_move(position: &Position, algebraic_move: &str) -> bool {
     // Compared as a move rather than as text, so a castle is accepted in
     // either spelling: `e1g1`, or the `UCI_Chess960` king-takes-rook `e1h1`
     // that lichess-bot sends (NET-1762). The token must be exactly four
-    // characters or a lowercase promotion, because the parser ignores
-    // anything after the fifth (`b7b8qjunk` would read as `b7b8q`).
-    // Other malformed text hydrates to a move the generator never produces.
-    let bytes = algebraic_move.as_bytes();
-    if !(bytes.len() == 4 || (bytes.len() == 5 && matches!(bytes[4], b'q' | b'r' | b'b' | b'n'))) {
-        return false;
-    }
+    // characters or four plus a lowercase promotion piece, because the parser
+    // ignores anything after the fifth (`b7b8qjunk` would read as `b7b8q`).
+    // The hydrated move must carry exactly the promotion the token names:
+    // hydration drops promotion bits from a castle, so `e1g1q` would
+    // otherwise read as the castle. Other malformed text hydrates to a move
+    // the generator never produces.
+    let promotion = match algebraic_move.as_bytes() {
+        [_, _, _, _] => 0,
+        [_, _, _, _, piece @ (b'q' | b'r' | b'b' | b'n')] => promotion_mask((*piece as char).to_string()),
+        _ => return false,
+    };
     let mv = hydrate_move_from_algebraic_move(position, algebraic_move.to_string());
-    if !generate_moves(position).contains(&mv) {
+    if mv & PROMOTION_FULL_MOVE_MASK != promotion || !generate_moves(position).contains(&mv) {
         return false;
     }
     let mut new_position = *position;

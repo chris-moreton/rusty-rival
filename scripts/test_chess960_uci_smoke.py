@@ -95,22 +95,29 @@ class RawClientTests(unittest.TestCase):
 
     def test_read_until_times_out_while_output_keeps_arriving(self):
         # Output is always waiting, as from an engine that streams info lines
-        # faster than they are read: only the deadline can end the wait
+        # faster than they are read, and the clock is scripted: only the
+        # deadline can end the wait
         class Streaming:
             gets = 0
 
             def get(self, timeout=None):
                 Streaming.gets += 1
-                if Streaming.gets > 200:
+                if Streaming.gets > 100:
                     raise AssertionError("read past the deadline")
-                time.sleep(0.01)
                 return "info string busy"
 
+        clock = iter(float(tick) for tick in range(1000))
         raw = smoke.Raw.__new__(smoke.Raw)
         raw.q = Streaming()
-        with self.assertRaises(TimeoutError):
-            raw.read_until("readyok", timeout=0.1)
-        self.assertLess(Streaming.gets, 50)
+        real_monotonic = smoke.time.monotonic
+        smoke.time.monotonic = lambda: next(clock)
+        try:
+            with self.assertRaises(TimeoutError):
+                raw.read_until("readyok", timeout=5)
+        finally:
+            smoke.time.monotonic = real_monotonic
+        # Deadline at t=5; reads at t=1..4 succeed and t=5 stops before reading
+        self.assertEqual(Streaming.gets, 4)
 
 if __name__ == "__main__":
     unittest.main()
