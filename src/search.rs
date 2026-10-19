@@ -19,7 +19,7 @@ use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, p
 
 /// Make a move with lazy NNUE tracking. Saves pieces state and advances ply,
 /// but defers accumulator computation until evaluate_position is called.
-#[inline]
+#[inline(never)]
 pub fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
     if position.castling_960 {
         make_move_nnue_c960::<true>(position, mv, search_state)
@@ -40,7 +40,7 @@ pub fn make_move_nnue_c960<const C960: bool>(position: &mut Position, mv: Move, 
 }
 
 /// Unmake a move and restore NNUE ply.
-#[inline]
+#[inline(never)]
 pub fn unmake_move_nnue(position: &mut Position, mv: Move, unmake: &UnmakeInfo, search_state: &mut SearchState) {
     if position.castling_960 {
         unmake_move_nnue_c960::<true>(position, mv, unmake, search_state)
@@ -464,6 +464,7 @@ pub fn sync_nodes(search_state: &mut SearchState) {
 /// Chess960 otherwise (NET-1762). The flag is a property of the root
 /// position's kings and castling rooks (`castling_needs_960`), independent of
 /// the UCI_Chess960 option, and every position below the root shares it.
+#[inline(never)]
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
     if position.castling_960 {
         iterative_deepening_c960::<true>(position, max_depth, search_state, start_depth)
@@ -823,6 +824,7 @@ pub fn iterative_deepening_c960<const C960: bool>(
     search_state.current_best.0[0]
 }
 
+#[inline(never)]
 pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, window: Window) -> PathScore {
     if position.castling_960 {
         start_search_c960::<true>(position, legal_moves, search_state, window)
@@ -1207,6 +1209,7 @@ fn prefetch_hash(position: &Position, search_state: &SearchState, hash_mask: u64
 }
 
 #[allow(clippy::too_many_arguments)]
+#[inline(never)]
 pub fn search(
     position: &mut Position,
     depth: u8,
@@ -2460,6 +2463,7 @@ pub fn search_c960<const C960: bool>(
     best_pathscore
 }
 
+#[inline(never)]
 pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> bool {
     if position.castling_960 {
         is_draw_c960::<true>(position, search_state, ply)

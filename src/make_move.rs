@@ -25,7 +25,7 @@ pub const CAPTURED_EP_PAWN: u8 = 6; // En passant capture (pawn on different squ
 // in a game shares, so an orthodox search never carries a Chess960 call site.
 // Everything else calls the wrappers below, which dispatch on that flag.
 
-#[inline]
+#[inline(never)]
 pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     if position.castling_960 {
         make_move_c960::<true>(position, mv, new_position)
@@ -34,7 +34,7 @@ pub fn make_move(position: &Position, mv: Move, new_position: &mut Position) {
     }
 }
 
-#[inline]
+#[inline(never)]
 pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
     if position.castling_960 {
         make_move_in_place_c960::<true>(position, mv)
@@ -43,7 +43,7 @@ pub fn make_move_in_place(position: &mut Position, mv: Move) -> UnmakeInfo {
     }
 }
 
-#[inline]
+#[inline(never)]
 pub fn unmake_move(position: &mut Position, mv: Move, unmake: &UnmakeInfo) {
     if position.castling_960 {
         unmake_move_c960::<true>(position, mv, unmake)

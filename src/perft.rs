@@ -5,6 +5,7 @@ use crate::types::{Move, Position};
 use num_format::{Locale, ToFormattedString};
 use std::time::Instant;
 
+#[inline(never)]
 pub fn perft(position: &mut Position, depth: u8) -> u64 {
     let start = Instant::now();
 

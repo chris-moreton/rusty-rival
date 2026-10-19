@@ -25,7 +25,7 @@ macro_rules! add_moves {
 
 /// Runtime dispatch on `Position::castling_960`; the search calls the form
 /// it selected at the root (see `make_move::make_move`, NET-1762).
-#[inline]
+#[inline(never)]
 pub fn verify_move(position: &Position, m: Move) -> bool {
     if position.castling_960 {
         verify_move_c960::<true>(position, m)
@@ -116,7 +116,7 @@ pub fn verify_move_c960<const C960: bool>(position: &Position, m: Move) -> bool 
     }
 }
 
-#[inline]
+#[inline(never)]
 pub fn generate_moves(position: &Position) -> MoveList {
     if position.castling_960 {
         generate_moves_c960::<true>(position)
@@ -233,7 +233,7 @@ pub fn generate_quiet_moves(position: &Position) -> MoveList {
 
 /// Appends exactly what `generate_quiet_moves` returns, in the same order, to
 /// `move_list` (the search fills a pooled list with it).
-#[inline]
+#[inline(never)]
 pub fn generate_quiet_moves_into(position: &Position, move_list: &mut MoveList) {
     if position.castling_960 {
         generate_quiet_moves_into_c960::<true>(position, move_list)

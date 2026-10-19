@@ -124,6 +124,7 @@ use crate::search::{make_move_nnue_c960, unmake_move_nnue_c960};
 
 /// Runtime-dispatching wrapper; the search calls the form it selected at the
 /// root (NET-1762, see `search::iterative_deepening`).
+#[inline(never)]
 pub fn quiesce(
     position: &mut Position,
     depth: u8,
