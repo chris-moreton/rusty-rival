@@ -145,6 +145,23 @@ def train(binary, positions, profile_dir, expected_version, output):
 
 
 
+# The engine's hot functions, by v0-mangled name. The search and quiescence
+# are compiled once per castling form (NET-1762, `C960` const generic); the
+# release binary calls the orthodox instantiation, `::<false>`, which v0
+# mangling spells `Kb0_` inside the generic arguments (`I...E`), so the name
+# ends in a back-reference rather than the function name and is matched by
+# pattern. The pattern is anchored to the whole function symbol (an optional
+# `<cgu>;` prefix, then `_RINvNtCs<crate>_` ... `E` and the closing
+# back-reference), so closures and std sorts instantiated inside the
+# function, whose names also contain `search_c960Kb0_E`, do not count. The
+# non-generic `search`/`quiesce` wrappers are never called by the binary and
+# carry no counts.
+HOT_FUNCTIONS = [
+    ('11search_c960Kb0_E', r'(?:^|;)_RINvNtCs[0-9A-Za-z]*_11rusty_rival6search11search_c960Kb0_EB[0-9A-Za-z]*_$'),
+    ('12quiesce_c960Kb0_E', r'(?:^|;)_RINvNtCs[0-9A-Za-z]*_11rusty_rival7quiesce12quiesce_c960Kb0_EB[0-9A-Za-z]*_$'),
+    ('23update_accumulator_from', r'23update_accumulator_from$'),
+]
+
 def audit_hot_counts(text):
     records = {}
     pattern = r'^  (.+):\n    Hash: (.*?)\n    Counters: (.*?)\n    Block counts: \[(.*?)\]'
@@ -152,17 +169,17 @@ def audit_hot_counts(text):
         name, hash_value, number, values = match.groups()
         if '11rusty_rival' not in name:
             continue
-        for suffix in ['6search6search', '7quiesce7quiesce', '23update_accumulator_from']:
-            if name.endswith(suffix):
+        for key, symbol in HOT_FUNCTIONS:
+            if re.search(symbol, name):
                 counts = [int(value) for value in values.split(',') if value.strip()]
-                records.setdefault(suffix, []).append({
+                records.setdefault(key, []).append({
                     'symbol': name, 'hash': hash_value, 'counter_count': int(number),
                     'first_block_counter': counts[0] if counts else 0,
                     'maximum_block_counter': max(counts, default=0)})
-    for suffix in ['6search6search', '7quiesce7quiesce', '23update_accumulator_from']:
-        matches = records.get(suffix, [])
+    for key, _ in HOT_FUNCTIONS:
+        matches = records.get(key, [])
         if not matches or not any(row['maximum_block_counter'] > 0 for row in matches):
-            raise RuntimeError('No positive profile counters for main engine function ' + suffix)
+            raise RuntimeError('No positive profile counters for main engine function ' + key)
     return records
 
 def profile_warnings(log):
@@ -178,6 +195,10 @@ def validate_profile_warnings(report):
         raise RuntimeError('Engine function missing profile data')
 
 
+# The canary is a frozen, hashed log from a deliberately mismatched build of
+# an earlier source (`source_commit` in diagnostic-canary.json); its positive
+# controls name that source's non-generic `search`/`quiesce` symbols and stay
+# as recorded. It tests the warning parser, which matches any engine symbol.
 def validate_canary_log(canary, log):
     warnings = profile_warnings(log)
     missing = warnings['missing_function_lines']

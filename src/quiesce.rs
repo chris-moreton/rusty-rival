@@ -27,6 +27,7 @@ pub fn quiesce_moves(position: &Position) -> MoveList {
 
 /// Fills `move_list` in place. Returning the 1,028-byte `MoveList` by value
 /// cost a full-capacity copy at every quiescence node (NET-1189).
+#[inline(always)]
 pub fn quiesce_moves_into(position: &Position, move_list: &mut MoveList) {
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let friendly = position.pieces[position.mover as usize];
@@ -120,10 +121,28 @@ pub fn score_quiesce_move(position: &Position, m: Move, enemy: &Pieces, _search_
     score
 }
 
-use crate::search::{make_move_nnue, unmake_move_nnue};
+use crate::search::{make_move_nnue_c960, unmake_move_nnue_c960};
+
+/// Runtime-dispatching wrapper; the search calls the form it selected at the
+/// root (NET-1762, see `search::iterative_deepening`).
+#[inline(never)]
+pub fn quiesce(
+    position: &mut Position,
+    depth: u8,
+    ply: u8,
+    window: Window,
+    search_state: &mut SearchState,
+    known_in_check: Option<bool>,
+) -> PathScore {
+    if position.castling_960 {
+        quiesce_c960::<true>(position, depth, ply, window, search_state, known_in_check)
+    } else {
+        quiesce_c960::<false>(position, depth, ply, window, search_state, known_in_check)
+    }
+}
 
 #[allow(clippy::only_used_in_recursion)]
-pub fn quiesce(
+pub fn quiesce_c960<const C960: bool>(
     position: &mut Position,
     depth: u8,
     ply: u8,
@@ -133,6 +152,7 @@ pub fn quiesce(
     // (NET-355) - e.g. search's depth==0 forward or the !in_check razor path
     known_in_check: Option<bool>,
 ) -> PathScore {
+    debug_assert_eq!(position.castling_960, C960);
     // Check stop flag at TOP before any moves are made - safe to return here
     if is_stopped(&search_state.stop) {
         return (pv_single(0), 0);
@@ -248,14 +268,14 @@ pub fn quiesce(
         }
 
         let old_mover = position.mover;
-        let unmake = make_move_nnue(position, m, search_state);
+        let unmake = make_move_nnue_c960::<C960>(position, m, search_state);
 
         if !is_check(position, old_mover) {
             legal_move_count += 1;
 
-            let score = -quiesce(position, depth - 1, ply + 1, (-window.1, -alpha), search_state, None).1;
+            let score = -quiesce_c960::<C960>(position, depth - 1, ply + 1, (-window.1, -alpha), search_state, None).1;
 
-            unmake_move_nnue(position, m, &unmake, search_state);
+            unmake_move_nnue_c960::<C960>(position, m, &unmake, search_state);
 
             check_time!(search_state);
             if is_stopped(&search_state.stop) {
@@ -271,7 +291,7 @@ pub fn quiesce(
                 best_move = m;
             }
         } else {
-            unmake_move_nnue(position, m, &unmake, search_state);
+            unmake_move_nnue_c960::<C960>(position, m, &unmake, search_state);
         }
     }
 

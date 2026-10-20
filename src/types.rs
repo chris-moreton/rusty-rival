@@ -1,7 +1,7 @@
 use crate::engine_constants::{
     CORRECTION_HISTORY_SIZE, HASH_ENTRY_BYTES, MAX_DEPTH, MAX_QUIESCE_DEPTH, NUM_KILLER_MOVES, NUM_PAWN_HASH_ENTRIES,
 };
-use crate::move_constants::{BK_CASTLE, BQ_CASTLE, START_POS, WK_CASTLE, WQ_CASTLE};
+use crate::move_constants::{BK_CASTLE, BQ_CASTLE, CASTLE_RIGHT_MASKS, START_POS, WK_CASTLE, WQ_CASTLE};
 use crate::nnue;
 use arrayvec::ArrayVec;
 use std::collections::HashMap;
@@ -439,6 +439,10 @@ pub struct UciState {
     pub threads: usize,
     pub ponder_enabled: bool,
     pub move_overhead: u64,
+    /// `UCI_Chess960`: castling is written and read as king-takes-rook. Move
+    /// generation does not depend on it; Chess960 castling is always legal
+    /// from a FEN that asks for it.
+    pub chess960: bool,
 }
 
 pub fn default_uci_state() -> UciState {
@@ -460,6 +464,7 @@ pub fn default_uci_state() -> UciState {
         threads: 1,
         ponder_enabled: false,
         move_overhead: 10,
+        chess960: false,
     }
 }
 
@@ -1160,6 +1165,12 @@ pub struct Pieces {
     pub king_square: Square,
     pub rook_bitboard: Bitboard,
     pub all_pieces_bitboard: Bitboard,
+    /// Start squares of this colour's castling rooks, `[king side, queen side]`
+    /// (NET-1762). Fixed for a game. Kept here rather than in `Position` so it
+    /// sits in `Pieces`' existing tail padding (six bitboards plus the king
+    /// square leave seven spare bytes): neither struct grows. Not part of
+    /// `Pieces` equality, which the NNUE snapshot check relies on.
+    pub castle_rook_squares: [Square; 2],
 }
 
 impl PartialEq for Pieces {
@@ -1189,7 +1200,40 @@ pub struct Position {
     /// built from the low halves of the same tables so correction-history
     /// indices are bit-identical to the old per-node recomputation.
     pub pawn_key: u64,
+    /// True when castling cannot use the orthodox fast paths (NET-1762): some
+    /// side holds a right whose king is not on its e-file start square or
+    /// whose rook does not start on its corner. Set once by `get_position`;
+    /// fixed for a game. When false the castling code is the v1.0.78 code
+    /// (constant squares, masks and keys), so standard chess pays for Chess960
+    /// with one test of this flag on the castling paths alone. Uses the byte
+    /// of tail padding `Position` already had, so the struct does not grow.
+    pub castling_960: bool,
 }
+
+impl Position {
+    /// Start square of the castling rook for castle index `index`
+    /// (`CASTLE_INDEX_*` order: white king side, white queen side, black
+    /// king side, black queen side).
+    #[inline(always)]
+    pub fn castle_rook_square(&self, index: usize) -> Square {
+        self.pieces[index >> 1].castle_rook_squares[index & 1]
+    }
+
+    /// All four castling rook start squares, in `CASTLE_INDEX_*` order.
+    #[inline(always)]
+    pub fn castle_rook_squares(&self) -> [Square; 4] {
+        let [white, black] = [self.pieces[0].castle_rook_squares, self.pieces[1].castle_rook_squares];
+        [white[0], white[1], black[0], black[1]]
+    }
+}
+
+// NET-1762 keeps Chess960's castling data in padding these structs already
+// had, so neither grows: v1.0.78's `Pieces` was 56 bytes (six bitboards and the
+// king square) and `Position` 144 (16-byte aligned for the u128 key). These
+// are compile-time checks, not assumptions; `examples/layout_probe.rs` prints
+// the field offsets for comparison with a v1.0.78 build.
+const _: () = assert!(std::mem::size_of::<Pieces>() == 56 && std::mem::align_of::<Pieces>() == 8);
+const _: () = assert!(std::mem::size_of::<Position>() == 144 && std::mem::align_of::<Position>() == 16);
 
 impl PartialEq for Position {
     fn eq(&self, other: &Self) -> bool {
@@ -1200,6 +1244,8 @@ impl PartialEq for Position {
             && self.castle_flags == other.castle_flags
             && self.half_moves == other.half_moves
             && self.move_number == other.move_number
+            // A castling rook's identity only matters while its right exists
+            && (0..4).all(|i| self.castle_flags & CASTLE_RIGHT_MASKS[i] == 0 || self.castle_rook_square(i) == other.castle_rook_square(i))
     }
 }
 

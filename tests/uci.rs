@@ -856,12 +856,92 @@ pub fn castling_is_not_generated_without_the_pieces() {
     assert!(castles("4k3/8/8/8/8/8/8/4K3 w KQkq - 0 1").is_empty());
     // Right claimed for a side whose rook is missing; the backed side still works
     assert_eq!(castles("4k3/8/8/8/8/8/8/4K2R w KQ - 0 1"), vec!["e1g1"]);
-    // King not on its home square
-    assert!(castles("4k3/8/8/8/8/8/8/R2K3R w KQ - 0 1").is_empty());
     // Fully legal position still generates both
     let mut both = castles("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1");
     both.sort();
     assert_eq!(both, vec!["e1c1", "e1g1"]);
+
+    // A king away from e1 with rights is a Chess960 start (NET-1762): `K`/`Q`
+    // name the outermost rooks on either side of it, and it castles to g1/c1
+    // from where it stands. Nothing is conjured: both pieces are verified home.
+    let any_castle = |fen: &str| -> Vec<String> {
+        let p = get_position(fen);
+        let mut castles: Vec<String> = generate_moves(&p)
+            .iter()
+            .filter(|m| *m & rusty_rival::move_constants::ALL_CASTLE_MOVE_MASKS != 0)
+            .map(|m| algebraic_move_from_move(*m))
+            .collect();
+        castles.sort();
+        castles
+    };
+    assert_eq!(any_castle("4k3/8/8/8/8/8/8/R2K3R w KQ - 0 1"), vec!["d1c1", "d1g1"]);
+    // ...but only from the back rank, and only with the rooks there
+    assert!(any_castle("4k3/8/8/8/8/8/3K4/R6R w KQ - 0 1").is_empty());
+    assert!(any_castle("4k3/8/8/8/8/8/8/3K4 w KQ - 0 1").is_empty());
+}
+
+/// `is_legal_move` compares the hydrated move with the generated one rather
+/// than comparing move text (NET-1762, so both castle spellings work). En
+/// passant and promotions encode identically on both sides, so they must keep
+/// passing through `position ... moves`, and a promotion without its piece
+/// letter must still be refused.
+#[test]
+pub fn position_applies_en_passant_and_promotions_through_is_legal_move() {
+    let mut uci_state = default_uci_state();
+    let mut search_state = default_search_state();
+    for (command, expected) in [
+        (
+            "position fen rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3 moves e5d6",
+            "rnbqkbnr/ppp1pppp/3P4/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3",
+        ),
+        (
+            "position fen 4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1 moves d4e3",
+            "4k3/8/8/8/8/4p3/8/4K3 w - - 0 2",
+        ),
+        (
+            "position fen r3k3/1P6/8/8/8/8/8/4K3 w - - 0 1 moves b7b8q",
+            "rQ2k3/8/8/8/8/8/8/4K3 b - - 0 1",
+        ),
+        (
+            "position fen r3k3/1P6/8/8/8/8/8/4K3 w - - 0 1 moves b7b8r",
+            "rR2k3/8/8/8/8/8/8/4K3 b - - 0 1",
+        ),
+        (
+            "position fen r3k3/1P6/8/8/8/8/8/4K3 w - - 0 1 moves b7a8n",
+            "N3k3/8/8/8/8/8/8/4K3 b - - 0 1",
+        ),
+        (
+            "position fen r3k3/1P6/8/8/8/8/8/4K3 w - - 0 1 moves b7a8b",
+            "B3k3/8/8/8/8/8/8/4K3 b - - 0 1",
+        ),
+        (
+            "position fen 4k3/8/8/8/8/8/1p6/4K3 b - - 0 1 moves b2b1q e1e2 b1b2",
+            "4k3/8/8/8/8/8/1q2K3/8 w - - 2 3",
+        ),
+    ] {
+        assert_eq!(
+            run_command_test(&mut uci_state, &mut search_state, command),
+            Right(None),
+            "{command}"
+        );
+        assert_eq!(uci_state.fen, expected, "{command}");
+    }
+    assert_eq!(
+        run_command_test(
+            &mut uci_state,
+            &mut search_state,
+            "position fen r3k3/1P6/8/8/8/8/8/4K3 w - - 0 1 moves b7b8"
+        ),
+        Left("Illegal move found b7b8".to_string())
+    );
+    assert_eq!(
+        run_command_test(
+            &mut uci_state,
+            &mut search_state,
+            "position fen rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3 moves e5d6"
+        ),
+        Left("Illegal move found e5d6".to_string())
+    );
 }
 
 /// Move counters beyond u16 used to hit parse::<u16>().unwrap().

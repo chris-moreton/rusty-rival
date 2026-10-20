@@ -26,6 +26,10 @@ pub const WHITE_KING_CASTLE_MOVE_MASK: Move = 0b10000000000000000000000000000000
 pub const BLACK_KING_CASTLE_MOVE_MASK: Move = 0b01000000000000000000000000000000;
 pub const WHITE_QUEEN_CASTLE_MOVE_MASK: Move = 0b00100000000000000000000000000000;
 pub const BLACK_QUEEN_CASTLE_MOVE_MASK: Move = 0b00010000000000000000000000000000;
+/// Any castle flag bit: a move with one of these set is a castle, whatever its
+/// from/to squares (in Chess960 the king may move one square, or none).
+pub const ALL_CASTLE_MOVE_MASKS: Move =
+    WHITE_KING_CASTLE_MOVE_MASK | BLACK_KING_CASTLE_MOVE_MASK | WHITE_QUEEN_CASTLE_MOVE_MASK | BLACK_QUEEN_CASTLE_MOVE_MASK;
 
 pub const EN_PASSANT_NOT_AVAILABLE: i8 = -1;
 pub const PROMOTION_SQUARES: Bitboard = 0b1111111100000000000000000000000000000000000000000000000011111111;
@@ -69,6 +73,31 @@ pub const CASTLE_INDEX_WHITE_QUEEN: usize = 1;
 pub const CASTLE_INDEX_BLACK_KING: usize = 2;
 pub const CASTLE_INDEX_BLACK_QUEEN: usize = 3;
 
+/// `[side][colour]` -> castle index, where side is `KING_INDEX`/`QUEEN_INDEX`.
+pub const CASTLE_INDEX: [[usize; 2]; 2] = [
+    [CASTLE_INDEX_WHITE_KING, CASTLE_INDEX_BLACK_KING],
+    [CASTLE_INDEX_WHITE_QUEEN, CASTLE_INDEX_BLACK_QUEEN],
+];
+
+/// Castle flag bit of a move, by castle index.
+pub const CASTLE_MOVE_MASKS: [Move; 4] = [
+    WHITE_KING_CASTLE_MOVE_MASK,
+    WHITE_QUEEN_CASTLE_MOVE_MASK,
+    BLACK_KING_CASTLE_MOVE_MASK,
+    BLACK_QUEEN_CASTLE_MOVE_MASK,
+];
+
+/// Castle right bit of `Position::castle_flags`, by castle index.
+pub const CASTLE_RIGHT_MASKS: [u8; 4] = [WK_CASTLE, WQ_CASTLE, BK_CASTLE, BQ_CASTLE];
+
+/// Where the castling rook stands in the standard start position, by castle
+/// index. `Position::castle_rook_squares` starts from this and a Chess960 FEN
+/// overrides it (NET-1762); the rook's destination never varies.
+pub const CASTLE_ROOK_START_DEFAULT: [Square; 4] = [H1_BIT, A1_BIT, H8_BIT, A8_BIT];
+
+/// The v1.0.78 constant castle deltas, used whenever `Position::castling_960`
+/// is false: rook and occupancy masks and the Zobrist delta for the standard
+/// e1/e8 king and corner rooks (NET-1762 keeps them as the orthodox fast path).
 pub const CASTLE_VARS_ROOK_MASK: [Bitboard; 4] = [
     0b0000000000000000000000000000000000000000000000000000000000000101,
     0b0000000000000000000000000000000000000000000000000000000010010000,
@@ -102,7 +131,24 @@ pub const ZOBRIST_KEYS_CASTLE_PIECE_MOVES: [u128; 4] = [
         ^ ZOBRIST_KEYS_PIECES[BLACK as usize][ZOBRIST_PIECE_INDEX_ROOK][D8_BIT as usize],
 ];
 
+/// King and rook destinations, by castle index. Fixed in every Chess960 start
+/// position: the king lands on the g or c file and the rook beside it.
 pub const CASTLE_VARS_KING_TO: [Square; 4] = [G1_BIT, C1_BIT, G8_BIT, C8_BIT];
+pub const CASTLE_VARS_ROOK_TO: [Square; 4] = [F1_BIT, D1_BIT, F8_BIT, D8_BIT];
+
+/// Castle index of a castle move (one castle flag set).
+#[inline(always)]
+pub const fn castle_index_of_move(mv: Move) -> usize {
+    if mv & WHITE_KING_CASTLE_MOVE_MASK != 0 {
+        CASTLE_INDEX_WHITE_KING
+    } else if mv & WHITE_QUEEN_CASTLE_MOVE_MASK != 0 {
+        CASTLE_INDEX_WHITE_QUEEN
+    } else if mv & BLACK_KING_CASTLE_MOVE_MASK != 0 {
+        CASTLE_INDEX_BLACK_KING
+    } else {
+        CASTLE_INDEX_BLACK_QUEEN
+    }
+}
 
 pub const CASTLE_VARS_CLEAR_FLAGS_MASK: [u8; 4] = [
     !(WK_CASTLE | WQ_CASTLE),

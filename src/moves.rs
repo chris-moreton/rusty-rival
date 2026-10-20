@@ -1,12 +1,13 @@
 use crate::bitboards::{
     bit, epsbit, BISHOP_RAYS, DOUBLE_MOVE_RANK_BITS, EMPTY_CASTLE_SQUARES, KING_MOVES_BITBOARDS, KNIGHT_MOVES_BITBOARDS,
-    NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, ROOK_RAYS,
+    NO_CHECK_CASTLE_SQUARES, PAWN_MOVES_CAPTURE, PAWN_MOVES_FORWARD, RANK_1_BITS, RANK_8_BITS, ROOK_RAYS,
 };
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
 use crate::move_constants::{
-    CASTLE_FLAG, CASTLE_MOVE, KING_INDEX, KING_ROOK_START, KING_START, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING,
-    PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK, PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK,
-    PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES, QUEEN_INDEX, QUEEN_ROOK_START,
+    ALL_CASTLE_MOVE_MASKS, CASTLE_FLAG, CASTLE_INDEX, CASTLE_MOVE, CASTLE_MOVE_MASKS, CASTLE_VARS_KING_TO, CASTLE_VARS_ROOK_TO, KING_INDEX,
+    KING_ROOK_START, KING_START, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_QUEEN, PIECE_MASK_ROOK,
+    PROMOTION_BISHOP_MOVE_MASK, PROMOTION_KNIGHT_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK, PROMOTION_ROOK_MOVE_MASK, PROMOTION_SQUARES,
+    QUEEN_INDEX, QUEEN_ROOK_START,
 };
 use crate::types::{Bitboard, Move, MoveList, Mover, Position, Square, BLACK, WHITE};
 use crate::utils::{from_square_mask, from_square_part, to_square_part};
@@ -22,8 +23,19 @@ macro_rules! add_moves {
     };
 }
 
-#[inline(always)]
+/// Runtime dispatch on `Position::castling_960`; the search calls the form
+/// it selected at the root (see `make_move::make_move`, NET-1762).
+#[inline(never)]
 pub fn verify_move(position: &Position, m: Move) -> bool {
+    if position.castling_960 {
+        verify_move_c960::<true>(position, m)
+    } else {
+        verify_move_c960::<false>(position, m)
+    }
+}
+
+#[inline(always)]
+pub fn verify_move_c960<const C960: bool>(position: &Position, m: Move) -> bool {
     if m == 0 {
         return false;
     }
@@ -36,16 +48,22 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
         PIECE_MASK_KING => {
             let from_square = from_square_part(m);
             if from_square == friendly.king_square {
-                let landing_squares = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
-                if bit(to_square_part(m)) & landing_squares != 0 {
-                    true
+                // A castle is identified by its flag, never by its distance, in
+                // both forms (NET-1762): a Chess960 castle may move the king
+                // one square or none, and a caller can present such a move to
+                // a position compiled in the orthodox form (the same board
+                // with its rights gone, or a colliding table entry). A flagged
+                // move landing a king-step away must not pass as a plain king
+                // move: make_move would then castle where castling is illegal.
+                if m & ALL_CASTLE_MOVE_MASKS == 0 {
+                    bit(to_square_part(m)) & KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations != 0
                 } else {
                     // Move lists are created only where needed (castling and
                     // pawn moves): constructing a MoveList zero-fills all
                     // 1,028 bytes, and most verified moves are piece moves.
                     let mut move_list = MoveList::new();
                     if position.castle_flags != 0 {
-                        generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize)
+                        generate_castle_moves::<C960>(position, &mut move_list, all_pieces, position.mover as usize)
                     }
                     move_list.contains(&m)
                 }
@@ -98,8 +116,17 @@ pub fn verify_move(position: &Position, m: Move) -> bool {
     }
 }
 
-#[inline(always)]
+#[inline(never)]
 pub fn generate_moves(position: &Position) -> MoveList {
+    if position.castling_960 {
+        generate_moves_c960::<true>(position)
+    } else {
+        generate_moves_c960::<false>(position)
+    }
+}
+
+#[inline(always)]
+pub fn generate_moves_c960<const C960: bool>(position: &Position) -> MoveList {
     let mut move_list = MoveList::new();
 
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
@@ -107,7 +134,7 @@ pub fn generate_moves(position: &Position) -> MoveList {
     let valid_destinations = !friendly.all_pieces_bitboard;
 
     if position.castle_flags != 0 {
-        generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize)
+        generate_castle_moves::<C960>(position, &mut move_list, all_pieces, position.mover as usize)
     }
     add_moves!(
         move_list,
@@ -206,15 +233,24 @@ pub fn generate_quiet_moves(position: &Position) -> MoveList {
 
 /// Appends exactly what `generate_quiet_moves` returns, in the same order, to
 /// `move_list` (the search fills a pooled list with it).
-#[inline(always)]
+#[inline(never)]
 pub fn generate_quiet_moves_into(position: &Position, move_list: &mut MoveList) {
+    if position.castling_960 {
+        generate_quiet_moves_into_c960::<true>(position, move_list)
+    } else {
+        generate_quiet_moves_into_c960::<false>(position, move_list)
+    }
+}
+
+#[inline(always)]
+pub fn generate_quiet_moves_into_c960<const C960: bool>(position: &Position, move_list: &mut MoveList) {
     let all_pieces = position.pieces[WHITE as usize].all_pieces_bitboard | position.pieces[BLACK as usize].all_pieces_bitboard;
     let empty_squares = !all_pieces;
     let friendly = position.pieces[position.mover as usize];
 
     // Castling
     if position.castle_flags != 0 {
-        generate_castle_moves(position, move_list, all_pieces, position.mover as usize)
+        generate_castle_moves::<C960>(position, move_list, all_pieces, position.mover as usize)
     }
 
     // King quiet moves
@@ -374,8 +410,26 @@ pub fn generate_capture_pawn_moves_with_destinations(
     }
 }
 
+/// Squares strictly between two squares of the same rank.
 #[inline(always)]
-fn generate_castle_moves(position: &Position, move_list: &mut MoveList, all_pieces: Bitboard, colour_index: usize) {
+pub const fn rank_squares_between(a: Square, b: Square) -> Bitboard {
+    if a == b {
+        return 0;
+    }
+    let (low, high) = if a < b { (a, b) } else { (b, a) };
+    (bit(high) - 1) ^ (bit(low + 1) - 1)
+}
+
+#[inline(always)]
+fn generate_castle_moves<const C960: bool>(position: &Position, move_list: &mut MoveList, all_pieces: Bitboard, colour_index: usize) {
+    // The v1.0.78 generator, constant squares and masks, in the orthodox form
+    // (every right has its king on e1/e8 and its rook on a corner,
+    // `Position::castling_960` false, see `castling_needs_960`); the general
+    // form below in the Chess960 form (NET-1762).
+    if C960 {
+        generate_castle_moves_960(position, move_list, all_pieces, colour_index);
+        return;
+    }
     // A FEN can assert castle rights that the board cannot support (the rook
     // captured or never there, the king already moved). Nothing else here
     // checks: perform_castle XORs a rook onto f1/d1 and teleports the king to
@@ -399,6 +453,50 @@ fn generate_castle_moves(position: &Position, move_list: &mut MoveList, all_piec
             && !any_squares_in_bitboard_attacked(position, position.mover, NO_CHECK_CASTLE_SQUARES[side][colour_index])
         {
             move_list.push(CASTLE_MOVE[side][colour_index]);
+        }
+    }
+}
+
+#[inline(never)]
+fn generate_castle_moves_960(position: &Position, move_list: &mut MoveList, all_pieces: Bitboard, colour_index: usize) {
+    // Castling in general form, so a Chess960 start position works
+    // (NET-1762): the king stands anywhere on its back rank, the castling rook
+    // anywhere on the same rank on that side of it, and the two land on g/f
+    // (king side) or c/d (queen side). Every square the king crosses or lands
+    // on and every square the rook crosses or lands on must be empty apart
+    // from the two pieces themselves, and the king may not start on or cross
+    // an attacked square; the landing square is left to the post-make
+    // legality test, as before. From the standard start this is exactly the
+    // f1/g1 and b1/c1/d1 tests it replaces, so standard move lists and the
+    // move encoding (king from, king to, castle flag) are unchanged.
+    //
+    // A FEN can assert castle rights that the board cannot support (the rook
+    // captured or never there, the king already moved). Nothing else checks,
+    // and perform_castle would otherwise teleport pieces, so an unbacked right
+    // once let the engine conjure a rook out of nothing (NET-369). Both pieces
+    // are verified home before anything is generated.
+    let friendly = &position.pieces[colour_index];
+    let king = friendly.king_square;
+    let back_rank = if colour_index == WHITE as usize { RANK_1_BITS } else { RANK_8_BITS };
+    if bit(king) & back_rank == 0 {
+        return;
+    }
+    for side in [KING_INDEX, QUEEN_INDEX] {
+        if position.castle_flags & CASTLE_FLAG[side][colour_index] == 0 {
+            continue;
+        }
+        let index = CASTLE_INDEX[side][colour_index];
+        let rook = position.castle_rook_square(index);
+        // The king side is towards the h file: the lower square in this layout
+        if friendly.rook_bitboard & bit(rook) == 0 || (side == KING_INDEX) != (rook < king) {
+            continue;
+        }
+        let king_to = CASTLE_VARS_KING_TO[index];
+        let rook_to = CASTLE_VARS_ROOK_TO[index];
+        let king_crosses = rank_squares_between(king, king_to);
+        let must_be_empty = (king_crosses | bit(king_to) | rank_squares_between(rook, rook_to) | bit(rook_to)) & !bit(king) & !bit(rook);
+        if all_pieces & must_be_empty == 0 && !any_squares_in_bitboard_attacked(position, position.mover, king_crosses | bit(king)) {
+            move_list.push(from_square_mask(king) | king_to as Move | PIECE_MASK_KING | CASTLE_MOVE_MASKS[index]);
         }
     }
 }
@@ -727,6 +825,14 @@ mod verify_move_reference_tests {
         BLACK_KING_CASTLE_MOVE_MASK, BLACK_QUEEN_CASTLE_MOVE_MASK, WHITE_KING_CASTLE_MOVE_MASK, WHITE_QUEEN_CASTLE_MOVE_MASK,
     };
 
+    pub(super) fn castle_moves_for(position: &Position, move_list: &mut MoveList, all_pieces: Bitboard) {
+        if position.castling_960 {
+            generate_castle_moves::<true>(position, move_list, all_pieces, position.mover as usize)
+        } else {
+            generate_castle_moves::<false>(position, move_list, all_pieces, position.mover as usize)
+        }
+    }
+
     // The former verify_move, verbatim, as the reference.
     fn reference_verify_move(position: &Position, m: Move) -> bool {
         if m == 0 {
@@ -743,12 +849,16 @@ mod verify_move_reference_tests {
             PIECE_MASK_KING => {
                 let from_square = from_square_part(m);
                 return if from_square == friendly.king_square {
+                    // The former body tested the king-step first and only then
+                    // the castle list. With Chess960 a castle flag decides
+                    // (NET-1762): a flagged move is a castle or nothing, so the
+                    // reference carries the same split.
                     let landing_squares = KING_MOVES_BITBOARDS[from_square as usize] & valid_destinations;
-                    if bit(to_square_part(m)) & landing_squares != 0 {
-                        true
+                    if m & ALL_CASTLE_MOVE_MASKS == 0 {
+                        bit(to_square_part(m)) & landing_squares != 0
                     } else {
                         if position.castle_flags != 0 {
-                            generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize)
+                            castle_moves_for(position, &mut move_list, all_pieces)
                         }
                         move_list.contains(&m)
                     }
@@ -859,6 +969,9 @@ mod verify_move_reference_tests {
             "8/8/8/KPp4r/8/8/8/4k3 w - c6 0 1",
             "rnbqkbnr/ppp1pppp/8/8/3pP3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
             "4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1",
+            // Chess960: one-square and zero-square castles beside plain king steps
+            "1rk3r1/8/8/8/8/8/8/1RK3R1 w GBgb - 0 1",
+            "6kr/8/8/8/8/8/8/5RKR w HFhf - 0 1",
         ] {
             let mut position = get_position(fen);
             compare_at(&position, &mut rng, &mut compared);
@@ -948,7 +1061,7 @@ mod into_generator_tests {
 
         // Castling
         if position.castle_flags != 0 {
-            generate_castle_moves(position, &mut move_list, all_pieces, position.mover as usize)
+            super::verify_move_reference_tests::castle_moves_for(position, &mut move_list, all_pieces)
         }
 
         // King quiet moves

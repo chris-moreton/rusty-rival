@@ -12,11 +12,25 @@ use crate::engine_constants::{
 };
 use crate::evaluate::{evaluate_position, insufficient_material, pawn_material, piece_material};
 
+// The search is compiled twice over `C960` (NET-1762, see make_move.rs): an
+// orthodox form with no Chess960 code in it and a Chess960 form.
+// `iterative_deepening` picks one from the root position, and the public
+// names below are runtime-dispatching wrappers for other callers.
+
 /// Make a move with lazy NNUE tracking. Saves pieces state and advances ply,
 /// but defers accumulator computation until evaluate_position is called.
-#[inline(always)]
+#[inline(never)]
 pub fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
-    let unmake = make_move_in_place(position, mv);
+    if position.castling_960 {
+        make_move_nnue_c960::<true>(position, mv, search_state)
+    } else {
+        make_move_nnue_c960::<false>(position, mv, search_state)
+    }
+}
+
+#[inline(always)]
+pub fn make_move_nnue_c960<const C960: bool>(position: &mut Position, mv: Move, search_state: &mut SearchState) -> UnmakeInfo {
+    let unmake = make_move_in_place_c960::<C960>(position, mv);
     if search_state.use_nnue {
         search_state.nnue_ply += 1;
         search_state.nnue_pieces[search_state.nnue_ply] = position.pieces;
@@ -26,9 +40,18 @@ pub fn make_move_nnue(position: &mut Position, mv: Move, search_state: &mut Sear
 }
 
 /// Unmake a move and restore NNUE ply.
-#[inline(always)]
+#[inline(never)]
 pub fn unmake_move_nnue(position: &mut Position, mv: Move, unmake: &UnmakeInfo, search_state: &mut SearchState) {
-    unmake_move(position, mv, unmake);
+    if position.castling_960 {
+        unmake_move_nnue_c960::<true>(position, mv, unmake, search_state)
+    } else {
+        unmake_move_nnue_c960::<false>(position, mv, unmake, search_state)
+    }
+}
+
+#[inline(always)]
+pub fn unmake_move_nnue_c960<const C960: bool>(position: &mut Position, mv: Move, unmake: &UnmakeInfo, search_state: &mut SearchState) {
+    unmake_move_c960::<C960>(position, mv, unmake);
     if search_state.use_nnue {
         search_state.nnue_ply -= 1;
     }
@@ -48,7 +71,7 @@ fn apply_eval_noise(score: Score, hash: u64, noise_max: Score) -> Score {
     score + noise
 }
 
-use crate::fen::algebraic_move_from_move;
+use crate::fen::{set_uci_notation_rooks, uci_notation_move};
 use crate::tablebase::{can_probe, probe_root_move, tablebase_available};
 
 use crate::bitboards::{
@@ -56,18 +79,18 @@ use crate::bitboards::{
 };
 use crate::hash::{en_passant_zobrist_key_index, ZOBRIST_KEYS_EN_PASSANT, ZOBRIST_KEY_MOVER_SWITCH};
 use crate::magic_bitboards::{magic_moves_bishop, magic_moves_rook};
-use crate::make_move::{make_move_in_place, unmake_move, CAPTURED_NONE};
+use crate::make_move::{make_move_in_place_c960, unmake_move_c960, CAPTURED_NONE};
 use crate::move_constants::{
     EN_PASSANT_NOT_AVAILABLE, PIECE_MASK_BISHOP, PIECE_MASK_FULL, PIECE_MASK_KING, PIECE_MASK_KNIGHT, PIECE_MASK_PAWN, PIECE_MASK_QUEEN,
     PIECE_MASK_ROOK, PROMOTION_FULL_MOVE_MASK, PROMOTION_QUEEN_MOVE_MASK,
 };
 use crate::move_scores::{score_move, score_move_with_see, victim_piece_index};
 use crate::moves::{
-    between_squares, generate_captures, generate_captures_into, generate_check_evasions_into, generate_moves, generate_quiet_moves_into,
-    is_check, verify_move,
+    between_squares, generate_captures, generate_captures_into, generate_check_evasions_into, generate_moves_c960,
+    generate_quiet_moves_into_c960, is_check, verify_move_c960,
 };
 use crate::opponent;
-use crate::quiesce::quiesce;
+use crate::quiesce::quiesce_c960;
 use crate::see::static_exchange_evaluation;
 use crate::types::BoundType::{Exact, Lower, Upper};
 use crate::types::{
@@ -210,10 +233,10 @@ fn record_searched_child(search_state: &mut SearchState, kind: usize, depth: u8,
 }
 
 #[inline]
-fn root_move_claims_threefold(position: &mut Position, search_state: &SearchState, m: Move) -> bool {
-    let unmake = make_move_in_place(position, m);
+fn root_move_claims_threefold<const C960: bool>(position: &mut Position, search_state: &SearchState, m: Move) -> bool {
+    let unmake = make_move_in_place_c960::<C960>(position, m);
     let child_lock = position.zobrist_lock;
-    unmake_move(position, m, &unmake);
+    unmake_move_c960::<C960>(position, m, &unmake);
 
     // `position` commands retain the current position and all earlier game
     // positions in history. The candidate would be a claimable threefold if
@@ -436,7 +459,30 @@ pub fn sync_nodes(search_state: &mut SearchState) {
     search_state.synced_nodes = search_state.nodes;
 }
 
+/// Search `position` with the form compiled for its castling: orthodox
+/// whenever `Position::castling_960` is false, as in every standard game, and
+/// Chess960 otherwise (NET-1762). The flag is a property of the root
+/// position's kings and castling rooks (`castling_needs_960`), independent of
+/// the UCI_Chess960 option, and every position below the root shares it.
+#[inline(never)]
 pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state: &mut SearchState, start_depth: u8) -> Move {
+    if position.castling_960 {
+        iterative_deepening_c960::<true>(position, max_depth, search_state, start_depth)
+    } else {
+        iterative_deepening_c960::<false>(position, max_depth, search_state, start_depth)
+    }
+}
+
+/// Out of line so each form stays one function of its own, as
+/// `iterative_deepening` was, rather than both merging into the wrapper.
+#[inline(never)]
+pub fn iterative_deepening_c960<const C960: bool>(
+    position: &mut Position,
+    max_depth: u8,
+    search_state: &mut SearchState,
+    start_depth: u8,
+) -> Move {
+    debug_assert_eq!(position.castling_960, C960);
     search_state.start_time = Instant::now();
     search_state.budget_origin = search_state.start_time;
     search_state.last_completed_depth = 0;
@@ -455,6 +501,8 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     search_state.prev_best_move = 0;
     search_state.prev_score = 0;
     search_state.root_move_nodes.clear();
+    // The game's castling rooks, for spelling castles in PV and bestmove output
+    set_uci_notation_rooks(position.castle_rook_squares());
 
     // Initialize NNUE accumulator from root position
     if search_state.use_nnue {
@@ -467,7 +515,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     }
 
     let original_mover = position.mover;
-    let all_moves = generate_moves(position);
+    let all_moves = generate_moves_c960::<C960>(position);
     let mut legal_moves: MoveScoreList = Vec::with_capacity(all_moves.len());
 
     for m in all_moves {
@@ -480,9 +528,9 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
                 continue;
             }
         }
-        let unmake = make_move_in_place(position, m);
+        let unmake = make_move_in_place_c960::<C960>(position, m);
         let legal = !is_check(position, original_mover);
-        unmake_move(position, m, &unmake);
+        unmake_move_c960::<C960>(position, m, &unmake);
         if legal {
             legal_moves.push((m, -MATE_SCORE));
         }
@@ -514,12 +562,12 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
             // search a chance to choose a different winning move.
             if best_move == 0
                 || !legal_moves.iter().any(|(m, _)| *m == best_move)
-                || (best_score > 0 && root_move_claims_threefold(position, search_state, best_move))
+                || (best_score > 0 && root_move_claims_threefold::<C960>(position, search_state, best_move))
             {
                 // Fall through to normal search.
             } else {
                 if search_state.thread_id == 0 {
-                    println!("info depth 1 score cp {} pv {}", best_score, algebraic_move_from_move(best_move));
+                    println!("info depth 1 score cp {} pv {}", best_score, uci_notation_move(best_move));
                 }
                 return best_move;
             }
@@ -575,7 +623,7 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
 
         loop {
             //println!("Searching with aspiration window {} {} at [{}]", aspiration_window.0, aspiration_window.1, c);
-            let aspire_best = start_search(position, &mut legal_moves, search_state, aspiration_window);
+            let aspire_best = start_search_c960::<C960>(position, &mut legal_moves, search_state, aspiration_window);
             if time_expired!(search_state) {
                 // Every thread flushes its remaining nodes on this exit too,
                 // not only the printing one (Codex review: helpers used to
@@ -776,14 +824,28 @@ pub fn iterative_deepening(position: &mut Position, max_depth: u8, search_state:
     search_state.current_best.0[0]
 }
 
+#[inline(never)]
 pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, search_state: &mut SearchState, window: Window) -> PathScore {
+    if position.castling_960 {
+        start_search_c960::<true>(position, legal_moves, search_state, window)
+    } else {
+        start_search_c960::<false>(position, legal_moves, search_state, window)
+    }
+}
+
+pub fn start_search_c960<const C960: bool>(
+    position: &mut Position,
+    legal_moves: &mut MoveScoreList,
+    search_state: &mut SearchState,
+    window: Window,
+) -> PathScore {
     let mut current_best: PathScore = (pv_single(legal_moves[0].0), window.0);
     let hash_mask = search_state.hash_table.mask();
     let mut first_root_move = true;
 
     for mv in legal_moves {
         let nodes_before = search_state.nodes;
-        let unmake = make_move_nnue(position, mv.0, search_state);
+        let unmake = make_move_nnue_c960::<C960>(position, mv.0, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
         search_state.history.push(position.zobrist_lock);
 
@@ -798,7 +860,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
         // Scouting the non-first root moves exposed a pre-existing unsoundness
         // rather than creating one - see the razoring note in RAZOR_MAX_DEPTH.
         let mut path_score = if first_root_move {
-            search(
+            search_c960::<C960>(
                 position,
                 search_state.iterative_depth - 1,
                 1,
@@ -813,7 +875,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
             // the child's point of view this is a fail-LOW test. The child
             // returns the negated score, so "this root move beats the current
             // best" means the child scored at or below its own alpha.
-            let scout = search(
+            let scout = search_c960::<C960>(
                 position,
                 search_state.iterative_depth - 1,
                 1,
@@ -824,7 +886,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
                 None,
             );
             if -scout.1 > current_best.1 {
-                search(
+                search_c960::<C960>(
                     position,
                     search_state.iterative_depth - 1,
                     1,
@@ -842,7 +904,7 @@ pub fn start_search(position: &mut Position, legal_moves: &mut MoveScoreList, se
         path_score.1 = -path_score.1;
 
         search_state.history.pop();
-        unmake_move_nnue(position, mv.0, &unmake, search_state);
+        unmake_move_nnue_c960::<C960>(position, mv.0, &unmake, search_state);
         let spent = search_state.nodes.saturating_sub(nodes_before);
         record_root_move_nodes(search_state, mv.0, spent);
         mv.1 = path_score.1;
@@ -965,6 +1027,7 @@ pub fn clear_countermoves(search_state: &mut SearchState) {
 
 /// Halve every history table at the start of a search: old signal decays but
 /// still seeds move ordering for the early iterations of the next search
+#[inline(always)]
 fn decay_history_tables(search_state: &mut SearchState) {
     for piece in search_state.history_moves.iter_mut() {
         for from_sq in piece.iter_mut() {
@@ -1146,9 +1209,46 @@ fn prefetch_hash(position: &Position, search_state: &SearchState, hash_mask: u64
     search_state.hash_table.prefetch(index);
 }
 
+#[allow(clippy::too_many_arguments)]
+#[inline(never)]
+pub fn search(
+    position: &mut Position,
+    depth: u8,
+    ply: u8,
+    window: Window,
+    search_state: &mut SearchState,
+    on_null_move: bool,
+    excluded_move: Move,
+    known_in_check: Option<bool>,
+) -> PathScore {
+    if position.castling_960 {
+        search_c960::<true>(
+            position,
+            depth,
+            ply,
+            window,
+            search_state,
+            on_null_move,
+            excluded_move,
+            known_in_check,
+        )
+    } else {
+        search_c960::<false>(
+            position,
+            depth,
+            ply,
+            window,
+            search_state,
+            on_null_move,
+            excluded_move,
+            known_in_check,
+        )
+    }
+}
+
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]
-pub fn search(
+pub fn search_c960<const C960: bool>(
     position: &mut Position,
     depth: u8,
     ply: u8,
@@ -1161,6 +1261,7 @@ pub fn search(
     // it down saves a redundant is_check at nearly every node entry.
     known_in_check: Option<bool>,
 ) -> PathScore {
+    debug_assert_eq!(position.castling_960, C960);
     // Check stop flag at TOP before any moves are made - safe to return here
     if is_stopped(&search_state.stop) {
         return (pv_single(0), 0);
@@ -1175,7 +1276,7 @@ pub fn search(
         search_state.sel_depth = ply;
     }
 
-    if is_draw(position, search_state, ply) {
+    if is_draw_c960::<C960>(position, search_state, ply) {
         search_state.nodes += 1;
         return (pv_single(0), draw_value(position, search_state));
     }
@@ -1197,7 +1298,7 @@ pub fn search(
     let scouting = window.1 - window.0 == 1;
 
     if depth == 0 {
-        return quiesce(position, MAX_QUIESCE_DEPTH, ply, window, search_state, known_in_check);
+        return quiesce_c960::<C960>(position, MAX_QUIESCE_DEPTH, ply, window, search_state, known_in_check);
     }
 
     search_state.nodes += 1;
@@ -1280,7 +1381,7 @@ pub fn search(
                 search_state.hash_hits_exact += 1;
                 // The checksum rules out torn entries, but a TT move still
                 // never enters the PV unverified
-                let pv_mv = if hash_entry.mv != 0 && verify_move(position, hash_entry.mv) {
+                let pv_mv = if hash_entry.mv != 0 && verify_move_c960::<C960>(position, hash_entry.mv) {
                     hash_entry.mv
                 } else {
                     0
@@ -1294,7 +1395,7 @@ pub fn search(
                 beta = score
             }
             if alpha >= beta {
-                let pv_mv = if hash_entry.mv != 0 && verify_move(position, hash_entry.mv) {
+                let pv_mv = if hash_entry.mv != 0 && verify_move_c960::<C960>(position, hash_entry.mv) {
                     hash_entry.mv
                 } else {
                     0
@@ -1367,7 +1468,7 @@ pub fn search(
         if lazy_eval + razor_margin < alpha {
             // This block is !in_check-gated, so the verification qsearch knows
             // its in_check exactly
-            let q_score = quiesce(position, MAX_QUIESCE_DEPTH, ply, (alpha - 1, alpha), search_state, Some(false)).1;
+            let q_score = quiesce_c960::<C960>(position, MAX_QUIESCE_DEPTH, ply, (alpha - 1, alpha), search_state, Some(false)).1;
             if is_stopped(&search_state.stop) {
                 return (pv_single(0), 0);
             }
@@ -1399,7 +1500,7 @@ pub fn search(
         // participate in a repetition inside this subtree. Remember the first
         // history slot after the null rather than pushing a synthetic lock.
 
-        let score = -search(
+        let score = -search_c960::<C960>(
             position,
             null_move_reduced_depth(depth, lazy_eval - beta),
             ply + 1,
@@ -1443,7 +1544,7 @@ pub fn search(
             }
 
             let old_mover = position.mover;
-            let unmake = make_move_nnue(position, m, search_state);
+            let unmake = make_move_nnue_c960::<C960>(position, m, search_state);
             prefetch_hash(position, search_state, hash_mask);
             search_state.ply_move[ply as usize] = m;
 
@@ -1452,7 +1553,7 @@ pub fn search(
                 // does, or this subtree cannot see repetitions correctly and
                 // the position is absent from the stack throughout (NET-367)
                 search_state.history.push(position.zobrist_lock);
-                let score = -search(
+                let score = -search_c960::<C960>(
                     position,
                     probcut_depth,
                     ply + 1,
@@ -1465,7 +1566,7 @@ pub fn search(
                 .1;
                 search_state.history.pop();
 
-                unmake_move_nnue(position, m, &unmake, search_state);
+                unmake_move_nnue_c960::<C960>(position, m, &unmake, search_state);
 
                 if is_stopped(&search_state.stop) {
                     return (pv_single(0), 0);
@@ -1475,7 +1576,7 @@ pub fn search(
                     return (pv_single(0), beta);
                 }
             } else {
-                unmake_move_nnue(position, m, &unmake, search_state);
+                unmake_move_nnue_c960::<C960>(position, m, &unmake, search_state);
             }
         }
     }
@@ -1499,17 +1600,17 @@ pub fn search(
 
         for (m, _) in scored_captures.iter().take(MULTICUT_MOVES_TO_TRY as usize) {
             let old_mover = position.mover;
-            let unmake = make_move_nnue(position, *m, search_state);
+            let unmake = make_move_nnue_c960::<C960>(position, *m, search_state);
             prefetch_hash(position, search_state, hash_mask);
             search_state.ply_move[ply as usize] = *m;
 
             if !is_check(position, old_mover) {
                 // Real-move child: see the probcut note above (NET-367)
                 search_state.history.push(position.zobrist_lock);
-                let score = -search(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0, None).1;
+                let score = -search_c960::<C960>(position, multicut_depth, ply + 1, (-beta, -beta + 1), search_state, false, 0, None).1;
                 search_state.history.pop();
 
-                unmake_move_nnue(position, *m, &unmake, search_state);
+                unmake_move_nnue_c960::<C960>(position, *m, &unmake, search_state);
 
                 if is_stopped(&search_state.stop) {
                     return (pv_single(0), 0);
@@ -1522,7 +1623,7 @@ pub fn search(
                     }
                 }
             } else {
-                unmake_move_nnue(position, *m, &unmake, search_state);
+                unmake_move_nnue_c960::<C960>(position, *m, &unmake, search_state);
             }
         }
     }
@@ -1534,7 +1635,7 @@ pub fn search(
     // same entry, so hash_move == excluded_move here; only the generated move
     // lists were being filtered before, and the excluded move was searched
     // first through this path at every verification.
-    let verified_hash_move = hash_move != 0 && hash_move != excluded_move && verify_move(position, hash_move);
+    let verified_hash_move = hash_move != 0 && hash_move != excluded_move && verify_move_c960::<C960>(position, hash_move);
 
     // Check extension: extend by 1 ply when in check
     let check_extension: u8 = if in_check && (ply as u16) < (search_state.iterative_depth as u16) * 2 {
@@ -1573,7 +1674,7 @@ pub fn search(
 
         // Note: no history push/pop needed here - we're searching from the current position
         // and search() handles history internally for each move it tries
-        let singular_score = search(
+        let singular_score = search_c960::<C960>(
             position,
             singular_depth,
             ply,
@@ -1647,7 +1748,7 @@ pub fn search(
     if verified_hash_move {
         let hash_captured_value = captured_piece_value(position, hash_move);
         let old_mover = position.mover;
-        let unmake = make_move_nnue(position, hash_move, search_state);
+        let unmake = make_move_nnue_c960::<C960>(position, hash_move, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
         search_state.ply_move[ply as usize] = hash_move;
         let hash_is_capture = unmake.captured_piece != CAPTURED_NONE;
@@ -1680,11 +1781,11 @@ pub fn search(
             if cfg!(feature = "search-width-diagnostics") && singular_extension > 0 {
                 search_state.extension_children[3] += 1;
             }
-            let path_score = search_wrapper(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, None);
+            let path_score = search_wrapper::<C960>(hash_search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, None);
             let score = path_score.1;
             let singular_depth = hash_search_depth;
 
-            unmake_move_nnue(position, hash_move, &unmake, search_state);
+            unmake_move_nnue_c960::<C960>(position, hash_move, &unmake, search_state);
             check_time!(search_state);
             if is_stopped(&search_state.stop) {
                 return_node_scratch!();
@@ -1696,7 +1797,7 @@ pub fn search(
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        let result = cutoff_unmake(
+                        let result = cutoff_unmake::<C960>(
                             position,
                             singular_depth,
                             ply,
@@ -1730,7 +1831,7 @@ pub fn search(
                 searched_captures.push((hash_move, hash_captured_value));
             }
         } else {
-            unmake_move_nnue(position, hash_move, &unmake, search_state);
+            unmake_move_nnue_c960::<C960>(position, hash_move, &unmake, search_state);
         }
     }
 
@@ -1807,7 +1908,7 @@ pub fn search(
             if !quiets_added {
                 quiets_added = true;
                 let mut quiets = take_pooled(&mut search_state.node_scratch.search_moves);
-                generate_quiet_moves_into(position, &mut quiets);
+                generate_quiet_moves_into_c960::<C960>(position, &mut quiets);
                 if verified_hash_move {
                     quiets.retain(|m| *m != hash_move);
                 }
@@ -1963,13 +2064,13 @@ pub fn search(
                 if pre_make.certainly_legal_and_quiet(m) {
                     #[cfg(debug_assertions)]
                     {
-                        let unmake = make_move_nnue(position, m, search_state);
+                        let unmake = make_move_nnue_c960::<C960>(position, m, search_state);
                         debug_assert!(!is_check(position, old_mover), "NET-1188: false legality certificate for {m:#x}");
                         debug_assert!(
                             !is_check(position, position.mover),
                             "NET-1188: false no-check certificate for {m:#x}"
                         );
-                        unmake_move_nnue(position, m, &unmake, search_state);
+                        unmake_move_nnue_c960::<C960>(position, m, &unmake, search_state);
                     }
                     legal_move_count += 1;
                     search_state.ply_move[ply as usize] = m;
@@ -1982,7 +2083,7 @@ pub fn search(
             }
         }
 
-        let unmake = make_move_nnue(position, m, search_state);
+        let unmake = make_move_nnue_c960::<C960>(position, m, search_state);
         prefetch_hash(position, search_state, hash_mask); // Prefetch child position's hash entry
                                                           // Track move at this ply for countermove heuristic
         search_state.ply_move[ply as usize] = m;
@@ -2014,7 +2115,7 @@ pub fn search(
                 if cfg!(feature = "search-width-diagnostics") {
                     search_state.pruned_by_reason[1] += 1;
                 }
-                unmake_move_nnue(position, m, &unmake, search_state);
+                unmake_move_nnue_c960::<C960>(position, m, &unmake, search_state);
                 continue;
             }
 
@@ -2044,7 +2145,7 @@ pub fn search(
                 if cfg!(feature = "search-width-diagnostics") {
                     search_state.pruned_by_reason[2] += 1;
                 }
-                unmake_move_nnue(position, m, &unmake, search_state);
+                unmake_move_nnue_c960::<C960>(position, m, &unmake, search_state);
                 continue;
             }
 
@@ -2192,7 +2293,7 @@ pub fn search(
             let path_score = if scout_search {
                 // NET-1194 already clamps lmr to depth - 2 <= search_depth - 2
                 // (checked by the debug_assert above); the min is a guard only
-                lmr_scout_search(
+                lmr_scout_search::<C960>(
                     lmr.min(search_depth - 1),
                     ply,
                     search_state,
@@ -2203,12 +2304,12 @@ pub fn search(
                     lmr_kind,
                 )
             } else {
-                search_wrapper(search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, gives_check_known)
+                search_wrapper::<C960>(search_depth, ply, search_state, (-beta, -alpha), position, 0, 0, gives_check_known)
             };
 
             let score = path_score.1;
 
-            unmake_move_nnue(position, m, &unmake, search_state);
+            unmake_move_nnue_c960::<C960>(position, m, &unmake, search_state);
 
             check_time!(search_state);
             if is_stopped(&search_state.stop) {
@@ -2223,7 +2324,7 @@ pub fn search(
                 if best_pathscore.1 > alpha {
                     alpha = best_pathscore.1;
                     if alpha >= beta {
-                        let result = cutoff_unmake(
+                        let result = cutoff_unmake::<C960>(
                             position,
                             real_depth,
                             ply,
@@ -2259,7 +2360,7 @@ pub fn search(
                 searched_captures.push((m, captured_value));
             }
         } else {
-            unmake_move_nnue(position, m, &unmake, search_state);
+            unmake_move_nnue_c960::<C960>(position, m, &unmake, search_state);
         }
     }
 
@@ -2363,14 +2464,23 @@ pub fn search(
     best_pathscore
 }
 
-#[inline(always)]
+#[inline(never)]
 pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> bool {
+    if position.castling_960 {
+        is_draw_c960::<true>(position, search_state, ply)
+    } else {
+        is_draw_c960::<false>(position, search_state, ply)
+    }
+}
+
+#[inline(always)]
+pub fn is_draw_c960<const C960: bool>(position: &Position, search_state: &mut SearchState, ply: u8) -> bool {
     // Order checks from cheapest to most expensive (short-circuit evaluation)
     // 1. 50-move rule: single comparison except for the rare in-check boundary,
     //    where checkmate must take precedence over a draw claim (NET-225)
     // 2. Repetition: iterates history but usually short
     // 3. Insufficient material: piece counting, only at ply > 6
-    is_fifty_move_draw(position)
+    is_fifty_move_draw::<C960>(position)
         || is_repeat_position(position, search_state)
         || (ply > 6
             && insufficient_material(
@@ -2382,7 +2492,7 @@ pub fn is_draw(position: &Position, search_state: &mut SearchState, ply: u8) -> 
 }
 
 #[inline]
-fn is_fifty_move_draw(position: &Position) -> bool {
+fn is_fifty_move_draw<const C960: bool>(position: &Position) -> bool {
     if position.half_moves < 100 {
         return false;
     }
@@ -2394,9 +2504,9 @@ fn is_fifty_move_draw(position: &Position) -> bool {
         return true;
     }
 
-    for mv in generate_moves(position) {
+    for mv in generate_moves_c960::<C960>(position) {
         let mut child = *position;
-        make_move_in_place(&mut child, mv);
+        make_move_in_place_c960::<C960>(&mut child, mv);
         if !is_check(&child, position.mover) {
             return true;
         }
@@ -2456,7 +2566,7 @@ pub fn pick_high_score_move(move_scores: &mut MoveScoreArray) -> Move {
 
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]
-fn lmr_scout_search(
+fn lmr_scout_search<const C960: bool>(
     lmr: u8,
     ply: u8,
     search_state: &mut SearchState,
@@ -2469,7 +2579,7 @@ fn lmr_scout_search(
     let alpha = window.0;
     let beta = window.1;
     search_state.scout_searches += 1;
-    let mut scout_path = search_wrapper(
+    let mut scout_path = search_wrapper::<C960>(
         real_depth,
         ply,
         search_state,
@@ -2489,7 +2599,7 @@ fn lmr_scout_search(
         if cfg!(feature = "search-width-diagnostics") {
             search_state.lmr_researched_by_kind[lmr_kind] += 1;
         }
-        scout_path = search_wrapper(
+        scout_path = search_wrapper::<C960>(
             real_depth,
             ply,
             search_state,
@@ -2504,12 +2614,12 @@ fn lmr_scout_search(
             // between alpha and beta): the full-depth scout also beat alpha,
             // so get the exact score on the full window
             search_state.research_full_depth += 1;
-            scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check);
+            scout_path = search_wrapper::<C960>(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check);
         }
     } else if scout_path.1 > alpha && scout_path.1 < beta {
         search_state.research_pvs += 1;
         // Not doing a LMR search, but still need to research with a full window
-        scout_path = search_wrapper(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
+        scout_path = search_wrapper::<C960>(real_depth, ply, search_state, (-beta, -alpha), new_position, 0, 0, known_in_check)
     }
 
     scout_path
@@ -2542,7 +2652,7 @@ fn unmake_null_move(position: &mut Position, old_ep: Square) {
 
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]
-fn search_wrapper(
+fn search_wrapper<const C960: bool>(
     depth: u8,
     ply: u8,
     search_state: &mut SearchState,
@@ -2553,7 +2663,7 @@ fn search_wrapper(
     known_in_check: Option<bool>,
 ) -> PathScore {
     search_state.history.push(position.zobrist_lock);
-    let path_score = search(
+    let path_score = search_c960::<C960>(
         position,
         depth - 1 - lmr,
         ply + 1,
@@ -2569,7 +2679,7 @@ fn search_wrapper(
 
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]
-fn cutoff_unmake(
+fn cutoff_unmake<const C960: bool>(
     position: &Position,
     depth: u8,
     ply: u8,
@@ -3008,7 +3118,7 @@ mod search_unit_tests {
         let mut state = crate::types::default_search_state();
         state.history = vec![repeated.zobrist_lock, repeated.zobrist_lock, position.zobrist_lock];
 
-        assert!(root_move_claims_threefold(&mut position, &state, candidate));
+        assert!(root_move_claims_threefold::<false>(&mut position, &state, candidate));
     }
 
     #[test]
@@ -3018,7 +3128,7 @@ mod search_unit_tests {
         let mut state = crate::types::default_search_state();
         state.history = vec![position.zobrist_lock];
 
-        assert!(!root_move_claims_threefold(&mut position, &state, candidate));
+        assert!(!root_move_claims_threefold::<false>(&mut position, &state, candidate));
     }
 
     #[test]

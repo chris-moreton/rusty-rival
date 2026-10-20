@@ -1,27 +1,39 @@
 use crate::fen::algebraic_move_from_move;
-use crate::make_move::{make_move_in_place, unmake_move};
-use crate::moves::{generate_moves, is_check};
+use crate::make_move::{make_move_in_place_c960, unmake_move_c960};
+use crate::moves::{generate_moves_c960, is_check};
 use crate::types::{Move, Position};
 use num_format::{Locale, ToFormattedString};
 use std::time::Instant;
 
+#[inline(never)]
 pub fn perft(position: &mut Position, depth: u8) -> u64 {
     let start = Instant::now();
 
-    return perft_inner(position, depth, depth, start, 0);
+    // The castling form is chosen once, as the search does (NET-1762)
+    return if position.castling_960 {
+        perft_inner::<true>(position, depth, depth, start, 0)
+    } else {
+        perft_inner::<false>(position, depth, depth, start, 0)
+    };
 
-    fn perft_inner(position: &mut Position, depth: u8, start_depth: u8, start_time: Instant, mut total_nodes: u64) -> u64 {
+    fn perft_inner<const C960: bool>(
+        position: &mut Position,
+        depth: u8,
+        start_depth: u8,
+        start_time: Instant,
+        mut total_nodes: u64,
+    ) -> u64 {
         let mut count = 0;
         let mover = position.mover;
 
-        for m in generate_moves(position) {
-            let unmake_info = make_move_in_place(position, m);
+        for m in generate_moves_c960::<C960>(position) {
+            let unmake_info = make_move_in_place_c960::<C960>(position, m);
 
             if !is_check(position, mover) {
                 count += if depth == 0 {
                     1
                 } else {
-                    let nodes = perft_inner(position, depth - 1, start_depth, start_time, total_nodes);
+                    let nodes = perft_inner::<C960>(position, depth - 1, start_depth, start_time, total_nodes);
                     total_nodes += nodes;
                     if depth == start_depth {
                         show_for_move(start_time, total_nodes, m, nodes)
@@ -30,7 +42,7 @@ pub fn perft(position: &mut Position, depth: u8) -> u64 {
                 }
             }
 
-            unmake_move(position, m, &unmake_info);
+            unmake_move_c960::<C960>(position, m, &unmake_info);
         }
 
         count
