@@ -15,6 +15,10 @@ Rusty Rival plays on Lichess as [RustyRival](https://lichess.org/@/RustyRival/pe
 - Ponder: enabled
 - Move Overhead: 0 (handled by lichess-bot at 500ms)
 
+## Watch
+
+Rival Chess has a [YouTube channel](https://www.youtube.com/channel/UCV0MRmw70GV68bJzs9kAR0g) and a set of chess lessons at [rivalchess.com/learn](https://www.rivalchess.com/learn).
+
 ## Features
 
 - NNUE evaluation with embedded network (can fall back to handcrafted evaluation)
