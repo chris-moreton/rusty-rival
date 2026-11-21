@@ -19,6 +19,8 @@ Rusty Rival plays on Lichess as [RustyRival](https://lichess.org/@/RustyRival/pe
 
 Rival Chess has a [YouTube channel](https://www.youtube.com/channel/UCV0MRmw70GV68bJzs9kAR0g) and a set of chess lessons at [rivalchess.com/learn](https://www.rivalchess.com/learn).
 
+The video [How Do Chess Engines Actually Work?](https://www.youtube.com/watch?v=VNDr1Lo2iLo) explains engine internals using Rival, including its magic bitboards and a real castling bug found with perft.
+
 ## Features
 
 - NNUE evaluation with embedded network (can fall back to handcrafted evaluation)
