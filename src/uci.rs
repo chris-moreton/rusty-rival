@@ -1,4 +1,4 @@
-use crate::engine_constants::{HASH_SIZE_MB, TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_SOFT_FACTOR};
+use crate::engine_constants::{HASH_SIZE_MB, TM_DEFAULT_MOVES_TO_GO, TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_SOFT_FACTOR};
 use crate::tablebase::init_tablebase;
 
 use either::{Either, Left, Right};
@@ -950,9 +950,13 @@ fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
 
 fn calc_from_colour_times(uci_state: &mut UciState, millis: u64, inc_millis: u64) {
     if millis > 0 {
-        // When movestogo is not specified (0), assume 30 moves remaining
-        // Previously this used ALL remaining time on the first move!
-        let moves_remaining = if uci_state.moves_to_go == 0 { 30 } else { uci_state.moves_to_go };
+        // When movestogo is not specified (0), assume TM_DEFAULT_MOVES_TO_GO
+        // moves remain. Previously this used ALL remaining time on the first move!
+        let moves_remaining = if uci_state.moves_to_go == 0 {
+            TM_DEFAULT_MOVES_TO_GO
+        } else {
+            uci_state.moves_to_go
+        };
         uci_state.move_time = min(uci_state.move_time, (millis as f64 / (moves_remaining as f64 + 1.0)) as u64);
         uci_state.move_time = (uci_state.move_time as f64 * 0.95) as u64 + inc_millis;
     }

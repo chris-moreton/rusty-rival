@@ -425,6 +425,15 @@ pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 3; // SPSA tuned, Run 14
 
 // Time management constants
 pub const TM_SOFT_FACTOR: f64 = 0.6;
+// Moves assumed to remain when the GUI sends no `movestogo` (NET-2039, TMDIV
+// arm). The clock share per move is 1 / (this + 1) before the soft factor.
+//
+// With the previous value of 30 the engine finished the median 10 s + 0.1 s
+// game with 4.2 s of its 10 s base clock unused, 94% of games with more than a
+// quarter of it, and never fell below 5% (3,000 NET-1759 confirmation games).
+// A shorter horizon spends that reserve in the opening and middlegame. At low
+// clock the increment and the TM_HARD_MAX_FRACTION cap dominate either way.
+pub const TM_DEFAULT_MOVES_TO_GO: u64 = 20;
 pub const TM_HARD_FACTOR: f64 = 2.5;
 pub const TM_HARD_MAX_FRACTION: f64 = 0.25;
 pub const TM_STABILITY_THRESHOLD: u8 = 4;

@@ -253,12 +253,12 @@ pub fn it_returns_a_best_move() {
 #[test]
 pub fn it_respects_the_soft_time_limit() {
     // 60+0.6 bullet — the control the Lichess bot actually plays.
-    //   base = (60000/31) * 0.95 + 600 = 2438ms
-    //   soft = base * 0.6  = 1462ms      <- the budget
-    //   hard = base * 2.5  = 6095ms      <- the emergency ceiling
-    // Pre-fix, this position consumed the full 6095ms.
-    const SOFT_MS: u128 = 1462;
-    const TOLERANCE: u128 = 2; // 2x soft, i.e. 2924ms — less than half of hard
+    //   base = (60000/21) * 0.95 + 600 = 3314ms   (TM_DEFAULT_MOVES_TO_GO = 20)
+    //   soft = base * 0.6  = 1988ms      <- the budget
+    //   hard = base * 2.5  = 8285ms      <- the emergency ceiling
+    // Pre-fix, this position consumed the full hard budget.
+    const SOFT_MS: u128 = 1988;
+    const TOLERANCE: u128 = 2; // 2x soft, i.e. 3976ms — less than half of hard
 
     let mut uci_state = default_uci_state();
     let mut search_state = default_search_state();
@@ -275,7 +275,7 @@ pub fn it_respects_the_soft_time_limit() {
     assert_success_message(result, |message| message.contains("bestmove"));
     assert!(
         millis <= SOFT_MS * TOLERANCE,
-        "search spent {}ms against a soft limit of {}ms ({:.1}x). The hard limit is 6095ms, \
+        "search spent {}ms against a soft limit of {}ms ({:.1}x). The hard limit is 8285ms, \
          so an assertion against `hard` alone would still pass here — that is the bug this \
          test exists to catch (NET-339).",
         millis,
@@ -357,7 +357,7 @@ pub fn it_handles_wtime_and_btime() {
         "go wtime 500 btime 1000 movestogo 1",
         300,
     );
-    // btime=250, movestogo=0 (→30): base=~3ms→10ms, hard=min(25, 62)=25ms
+    // btime=250, movestogo=0 (→20): base=~11ms, hard=min(28, 62)=28ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 250 movestogo 0",
@@ -381,7 +381,7 @@ pub fn it_handles_wtime_and_btime() {
         "go wtime 500 btime 1000 movestogo 1 winc 200 binc 200",
         300,
     );
-    // btime=250, movestogo=0 (→30), binc=200: base=~203ms, hard=min(507, 62)=62ms
+    // btime=250, movestogo=0 (→20), binc=200: base=~211ms, hard=min(527, 62)=62ms
     test_wtime_btime(
         "rnbqkbnr/pppppppp/8/8/PPPPPPPP/8/8/RNBQKBNR b KQkq - 0 1",
         "go wtime 500 btime 250 movestogo 0 winc 50 binc 200",
