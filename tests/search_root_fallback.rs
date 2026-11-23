@@ -16,7 +16,9 @@ fn completed_root_bound_survives_an_interrupted_retry_without_replacing_exact_st
     // interval 280k..460k (Kb3 interrupted fail-high over a completed Kb5 at
     // depth 13/14; 20k sampling, fresh default state, one thread); midpoint
     // 370k. Before NET-1700 (NET-1445 pruning tune): 480k..660k, midpoint 570k.
-    state.nodes_limit = 370_000;
+    // NET-2039 NMPR (null-move base 3): strict interval 400k..520k (depth
+    // 14/15, same sampling), midpoint 460k.
+    state.nodes_limit = 460_000;
     state.end_time = Instant::now() + Duration::from_secs(120);
     let mv = iterative_deepening(&mut get_position(FEN), 100, &mut state, 1);
     assert_eq!(algebraic_move_from_move(mv), "c4b3");

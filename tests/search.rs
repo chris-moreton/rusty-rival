@@ -226,19 +226,22 @@ fn it_recognises_a_draw() {
 
 #[test]
 fn it_calculates_the_null_move_reduced_depth() {
-    assert_eq!(NULL_MOVE_REDUCE_DEPTH_BASE, 2);
-    // At depth 12 the legacy reduction searches depth 7. Each complete 200cp
-    // above beta removes one more ply, capped at two.
-    assert_eq!(null_move_reduced_depth(12, -400), 7);
-    assert_eq!(null_move_reduced_depth(12, 0), 7);
-    assert_eq!(null_move_reduced_depth(12, 199), 7);
-    assert_eq!(null_move_reduced_depth(12, 200), 6);
-    assert_eq!(null_move_reduced_depth(12, 399), 6);
-    assert_eq!(null_move_reduced_depth(12, 400), 5);
-    assert_eq!(null_move_reduced_depth(12, 2_000), 5);
+    assert_eq!(NULL_MOVE_REDUCE_DEPTH_BASE, 3);
+    // At depth 12 the base reduction (3 + 12/6) searches depth 6. Each complete
+    // 200cp above beta removes one more ply, capped at two.
+    assert_eq!(null_move_reduced_depth(12, -400), 6);
+    assert_eq!(null_move_reduced_depth(12, 0), 6);
+    assert_eq!(null_move_reduced_depth(12, 199), 6);
+    assert_eq!(null_move_reduced_depth(12, 200), 5);
+    assert_eq!(null_move_reduced_depth(12, 399), 5);
+    assert_eq!(null_move_reduced_depth(12, 400), 4);
+    assert_eq!(null_move_reduced_depth(12, 2_000), 4);
     // Shallow searches never underflow or enter quiescence directly.
     assert_eq!(null_move_reduced_depth(0, 2_000), 1);
     assert_eq!(null_move_reduced_depth(4, 2_000), 1);
+    assert_eq!(null_move_reduced_depth(5, 0), 1);
+    assert_eq!(null_move_reduced_depth(6, 0), 1);
+    assert_eq!(null_move_reduced_depth(7, 0), 2);
 }
 
 #[test]

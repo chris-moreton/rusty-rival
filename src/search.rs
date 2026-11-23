@@ -1194,10 +1194,10 @@ pub fn is_passed_pawn_push(position: &Position, m: Move) -> bool {
 
 #[inline(always)]
 pub fn null_move_reduced_depth(depth: u8, eval_above_beta: Score) -> u8 {
-    // Rival also uses a failed null search for threat detection, so retain the
-    // existing depth whenever static eval is below beta. For obvious fail-high
-    // candidates, search up to two plies less: conservative relative to the
-    // larger eval-scaled reductions used by Stockfish/Ethereal/Berserk.
+    // Base reduction plus a depth term. For obvious fail-high candidates,
+    // search up to two plies less: conservative relative to the larger
+    // eval-scaled reductions used by Stockfish/Ethereal/Berserk. (The failed
+    // null search no longer feeds threat detection: LMR_THREAT_TERM is off.)
     let eval_reduction = (eval_above_beta.max(0) / 200).min(2) as u8;
     let reduction = NULL_MOVE_REDUCE_DEPTH_BASE + depth / 6 + eval_reduction;
     depth.saturating_sub(1 + reduction).max(1)
