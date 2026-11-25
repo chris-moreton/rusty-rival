@@ -928,7 +928,8 @@ fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
 /// clock: at most remaining/40 for the soft budget and remaining/20 for the
 /// hard one. The budgets are unchanged with 400 ms or more remaining, and
 /// also whenever the allocation is 17 ms or more with 40 ms remaining, which
-/// covers every game with an increment of 27 ms or more.
+/// covers every game with an increment of 40 ms or more (the clock the engine
+/// is sent is then never below 40 ms).
 fn clock_budgets(base_time_ms: u64, time_remaining: u64, increment: u64) -> (u64, u64) {
     if time_remaining == 0 {
         // Clock reported zero (or negative: cutechess sends these near
@@ -1308,7 +1309,7 @@ mod clock_budget_tests {
 
     #[test]
     fn budgets_are_unchanged_when_the_allocation_is_17_ms_or_more() {
-        // Any game with an increment of 27 ms or more: allocation >= increment - 10 >= 17, clock >= increment >= 40.
+        // Any game with an increment of 40 ms or more: allocation >= increment - 10 >= 30, clock >= increment >= 40.
         for remaining in 40..400 {
             for base in [17, 20, 90, 104, 500] {
                 assert_eq!(
