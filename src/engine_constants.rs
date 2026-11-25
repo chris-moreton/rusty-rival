@@ -436,6 +436,12 @@ pub const TM_SOFT_FACTOR: f64 = 0.6;
 pub const TM_DEFAULT_MOVES_TO_GO: u64 = 20;
 pub const TM_HARD_FACTOR: f64 = 2.5;
 pub const TM_HARD_MAX_FRACTION: f64 = 0.25;
+/// Low-clock guard (NET-2039): the soft and hard budget floors are
+/// `TM_BUDGET_FLOOR_MS`, reduced to remaining/40 and remaining/20 when the clock
+/// is too short to afford it, so the floor cannot overspend the clock.
+pub const TM_BUDGET_FLOOR_MS: u64 = 10;
+pub const TM_LOW_CLOCK_SOFT_DIVISOR: u64 = 40;
+pub const TM_LOW_CLOCK_HARD_DIVISOR: u64 = 20;
 pub const TM_STABILITY_THRESHOLD: u8 = 4;
 pub const TM_SCORE_DROP_THRESHOLD: Score = 50;
 pub const TM_SCORE_DROP_EXTEND: f64 = 1.5;
