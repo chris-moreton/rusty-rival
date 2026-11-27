@@ -425,8 +425,29 @@ pub const KNIGHT_ATTACKS_PAWN_GENERAL_BONUS: Score = 3; // SPSA tuned, Run 14
 
 // Time management constants
 pub const TM_SOFT_FACTOR: f64 = 0.6;
+// Moves assumed to remain when the GUI sends no `movestogo` (NET-2039, TMDIV
+// arm). The clock share per move is 1 / (this + 1) before the soft factor.
+//
+// With the previous value of 30 the engine finished the median 10 s + 0.1 s
+// game with 4.2 s of its 10 s base clock unused, 94% of games with more than a
+// quarter of it, and never fell below 5% (3,000 NET-1759 confirmation games).
+// A shorter horizon spends that reserve in the opening and middlegame. At low
+// clock the increment and the TM_HARD_MAX_FRACTION cap dominate either way.
+pub const TM_DEFAULT_MOVES_TO_GO: u64 = 20;
 pub const TM_HARD_FACTOR: f64 = 2.5;
 pub const TM_HARD_MAX_FRACTION: f64 = 0.25;
+/// Low-clock guard (NET-2039): the soft and hard budget floors are
+/// `TM_BUDGET_FLOOR_MS`, reduced to remaining/40 and remaining/20 when the clock
+/// is too short to afford it, so the floor cannot overspend the clock.
+pub const TM_BUDGET_FLOOR_MS: u64 = 10;
+pub const TM_LOW_CLOCK_SOFT_DIVISOR: u64 = 40;
+pub const TM_LOW_CLOCK_HARD_DIVISOR: u64 = 20;
+/// Root tablebase shortcut guard (NET-2039): with less than this many
+/// milliseconds on the clock the root Syzygy lookup is skipped and the normal
+/// search plays the move under the low-clock budgets. The lookup reads the
+/// tablebase files and cannot be interrupted; lookups of 45 to 788 ms were
+/// measured on a busy host, and at 5+0 they lost won endings on time.
+pub const TM_ROOT_TB_MIN_CLOCK_MS: u64 = 250;
 pub const TM_STABILITY_THRESHOLD: u8 = 4;
 pub const TM_SCORE_DROP_THRESHOLD: Score = 50;
 pub const TM_SCORE_DROP_EXTEND: f64 = 1.5;

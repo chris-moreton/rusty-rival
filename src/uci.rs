@@ -1,4 +1,7 @@
-use crate::engine_constants::{HASH_SIZE_MB, TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_SOFT_FACTOR};
+use crate::engine_constants::{
+    HASH_SIZE_MB, TM_BUDGET_FLOOR_MS, TM_DEFAULT_MOVES_TO_GO, TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_LOW_CLOCK_HARD_DIVISOR,
+    TM_LOW_CLOCK_SOFT_DIVISOR, TM_ROOT_TB_MIN_CLOCK_MS, TM_SOFT_FACTOR,
+};
 use crate::tablebase::init_tablebase;
 
 use either::{Either, Left, Right};
@@ -261,28 +264,14 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
             };
 
             if movetime.is_none() && clock_present {
-                let (soft_ms, hard_ms) = if time_remaining == 0 {
-                    // Zero/negative clock: emergency budget, not the 10M default.
-                    let emergency = (increment / 2).clamp(10, 50);
-                    (emergency, emergency)
-                } else {
-                    (
-                        max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64),
-                        max(
-                            10,
-                            min(
-                                (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
-                                (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
-                            ),
-                        ),
-                    )
-                };
+                let (soft_ms, hard_ms) = clock_budgets(base_time_ms, time_remaining, increment);
 
                 let now = Instant::now();
                 search_state.end_time = now.add(Duration::from_millis(hard_ms));
                 search_state.soft_time_limit = now.add(Duration::from_millis(soft_ms));
                 search_state.original_soft_time_limit = search_state.soft_time_limit;
                 search_state.time_management_active = true;
+                search_state.root_tb_probe_allowed = root_tb_probe_allowed(true, time_remaining);
             } else {
                 // Exact deadline: explicit movetime, or no clock at all.
                 let end = Instant::now().add(Duration::from_millis(uci_state.move_time));
@@ -290,6 +279,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
                 search_state.soft_time_limit = end;
                 search_state.original_soft_time_limit = end;
                 search_state.time_management_active = false;
+                search_state.root_tb_probe_allowed = true;
             }
 
             let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state, 1);
@@ -644,25 +634,7 @@ fn cmd_go(
             };
 
             if movetime.is_none() && clock_present {
-                let (soft_ms, hard_ms) = if time_remaining == 0 {
-                    // Clock reported zero (or negative — cutechess sends these
-                    // near flag-fall with timemargin): emergency budget. Falling
-                    // through to the 10,000,000ms default here searched for ~2.8
-                    // hours and forfeited otherwise-winnable increment games.
-                    let emergency = (increment / 2).clamp(10, 50);
-                    (emergency, emergency)
-                } else {
-                    (
-                        max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64),
-                        max(
-                            10,
-                            min(
-                                (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
-                                (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
-                            ),
-                        ),
-                    )
-                };
+                let (soft_ms, hard_ms) = clock_budgets(base_time_ms, time_remaining, increment);
 
                 if is_ponder {
                     let end = Instant::now().add(Duration::from_secs(86400));
@@ -706,6 +678,17 @@ fn cmd_go(
 
     // Clone position for the search thread
     let position = get_position(uci_state.fen.trim());
+
+    // tm_active is true only for a clock-managed, non-ponder search, which is
+    // the only kind that takes the root tablebase shortcut.
+    let root_tb_probe = root_tb_probe_allowed(
+        tm_active,
+        if position.mover == WHITE {
+            uci_state.wtime
+        } else {
+            uci_state.btime
+        },
+    );
 
     // Fallback move (first legal move, else "0000") printed if the search thread
     // panics, so a search bug never leaves the engine silent → time forfeit.
@@ -781,6 +764,7 @@ fn cmd_go(
         thread_search_state.soft_time_limit = soft_time_limit;
         thread_search_state.original_soft_time_limit = soft_time_limit;
         thread_search_state.time_management_active = tm_active;
+        thread_search_state.root_tb_probe_allowed = root_tb_probe;
         thread_search_state.stop = stop_flag.clone();
         thread_search_state.stop_reason = stop_reason.clone();
         thread_search_state.shared_nodes = shared_nodes.clone();
@@ -948,11 +932,63 @@ fn format_bestmove(mv: u32, search_state: &SearchState) -> String {
     format!("bestmove {}", bestmove)
 }
 
+/// Soft and hard search budgets in milliseconds for a clocked `go`.
+///
+/// The budgets have a floor so the search stays useful when the allocation
+/// rounds down to almost nothing. A fixed 10 ms floor is a larger share of the
+/// clock the shorter the clock gets: in sudden death it drains the last 400 ms
+/// at 10 ms a move and then overspends (NET-2039 audit finding F1; 21 time
+/// forfeits in 400 strict-clock games at 5+0). So the floor shrinks with the
+/// clock: at most remaining/40 for the soft budget and remaining/20 for the
+/// hard one. The budgets are unchanged with 400 ms or more remaining, and
+/// also whenever the allocation is 17 ms or more with 40 ms remaining, which
+/// covers every game with an increment of 40 ms or more (the clock the engine
+/// is sent is then never below 40 ms).
+fn clock_budgets(base_time_ms: u64, time_remaining: u64, increment: u64) -> (u64, u64) {
+    if time_remaining == 0 {
+        // Clock reported zero (or negative: cutechess sends these near
+        // flag-fall with timemargin): emergency budget. Falling through to the
+        // 10,000,000ms default here searched for ~2.8 hours and forfeited
+        // otherwise-winnable increment games.
+        let emergency = (increment / 2).clamp(10, 50);
+        return (emergency, emergency);
+    }
+    let soft_floor = (time_remaining / TM_LOW_CLOCK_SOFT_DIVISOR).clamp(1, TM_BUDGET_FLOOR_MS);
+    let hard_floor = (time_remaining / TM_LOW_CLOCK_HARD_DIVISOR).clamp(1, TM_BUDGET_FLOOR_MS);
+    // The go handler floors the allocation itself at 10 ms; on a short clock
+    // that floor has to shrink as well, or it keeps both budgets up.
+    let base_time_ms = if base_time_ms <= TM_BUDGET_FLOOR_MS {
+        min(base_time_ms, soft_floor)
+    } else {
+        base_time_ms
+    };
+    let soft = max(soft_floor, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64);
+    let hard = max(
+        hard_floor,
+        min(
+            (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
+            (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
+        ),
+    );
+    (soft, hard)
+}
+
+/// Whether the root tablebase shortcut may be used for this move: always for a
+/// search that is not managed by the clock, otherwise only with at least
+/// `TM_ROOT_TB_MIN_CLOCK_MS` on the mover's clock.
+fn root_tb_probe_allowed(clock_managed: bool, time_remaining: u64) -> bool {
+    !clock_managed || time_remaining >= TM_ROOT_TB_MIN_CLOCK_MS
+}
+
 fn calc_from_colour_times(uci_state: &mut UciState, millis: u64, inc_millis: u64) {
     if millis > 0 {
-        // When movestogo is not specified (0), assume 30 moves remaining
-        // Previously this used ALL remaining time on the first move!
-        let moves_remaining = if uci_state.moves_to_go == 0 { 30 } else { uci_state.moves_to_go };
+        // When movestogo is not specified (0), assume TM_DEFAULT_MOVES_TO_GO
+        // moves remain. Previously this used ALL remaining time on the first move!
+        let moves_remaining = if uci_state.moves_to_go == 0 {
+            TM_DEFAULT_MOVES_TO_GO
+        } else {
+            uci_state.moves_to_go
+        };
         uci_state.move_time = min(uci_state.move_time, (millis as f64 / (moves_remaining as f64 + 1.0)) as u64);
         uci_state.move_time = (uci_state.move_time as f64 * 0.95) as u64 + inc_millis;
     }
@@ -1256,5 +1292,84 @@ mod root_result_tests {
         assert_eq!(format_bestmove(state.current_best.0[0], &state), "bestmove e2e4");
         state.interrupted_best = None;
         assert_eq!(format_bestmove(state.current_best.0[0], &state), "bestmove e2e4 ponder e7e5");
+    }
+}
+
+#[cfg(test)]
+mod clock_budget_tests {
+    use super::*;
+
+    /// The budgets exactly as v1.0.79 computed them (fixed 10 ms floors).
+    fn old_budgets(base_time_ms: u64, time_remaining: u64) -> (u64, u64) {
+        (
+            max(10, (base_time_ms as f64 * TM_SOFT_FACTOR) as u64),
+            max(
+                10,
+                min(
+                    (base_time_ms as f64 * TM_HARD_FACTOR) as u64,
+                    (time_remaining as f64 * TM_HARD_MAX_FRACTION) as u64,
+                ),
+            ),
+        )
+    }
+
+    #[test]
+    fn budgets_are_unchanged_with_400_ms_or_more_on_the_clock() {
+        for remaining in (400..3_000).chain((3_000..600_000).step_by(997)) {
+            for base in [0, 1, 9, 10, 11, 57, 250, 1_988, 30_000, remaining / 2, remaining] {
+                for increment in [0, 30, 100, 2_000] {
+                    assert_eq!(
+                        clock_budgets(base, remaining, increment),
+                        old_budgets(base, remaining),
+                        "base {base} remaining {remaining}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn budgets_are_unchanged_when_the_allocation_is_17_ms_or_more() {
+        // Any game with an increment of 40 ms or more: allocation >= increment - 10 >= 30, clock >= increment >= 40.
+        for remaining in 40..400 {
+            for base in [17, 20, 90, 104, 500] {
+                assert_eq!(
+                    clock_budgets(base, remaining, 100),
+                    old_budgets(base, remaining),
+                    "base {base} remaining {remaining}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn budgets_scale_with_a_short_clock() {
+        for remaining in 1..400 {
+            // 10 is the smallest allocation the go handler passes in.
+            let (soft, hard) = clock_budgets(10, remaining, 0);
+            assert!(soft * 40 <= max(40, remaining), "remaining {remaining} soft {soft}");
+            assert!(hard <= max(2, remaining / 10), "remaining {remaining} hard {hard}");
+            assert!(soft >= 1 && hard >= soft);
+        }
+        assert_eq!(clock_budgets(10, 200, 0), (5, 12));
+        assert_eq!(clock_budgets(10, 40, 0), (1, 2));
+        assert_eq!(clock_budgets(10, 8, 0), (1, 2));
+    }
+
+    #[test]
+    fn root_tablebase_shortcut_needs_250_ms_on_the_clock() {
+        assert!(!root_tb_probe_allowed(true, 0));
+        assert!(!root_tb_probe_allowed(true, 249));
+        assert!(root_tb_probe_allowed(true, 250));
+        assert!(root_tb_probe_allowed(true, 300_000));
+        // Not clock-managed (movetime, depth, nodes, infinite, ponder): unchanged.
+        assert!(root_tb_probe_allowed(false, 0));
+        assert!(root_tb_probe_allowed(false, 100));
+    }
+
+    #[test]
+    fn zero_clock_keeps_the_emergency_budget() {
+        assert_eq!(clock_budgets(10, 0, 0), (10, 10));
+        assert_eq!(clock_budgets(10, 0, 100), (50, 50));
     }
 }
