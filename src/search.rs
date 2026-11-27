@@ -552,7 +552,9 @@ pub fn iterative_deepening_c960<const C960: bool>(
     // unsolicited bestmove (UCI violation / desync — e.g. Ponder + SyzygyPath on
     // Lichess into any ≤6-man position). Those searches fall through to the normal
     // search, which still handles the TB position correctly and respects stop.
-    if search_state.time_management_active && tablebase_available() && can_probe(position) {
+    // Skipped on a very short clock (root_tb_probe_allowed): the lookup cannot be
+    // interrupted and can outlast the clock.
+    if search_state.time_management_active && search_state.root_tb_probe_allowed && tablebase_available() && can_probe(position) {
         if let Some((uci_move, best_score)) = probe_root_move(position) {
             let best_move = crate::utils::hydrate_move_from_algebraic_move(position, uci_move);
 

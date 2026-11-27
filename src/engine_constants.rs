@@ -442,6 +442,12 @@ pub const TM_HARD_MAX_FRACTION: f64 = 0.25;
 pub const TM_BUDGET_FLOOR_MS: u64 = 10;
 pub const TM_LOW_CLOCK_SOFT_DIVISOR: u64 = 40;
 pub const TM_LOW_CLOCK_HARD_DIVISOR: u64 = 20;
+/// Root tablebase shortcut guard (NET-2039): with less than this many
+/// milliseconds on the clock the root Syzygy lookup is skipped and the normal
+/// search plays the move under the low-clock budgets. The lookup reads the
+/// tablebase files and cannot be interrupted; lookups of 45 to 788 ms were
+/// measured on a busy host, and at 5+0 they lost won endings on time.
+pub const TM_ROOT_TB_MIN_CLOCK_MS: u64 = 250;
 pub const TM_STABILITY_THRESHOLD: u8 = 4;
 pub const TM_SCORE_DROP_THRESHOLD: Score = 50;
 pub const TM_SCORE_DROP_EXTEND: f64 = 1.5;

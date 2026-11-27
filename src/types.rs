@@ -634,6 +634,9 @@ pub struct SearchState {
     /// origin for info/nps output.
     pub budget_origin: Instant,
     pub time_management_active: bool,
+    /// False when the clock is too short for the uninterruptible root
+    /// tablebase lookup (`TM_ROOT_TB_MIN_CLOCK_MS`).
+    pub root_tb_probe_allowed: bool,
     pub pondering: Arc<AtomicBool>,
     pub ponder_soft_ms: Arc<AtomicU64>,
     pub ponder_hard_ms: Arc<AtomicU64>,
@@ -821,6 +824,7 @@ impl Clone for SearchState {
             budget_origin: self.budget_origin,
             prev_score: self.prev_score,
             time_management_active: self.time_management_active,
+            root_tb_probe_allowed: self.root_tb_probe_allowed,
             pondering: Arc::clone(&self.pondering),
             ponder_soft_ms: Arc::clone(&self.ponder_soft_ms),
             ponder_hard_ms: Arc::clone(&self.ponder_hard_ms),
@@ -997,6 +1001,7 @@ pub fn default_search_state() -> SearchState {
         root_move_nodes: Vec::new(),
         budget_origin: Instant::now(),
         time_management_active: false,
+        root_tb_probe_allowed: true,
         pondering: Arc::new(AtomicBool::new(false)),
         ponder_soft_ms: Arc::new(AtomicU64::new(0)),
         ponder_hard_ms: Arc::new(AtomicU64::new(0)),

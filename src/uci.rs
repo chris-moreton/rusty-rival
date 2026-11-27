@@ -1,6 +1,6 @@
 use crate::engine_constants::{
     HASH_SIZE_MB, TM_BUDGET_FLOOR_MS, TM_DEFAULT_MOVES_TO_GO, TM_HARD_FACTOR, TM_HARD_MAX_FRACTION, TM_LOW_CLOCK_HARD_DIVISOR,
-    TM_LOW_CLOCK_SOFT_DIVISOR, TM_SOFT_FACTOR,
+    TM_LOW_CLOCK_SOFT_DIVISOR, TM_ROOT_TB_MIN_CLOCK_MS, TM_SOFT_FACTOR,
 };
 use crate::tablebase::init_tablebase;
 
@@ -271,6 +271,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
                 search_state.soft_time_limit = now.add(Duration::from_millis(soft_ms));
                 search_state.original_soft_time_limit = search_state.soft_time_limit;
                 search_state.time_management_active = true;
+                search_state.root_tb_probe_allowed = root_tb_probe_allowed(true, time_remaining);
             } else {
                 // Exact deadline: explicit movetime, or no clock at all.
                 let end = Instant::now().add(Duration::from_millis(uci_state.move_time));
@@ -278,6 +279,7 @@ fn cmd_go_sync(uci_state: &mut UciState, search_state: &mut SearchState, parts: 
                 search_state.soft_time_limit = end;
                 search_state.original_soft_time_limit = end;
                 search_state.time_management_active = false;
+                search_state.root_tb_probe_allowed = true;
             }
 
             let mv = iterative_deepening(&mut position, uci_state.depth as u8, search_state, 1);
@@ -677,6 +679,17 @@ fn cmd_go(
     // Clone position for the search thread
     let position = get_position(uci_state.fen.trim());
 
+    // tm_active is true only for a clock-managed, non-ponder search, which is
+    // the only kind that takes the root tablebase shortcut.
+    let root_tb_probe = root_tb_probe_allowed(
+        tm_active,
+        if position.mover == WHITE {
+            uci_state.wtime
+        } else {
+            uci_state.btime
+        },
+    );
+
     // Fallback move (first legal move, else "0000") printed if the search thread
     // panics, so a search bug never leaves the engine silent → time forfeit.
     let fallback_move = {
@@ -751,6 +764,7 @@ fn cmd_go(
         thread_search_state.soft_time_limit = soft_time_limit;
         thread_search_state.original_soft_time_limit = soft_time_limit;
         thread_search_state.time_management_active = tm_active;
+        thread_search_state.root_tb_probe_allowed = root_tb_probe;
         thread_search_state.stop = stop_flag.clone();
         thread_search_state.stop_reason = stop_reason.clone();
         thread_search_state.shared_nodes = shared_nodes.clone();
@@ -957,6 +971,13 @@ fn clock_budgets(base_time_ms: u64, time_remaining: u64, increment: u64) -> (u64
         ),
     );
     (soft, hard)
+}
+
+/// Whether the root tablebase shortcut may be used for this move: always for a
+/// search that is not managed by the clock, otherwise only with at least
+/// `TM_ROOT_TB_MIN_CLOCK_MS` on the mover's clock.
+fn root_tb_probe_allowed(clock_managed: bool, time_remaining: u64) -> bool {
+    !clock_managed || time_remaining >= TM_ROOT_TB_MIN_CLOCK_MS
 }
 
 fn calc_from_colour_times(uci_state: &mut UciState, millis: u64, inc_millis: u64) {
@@ -1333,6 +1354,17 @@ mod clock_budget_tests {
         assert_eq!(clock_budgets(10, 200, 0), (5, 12));
         assert_eq!(clock_budgets(10, 40, 0), (1, 2));
         assert_eq!(clock_budgets(10, 8, 0), (1, 2));
+    }
+
+    #[test]
+    fn root_tablebase_shortcut_needs_250_ms_on_the_clock() {
+        assert!(!root_tb_probe_allowed(true, 0));
+        assert!(!root_tb_probe_allowed(true, 249));
+        assert!(root_tb_probe_allowed(true, 250));
+        assert!(root_tb_probe_allowed(true, 300_000));
+        // Not clock-managed (movetime, depth, nodes, infinite, ponder): unchanged.
+        assert!(root_tb_probe_allowed(false, 0));
+        assert!(root_tb_probe_allowed(false, 100));
     }
 
     #[test]
