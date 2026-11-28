@@ -25,7 +25,12 @@ pub const BETA_PRUNE_MAX_DEPTH: u8 = 12; // SPSA tuned, Run 20
 pub const NUM_KILLER_MOVES: usize = 2;
 
 pub const NULL_MOVE_MIN_DEPTH: u8 = 4; // SPSA tuned, Run 19
-pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 2;
+
+// NET-2039 (NMPR arm): 2 -> 3. The base had never been raised: NET-1160 added
+// only the eval-scaled term and kept 2 so that below-beta null searches could
+// still detect threats, a use that ended when LMR_THREAT_TERM was switched off.
+// Peers use 4 (Ethereal, Berserk).
+pub const NULL_MOVE_REDUCE_DEPTH_BASE: u8 = 3;
 
 // Threat extension: if null move search returns a score this much below alpha,
 // the opponent has a significant threat that warrants deeper search
